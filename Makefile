@@ -1,0 +1,26 @@
+BUILD_ENV=
+BUILD_DIR=$(abspath build_package)
+SRC_DIR=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
+all: build
+
+.PHONY: build
+build: JOBS=$(filter -j%,$(MAKEFLAGS))
+build:
+	@mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && $(BUILD_ENV) cmake -DCMAKE_INSTALL_PREFIX=$(TURING_HOME) $(SRC_DIR) && make -s $(JOBS) && make install
+
+.PHONY: debug
+debug: BUILD_ENV += DEBUG_BUILD=1
+debug: build
+
+.PHONY: clean
+clean:
+
+check-env:
+ifndef TURING_HOME
+	$(error TURING_HOME is not defined, please configure your environment.)
+endif
+
+.PHONY: test
+test:
+	cd $(BUILD_DIR) && make -s test

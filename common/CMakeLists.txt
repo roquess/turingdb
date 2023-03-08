@@ -1,0 +1,14 @@
+
+set(common_sources
+        StringBuffer.cpp
+        CmdParser.cpp
+        BannerDisplay.cpp
+        FileUtils.cpp
+        BioAssert.cpp)
+
+add_library(common_s STATIC ${common_sources})
+target_include_directories(common_s PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(common_s PRIVATE ${BUILD_INFO_INCLUDE_DIR})
+
+target_link_libraries(common_s
+    ${Boost_LIBRARIES})
