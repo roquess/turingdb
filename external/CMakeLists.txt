@@ -3,4 +3,4 @@ add_subdirectory(linenoise)
 add_subdirectory(nlohmann_json)
 
 set(neo4j_archive $ENV{TURING}/neo4j/neo4j-3.5.30.tar.gz)
-install(FILES ${neo4j_archive} NAMELINK_ONLY DESTINATION share)
+#install(FILES ${neo4j_archive} NAMELINK_ONLY DESTINATION share)
