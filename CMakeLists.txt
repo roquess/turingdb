@@ -57,6 +57,7 @@ add_subdirectory(db)
 #add_subdirectory(demo)
 add_subdirectory(formats)
 add_subdirectory(import)
+add_subdirectory(sgc)
 add_subdirectory(tools)
 add_subdirectory(test)
 
