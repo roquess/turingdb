@@ -4,7 +4,7 @@
 
 #include "BioLog.h"
 
-#define BIOCAULDRON_TOOL_NAME     "biocauldron"
+#define BIOCAULDRON_TOOL_NAME     "cauldron"
 
 using namespace ui;
 using namespace Log;

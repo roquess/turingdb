@@ -10,13 +10,18 @@ class Message;
 
 class BioLog {
 public:
-    static void init(const std::string& logFile);
+    static void init();
+    static void openFile(const std::string& file);
+
+    static BioLog* getInstance();
 
     static void log(const Message& msg);
     static void echo(const std::string& str);
     static void printSummary();
 
     static void destroy();
+
+    bool isOk() const;
 
 private:
     BioLog();

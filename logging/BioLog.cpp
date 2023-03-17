@@ -17,13 +17,22 @@ BioLog::BioLog()
 {
 }
 
-void BioLog::init(const std::string& logFile) {
+void BioLog::init() {
     if (_instance) {
         return;
     }
 
     _instance = new BioLog();
-    _instance->open(logFile);
+}
+
+void BioLog::openFile(const std::string& file) {
+    if (_instance) {
+        _instance->open(file);
+    }
+}
+
+bool BioLog::isOk() const {
+    return (_errorCount >= 1) || (_fatalCount >= 1);
 }
 
 void BioLog::open(const std::string& logFile) {
@@ -44,6 +53,11 @@ void BioLog::destroy() {
         delete _instance;
     }
     _instance = nullptr;
+}
+
+BioLog* BioLog::getInstance() {
+    bioassert(_instance);
+    return _instance;
 }
 
 void BioLog::log(const Message& msg) {

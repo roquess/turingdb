@@ -1,12 +1,16 @@
 #include "ToolInit.h"
 
+#include "FileUtils.h"
 #include "BannerDisplay.h"
+
 #include "BioLog.h"
+#include "MsgCommon.h"
 
 using namespace Log;
 
 ToolInit::ToolInit(const std::string& toolName)
-    : _toolName(toolName)
+    : _toolName(toolName),
+    _toolDir(toolName+".out")
 {
 }
 
@@ -14,17 +18,28 @@ ToolInit::~ToolInit() {
 }
 
 void ToolInit::init() {
-    // Get tool directory path
+    BioLog::init();
+
     if (_toolDir.empty()) {
         _toolDir = std::filesystem::current_path();
-    } else {
-        _toolDir = std::filesystem::absolute(_toolDir);
     }
 
-    // Check that tool directory exists
-    if (!std::filesystem::exists(_toolDir)) {
-        std::filesystem::create_directory(_toolDir);
+    if (files::exists(_toolDir)) {
+        if (!files::isDirectory(_toolDir)) {
+            BioLog::log(msg::ERROR_NOT_A_DIRECTORY() << _toolDir.string());
+            exit(EXIT_FAILURE);
+            return;
+        }
+    } else {
+        const bool createRes = files::createDirectory(_toolDir);
+        if (!createRes) {
+            BioLog::log(msg::ERROR_FAILED_TO_CREATE_DIRECTORY() << _toolDir.string());
+            exit(EXIT_FAILURE);
+            return;
+        }
     }
+
+    _toolDir = std::filesystem::absolute(_toolDir);
 
     // Get outputs and reports path
     _outputsDir = _toolDir/"outputs";
@@ -38,7 +53,7 @@ void ToolInit::init() {
 
     // Init logging
     const auto logFilePath = _reportsDir/(_toolName + ".log");
-    BioLog::init(logFilePath.string());
+    BioLog::openFile(logFilePath.string());
 
     BioLog::echo(BannerDisplay::getBannerString());
 }

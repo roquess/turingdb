@@ -9,7 +9,7 @@
 
 #include "BioLog.h"
 
-#define BIOIMPORT_TOOL_NAME     "bioimport"
+#define BIOIMPORT_TOOL_NAME     "import"
 
 using namespace Log;
 
