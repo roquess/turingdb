@@ -5,7 +5,7 @@
 
 namespace msg {
 
-MSG_FATAL(FATAL_FAILED_TO_CREATE_DIRECTORY, 1001,
+MSG_ERROR(ERROR_FAILED_TO_CREATE_DIRECTORY, 1001,
     "Failed to create directory '$0'")
 
 MSG_ERROR(ERROR_DIRECTORY_NOT_EXISTS, 1002,
@@ -28,6 +28,9 @@ MSG_ERROR(ERROR_FAILED_TO_OPEN_FOR_WRITE, 1007,
 
 MSG_FATAL(FATAL_NO_TCL_INTERP, 1008,
     "Failed to create Tcl interpreter.")
+
+MSG_ERROR(ERROR_NOT_A_DIRECTORY, 1009,
+    "The file '$0' was expected to be a directory.")
 
 }
 

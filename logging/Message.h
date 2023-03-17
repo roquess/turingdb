@@ -15,9 +15,9 @@ public:                                             \
 #define MSG_ERROR(Name, Code, MsgStr) DEFINE_MESSAGE(Name, ERROR, Code, MsgStr)
 #define MSG_INFO(Name, Code, MsgStr) DEFINE_MESSAGE(Name, INFO, Code, MsgStr)
 
-// MsgCommon 1000
-// MsgImport 2000
-// MsgDB 3000
+// MsgCommon    1000
+// MsgImport    2000
+// MsgUIServer  3000
 
 namespace Log {
 

@@ -58,6 +58,6 @@ add_subdirectory(db)
 add_subdirectory(formats)
 add_subdirectory(import)
 add_subdirectory(sgc)
+add_subdirectory(ui)
 add_subdirectory(tools)
 add_subdirectory(test)
-

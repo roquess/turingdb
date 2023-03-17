@@ -28,3 +28,11 @@ bool files::copy(const files::Path& from, const files::Path& to) {
         return false;
     }
 }
+
+bool files::isDirectory(const Path& path) {
+    try {
+        return std::filesystem::is_directory(path);
+    } catch (const std::filesystem::filesystem_error& e) {
+        return false;
+    }
+}

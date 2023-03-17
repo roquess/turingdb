@@ -11,6 +11,7 @@ bool exists(const Path& path);
 bool createDirectory(const Path& path);
 bool removeDirectory(const Path& path);
 bool copy(const Path& from, const Path& to);
+bool isDirectory(const Path& path);
 
 }
 
