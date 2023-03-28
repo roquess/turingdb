@@ -10,12 +10,6 @@ execute_process(COMMAND git rev-parse HEAD
 execute_process(COMMAND date +%s
     OUTPUT_VARIABLE BUILD_TIMESTAMP)
 
-# Get branch
-execute_process(COMMAND git rev-parse --abbrev-ref HEAD
-                OUTPUT_VARIABLE GIT_BRANCH
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-message(STATUS "Current branch is ${GIT_BRANCH}")
 message(STATUS "Last commit hash: ${HEAD_COMMIT_HASH}")
 
 # ========== Time Bomb settings =================
