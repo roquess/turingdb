@@ -9,7 +9,7 @@
 
 #include "BioLog.h"
 
-#define BIOIMPORT_TOOL_NAME     "import"
+#define BIOIMPORT_TOOL_NAME     "bioimport"
 
 using namespace Log;
 
@@ -94,9 +94,9 @@ void extract() {
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, const char** argv) {
     ToolInit toolInit(BIOIMPORT_TOOL_NAME);
-    toolInit.init();
+    toolInit.init(argc, argv);
 
     neo4jImport(toolInit.getOutputsDir());
     //extract();

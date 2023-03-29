@@ -4,6 +4,8 @@
 #include <string>
 #include <filesystem>
 
+#include "ArgParser.h"
+
 class ToolInit {
 public:
     using Path = std::filesystem::path;
@@ -13,7 +15,7 @@ public:
 
     void setToolDir(const Path& path) { _toolDir = path; }
 
-    void init();
+    void init(int argc, const char** argv);
 
     const Path& getToolDir() const { return _toolDir; }
     const Path& getOutputsDir() const { return _outputsDir; }
@@ -24,6 +26,7 @@ private:
     Path _toolDir;
     Path _outputsDir;
     Path _reportsDir;
+    ArgParser _argParser;
 };
 
 #endif

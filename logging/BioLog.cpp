@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <cctype>
-#include <unistd.h>
 #include <sstream>
 
 #include "Message.h"
@@ -42,26 +41,6 @@ void BioLog::open(const std::string& logFile) {
         exit(EXIT_FAILURE);
         return;
     }
-
-    const int stdoutRes = dup(STDOUT_FILENO);
-    if (stdoutRes < 0) {
-        std::cerr << "ERROR: failed to manipulate standard output stream.\n";
-        exit(EXIT_FAILURE);
-        return;
-    }
-
-    const int stderrRes = dup(STDERR_FILENO);
-    if (stderrRes < 0) {
-        std::cerr << "ERROR: failed to manipulate standard error stream.\n";
-        exit(EXIT_FAILURE);
-        return;
-    }
-
-    _stdoutFd = stdoutRes;
-    _stderrFd = stderrRes;
-
-    ::close(STDOUT_FILENO);
-    ::close(STDERR_FILENO);
 }
 
 void BioLog::close() {
@@ -98,10 +77,7 @@ void BioLog::echo(const std::string& str, bool newline) {
 
 void BioLog::print(const std::string& str) {
     _outStream << str;
-    const int writeRes = write(_stdoutFd, str.c_str(), str.size());
-    if (writeRes < 0) {
-        _outStream << "ERROR: BioLog failed to write string to standard output.\n";
-    }
+    std::cout << str;
 }
 
 void BioLog::emit(const Message& msg) {
@@ -194,5 +170,4 @@ void BioLog::_printSummary() {
 
 void BioLog::flush() {
     _outStream.flush();
-    fsync(_stdoutFd);
 }

@@ -35,8 +35,6 @@ private:
     static BioLog* _instance;
 
     std::ofstream _outStream;
-    int _stdoutFd {-1};
-    int _stderrFd {-1};
 
     size_t _errorCount {0};
     size_t _fatalCount {0};

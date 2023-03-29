@@ -10,14 +10,15 @@ using namespace Log;
 
 ToolInit::ToolInit(const std::string& toolName)
     : _toolName(toolName),
-    _toolDir(toolName+".out")
+    _toolDir(toolName+".out"),
+    _argParser(toolName)
 {
 }
 
 ToolInit::~ToolInit() {
 }
 
-void ToolInit::init() {
+void ToolInit::init(int argc, const char** argv) {
     BioLog::init();
 
     if (_toolDir.empty()) {
@@ -56,4 +57,6 @@ void ToolInit::init() {
     BioLog::openFile(logFilePath.string());
 
     BioLog::echo(BannerDisplay::getBannerString());
+
+    _argParser.parse(argc, argv);
 }

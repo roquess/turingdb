@@ -4,14 +4,14 @@
 
 #include "BioLog.h"
 
-#define BIOCAULDRON_TOOL_NAME     "cauldron"
+#define BIOCAULDRON_TOOL_NAME     "biocauldron"
 
 using namespace ui;
 using namespace Log;
 
 int main(int argc, const char** argv) {
     ToolInit toolInit(BIOCAULDRON_TOOL_NAME);
-    toolInit.init();
+    toolInit.init(argc, argv);
 
     TuringUIServer server(toolInit.getOutputsDir());
     server.start();

@@ -1,5 +1,7 @@
 
-set(tools_common_s  ToolInit.cpp)
+set(tools_common_s
+        ToolInit.cpp
+        ArgParser.cpp)
 
 add_library(tools_common_s STATIC ${tools_common_s})
 
