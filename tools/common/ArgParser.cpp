@@ -54,6 +54,8 @@ void ArgParser::parse(int argc, const char** argv) {
                 const bool expectsArg = foundIt->second._expectArg;
                 if (expectsArg) {
                     inOption = true;
+                } else {
+                    _options.emplace_back(optionName, "");
                 }
             }
         } else {

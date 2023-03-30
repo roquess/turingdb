@@ -8,6 +8,9 @@
 
 class ArgParser {
 public:
+    using Args = std::vector<std::string>;
+    using Options = std::vector<std::pair<std::string, std::string>>;
+
     ArgParser(const std::string& toolName);
     ~ArgParser();
 
@@ -17,6 +20,9 @@ public:
                    bool expectsArg);
 
     void parse(int argc, const char** argv);
+
+    const Args& args() const { return _args; }
+    const Options& options() const { return _options; }
 
 private:
     struct Option {
@@ -35,8 +41,8 @@ private:
     std::string _toolName;
     std::string _argsDesc;
     std::map<std::string, Option> _optionMap;
-    std::vector<std::pair<std::string, std::string>> _options;
-    std::vector<std::string> _args;
+    Options _options;
+    Args _args;
 
     void printHelp() const;
     void handleUnknownOption(const std::string& name) const;

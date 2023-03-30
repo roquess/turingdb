@@ -20,6 +20,8 @@ public:
     const Path& getOutputsDir() const { return _outputsDir; }
     const Path& getReportsDir() const { return _reportsDir; }
 
+    ArgParser& getArgParser() { return _argParser; }
+
 private:
     const std::string _toolName;
     Path _outputsDir;

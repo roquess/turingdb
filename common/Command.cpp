@@ -82,10 +82,11 @@ bool Command::run() {
             return false;
         }
 
-        const std::string scriptCmd = "sh " + _scriptPath.string();
-        _returnCode = system(scriptCmd.c_str());
+        const std::string bashCmd = "bash " + _scriptPath.string();
+        _returnCode = system(bashCmd.c_str());
     } else {
-        _returnCode = system(cmdStr.c_str());
+        const std::string bashCmd = "bash -c '" + cmdStr + "'";
+        _returnCode = system(bashCmd.c_str());
     }
 
     return true;
@@ -105,7 +106,7 @@ bool Command::searchCmd() {
 void Command::generateCmdString(std::string& cmdStr) {
     cmdStr = "cd '";
     cmdStr += _workingDir.string();
-    cmdStr += "' && ";
+    cmdStr += "'; ";
     cmdStr += _cmd;
     cmdStr += " ";
     
@@ -115,7 +116,15 @@ void Command::generateCmdString(std::string& cmdStr) {
         cmdStr += "'";
     }
 
-    cmdStr += " > '";
-    cmdStr += _logFile.string();
-    cmdStr += "' 2>&1";
+    if (_stdoutEnabled) {
+        cmdStr += " 2>&1 | tee '";
+        cmdStr += _logFile.string();
+        cmdStr += "'";
+    } else {
+        cmdStr += " > '";
+        cmdStr += _logFile.string();
+        cmdStr += "' 2>&1";
+    }
+
+    cmdStr += "; exit ${PIPESTATUS[0]}";
 }

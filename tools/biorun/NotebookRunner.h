@@ -1,0 +1,35 @@
+#ifndef _NOTEBOOK_RUNNER_
+#define _NOTEBOOK_RUNNER_
+
+#include <filesystem>
+#include <vector>
+
+class NotebookRunner {
+public:
+    using Path = std::filesystem::path;
+    using Notebooks = std::vector<Path>;
+
+    NotebookRunner(const Path& outDir);
+    ~NotebookRunner();
+
+    void setQuiet(bool quiet) { _silent = quiet; }
+    void setExportHTML(bool enable) { _exportHTML = enable; }
+    void setExportPDF(bool enable) { _exportPDF = enable; }
+
+    void addNotebook(const Path& path);
+
+    bool run();
+
+private:
+    Path _outDir;
+    Notebooks _notebooks;
+    bool _silent {false};
+    bool _exportHTML {false};
+    bool _exportPDF {false};
+
+    bool runNotebook(const Path& path);
+    bool executeNotebook(const Path& path);
+    bool exportNotebook(const Path& path, const std::string& toDest);
+};
+
+#endif

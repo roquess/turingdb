@@ -17,6 +17,7 @@ public:
     void setScriptPath(const Path& path);
     void setGenerateScript(bool enable) { _generateScript = enable; }
     void setWriteLogFile(bool enable) { _writeLogFile = enable; }
+    void setWriteOnStdout(bool enable) { _stdoutEnabled = enable; }
 
     void addArg(const std::string& arg);
 
@@ -32,6 +33,7 @@ private:
     Path _scriptPath;
     bool _generateScript {true};
     bool _writeLogFile {true};
+    bool _stdoutEnabled {false};
     int _returnCode {-1};
 
     bool searchCmd();

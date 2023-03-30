@@ -44,6 +44,9 @@ MSG_ERROR(ERROR_FAILED_TO_WRITE_COMMAND_SCRIPT, 1012,
 MSG_ERROR(ERROR_FAILED_TO_WRITE_FILE, 1013,
           "Writing file '$0' failed.")
 
+MSG_ERROR(ERROR_FILE_NOT_EXISTS, 1014,
+          "The file '$0' does not exist.")
+
 }
 
 #endif
