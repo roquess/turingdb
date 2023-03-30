@@ -2,7 +2,6 @@
 set(common_sources
         Command.cpp
         StringBuffer.cpp
-        CmdParser.cpp
         BannerDisplay.cpp
         FileUtils.cpp
         BioAssert.cpp)
