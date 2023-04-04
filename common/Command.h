@@ -4,6 +4,7 @@
 #include <string>
 #include <filesystem>
 #include <vector>
+#include <utility>
 
 class Command {
 public:
@@ -13,6 +14,8 @@ public:
     ~Command();
 
     void setWorkingDir(const Path& path);
+    void setEnvVar(const std::string& var, const std::string& value);
+
     void setLogFile(const Path& path);
     void setScriptPath(const Path& path);
     void setGenerateScript(bool enable) { _generateScript = enable; }
@@ -27,6 +30,7 @@ public:
 
 private:
     std::string _cmd;
+    std::vector<std::pair<std::string, std::string>> _env;
     std::vector<std::string> _args;
     Path _workingDir;
     Path _logFile;

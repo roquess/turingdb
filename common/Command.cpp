@@ -33,6 +33,10 @@ void Command::setScriptPath(const Path& path) {
     _scriptPath = path;
 }
 
+void Command::setEnvVar(const std::string& var, const std::string& value) {
+    _env.emplace_back(var, value);
+}
+
 bool Command::run() {
     // Working directory
     if (_workingDir.empty()) {
@@ -107,6 +111,14 @@ void Command::generateCmdString(std::string& cmdStr) {
     cmdStr = "cd '";
     cmdStr += _workingDir.string();
     cmdStr += "'; ";
+
+    for (const auto& envEntry : _env) {
+        cmdStr += envEntry.first;
+        cmdStr += "='";
+        cmdStr += envEntry.second;
+        cmdStr += "' ";
+    }
+
     cmdStr += _cmd;
     cmdStr += " ";
     
