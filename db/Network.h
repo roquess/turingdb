@@ -5,19 +5,17 @@
 
 #include <vector>
 
+#include "ComponentStorage.h"
 #include "StringRef.h"
 
 namespace db {
 
 class DB;
 class Node;
-class Edge;
 
 class Network {
 public:
     friend DB;
-    friend Node;
-    friend Edge;
     using Networks = std::vector<Network*>;
     using Nodes = std::vector<Node*>;
 
@@ -27,8 +25,6 @@ public:
 
     const Networks& subNetworks() const { return _subNets; }
 
-    const Nodes& nodes() const { return _nodes; }
-
     static Network* create(DB* db, StringRef displayName);
     static Network* create(DB* db, Network* parent, StringRef displayName);
 
@@ -36,13 +32,13 @@ private:
     StringRef _displayName;
     Network* _parent {nullptr};
     Networks _subNets;
+    ComponentStorage _compStorage;
     Nodes _nodes;
 
     Network(StringRef displayName);
     ~Network();
     void setParent(Network* parent);
     void addSubNet(Network* subNet);
-    void addNode(Node* node);
 };
 
 }

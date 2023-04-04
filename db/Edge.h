@@ -5,27 +5,19 @@
 
 namespace db {
 
-class Node;
-class EdgeType;
+class Component;
 class DB;
 
 class Edge {
 public:
-    friend DB;
-
-    EdgeType* getType() const { return _type; }
-
-    Node* getSource() const { return _source; }
-    Node* getTarget() const { return _target; }
-
-    static Edge* create(DB* db, EdgeType* type, Node* source, Node* target);
+    Component* getSource() const { return _source; }
+    Component* getTarget() const { return _target; }
 
 private:
-    EdgeType* _type {nullptr};
-    Node* _source {nullptr};
-    Node* _target {nullptr};
+    Component* _source {nullptr};
+    Component* _target {nullptr};
 
-    Edge(EdgeType* type, Node* source, Node* target);
+    Edge(Component* source, Component* target);
     ~Edge();
 };
 

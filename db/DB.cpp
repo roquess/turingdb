@@ -4,9 +4,6 @@
 
 #include "Network.h"
 #include "ValueType.h"
-#include "Edge.h"
-#include "NodeType.h"
-#include "EdgeType.h"
 
 using namespace db;
 
@@ -38,16 +35,4 @@ StringRef DB::getString(const std::string& str) {
 
 void DB::addNetwork(Network* net) {
     _networks.push_back(net);
-}
-
-void DB::addEdge(Edge* link) {
-    _edges.push_back(link);
-}
-
-void DB::addNodeType(NodeType* nodeType) {
-    _nodeTypes.push_back(nodeType);
-}
-
-void DB::addEdgeType(EdgeType* edgeType) {
-    _edgeTypes.push_back(edgeType);
 }

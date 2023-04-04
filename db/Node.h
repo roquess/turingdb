@@ -3,31 +3,24 @@
 #ifndef _DB_NODE_
 #define _DB_NODE_
 
+#include <vector>
+
 namespace db {
 
-class Network;
 class NodeType;
-class Edge;
+class Component;
 
 class Node {
 public:
-    friend Network;
-    friend Edge;
-
     NodeType* getType() const { return _type; }
-
-    Network* getNetwork() const { return _net; }
-
-    static Node* create(Network* net, NodeType* type);
 
 private:
     NodeType* _type {nullptr};
-    Network* _net {nullptr};
+    Component* _base {nullptr};
+    std::vector<Component*> _components;
 
-    Node(Network* net, NodeType* type);
+    Node(NodeType* type);
     ~Node();
-    void addInEdge(Edge* edge);
-    void addOutEdge(Edge* edge);
 };
 
 }

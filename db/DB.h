@@ -11,18 +11,11 @@ namespace db {
 
 class ValueType;
 class Network;
-class Edge;
-class NodeType;
-class EdgeType;
 
 class DB {
 public:
     friend Network;
-    friend Edge;
-    friend NodeType;
-    friend EdgeType;
     using Networks = std::vector<Network*>;
-    using Edges = std::vector<Edge*>;
 
     ~DB();
 
@@ -38,14 +31,8 @@ public:
     ValueType* getString() const { return _string; }
 
 private:
-    using NodeTypes = std::vector<NodeType*>;
-    using EdgeTypes = std::vector<EdgeType*>;
-
     StringIndex _strIndex;
     Networks _networks;
-    Edges _edges;
-    NodeTypes _nodeTypes;
-    EdgeTypes _edgeTypes;
 
     ValueType* _int {nullptr};
     ValueType* _unsigned {nullptr};
@@ -55,9 +42,6 @@ private:
 
     DB();
     void addNetwork(Network* net);
-    void addEdge(Edge* edge);
-    void addNodeType(NodeType* nodeType);
-    void addEdgeType(EdgeType* edgeType);
 };
 
 }
