@@ -4,18 +4,10 @@
 
 using namespace db;
 
-Network::Network(StringRef displayName)
-    : _displayName(displayName)
+Network::Network(StringRef name)
+    : _name(name)
 {
 }
 
 Network::~Network() {
-}
-
-void Network::setParent(Network* parent) {
-    _parent = parent;
-}
-
-void Network::addSubNet(Network* subnet) {
-    _subNets.push_back(subnet);
 }

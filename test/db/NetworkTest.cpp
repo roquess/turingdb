@@ -4,26 +4,34 @@
 
 #include "DB.h"
 #include "Network.h"
-#include "NodeType.h"
-#include "Node.h"
-#include "EdgeType.h"
-#include "Edge.h"
+#include "Writeback.h"
 
 using namespace db;
 
 TEST(NetworkTest, createEmpty) {
     DB* db = DB::create();
 
-    Network* net = Network::create(db, db->getString("my net"));
+    Writeback wb(db);
+    Network* net = wb.createNetwork(db->getString("my net"));
     ASSERT_TRUE(net);
-    EXPECT_EQ(net->getDisplayName(), db->getString("my net"));
-    EXPECT_TRUE(net->nodes().empty());
-    EXPECT_TRUE(net->subNetworks().empty());
-    EXPECT_FALSE(net->getParent());
+    EXPECT_EQ(net->getName(), db->getString("my net"));
 
     delete db;
 }
 
+TEST(NetworkTest, createEmptyNameCollision) {
+    DB* db = DB::create();
+
+    Writeback wb(db);
+    Network* net = wb.createNetwork(db->getString("my net"));
+    ASSERT_TRUE(net);
+    Network* net2 = wb.createNetwork(db->getString("my net"));
+    ASSERT_FALSE(net2);
+
+    delete db;
+}
+
+/*
 TEST(NetworkTest, ppiCXCL14) {
     DB* db = DB::create();
 
@@ -74,3 +82,4 @@ TEST(NetworkTest, ppiCXCL14) {
 
     delete db;
 }
+*/

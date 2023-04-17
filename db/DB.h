@@ -1,21 +1,21 @@
 // Copyright 2023 Turing Biosystems Ltd.
 
-#ifndef _DB_DB_
-#define _DB_DB_
+#pragma once
 
-#include <vector>
+#include <map>
 
 #include "StringIndex.h"
+#include "StringRef.h"
 
 namespace db {
 
 class ValueType;
 class Network;
+class Writeback;
 
 class DB {
 public:
-    friend Network;
-    using Networks = std::vector<Network*>;
+    friend Writeback;
 
     ~DB();
 
@@ -30,9 +30,11 @@ public:
     ValueType* getDecimal() const { return _decimal; }
     ValueType* getString() const { return _string; }
 
+    Network* getNetwork(StringRef name) const;
+
 private:
     StringIndex _strIndex;
-    Networks _networks;
+    std::map<StringRef, Network*, StringRef::Comparator> _networks;
 
     ValueType* _int {nullptr};
     ValueType* _unsigned {nullptr};
@@ -45,5 +47,3 @@ private:
 };
 
 }
-
-#endif

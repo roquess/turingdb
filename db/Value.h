@@ -1,7 +1,6 @@
 // Copyright 2023 Turing Biosystems Ltd.
 
-#ifndef _DB_VALUE_
-#define _DB_VALUE_
+#pragma once
 
 #include <variant>
 #include <stdint.h>
@@ -41,5 +40,3 @@ private:
 };
 
 }
-
-#endif

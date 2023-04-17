@@ -1,7 +1,6 @@
 // Copyright 2023 Turing Biosystems Ltd.
 
-#ifndef _DB_STRING_INDEX_
-#define _DB_STRING_INDEX_
+#pragma once
 
 #include <string>
 #include <unordered_map>
@@ -22,5 +21,3 @@ private:
 };
 
 }
-
-#endif

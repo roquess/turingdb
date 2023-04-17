@@ -1,11 +1,8 @@
 // Copyright 2023 Turing Biosystems Ltd.
 
-#ifndef _DB_VALUE_TYPE_
-#define _DB_VALUE_TYPE_
+#pragma once
 
 namespace db {
-
-class DB;
 
 class ValueType {
 public:
@@ -20,16 +17,14 @@ public:
     ValueType(ValueKind);
 
     ValueKind getKind() const { return _kind; }
-    bool isInt() const { return false; }
-    bool isUnsigned() const { return false; }
-    bool isBool() const { return false; }
-    bool isDecimal() const { return false; }
-    bool isString() const { return false; }
+    bool isInt() const { return _kind == VK_INT; }
+    bool isUnsigned() const { return _kind == VK_UNSIGNED; }
+    bool isBool() const { return _kind == VK_BOOL; }
+    bool isDecimal() const { return _kind == VK_DECIMAL; }
+    bool isString() const { return _kind == VK_STRING; }
 
 private:
     ValueKind _kind;
 };
 
 }
-
-#endif

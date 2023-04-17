@@ -2,8 +2,8 @@
 
 #include "DB.h"
 
-#include "Network.h"
 #include "ValueType.h"
+#include "Network.h"
 
 using namespace db;
 
@@ -34,5 +34,14 @@ StringRef DB::getString(const std::string& str) {
 }
 
 void DB::addNetwork(Network* net) {
-    _networks.push_back(net);
+    _networks[net->getName()] = net;
+}
+
+Network* DB::getNetwork(StringRef name) const {
+    const auto foundIt = _networks.find(name);
+    if (foundIt == _networks.end()) {
+        return nullptr;
+    }
+
+    return foundIt->second;
 }

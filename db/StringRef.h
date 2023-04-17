@@ -1,7 +1,6 @@
 // Copyright 2023 Turing Biosystems Ltd.
 
-#ifndef _DB_STRING_REF_
-#define _DB_STRING_REF_
+#pragma once
 
 #include <utility>
 
@@ -54,5 +53,3 @@ private:
 };
 
 }
-
-#endif
