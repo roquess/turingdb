@@ -9,6 +9,8 @@ class Network;
 class Node;
 class NodeType;
 class ComponentType;
+class ValueType;
+class Property;
 
 class Writeback {
 public:
@@ -21,6 +23,10 @@ public:
 
     NodeType* createNodeType(StringRef name);
     ComponentType* createComponentType(StringRef name);
+
+    Property* addProperty(ComponentType* compType,
+                          StringRef name,
+                          ValueType* valType);
 
 private:
     DB* _db {nullptr};

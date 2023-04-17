@@ -5,6 +5,7 @@
 #include "Node.h"
 #include "NodeType.h"
 #include "ComponentType.h"
+#include "Property.h"
 
 using namespace db;
 
@@ -57,4 +58,21 @@ ComponentType* Writeback::createComponentType(StringRef name) {
     _db->addComponentType(compType);
 
     return compType;
+}
+
+Property* Writeback::addProperty(ComponentType* compType,
+                                 StringRef name,
+                                 ValueType* valType) {
+    if (!compType || !valType) {
+        return nullptr;
+    }
+
+    if (compType->getProperty(name)) {
+        return nullptr;
+    }
+
+    Property* prop = new Property(name, valType, compType);
+    compType->addProperty(prop);
+
+    return prop;
 }

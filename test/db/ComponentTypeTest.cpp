@@ -5,6 +5,7 @@
 #include "DB.h"
 #include "Writeback.h"
 #include "ComponentType.h"
+#include "Property.h"
 
 using namespace db;
 
@@ -29,6 +30,28 @@ TEST(ComponentTypeTest, createEmptyNameCollision) {
     ASSERT_TRUE(type1);
     ComponentType* type2 = wb.createComponentType(db->getString(compName));
     ASSERT_FALSE(type2);
+
+    delete db;
+}
+
+TEST(ComponentTypeTest, addProperty) {
+    DB* db = DB::create();
+    Writeback wb(db);
+
+    const std::string compName = "Metabolite";
+    ComponentType* compType = wb.createComponentType(db->getString(compName));
+    ASSERT_TRUE(compType);
+
+    Property* mass = wb.addProperty(compType,
+                                    db->getString("mass"),
+                                    db->getDecimal());
+    ASSERT_TRUE(mass);
+    ASSERT_EQ(mass->getName(), db->getString("mass"));
+
+    Property* mass2 = wb.addProperty(compType,
+                                     db->getString("mass"),
+                                     db->getDecimal());
+    ASSERT_FALSE(mass2);
 
     delete db;
 }
