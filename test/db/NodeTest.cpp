@@ -8,7 +8,7 @@
 
 using namespace db;
 
-TEST(NodeTest, createEmpty) {
+TEST(NodeTest, create1) {
     DB* db = DB::create();
     Writeback wb(db);
 

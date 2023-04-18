@@ -20,6 +20,9 @@ target_link_libraries(db_network_test PRIVATE turing_db_s gtest_main)
 add_executable(db_node_test NodeTest.cpp)
 target_link_libraries(db_node_test PRIVATE turing_db_s gtest_main)
 
+add_executable(db_edge_test EdgeTest.cpp)
+target_link_libraries(db_edge_test PRIVATE turing_db_s gtest_main)
+
 add_executable(db_component_type_test ComponentTypeTest.cpp)
 target_link_libraries(db_component_type_test PRIVATE turing_db_s gtest_main)
 
