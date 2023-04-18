@@ -11,11 +11,14 @@ namespace db {
 
 class NodeType;
 class NodeDescriptor;
+class Property;
 class Writeback;
 
 class Node {
 public:
     friend Writeback;
+
+    Value getProperty(const Property* prop) const;
 
 private:
     NodeDescriptor* _desc {nullptr};
@@ -23,6 +26,7 @@ private:
 
     Node(NodeDescriptor* desc);
     ~Node();
+    void setDescriptor(NodeDescriptor* desc);
 };
 
 }

@@ -20,6 +20,7 @@ public:
     Network* createNetwork(StringRef name);
 
     Node* createNode(Network* net, NodeType* type);
+    bool addComponent(Node* node, ComponentType* compType);
 
     NodeType* createNodeType(StringRef name);
     ComponentType* createComponentType(StringRef name);

@@ -14,3 +14,7 @@ NodeType::NodeType(StringRef name)
 
 NodeType::~NodeType() {
 }
+
+ComponentType* NodeType::getBaseComponent() const {
+    return _rootDesc->getBaseComponent();
+}

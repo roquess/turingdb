@@ -6,6 +6,7 @@
 #include "NodeType.h"
 #include "ComponentType.h"
 #include "Property.h"
+#include "NodeDescriptor.h"
 
 using namespace db;
 
@@ -38,13 +39,43 @@ Node* Writeback::createNode(Network* net, NodeType* type) {
     return node;
 }
 
+bool Writeback::addComponent(Node* node, ComponentType* compType) {
+    if (!node || !compType) {
+        return false;
+    }
+
+    NodeDescriptor* nodeDesc = node->_desc;
+    if (nodeDesc->hasComponent(compType)) {
+        return false;
+    }
+
+    NodeDescriptor* newDesc = nodeDesc->getOrCreateChild(compType);
+    node->setDescriptor(newDesc);
+
+    newDesc->addComponent(compType);
+
+    return true;
+}
+
 NodeType* Writeback::createNodeType(StringRef name) {
     if (_db->getNodeType(name)) {
         return nullptr;
     }
 
+    // Create base component
+    ComponentType* baseComp = createComponentType(name);
+    if (!baseComp) {
+        return nullptr;
+    }
+
+    // Create node type
     NodeType* nodeType = new NodeType(name);
     _db->addNodeType(nodeType);
+
+    // Add base component
+    NodeDescriptor* rootDesc = nodeType->_rootDesc;
+    rootDesc->setBaseComponent(baseComp);
+    rootDesc->addComponent(baseComp);
 
     return nodeType;
 }

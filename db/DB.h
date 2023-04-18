@@ -26,11 +26,11 @@ public:
     StringRef getString(const std::string& str);
 
     // Value types
-    ValueType* getInt() const { return _int; }
-    ValueType* getUnsigned() const { return _unsigned; }
-    ValueType* getBool() const { return _bool; }
-    ValueType* getDecimal() const { return _decimal; }
-    ValueType* getString() const { return _string; }
+    ValueType* getIntType() const { return _int; }
+    ValueType* getUnsignedType() const { return _unsigned; }
+    ValueType* getBoolType() const { return _bool; }
+    ValueType* getDecimalType() const { return _decimal; }
+    ValueType* getStringType() const { return _string; }
 
     NodeType* getNodeType(StringRef name) const;
     ComponentType* getComponentType(StringRef name) const;
