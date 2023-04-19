@@ -1,3 +1,1 @@
-
-add_subdirectory(row)
 add_subdirectory(gmldump)

@@ -8,8 +8,10 @@
 
 using namespace db;
 
-Node::Node(NodeDescriptor* desc)
-    : _desc(desc)
+Node::Node(DBIndex index, NodeDescriptor* desc, Network* net)
+    : DBObject(index),
+    _desc(desc),
+    _net(net)
 {
 }
 

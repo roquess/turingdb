@@ -3,3 +3,4 @@ include(GoogleTest)
 
 add_subdirectory(db)
 add_subdirectory(import)
+add_subdirectory(formats)

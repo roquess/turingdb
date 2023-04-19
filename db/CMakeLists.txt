@@ -2,6 +2,8 @@
 set(db_sources 
             DB.cpp
             Network.cpp
+            DBObject.cpp
+            DBIndex.cpp
             Node.cpp
             NodeDescriptor.cpp
             Property.cpp
@@ -15,6 +17,10 @@ set(db_sources
             EdgeType.cpp
 
             Writeback.cpp
+
+            NetworkAccessor.cpp
+            NetworkNodeRange.cpp
+            NetworkEdgeRange.cpp
 
             StringIndex.cpp
             SharedString.cpp

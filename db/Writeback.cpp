@@ -25,7 +25,8 @@ Network* Writeback::createNetwork(StringRef name) {
         return nullptr;
     }
 
-    Network* net = new Network(name);
+    const DBIndex::ID netID = _db->allocNetworkID();
+    Network* net = new Network(netID, name);
     _db->addNetwork(net);
     return net;
 }
@@ -35,7 +36,8 @@ Node* Writeback::createNode(Network* net, NodeType* type) {
         return nullptr;
     }
 
-    Node* node = new Node(type->_rootDesc);
+    const DBIndex nodeIndex = net->allocNodeIndex();
+    Node* node = new Node(nodeIndex, type->_rootDesc, net);
     net->addNode(node);
 
     return node;
@@ -67,6 +69,14 @@ Edge* Writeback::createEdge(EdgeType* type, Node* source, Node* target) {
     Edge* edge = new Edge(type, source, target);
     source->addOutEdge(edge);
     target->addInEdge(edge);
+
+    Network* sourceNet = source->getNetwork();
+    Network* targetNet = target->getNetwork();
+    sourceNet->addEdge(edge);
+    if (sourceNet != targetNet) {
+        targetNet->addEdge(edge);
+    }
+
     return edge;
 }
 

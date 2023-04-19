@@ -6,6 +6,7 @@
 
 #include "StringIndex.h"
 #include "StringRef.h"
+#include "DBIndex.h"
 
 namespace db {
 
@@ -41,6 +42,7 @@ public:
 
 private:
     StringIndex _strIndex;
+    DBIndex::ID _nextFreeNetID {0};
     std::map<StringRef, Network*, StringRef::Comparator> _networks;
     std::map<StringRef, NodeType*, StringRef::Comparator> _nodeTypes;
     std::map<StringRef, EdgeType*, StringRef::Comparator> _edgeTypes;
@@ -53,6 +55,7 @@ private:
     ValueType* _string {nullptr};
 
     DB();
+    DBIndex::ID allocNetworkID();
     void addNetwork(Network* net);
     void addNodeType(NodeType* nodeType);
     void addEdgeType(EdgeType* edgeType);

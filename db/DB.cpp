@@ -36,6 +36,12 @@ StringRef DB::getString(const std::string& str) {
     return _strIndex.getString(str);
 }
 
+DBIndex::ID DB::allocNetworkID() {
+    const DBIndex::ID netID = _nextFreeNetID;
+    _nextFreeNetID++;
+    return netID;
+}
+
 void DB::addNetwork(Network* net) {
     _networks[net->getName()] = net;
 }
