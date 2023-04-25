@@ -1,4 +1,11 @@
 build-job:
   stage: build
+  before-script:
+    - eval $(ssh-agent -s)
+    - chmod 400 "$GIT_PRIVATE_KEY"
+    - ssh-add "$GIT_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H 'gitlab.turing.bio' >> ~/.ssh/known_hosts
   script:
     - echo "Hello, $GITLAB_USER_LOGIN!"
