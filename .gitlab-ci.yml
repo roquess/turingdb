@@ -7,6 +7,7 @@ build-job:
     - source /turing/setup.sh
     - make -j4
     - make test
+    - release/check_python.sh
   artifacts:
     when: always
     paths:
