@@ -30,4 +30,4 @@ endif
 
 .PHONY: test
 test:
-	cd $(BUILD_DIR) && make -s test
+	cd $(BUILD_DIR) && ctest --output-junit ../unit_tests.xml --force-new-ctest-process 

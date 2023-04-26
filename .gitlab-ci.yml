@@ -6,7 +6,7 @@ build-job:
   script:
     - source /turing/setup.sh
     - make -j4
-    - GTEST_OUTPUT="xml:$(pwd)/unit_tests.xml" make test
+    - make test
   artifacts:
     when: always
     paths:
