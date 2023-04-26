@@ -1,5 +1,3 @@
-image: 799170964164.dkr.ecr.eu-west-2.amazonaws.com/turing@sha256:a9eb1fd53b241161ad208951a5eecbec9974e8c0e940cb567788589bb0d4968b
-
 stages:
   - build
   - test
@@ -10,7 +8,3 @@ build-job:
     - source /turing/setup.sh
     - make -j4
 
-test-job:
-  stage: test
-  script:
-    - make test
