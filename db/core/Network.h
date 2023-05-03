@@ -20,12 +20,12 @@ public:
     friend NetworkNodeRange;
     friend NetworkEdgeRange;
     friend Writeback;
-    using Nodes = std::vector<Node*>;
-    using Edges = std::vector<Edge*>;
 
     StringRef getName() const { return _name; }
 
 private:
+    using Nodes = std::vector<Node*>;
+    using Edges = std::vector<Edge*>;
     DBIndex::ID _id;
     StringRef _name;
     Nodes _nodes;

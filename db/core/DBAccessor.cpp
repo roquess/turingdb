@@ -2,7 +2,7 @@
 
 using namespace db;
 
-DBAccessor::DBAccessor(DB* db)
+DBAccessor::DBAccessor(const DB* db)
     : _db(db)
 {
 }
