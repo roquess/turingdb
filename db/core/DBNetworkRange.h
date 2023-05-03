@@ -2,18 +2,16 @@
 
 #include "Range.h"
 
-#include "StringRef.h"
+#include "DB.h"
 
 namespace db {
 
-class DB;
 class DBAccessor;
-class Network;
 
 class DBNetworkRange {
 public:
     friend DBAccessor;
-    using BaseRange = STLValueMapRange<StringRef, Network*>;
+    using BaseRange = STLIndexRange<DB::Networks>;
     using Iterator = BaseRange::Iterator;
 
     bool empty() const { return _range.empty(); }

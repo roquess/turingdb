@@ -3,10 +3,24 @@
 #pragma once
 
 #include <stddef.h>
-#include <map>
+#include <iterator>
+
+template <class ElementType>
+class IteratorBase {
+public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type = ElementType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = ElementType*;
+    using reference = ElementType&;
+
+protected:
+    IteratorBase() = default;
+    ~IteratorBase() = default;
+};
 
 template <class STLType>
-class STLRangeIterator {
+class STLRangeIterator : public IteratorBase<typename STLType::value_type> {
 public:
     using STLTypeIterator = typename STLType::const_iterator;
 
@@ -47,7 +61,7 @@ public:
     using Iterator = STLRangeIterator<STLType>;
     using ValueType = typename STLType::value_type;
 
-    STLRange() = default;
+    STLRange() = delete;
 
     STLRange(const STLType* container)
         : _container(container)
@@ -72,69 +86,61 @@ private:
     const STLType* _container {nullptr};
 };
 
-template <class KeyType, class ValueType>
-class STLValueMapIterator {
+template <class STLIndexType>
+class STLIndexIterator : public IteratorBase<typename STLIndexType::mapped_type> {
 public:
-    using STLMap = std::map<KeyType, ValueType>;
-    using STLMapIterator = typename STLMap::const_iterator;
-    using iterator_category = std::input_iterator_tag;
-    using value_type = ValueType;
-    using difference_type = std::ptrdiff_t;
-    using pointer = ValueType*;
-    using reference = ValueType&;
-
-    STLValueMapIterator() = delete;
-    STLValueMapIterator(const STLMap* map, bool beginOrEnd)
-        : _map(map)
+    STLIndexIterator() = delete;
+    STLIndexIterator(const STLIndexType* container, bool beginOrEnd)
+        : _container(container)
     {
-        if (_map) {
-            _it = beginOrEnd ? _map->begin() : _map->end();
+        if (_container) {
+            _it = beginOrEnd ? _container->begin() : _container->end();
         }
     }
 
     bool isValid() const {
-        return _it != _map->end();
+        return _it != _container->end();
     }
 
-    ValueType operator*() const { return (*_it).second; }
+    typename STLIndexType::mapped_type operator*() const { return (*_it).second; }
 
-    bool operator==(const STLValueMapIterator& other) const {
+    bool operator==(const STLIndexIterator& other) const {
         return this->_it == other._it;
     }
 
-    bool operator!=(const STLValueMapIterator& other) const {
+    bool operator!=(const STLIndexIterator& other) const {
         return !(*this == other);
     }
 
-    STLValueMapIterator& operator++() { ++_it; return *this; }
+    STLIndexIterator& operator++() { ++_it; return *this; }
 
 private:
-    const STLMap* _map {nullptr};
-    STLMapIterator _it;
+    const STLIndexType* _container {nullptr}; 
+    typename STLIndexType::const_iterator _it;
 };
 
-template <class KeyType, class ValueType>
-class STLValueMapRange {
+template <class STLIndexType>
+class STLIndexRange {
 public:
-    using Iterator = STLValueMapIterator<KeyType, ValueType>;
+    using Iterator = STLIndexIterator<STLIndexType>;
 
-    STLValueMapRange() = default;
-    STLValueMapRange(const std::map<KeyType, ValueType>* map)
-        : _map(map)
+    STLIndexRange() = delete;
+    STLIndexRange(const STLIndexType* container)
+        : _container(container)
     {}
 
-    size_t size() const { return _map->size(); }
+    size_t size() const { return _container->size(); }
 
-    bool empty() const { return _map->empty(); }
+    bool empty() const { return _container->empty(); }
 
     Iterator begin() const {
-        return STLValueMapIterator(_map, true);
+        return STLIndexIterator(_container, true);
     }
 
     Iterator end() const {
-        return STLValueMapIterator(_map, false);
+        return STLIndexIterator(_container, false);
     }
 
 private:
-    const std::map<KeyType, ValueType>* _map;
+    const STLIndexType* _container {nullptr};
 };
