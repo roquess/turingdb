@@ -8,13 +8,13 @@ class DB;
 
 class DBAccessor {
 public:
-    DBAccessor(DB* db);
+    DBAccessor(const DB* db);
     ~DBAccessor();
 
     DBNetworkRange networks() const { return DBNetworkRange(_db); }
 
 private:
-    DB* _db {nullptr};
+    const DB* _db {nullptr};
 };
 
 }
