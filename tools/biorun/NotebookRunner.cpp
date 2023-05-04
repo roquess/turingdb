@@ -26,7 +26,7 @@ bool NotebookRunner::run() {
     // Check that all notebooks exist
     bool found = true;
     for (const auto& notebook : _notebooks) {
-        if (!files::exists(notebook)) {
+        if (!FileUtils::exists(notebook)) {
             BioLog::log(msg::ERROR_FILE_NOT_EXISTS() << notebook.string());
             found = false;
         }
