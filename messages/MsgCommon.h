@@ -36,16 +36,19 @@ MSG_ERROR(ERROR_FAILED_TO_REMOVE_FILE, 1010,
     "Impossible to remove the file '$0'.")
 
 MSG_ERROR(ERROR_EXECUTABLE_NOT_FOUND, 1011,
-          "Impossible to find executable '$0'.")
+    "Impossible to find executable '$0'.")
 
 MSG_ERROR(ERROR_FAILED_TO_WRITE_COMMAND_SCRIPT, 1012,
-          "Can not write command script '$0'.")
+    "Can not write command script '$0'.")
 
 MSG_ERROR(ERROR_FAILED_TO_WRITE_FILE, 1013,
-          "Writing file '$0' failed.")
+    "Writing file '$0' failed.")
 
 MSG_ERROR(ERROR_FILE_NOT_EXISTS, 1014,
-          "The file '$0' does not exist.")
+    "The file '$0' does not exist.")
+
+MSG_ERROR(ERROR_INCORRECT_CMD_USAGE, 1015,
+    "The argument '$0' wat not used correctly.")
 
 }
 

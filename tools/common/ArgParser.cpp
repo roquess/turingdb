@@ -1,25 +1,19 @@
 #include "ArgParser.h"
 
-#include <string>
-#include <stdlib.h>
+#include <cassert>
 #include <iostream>
+#include <stdlib.h>
+#include <string>
 
 #define INDENT "    "
 
-ArgParser::ArgParser(const std::string& toolName)
-    : _toolName(toolName)
-{
-}
+ArgParser::ArgParser(const std::string& toolName) : _toolName(toolName) {}
 
-ArgParser::~ArgParser() {
-}
+ArgParser::~ArgParser() {}
 
-void ArgParser::setArgsDesc(const std::string& desc) {
-    _argsDesc = desc;
-}
+void ArgParser::setArgsDesc(const std::string& desc) { _argsDesc = desc; }
 
-void ArgParser::addOption(const std::string& optionName,
-                          const std::string& desc,
+void ArgParser::addOption(const std::string& optionName, const std::string& desc,
                           bool expectsArg) {
     _optionMap[optionName] = Option(desc, expectsArg);
 }
@@ -42,7 +36,7 @@ void ArgParser::parse(int argc, const char** argv) {
             }
 
             optionName.assign(argStr, 1, std::string::npos);
-            
+
             if (optionName == "h" || optionName == "help") {
                 printHelp();
             } else {
@@ -69,9 +63,17 @@ void ArgParser::parse(int argc, const char** argv) {
     }
 }
 
+const std::string& ArgParser::getOption(const std::string& optionName) const {
+    auto entry = std::find_if(_options.begin(), _options.end(),
+                              [&](const auto& o) { return o.first == optionName; });
+
+    assert(entry != _options.begin());
+    return entry->second;
+}
+
 void ArgParser::printHelp() const {
     std::cout << "Usage:\n";
-    std::cout << INDENT<< _toolName << " [options]";
+    std::cout << INDENT << _toolName << " [options]";
 
     if (!_argsDesc.empty()) {
         std::cout << " " << _argsDesc;
@@ -79,11 +81,13 @@ void ArgParser::printHelp() const {
 
     std::cout << "\n\n";
     std::cout << "Options:\n";
-    std::cout << INDENT << "-h, -help" << "\t" << "Display this help\n";
+    std::cout << INDENT << "-h, -help"
+              << "\t"
+              << "Display this help\n";
 
     for (const auto& option : _optionMap) {
-        std::cout << INDENT << "-" << option.first
-                  << INDENT << "\t" << option.second._desc << "\n";
+        std::cout << INDENT << "-" << option.first << INDENT << "\t"
+                  << option.second._desc << "\n";
     }
 
     std::cout << "\n";
@@ -96,6 +100,7 @@ void ArgParser::handleUnknownOption(const std::string& name) const {
 }
 
 void ArgParser::handleOptionArgExpected(const std::string& optionName) const {
-    std::cerr << "ERROR: an argument was expected to be given to option " << optionName << "\n";
+    std::cerr << "ERROR: an argument was expected to be given to option " << optionName
+              << "\n";
     printHelp();
 }
