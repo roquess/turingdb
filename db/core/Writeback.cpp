@@ -1,5 +1,6 @@
 #include "Writeback.h"
 
+#include <cassert>
 #include "DB.h"
 #include "Network.h"
 #include "Node.h"
@@ -15,6 +16,7 @@ using namespace db;
 Writeback::Writeback(DB* db)
     : _db(db)
 {
+    assert(_db);
 }
 
 Writeback::~Writeback() {
