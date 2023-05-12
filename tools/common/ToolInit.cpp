@@ -4,6 +4,7 @@
 #include "BannerDisplay.h"
 
 #include "BioLog.h"
+#include "PerfStat.h"
 #include "MsgCommon.h"
 
 using namespace Log;
@@ -56,6 +57,9 @@ void ToolInit::init(int argc, const char** argv) {
     BioLog::openFile(logFilePath.string());
 
     BioLog::echo(BannerDisplay::getBannerString());
+
+    // Init PerfStat
+    PerfStat::init(_reportsDir/(_toolName + ".perf"));
 
     _argParser.parse(argc, argv);
 }
