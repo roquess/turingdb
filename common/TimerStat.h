@@ -15,12 +15,11 @@ public:
     TimerStat& operator=(const TimerStat& other) = delete;
     TimerStat& operator=(TimerStat&& other) = delete;
 
-    TimerStat(std::ofstream* file);
-    TimerStat(std::ofstream* file, const std::string& msg);
+    TimerStat();
+    TimerStat(const std::string& msg);
     ~TimerStat();
 
 private:
-    std::ofstream* _file;
     TimePoint _start;
     std::string _msg = "PerfStat";
 };

@@ -5,6 +5,7 @@
 
 #include "BioLog.h"
 #include "PerfStat.h"
+#include "TimerStat.h"
 #include "MsgCommon.h"
 #include "MsgRun.h"
 
@@ -75,7 +76,7 @@ bool NotebookRunner::runNotebook(const Path& path) {
 }
 
 bool NotebookRunner::executeNotebook(const Path& path) {
-    auto timer = PerfStat::spawn("Executing " + path.string());
+    TimerStat timer("Executing " + path.string());
     Command jupyterCmd("jupyter");
     jupyterCmd.addArg("nbconvert");
     jupyterCmd.addArg("--execute");
@@ -102,7 +103,7 @@ bool NotebookRunner::executeNotebook(const Path& path) {
 }
 
 bool NotebookRunner::exportNotebook(const Path& path, const std::string& toDest) {
-    auto timer = PerfStat::spawn("Exporting " + path.string());
+    TimerStat timer("Exporting " + path.string());
     Command jupyterCmd("jupyter");
     jupyterCmd.addArg("nbconvert");
     jupyterCmd.addArg("--output-dir");

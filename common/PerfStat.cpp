@@ -23,14 +23,6 @@ PerfStat* PerfStat::getInstance() {
     return _instance;
 }
 
-TimerStat PerfStat::spawn() {
-    return TimerStat(&_instance->_outStream);
-}
-
-TimerStat PerfStat::spawn(const std::string& msg) {
-    return TimerStat(&_instance->_outStream, msg);
-}
-
 void PerfStat::destroy() {
     if (_instance) {
         _instance->close();

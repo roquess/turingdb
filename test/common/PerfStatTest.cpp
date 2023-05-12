@@ -1,4 +1,5 @@
 #include "PerfStat.h"
+#include "TimerStat.h"
 #include "FileUtils.h"
 #include "gtest/gtest.h"
 
@@ -33,17 +34,17 @@ TEST_F(PerfStatTest, MeasurePerfs) {
     PerfStat::init(_logPath);
 
     {
-        auto timer = PerfStat::spawn("50ms scope");
+        TimerStat timer("50ms scope");
         std::this_thread::sleep_for(50ms);
     }
 
     {
-        auto timer = PerfStat::spawn("70ms scope");
+        TimerStat timer("70ms scope");
         std::this_thread::sleep_for(70ms);
     }
 
     {
-        auto timer = PerfStat::spawn("20ms scope");
+        TimerStat timer("20ms scope");
         std::this_thread::sleep_for(20ms);
     }
 
