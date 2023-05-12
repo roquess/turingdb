@@ -27,7 +27,7 @@ protected:
 
     void TearDown() override { Log::BioLog::destroy(); }
 
-    std::string _indexPath{};
+    std::string _indexPath;
     StringIndex _index;
 };
 

@@ -37,8 +37,8 @@ protected:
 
     void TearDown() override { Log::BioLog::destroy(); }
 
-    std::string _indexPath{};
-    StringIndex _index{};
+    std::string _indexPath;
+    StringIndex _index;
     std::unordered_map<std::string, size_t> _strMap;
 };
 
@@ -51,10 +51,10 @@ TEST_F(StringIndexLoaderTest, Load) {
         std::string s = std::to_string(i) + "_str";
 
         // Check if the string exists in container in memory
-        ASSERT_TRUE(_index.stringExists(s));
+        ASSERT_TRUE(_index.hasString(s));
 
         // Check if string exists in container loaded from disk
-        ASSERT_TRUE(index.stringExists(s));
+        ASSERT_TRUE(index.hasString(s));
 
 
         const SharedString* sstr = index.getString(s).getSharedString();
@@ -98,13 +98,13 @@ TEST_F(StringIndexLoaderTest, DumpTwice) {
     // index2 should have one more string
     ASSERT_EQ(index2.getSize(), _index.getSize() + 1);
     // index2 should have the "New string" entry
-    ASSERT_TRUE(index2.stringExists(s));
+    ASSERT_TRUE(index2.hasString(s));
     // It should have the same index
     ASSERT_EQ(id, index2.getString(s).getSharedString()->getID());
     // index2 should also have all original strings
     for (size_t i = 0; i < 100; i++) {
         std::string s = std::to_string(i) + "_str";
-        ASSERT_TRUE(index2.stringExists(s));
+        ASSERT_TRUE(index2.hasString(s));
         const SharedString* sstr = index2.getString(s).getSharedString();
         ASSERT_EQ(_strMap.at(s), sstr->getID());
     }

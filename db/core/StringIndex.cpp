@@ -29,7 +29,7 @@ StringRef StringIndex::getString(const std::string& str) {
     return StringRef(sharedStr);
 }
 
-bool StringIndex::stringExists(const std::string& str) const {
+bool StringIndex::hasString(const std::string& str) const {
     return _strMap.find(str) != _strMap.end();
 }
 

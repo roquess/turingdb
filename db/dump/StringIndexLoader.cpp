@@ -13,8 +13,8 @@
 namespace db {
 
 StringIndexLoader::StringIndexLoader(const Path& dbPath)
-    : _indexPath(dbPath) //
-{                        //
+    : _indexPath(dbPath)
+{
 }
 
 bool StringIndexLoader::load(StringIndex& index) {

@@ -9,11 +9,11 @@
 using namespace db;
 using namespace Log;
 
-DBLoader::DBLoader(DB** db, const Path& outDir)
+DBLoader::DBLoader(DB* db, const Path& outDir)
     : _outDir(outDir),
+      _dbDirName(getDefaultDBDirectoryName()),
       _db(db)
 {
-    setDBDirectoryName(getDefaultDBDirectoryName());
 }
 
 DBLoader::~DBLoader() = default;
@@ -24,19 +24,17 @@ std::string DBLoader::getDefaultDBDirectoryName() {
 
 void DBLoader::setDBDirectoryName(const std::string& dirName) {
     _dbDirName = dirName;
-    _dbPath = FileUtils::abspath(_outDir / _dbDirName);
-    _stringIndexPath = _dbPath / "smap";
 }
 
 bool DBLoader::load() {
-    DB* db = DB::create();
-    *_db = db;
+    Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
+    Path stringIndexPath = dbPath / "smap";
 
-    BioLog::log(msg::INFO_DB_LOADING_DATABASE() << _dbPath);
+    BioLog::log(msg::INFO_DB_LOADING_DATABASE() << dbPath);
 
-    StringIndexLoader strLoader{_stringIndexPath};
-    if (!strLoader.load(db->_strIndex)) {
-        BioLog::log(msg::ERROR_DB_LOADING_DATABASE() << _dbPath);
+    StringIndexLoader strLoader{stringIndexPath};
+    if (!strLoader.load(_db->_strIndex)) {
+        BioLog::log(msg::ERROR_DB_LOADING_DATABASE() << dbPath);
         return false;
     }
 

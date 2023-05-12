@@ -19,6 +19,10 @@ protected:
         _outDir += "_";
         _outDir += testInfo->name();
         _outDir += ".out";
+
+        _dbPath = FileUtils::abspath(FileUtils::Path(_outDir) /
+                                     DBDumper::getDefaultDBDirectoryName());
+        _stringIndexPath = _dbPath / "smap";
     }
 
     void TearDown() override {
@@ -30,7 +34,7 @@ protected:
     }
 
     void tryDump() {
-        DBDumper dumper(&_db, _outDir);
+        DBDumper dumper(_db, _outDir);
         // Checking if dump succesful
         ASSERT_TRUE(dumper.dump());
 
@@ -39,16 +43,18 @@ protected:
         ASSERT_TRUE(FileUtils::isDirectory(_outDir));
 
         // Checking if DBDumperTest_DumpDB.out/turing.out/ was created
-        ASSERT_TRUE(FileUtils::exists(dumper.getDBPath()));
-        ASSERT_TRUE(FileUtils::isDirectory(dumper.getDBPath()));
+        ASSERT_TRUE(FileUtils::exists(_dbPath));
+        ASSERT_TRUE(FileUtils::isDirectory(_dbPath));
 
         // Checking if DBDumperTest_DumpDB.out/turing.out/smap was created
-        ASSERT_TRUE(FileUtils::exists(dumper.getStringIndexPath()));
-        ASSERT_FALSE(FileUtils::isDirectory(dumper.getStringIndexPath()));
+        ASSERT_TRUE(FileUtils::exists(_stringIndexPath));
+        ASSERT_FALSE(FileUtils::isDirectory(_stringIndexPath));
     }
 
-    std::string _outDir{};
     DB* _db{nullptr};
+    std::string _outDir;
+    FileUtils::Path _dbPath;
+    FileUtils::Path _stringIndexPath;
 };
 
 TEST_F(DBDumperTest, DumpDB) {

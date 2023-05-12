@@ -21,7 +21,7 @@ public:
 
     void clear();
     StringRef getString(const std::string& str);
-    bool stringExists(const std::string& str) const;
+    bool hasString(const std::string& str) const;
     size_t getSize() const { return _strMap.size(); }
 
 private:

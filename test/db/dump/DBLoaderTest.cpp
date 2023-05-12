@@ -34,7 +34,7 @@ protected:
                 _db->getString(std::to_string(i) + "_ComponentType"));
         }
 
-        DBDumper dumper(&_db, _outDir);
+        DBDumper dumper(_db, _outDir);
         dumper.dump();
     }
 
@@ -46,13 +46,13 @@ protected:
         Log::BioLog::destroy();
     }
 
-    std::string _outDir{};
     DB* _db{nullptr};
+    std::string _outDir;
 };
 
 TEST_F(DBLoaderTest, LoadDB) {
-    DB* db{nullptr};
-    DBLoader loader(&db, _outDir);
+    DB* db = DB::create();
+    DBLoader loader(db, _outDir);
     ASSERT_TRUE(loader.load());
 
     for (size_t i = 0; i < 10; i++) {

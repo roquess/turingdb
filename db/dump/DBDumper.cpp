@@ -9,11 +9,11 @@
 using namespace db;
 using namespace Log;
 
-DBDumper::DBDumper(DB** db, const Path& outDir)
+DBDumper::DBDumper(DB* db, const Path& outDir)
     : _outDir(outDir),
+      _dbDirName(getDefaultDBDirectoryName()),
       _db(db)
 {
-    setDBDirectoryName(getDefaultDBDirectoryName());
 }
 
 DBDumper::~DBDumper() = default;
@@ -24,31 +24,30 @@ std::string DBDumper::getDefaultDBDirectoryName() {
 
 void DBDumper::setDBDirectoryName(const std::string& dirName) {
     _dbDirName = dirName;
-    _dbPath = FileUtils::abspath(_outDir / _dbDirName);
-    _stringIndexPath = _dbPath / "smap";
 }
 
 bool DBDumper::dump() {
-    DB* db = *_db;
+    Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
+    Path stringIndexPath = dbPath / "smap";
 
-    BioLog::log(msg::INFO_DB_DUMPING_DATABASE() << _dbPath);
+    BioLog::log(msg::INFO_DB_DUMPING_DATABASE() << dbPath);
 
     // Remove DB dump directory if it already exists
-    if (FileUtils::exists(_dbPath)) {
-        if (!FileUtils::removeDirectory(_dbPath)) {
-            BioLog::log(msg::ERROR_FAILED_TO_REMOVE_DIRECTORY() << _dbPath);
+    if (FileUtils::exists(dbPath)) {
+        if (!FileUtils::removeDirectory(dbPath)) {
+            BioLog::log(msg::ERROR_FAILED_TO_REMOVE_DIRECTORY() << dbPath);
             return false;
         }
     }
 
-    if (!FileUtils::createDirectory(_dbPath)) {
-        BioLog::log(msg::ERROR_FAILED_TO_CREATE_DIRECTORY() << _dbPath);
+    if (!FileUtils::createDirectory(dbPath)) {
+        BioLog::log(msg::ERROR_FAILED_TO_CREATE_DIRECTORY() << dbPath);
         return false;
     }
 
-    StringIndexDumper strDumper{_stringIndexPath};
-    if (!strDumper.dump(db->_strIndex)) {
-        BioLog::log(msg::ERROR_DB_DUMPING_DATABASE() << _dbPath);
+    StringIndexDumper strDumper{stringIndexPath};
+    if (!strDumper.dump(_db->_strIndex)) {
+        BioLog::log(msg::ERROR_DB_DUMPING_DATABASE() << dbPath);
         return false;
     }
 
