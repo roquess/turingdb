@@ -23,7 +23,7 @@ TimerStat::~TimerStat() {
         auto duration = Clock::now() - _start;
         float v = std::chrono::duration_cast<FloatSeconds>(duration).count();
 
-        file << '[' << _msg << "] Elapsed time: " << std::to_string(v)
+        file << '[' << _msg << "] " << std::to_string(v)
                << " s\n";
     }
 }
