@@ -2,27 +2,24 @@
 
 #pragma once
 
-#include "StringRef.h"
+#include <set>
+
+#include "DBEntityType.h"
 
 namespace db {
 
-class NodeDescriptor;
-class ComponentType;
+class EdgeType;
 class Writeback;
 
-class NodeType {
+class NodeType : public DBEntityType {
 public:
     friend Writeback;
 
-    StringRef getName() const { return _name; }
-
-    ComponentType* getBaseComponent() const;
-
 private:
-    StringRef _name;
-    NodeDescriptor* _rootDesc {nullptr};
+    std::set<EdgeType*, DBObject::Comparator> _inEdgeTypes;
+    std::set<EdgeType*, DBObject::Comparator> _outEdgeTypes;
 
-    NodeType(StringRef name);
+    NodeType(DBIndex index, StringRef name);
     ~NodeType();
 };
 

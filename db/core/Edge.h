@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "DBEntity.h"
+
 namespace db {
 
 class Node;
 class EdgeType;
 class Writeback;
 
-class Edge {
+class Edge : public DBEntity {
 public:
     friend Writeback;
 
@@ -21,7 +23,7 @@ private:
     Node* _source {nullptr};
     Node* _target {nullptr};
 
-    Edge(EdgeType* type, Node* source, Node* target);
+    Edge(DBIndex index, EdgeType* type, Node* source, Node* target);
     ~Edge();
 };
 

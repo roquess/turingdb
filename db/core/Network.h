@@ -4,8 +4,8 @@
 
 #include <vector>
 
+#include "DBObject.h"
 #include "StringRef.h"
-#include "DBIndex.h"
 
 namespace db {
 
@@ -15,7 +15,7 @@ class NetworkNodeRange;
 class NetworkEdgeRange;
 class Writeback;
 
-class Network {
+class Network : public DBObject {
 public:
     friend NetworkNodeRange;
     friend NetworkEdgeRange;
@@ -26,15 +26,12 @@ public:
 private:
     using Nodes = std::vector<Node*>;
     using Edges = std::vector<Edge*>;
-    DBIndex::ID _id;
     StringRef _name;
     Nodes _nodes;
     Edges _edges;
-    DBIndex::ID _nextFreeNodeID {0};
 
-    Network(DBIndex::ID id, StringRef name);
+    Network(DBIndex index, StringRef name);
     ~Network();
-    DBIndex allocNodeIndex();
     void addNode(Node* node);
     void addEdge(Edge* edge);
 };

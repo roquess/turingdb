@@ -4,8 +4,9 @@
 
 using namespace db;
 
-Edge::Edge(EdgeType* type, Node* source, Node* target)
-    : _type(type),
+Edge::Edge(DBIndex index, EdgeType* type, Node* source, Node* target)
+    : DBEntity(index),
+    _type(type),
     _source(source),
     _target(target)
 {

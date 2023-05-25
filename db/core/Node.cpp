@@ -2,37 +2,19 @@
 
 #include "Node.h"
 
-#include "NodeDescriptor.h"
-#include "Property.h"
 #include "Edge.h"
+#include "EdgeType.h"
 
 using namespace db;
 
-Node::Node(DBIndex index, NodeDescriptor* desc, Network* net)
-    : DBObject(index),
-    _desc(desc),
+Node::Node(DBIndex index, NodeType* type, Network* net)
+    : DBEntity(index),
+    _type(type),
     _net(net)
 {
 }
 
 Node::~Node() {
-}
-
-Value Node::getProperty(const Property* prop) const {
-    if (!_desc->hasComponent(prop->getComponentType())) {
-        return Value();
-    }
-
-    const auto it = _properties.find(prop->getName());
-    if (it == _properties.end()) {
-        return Value();
-    }
-
-    return it->second;
-}
-
-void Node::setDescriptor(NodeDescriptor* desc) {
-    _desc = desc;
 }
 
 void Node::addInEdge(Edge* edge) {

@@ -2,14 +2,17 @@
 
 #include "EdgeType.h"
 
+#include "NodeType.h"
+
 using namespace db;
 
-EdgeType::EdgeType(StringRef name,
-                   ComponentType* sourceType,
-                   ComponentType* targetType)
-    : _name(name),
-    _sourceType(sourceType),
-    _targetType(targetType)
+EdgeType::EdgeType(DBIndex index,
+                   StringRef name,
+                   const std::vector<NodeType*>& sources,
+                   const std::vector<NodeType*>& targets)
+    : DBEntityType(index, name),
+    _sourceTypes(sources.begin(), sources.end()),
+    _targetTypes(targets.begin(), targets.end())
 {
 }
 

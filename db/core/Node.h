@@ -2,44 +2,39 @@
 
 #pragma once
 
-#include <unordered_map>
+#include <map>
 #include <vector>
 
-#include "DBObject.h"
+#include "DBEntity.h"
 
 #include "StringRef.h"
-#include "Value.h"
 
 namespace db {
 
 class NodeType;
-class NodeDescriptor;
-class Property;
 class Edge;
-class EdgeType;
 class Network;
+class EdgeType;
 class Writeback;
 
-class Node : public DBObject {
+class Node : public DBEntity {
 public:
     friend Writeback;
 
-    Network* getNetwork() const { return _net; }
+    NodeType* getType() const { return _type; }
 
-    Value getProperty(const Property* prop) const;
+    Network* getNetwork() const { return _net; }
 
 private:
     using EdgeVector = std::vector<Edge*>;
 
-    NodeDescriptor* _desc {nullptr};
+    NodeType* _type {nullptr};
     Network* _net {nullptr};
-    std::unordered_map<StringRef, Value> _properties;
-    std::unordered_map<EdgeType*, EdgeVector> _inEdges;
-    std::unordered_map<EdgeType*, EdgeVector> _outEdges;
+    std::map<const EdgeType*, EdgeVector, DBObject::Comparator> _inEdges;
+    std::map<const EdgeType*, EdgeVector, DBObject::Comparator> _outEdges;
 
-    Node(DBIndex index, NodeDescriptor* desc, Network* net);
+    Node(DBIndex index, NodeType* type, Network* net);
     ~Node();
-    void setDescriptor(NodeDescriptor* desc);
     void addInEdge(Edge* edge);
     void addOutEdge(Edge* edge);
 };

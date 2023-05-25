@@ -30,12 +30,13 @@ TEST(EdgeTest, createComplete) {
     }
 
     // Create edges between each pair of nodes
-    auto nodeComp = nodeType->getBaseComponent();
-    EdgeType* edgeType = wb.createEdgeType(db->getString("edge"), nodeComp, nodeComp);
+    EdgeType* edgeType = wb.createEdgeType(db->getString("edge"), nodeType, nodeType);
+    ASSERT_TRUE(edgeType);
     for (Node* n1 : nodes) {
         for (Node* n2 : nodes) {
             if (n1 != n2) {
-                wb.createEdge(edgeType, n1, n2);
+                Edge* edge = wb.createEdge(edgeType, n1, n2);
+                ASSERT_TRUE(edge);
             }
         }
     }

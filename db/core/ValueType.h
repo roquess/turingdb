@@ -7,6 +7,7 @@ namespace db {
 class ValueType {
 public:
     enum ValueKind {
+        VK_INVALID = 0,
         VK_INT,
         VK_UNSIGNED,
         VK_BOOL,
@@ -14,9 +15,10 @@ public:
         VK_STRING
     };
 
-    ValueType(ValueKind);
+    ValueType(ValueKind valueKind);
 
     ValueKind getKind() const { return _kind; }
+    bool isValid() const { return _kind != VK_INVALID; }
     bool isInt() const { return _kind == VK_INT; }
     bool isUnsigned() const { return _kind == VK_UNSIGNED; }
     bool isBool() const { return _kind == VK_BOOL; }

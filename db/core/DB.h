@@ -13,12 +13,10 @@ namespace db {
 class ValueType;
 class Network;
 class NodeType;
-class ComponentType;
 class EdgeType;
 class DBNetworkRange;
 class DBNodeTypeRange;
 class DBEdgeTypeRange;
-class DBComponentTypeRange;
 class Writeback;
 class DBLoader;
 class DBDumper;
@@ -28,7 +26,6 @@ public:
     friend DBNetworkRange;
     friend DBNodeTypeRange;
     friend DBEdgeTypeRange;
-    friend DBComponentTypeRange;
     friend Writeback;
     friend DBLoader;
     friend DBDumper;
@@ -48,7 +45,6 @@ public:
 
     NodeType* getNodeType(StringRef name) const;
     EdgeType* getEdgeType(StringRef name) const;
-    ComponentType* getComponentType(StringRef name) const;
 
     Network* getNetwork(StringRef name) const;
 
@@ -56,14 +52,11 @@ private:
     using Networks = std::map<StringRef, Network*>;
     using NodeTypes = std::map<StringRef, NodeType*>;
     using EdgeTypes = std::map<StringRef, EdgeType*>;
-    using ComponentTypes = std::map<StringRef, ComponentType*>;
 
     StringIndex _strIndex;
-    DBIndex::ID _nextFreeNetID {0};
     Networks _networks;
     NodeTypes _nodeTypes;
     EdgeTypes _edgeTypes;
-    ComponentTypes _compTypes;
 
     ValueType* _int {nullptr};
     ValueType* _unsigned {nullptr};
@@ -71,12 +64,23 @@ private:
     ValueType* _decimal {nullptr};
     ValueType* _string {nullptr};
 
+    DBIndex::ID _nextFreeNetID {0};
+    DBIndex::ID _nextFreeNodeID {0};
+    DBIndex::ID _nextFreeEdgeID {0};
+    DBIndex::ID _nextFreeNodeTypeID {0};
+    DBIndex::ID _nextFreeEdgeTypeID {0};
+    DBIndex::ID _nextFreePropertyTypeID {0};
+
     DB();
-    DBIndex::ID allocNetworkID();
     void addNetwork(Network* net);
     void addNodeType(NodeType* nodeType);
     void addEdgeType(EdgeType* edgeType);
-    void addComponentType(ComponentType* compType);
+    DBIndex allocNetworkIndex();
+    DBIndex allocNodeIndex();
+    DBIndex allocEdgeIndex();
+    DBIndex allocNodeTypeIndex();
+    DBIndex allocEdgeTypeIndex();
+    DBIndex allocPropertyTypeIndex();
 };
 
 }

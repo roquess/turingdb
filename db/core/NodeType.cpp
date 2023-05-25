@@ -2,19 +2,12 @@
 
 #include "NodeType.h"
 
-#include "NodeDescriptor.h"
-
 using namespace db;
 
-NodeType::NodeType(StringRef name)
-    : _name(name)
+NodeType::NodeType(DBIndex index, StringRef name)
+    : DBEntityType(index, name)
 {
-    _rootDesc = new NodeDescriptor(this);
 }
 
 NodeType::~NodeType() {
-}
-
-ComponentType* NodeType::getBaseComponent() const {
-    return _rootDesc->getBaseComponent();
 }

@@ -4,11 +4,10 @@
 #include "Network.h"
 #include "Node.h"
 #include "NodeType.h"
-#include "ComponentType.h"
 #include "Property.h"
-#include "NodeDescriptor.h"
 #include "Edge.h"
 #include "EdgeType.h"
+#include "PropertyType.h"
 
 using namespace db;
 
@@ -25,8 +24,8 @@ Network* Writeback::createNetwork(StringRef name) {
         return nullptr;
     }
 
-    const DBIndex::ID netID = _db->allocNetworkID();
-    Network* net = new Network(netID, name);
+    const DBIndex netIndex = _db->allocNetworkIndex();
+    Network* net = new Network(netIndex, name);
     _db->addNetwork(net);
     return net;
 }
@@ -36,29 +35,11 @@ Node* Writeback::createNode(Network* net, NodeType* type) {
         return nullptr;
     }
 
-    const DBIndex nodeIndex = net->allocNodeIndex();
-    Node* node = new Node(nodeIndex, type->_rootDesc, net);
+    const DBIndex nodeIndex = _db->allocNodeIndex();
+    Node* node = new Node(nodeIndex, type, net);
     net->addNode(node);
 
     return node;
-}
-
-bool Writeback::addComponent(Node* node, ComponentType* compType) {
-    if (!node || !compType) {
-        return false;
-    }
-
-    NodeDescriptor* nodeDesc = node->_desc;
-    if (nodeDesc->hasComponent(compType)) {
-        return false;
-    }
-
-    NodeDescriptor* newDesc = nodeDesc->getOrCreateChild(compType);
-    node->setDescriptor(newDesc);
-
-    newDesc->addComponent(compType);
-
-    return true;
 }
 
 Edge* Writeback::createEdge(EdgeType* type, Node* source, Node* target) {
@@ -66,7 +47,9 @@ Edge* Writeback::createEdge(EdgeType* type, Node* source, Node* target) {
         return nullptr;
     }
 
-    Edge* edge = new Edge(type, source, target);
+    const DBIndex edgeIndex = _db->allocEdgeIndex();
+    Edge* edge = new Edge(edgeIndex, type, source, target);
+
     source->addOutEdge(edge);
     target->addInEdge(edge);
 
@@ -76,7 +59,7 @@ Edge* Writeback::createEdge(EdgeType* type, Node* source, Node* target) {
     if (sourceNet != targetNet) {
         targetNet->addEdge(edge);
     }
-
+    
     return edge;
 }
 
@@ -85,66 +68,54 @@ NodeType* Writeback::createNodeType(StringRef name) {
         return nullptr;
     }
 
-    // Create base component
-    ComponentType* baseComp = createComponentType(name);
-    if (!baseComp) {
-        return nullptr;
-    }
-
-    // Create node type
-    NodeType* nodeType = new NodeType(name);
+    const DBIndex typeIndex = _db->allocNodeTypeIndex();
+    NodeType* nodeType = new NodeType(typeIndex, name);
     _db->addNodeType(nodeType);
-
-    // Add base component
-    NodeDescriptor* rootDesc = nodeType->_rootDesc;
-    rootDesc->setBaseComponent(baseComp);
-    rootDesc->addComponent(baseComp);
 
     return nodeType;
 }
 
-EdgeType* Writeback::createEdgeType(StringRef name,
-                                    ComponentType* sourceComp,
-                                    ComponentType* targetComp) {
-    if (!sourceComp || !targetComp) {
-        return nullptr;
-    }
+EdgeType* Writeback::createEdgeType(StringRef name, NodeType* source, NodeType* target) {
+    return createEdgeType(name, {source}, {target});
+}
 
+EdgeType* Writeback::createEdgeType(StringRef name,
+                                    const NodeTypes& sources,
+                                    const NodeTypes& targets) {
     if (_db->getEdgeType(name)) {
         return nullptr;
     }
 
-    EdgeType* edgeType = new EdgeType(name, sourceComp, targetComp);
+    if (sources.empty() || targets.empty()) {
+        return nullptr;
+    }
+
+    const DBIndex typeIndex = _db->allocEdgeTypeIndex();
+    EdgeType* edgeType = new EdgeType(typeIndex, name, sources, targets);
     _db->addEdgeType(edgeType);
-    sourceComp->addEdgeType(edgeType);
-    targetComp->addEdgeType(edgeType);
+
     return edgeType;
 }
 
-ComponentType* Writeback::createComponentType(StringRef name) {
-    if (_db->getComponentType(name)) {
-        return nullptr;
-    }
-
-    ComponentType* compType = new ComponentType(name);
-    _db->addComponentType(compType);
-
-    return compType;
+PropertyType* Writeback::addPropertyType(NodeType* nodeType,
+                                         StringRef name,
+                                         ValueType* type) {
+    return addPropertyType(nodeType, name, type);
 }
 
-Property* Writeback::addProperty(ComponentType* compType,
-                                 StringRef name,
-                                 ValueType* valType) {
-    if (!compType || !valType) {
+PropertyType* Writeback::addPropertyType(DBEntityType* dbType,
+                                         StringRef name,
+                                         ValueType* type) {
+    if (!dbType || !type) {
         return nullptr;
     }
 
-    if (compType->getProperty(name)) {
+    if (dbType->getPropertyType(name)) {
         return nullptr;
     }
 
-    Property* prop = new Property(name, valType, compType);
-    compType->addProperty(prop);
-
-    return prop;
+    const DBIndex propertyTypeIndex = _db->allocPropertyTypeIndex();
+    PropertyType* propType = new PropertyType(propertyTypeIndex, dbType, name, type);
+    dbType->addPropertyType(propType);
+    return propType;
 }

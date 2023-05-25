@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "StringRef.h"
 
 namespace db {
@@ -8,14 +10,17 @@ class DB;
 class Network;
 class Node;
 class NodeType;
-class ComponentType;
 class ValueType;
-class Property;
+class PropertyType;
 class Edge;
 class EdgeType;
+class Property;
+class DBEntityType;
 
 class Writeback {
 public:
+    using NodeTypes = std::vector<NodeType*>;
+
     Writeback(DB* db);
     ~Writeback();
 
@@ -23,25 +28,33 @@ public:
 
     // Nodes
     Node* createNode(Network* net, NodeType* type);
-    bool addComponent(Node* node, ComponentType* compType);
 
     // Edges
     Edge* createEdge(EdgeType* type, Node* source, Node* target);
 
-    // Types and components
+    // Types
     NodeType* createNodeType(StringRef name);
+    EdgeType* createEdgeType(StringRef name, NodeType* source, NodeType* target);
     EdgeType* createEdgeType(StringRef name,
-                             ComponentType* sourceComp,
-                             ComponentType* targetComp);
-    ComponentType* createComponentType(StringRef name);
+                             const NodeTypes& sources,
+                             const NodeTypes& targets);
+    PropertyType* addPropertyType(NodeType* nodeType,
+                                  StringRef name,
+                                  ValueType* type);
+    PropertyType* addPropertyType(EdgeType* nodeType,
+                                  StringRef name,
+                                  ValueType* type);
 
     // Properties
-    Property* addProperty(ComponentType* compType,
-                          StringRef name,
-                          ValueType* valType);
+    bool addProperty(Node* node, const Property& prop);
+    bool addProperty(Edge* edge, const Property& prop);
 
 private:
     DB* _db {nullptr};
+
+    PropertyType* addPropertyType(DBEntityType* dbType,
+                                  StringRef name,
+                                  ValueType* type);
 };
 
 }

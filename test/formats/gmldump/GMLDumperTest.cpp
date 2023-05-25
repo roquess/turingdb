@@ -21,9 +21,7 @@ TEST(GMLDumper, create1) {
     ASSERT_TRUE(net);
 
     NodeType* nodeType = wb.createNodeType(db->getString("Node"));
-    EdgeType* edgeType = wb.createEdgeType(db->getString("Edge"),
-                                           nodeType->getBaseComponent(),
-                                           nodeType->getBaseComponent());
+    EdgeType* edgeType = wb.createEdgeType(db->getString("Edge"), nodeType, nodeType);
 
     Node* n1 = wb.createNode(net, nodeType);
     Node* n2 = wb.createNode(net, nodeType);

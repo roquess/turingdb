@@ -5,7 +5,6 @@
 #include "ValueType.h"
 #include "Network.h"
 #include "NodeType.h"
-#include "ComponentType.h"
 #include "EdgeType.h"
 
 using namespace db;
@@ -36,10 +35,40 @@ StringRef DB::getString(const std::string& str) {
     return _strIndex.getString(str);
 }
 
-DBIndex::ID DB::allocNetworkID() {
+DBIndex DB::allocNetworkIndex() {
     const DBIndex::ID netID = _nextFreeNetID;
     _nextFreeNetID++;
-    return netID;
+    return DBIndex(netID);
+}
+
+DBIndex DB::allocNodeIndex() {
+    const DBIndex::ID nodeID = _nextFreeNodeID;
+    _nextFreeNodeID++;
+    return DBIndex(nodeID);
+}
+
+DBIndex DB::allocEdgeIndex() {
+    const DBIndex::ID edgeID = _nextFreeEdgeID;
+    _nextFreeEdgeID++;
+    return DBIndex(edgeID);
+}
+
+DBIndex DB::allocNodeTypeIndex() {
+    const DBIndex::ID nodeTypeID = _nextFreeNodeTypeID;
+    _nextFreeNodeTypeID++;
+    return DBIndex(nodeTypeID);
+}
+
+DBIndex DB::allocEdgeTypeIndex() {
+    const DBIndex::ID edgeTypeID = _nextFreeEdgeTypeID;
+    _nextFreeEdgeTypeID++;
+    return DBIndex(edgeTypeID);
+}
+
+DBIndex DB::allocPropertyTypeIndex() {
+    const DBIndex::ID propertyTypeID = _nextFreePropertyTypeID;
+    _nextFreePropertyTypeID++;
+    return DBIndex(propertyTypeID);
 }
 
 void DB::addNetwork(Network* net) {
@@ -73,21 +102,8 @@ EdgeType* DB::getEdgeType(StringRef name) const {
     return foundIt->second;
 }
 
-ComponentType* DB::getComponentType(StringRef name) const {
-    const auto foundIt = _compTypes.find(name);
-    if (foundIt == _compTypes.end()) {
-        return nullptr;
-    }
-
-    return foundIt->second;
-}
-
 void DB::addNodeType(NodeType* nodeType) {
     _nodeTypes[nodeType->getName()] = nodeType;
-}
-
-void DB::addComponentType(ComponentType* compType) {
-    _compTypes[compType->getName()] = compType;
 }
 
 void DB::addEdgeType(EdgeType* edgeType) {

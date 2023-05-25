@@ -2,30 +2,32 @@
 
 #pragma once
 
-#include "StringRef.h"
+#include <set>
+#include <vector>
+
+#include "DBEntityType.h"
 
 namespace db {
 
-class ComponentType;
+class NodeType;
 class Writeback;
 
-class EdgeType {
+class EdgeType : public DBEntityType {
 public:
     friend Writeback;
+    using NodeTypes = std::set<NodeType*, DBObject::Comparator>;
 
-    StringRef getName() const { return _name; }
-
-    ComponentType* getSourceType() const { return _sourceType; }
-    ComponentType* getTargetType() const { return _targetType; }
+    const NodeTypes& getSourceTypes() const { return _sourceTypes; }
+    const NodeTypes& getTargetTypes() const { return _targetTypes; }
 
 private:
-    StringRef _name;
-    ComponentType* _sourceType {nullptr};
-    ComponentType* _targetType {nullptr};
+    NodeTypes _sourceTypes;
+    NodeTypes _targetTypes;
 
-    EdgeType(StringRef name,
-             ComponentType* sourceType,
-             ComponentType* targetType);
+    EdgeType(DBIndex index,
+             StringRef name,
+             const std::vector<NodeType*>& sources,
+             const std::vector<NodeType*>& targets);
     ~EdgeType();
 };
 

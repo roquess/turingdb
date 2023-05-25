@@ -2,12 +2,13 @@
 
 using namespace db;
 
-Property::Property(StringRef name,
-                   ValueType* valType,
-                   ComponentType* compType)
-    : _name(name),
-    _valType(valType),
-    _compType(compType)
+Property::Property(const PropertyType* type, Value value)
+    : _type(type),
+    _value(value)
+{
+}
+
+Property::Property()
 {
 }
 

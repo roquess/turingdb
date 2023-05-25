@@ -4,20 +4,13 @@
 
 using namespace db;
 
-Network::Network(DBIndex::ID id, StringRef name)
-    : _id(id),
+Network::Network(DBIndex index, StringRef name)
+    : DBObject(index),
     _name(name)
 {
 }
 
 Network::~Network() {
-}
-
-DBIndex Network::allocNodeIndex() {
-    const DBIndex::ID nodeID = _nextFreeNodeID;
-    _nextFreeNodeID++;
-
-    return DBIndex(_id, nodeID);
 }
 
 void Network::addNode(Node* node) {

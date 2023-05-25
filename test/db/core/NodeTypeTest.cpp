@@ -40,57 +40,56 @@ TEST(NodeTypeTest, create2) {
     NodeType* cellularLoc = wb.createNodeType(db->getString("CellularLocation"));
     ASSERT_TRUE(cellularLoc);
     
-    Property* nameProp = wb.addProperty(cellularLoc->getBaseComponent(),
-                                        db->getString("Name"),
-                                        db->getStringType());
+    PropertyType* nameProp = wb.addPropertyType(cellularLoc,
+                                                db->getString("Name"),
+                                                db->getStringType());
     ASSERT_TRUE(nameProp);
 
-    Property* goIDProp = wb.addProperty(cellularLoc->getBaseComponent(),
-                                        db->getString("GO_ID"),
-                                        db->getStringType());
+    PropertyType* goIDProp = wb.addPropertyType(cellularLoc,
+                                                db->getString("GO_ID"),
+                                                db->getStringType());
     ASSERT_TRUE(goIDProp);
 
-    Property* typeProp = wb.addProperty(cellularLoc->getBaseComponent(),
-                                        db->getString("Type"),
-                                        db->getStringType());
+    PropertyType* typeProp = wb.addPropertyType(cellularLoc,
+                                                db->getString("LocationType"),
+                                                db->getStringType());
     ASSERT_TRUE(typeProp);
-
 
     // ClinicalInfo
     NodeType* clinicalInfo = wb.createNodeType(db->getString("ClinicalInfo"));
     ASSERT_TRUE(clinicalInfo);
 
-    Property* patientsHigh = wb.addProperty(clinicalInfo->getBaseComponent(),
-                                            db->getString("Patients_High"),
-                                            db->getDecimalType());
-    EXPECT_TRUE(patientsHigh);
-    Property* patientsLow = wb.addProperty(clinicalInfo->getBaseComponent(),
-                                           db->getString("Patients_Low"),
-                                           db->getDecimalType());
-    EXPECT_TRUE(patientsLow);
-    Property* patientsMedium = wb.addProperty(clinicalInfo->getBaseComponent(),
-                                              db->getString("Patients_Medium"),
-                                              db->getDecimalType());
-    EXPECT_TRUE(patientsMedium);
-    Property* patientsNot = wb.addProperty(clinicalInfo->getBaseComponent(),
-                                           db->getString("Patients_Not"),
-                                           db->getDecimalType());
-    EXPECT_TRUE(patientsNot);
-    Property* prognosticNotOk = wb.addProperty(clinicalInfo->getBaseComponent(),
-                                               db->getString("Prognostic_NOT_OK"),
-                                               db->getDecimalType());
-    EXPECT_TRUE(prognosticNotOk);
-    Property* prognosticOk = wb.addProperty(clinicalInfo->getBaseComponent(),
-                                            db->getString("Prognostic_OK"),
-                                            db->getDecimalType());
-    EXPECT_TRUE(prognosticOk);
-    Property* unprognosticNotOkHPA = wb.addProperty(clinicalInfo->getBaseComponent(),
-                                                    db->getString("UnPrognostic_NOT_OK_HPA"),
+    PropertyType* patientsHigh = wb.addPropertyType(clinicalInfo,
+                                                    db->getString("Patients_High"),
                                                     db->getDecimalType());
+    EXPECT_TRUE(patientsHigh);
+    PropertyType* patientsLow = wb.addPropertyType(clinicalInfo,
+                                                   db->getString("Patients_Low"),
+                                                   db->getDecimalType());
+    EXPECT_TRUE(patientsLow);
+    PropertyType* patientsMedium = wb.addPropertyType(clinicalInfo,
+                                                      db->getString("Patients_Medium"),
+                                                      db->getDecimalType());
+    EXPECT_TRUE(patientsMedium);
+    PropertyType* patientsNot = wb.addPropertyType(clinicalInfo,
+                                                   db->getString("Patients_Not"),
+                                                   db->getDecimalType());
+    EXPECT_TRUE(patientsNot);
+    PropertyType* prognosticNotOk = wb.addPropertyType(clinicalInfo,
+                                                       db->getString("Prognostic_NOT_OK"),
+                                                       db->getDecimalType());
+    EXPECT_TRUE(prognosticNotOk);
+    PropertyType* prognosticOk = wb.addPropertyType(clinicalInfo,
+                                                    db->getString("Prognostic_OK"),
+                                                    db->getDecimalType());
+    EXPECT_TRUE(prognosticOk);
+    PropertyType* unprognosticNotOkHPA = wb.addPropertyType(clinicalInfo,
+                                                            db->getString("UnPrognostic_NOT_OK_HPA"),
+                                                            db->getDecimalType());
     EXPECT_TRUE(unprognosticNotOkHPA);
-    Property* unprognosticOkHPA = wb.addProperty(clinicalInfo->getBaseComponent(),
-                                                 db->getString("UnPrognostic_OK_HPA"),
-                                                 db->getDecimalType());
+    PropertyType* unprognosticOkHPA = wb.addPropertyType(clinicalInfo,
+                                                         db->getString("UnPrognostic_OK_HPA"),
+                                                         db->getDecimalType());
     EXPECT_TRUE(unprognosticOkHPA);
 
     // Protein
@@ -98,9 +97,7 @@ TEST(NodeTypeTest, create2) {
     EXPECT_TRUE(protein);
 
     // EdgeTypes
-    EdgeType* locatedInsideCell = wb.createEdgeType(db->getString("LocatedInsideCell"),
-                                                    protein->getBaseComponent(),
-                                                    cellularLoc->getBaseComponent());
+    EdgeType* locatedInsideCell = wb.createEdgeType(db->getString("LocatedInsideCell"), {protein}, {cellularLoc});
     EXPECT_TRUE(locatedInsideCell);
 
     delete db;

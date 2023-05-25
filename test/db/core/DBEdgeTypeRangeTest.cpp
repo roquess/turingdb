@@ -1,5 +1,4 @@
 #include "DBEdgeTypeRange.h"
-#include "ComponentType.h"
 #include "DBAccessor.h"
 #include "EdgeType.h"
 #include "Writeback.h"
@@ -14,17 +13,17 @@ protected:
         _db = DB::create();
         Writeback wb(_db);
 
-        const std::string compName1 = "CellularLocation";
-        ComponentType* compType1 =
-            wb.createComponentType(_db->getString(compName1));
+        const StringRef cellularLocName = _db->getString("CellularLocation");
+        NodeType* cellularLoc =
+            wb.createNodeType(cellularLocName);
 
-        const std::string compName2 = "metabolite";
-        ComponentType* compType2 =
-            wb.createComponentType(_db->getString(compName2));
+        const StringRef metaboliteName = _db->getString("metabolite");
+        NodeType* metabolite =
+            wb.createNodeType(metaboliteName);
 
         for (size_t i = 0; i < 10; i++) {
             wb.createEdgeType(_db->getString(std::to_string(i) + "_EdgeType"),
-                              compType1, compType2);
+                              cellularLoc, metabolite);
         }
     }
 

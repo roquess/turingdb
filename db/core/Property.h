@@ -1,32 +1,26 @@
 #pragma once
 
-#include "StringRef.h"
+#include "Value.h"
 
 namespace db {
 
-class ComponentType;
-class ValueType;
-class Writeback;
+class PropertyType;
 
 class Property {
 public:
-    friend Writeback;
+    Property(const PropertyType* type, Value value);
+    Property();
+    ~Property();
 
-    StringRef getName() const { return _name; }
+    const PropertyType* getType() const { return _type; }
+    Value getValue() const { return _value; }
 
-    ValueType* getValueType() const { return _valType; }
-
-    ComponentType* getComponentType() const { return _compType; }
+    void setType(const PropertyType* type) { _type = type; }
+    void setValue(const Value& value) { _value = value; }
 
 private:
-    StringRef _name;
-    ValueType* _valType {nullptr};
-    ComponentType* _compType {nullptr};
-
-    Property(StringRef name,
-             ValueType* valType,
-             ComponentType* compType);
-    ~Property();
+    const PropertyType* _type {nullptr};
+    Value _value;
 };
 
 }

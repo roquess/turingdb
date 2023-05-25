@@ -10,10 +10,8 @@ add_db_core_gtest(db_node_type_test NodeTypeTest.cpp)
 add_db_core_gtest(db_network_test NetworkTest.cpp)
 add_db_core_gtest(db_node_test NodeTest.cpp)
 add_db_core_gtest(db_edge_test EdgeTest.cpp)
-add_db_core_gtest(db_component_type_test ComponentTypeTest.cpp)
 
 # Ranges
 add_db_core_gtest(db_network_range_test DBNetworkRangeTest.cpp)
 add_db_core_gtest(db_node_type_range_test DBNodeTypeRangeTest.cpp)
 add_db_core_gtest(db_edge_type_range_test DBEdgeTypeRangeTest.cpp)
-add_db_core_gtest(db_component_type_range_test DBComponentTypeRangeTest.cpp)

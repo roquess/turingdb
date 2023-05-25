@@ -3,9 +3,11 @@ set(db_sources
             DB.cpp
             Network.cpp
             DBObject.cpp
+            DBType.cpp
+            DBEntityType.cpp
+            DBEntity.cpp
             DBIndex.cpp
             Node.cpp
-            NodeDescriptor.cpp
             Property.cpp
             Edge.cpp
 
@@ -13,18 +15,15 @@ set(db_sources
             Value.cpp
 
             NodeType.cpp
-            ComponentType.cpp
             EdgeType.cpp
+            PropertyType.cpp
 
             Writeback.cpp
-
-            DBAccessor.cpp
 
             DBAccessor.cpp
             DBNetworkRange.cpp
             DBNodeTypeRange.cpp
             DBEdgeTypeRange.cpp
-            DBComponentTypeRange.cpp
             NetworkAccessor.cpp
             NetworkNodeRange.cpp
             NetworkEdgeRange.cpp

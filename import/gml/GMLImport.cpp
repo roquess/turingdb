@@ -20,10 +20,8 @@ GMLImport::GMLImport(const StringBuffer* buffer,
     _wb(db),
     _outNet(outNet)
 {
-    _nodeType = _wb.createNodeType(db->getString("Generic"));
-    _edgeType = _wb.createEdgeType(db->getString("Edge"),
-                                   _nodeType->getBaseComponent(),
-                                   _nodeType->getBaseComponent());
+    _nodeType = _wb.createNodeType(db->getString("GenericNode"));
+    _edgeType = _wb.createEdgeType(db->getString("GenericEdge"), _nodeType, _nodeType);
 }
 
 GMLImport::~GMLImport() {

@@ -13,7 +13,6 @@ public:
     ~NetworkAccessor();
 
     NetworkNodeRange nodes() const { return NetworkNodeRange(_net); }
-
     NetworkEdgeRange edges() const { return NetworkEdgeRange(_net); }
 
 private:

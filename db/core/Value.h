@@ -21,7 +21,7 @@ public:
     static Value createDouble(double data);
     static Value createString(StringRef data);
 
-    bool isValid() const { return _valid; }
+    bool isValid() const { return _type.isValid(); }
 
     int64_t getInt() const;
     uint64_t getUint() const;
@@ -30,8 +30,7 @@ public:
     StringRef getString() const;
 
 private:
-    bool _valid {false};
-    ValueType _type {ValueType::VK_INT};
+    ValueType _type {ValueType::VK_INVALID};
     std::variant<int64_t,
                  uint64_t,
                  bool,
