@@ -25,8 +25,9 @@ protected:
     virtual ~DBEntity();
 
 private:
+    using Properties = std::map<const PropertyType*, Value, DBObject::Comparator>;
     DBEntityType* _type {nullptr};
-    std::map<const PropertyType*, Value, DBObject::Comparator> _properties;
+    Properties _properties;
 
     void addProperty(const Property& prop);
 };

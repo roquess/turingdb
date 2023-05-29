@@ -15,10 +15,12 @@ class Edge;
 class Network;
 class EdgeType;
 class NodeType;
+class NodeEdgeRange;
 class Writeback;
 
 class Node : public DBEntity {
 public:
+    friend NodeEdgeRange;
     friend Writeback;
 
     NodeType* getType() const { return (NodeType*)DBEntity::getType(); }
@@ -27,10 +29,11 @@ public:
 
 private:
     using EdgeVector = std::vector<Edge*>;
+    using Edges = std::map<const EdgeType*, EdgeVector, DBObject::Comparator>;
 
     Network* _net {nullptr};
-    std::map<const EdgeType*, EdgeVector, DBObject::Comparator> _inEdges;
-    std::map<const EdgeType*, EdgeVector, DBObject::Comparator> _outEdges;
+    Edges _inEdges;
+    Edges _outEdges;
 
     Node(DBIndex index, NodeType* type, Network* net);
     ~Node();

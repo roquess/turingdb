@@ -23,7 +23,8 @@ protected:
     void addPropertyType(PropertyType* propType);
 
 private:
-    std::map<StringRef, PropertyType*> _propTypes;
+    using PropertyTypes = std::map<StringRef, PropertyType*>;
+    PropertyTypes _propTypes;
 };
 
 }

@@ -27,6 +27,7 @@ set(db_sources
             NetworkAccessor.cpp
             NetworkNodeRange.cpp
             NetworkEdgeRange.cpp
+            NodeEdgeRange.cpp
 
             TypeCheck.cpp
 
