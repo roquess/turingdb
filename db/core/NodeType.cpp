@@ -11,3 +11,11 @@ NodeType::NodeType(DBIndex index, StringRef name)
 
 NodeType::~NodeType() {
 }
+
+NodeType::NodeTypeRange NodeType::inEdgeTypes() const {
+    return NodeTypeRange(&_inEdgeTypes);
+}
+
+NodeType::NodeTypeRange NodeType::outEdgeTypes() const {
+    return NodeTypeRange(&_outEdgeTypes);
+}

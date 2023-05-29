@@ -20,15 +20,6 @@ set(db_sources
 
             Writeback.cpp
 
-            DBAccessor.cpp
-            DBNetworkRange.cpp
-            DBNodeTypeRange.cpp
-            DBEdgeTypeRange.cpp
-            NetworkAccessor.cpp
-            NetworkNodeRange.cpp
-            NetworkEdgeRange.cpp
-            NodeEdgeRange.cpp
-
             TypeCheck.cpp
 
             StringIndex.cpp

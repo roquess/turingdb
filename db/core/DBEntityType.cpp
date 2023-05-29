@@ -12,6 +12,10 @@ DBEntityType::DBEntityType(DBIndex index, StringRef name)
 DBEntityType::~DBEntityType() {
 }
 
+DBEntityType::PropertyTypeRange DBEntityType::propertyTypes() const {
+    return PropertyTypeRange(&_propTypes);
+}
+
 PropertyType* DBEntityType::getPropertyType(StringRef name) const {
     const auto it = _propTypes.find(name); 
     if (it == _propTypes.end()) {

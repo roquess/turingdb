@@ -1,6 +1,6 @@
 #include "GMLDumper.h"
 
-#include "NetworkAccessor.h"
+#include "Network.h"
 #include "Node.h"
 #include "Edge.h"
 
@@ -21,17 +21,15 @@ bool GMLDumper::dump() {
         return false;
     }
 
-    NetworkAccessor netAcc(_net);
-
     _gml << "graph [\n";
-    for (const Node* node : netAcc.nodes()) {
+    for (const Node* node : _net->nodes()) {
         _gml << "    node [\n";
         _gml << "        id "
              << std::to_string(node->getIndex().getObjectID()) << "\n";
         _gml << "    ]\n";
     }
 
-    for (const Edge* edge : netAcc.edges()) {
+    for (const Edge* edge : _net->edges()) {
         _gml << "    edge [\n";
         _gml << "        source "
              << std::to_string(edge->getSource()->getIndex().getObjectID()) << "\n";

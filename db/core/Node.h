@@ -8,6 +8,7 @@
 #include "DBEntity.h"
 
 #include "StringRef.h"
+#include "Range.h"
 
 namespace db {
 
@@ -15,22 +16,19 @@ class Edge;
 class Network;
 class EdgeType;
 class NodeType;
-class NodeEdgeRange;
 class Writeback;
 
 class Node : public DBEntity {
 public:
-    friend NodeEdgeRange;
     friend Writeback;
+    using EdgeVector = std::vector<Edge*>;
+    using Edges = std::map<const EdgeType*, EdgeVector, DBObject::Comparator>;
 
     NodeType* getType() const { return (NodeType*)DBEntity::getType(); }
 
     Network* getNetwork() const { return _net; }
 
 private:
-    using EdgeVector = std::vector<Edge*>;
-    using Edges = std::map<const EdgeType*, EdgeVector, DBObject::Comparator>;
-
     Network* _net {nullptr};
     Edges _inEdges;
     Edges _outEdges;

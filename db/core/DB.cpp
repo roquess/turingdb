@@ -24,6 +24,18 @@ StringRef DB::getString(const std::string& str) {
     return _strIndex.getString(str);
 }
 
+DB::NetworkRange DB::networks() const {
+    return NetworkRange(&_networks);
+}
+
+DB::NodeTypeRange DB::nodeTypes() const {
+    return NodeTypeRange(&_nodeTypes);
+}
+
+DB::EdgeTypeRange DB::edgeTypes() const {
+    return EdgeTypeRange(&_edgeTypes);
+}
+
 DBIndex DB::allocNetworkIndex() {
     const DBIndex::ID netID = _nextFreeNetID;
     _nextFreeNetID++;

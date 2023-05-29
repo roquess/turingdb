@@ -6,7 +6,6 @@
 #include "Network.h"
 #include "Writeback.h"
 #include "NodeType.h"
-#include "NetworkAccessor.h"
 #include "Node.h"
 
 #include "GMLDumper.h"
@@ -35,11 +34,10 @@ TEST(GMLDumper, create1) {
     wb.createEdge(edgeType, n3, n4);
     wb.createEdge(edgeType, n4, n5);
 
-    NetworkAccessor netAcc(net);
-    ASSERT_EQ(netAcc.nodes().size(), 5);
-    ASSERT_FALSE(netAcc.nodes().empty());
-    ASSERT_EQ(netAcc.edges().size(), 5);
-    ASSERT_FALSE(netAcc.edges().empty());
+    ASSERT_EQ(net->nodes().size(), 5);
+    ASSERT_FALSE(net->nodes().empty());
+    ASSERT_EQ(net->edges().size(), 5);
+    ASSERT_FALSE(net->edges().empty());
 
     const auto gmlDumpPath = "net.gml";
     GMLDumper gmlDumper(net, gmlDumpPath);

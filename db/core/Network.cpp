@@ -13,6 +13,14 @@ Network::Network(DBIndex index, StringRef name)
 Network::~Network() {
 }
 
+Network::NodeRange Network::nodes() const {
+    return NodeRange(&_nodes);
+}
+
+Network::EdgeRange Network::edges() const {
+    return EdgeRange(&_edges);
+}
+
 void Network::addNode(Node* node) {
     _nodes.push_back(node);
 }

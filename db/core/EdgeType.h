@@ -7,6 +7,8 @@
 
 #include "DBEntityType.h"
 
+#include "Range.h"
+
 namespace db {
 
 class NodeType;
@@ -16,9 +18,13 @@ class EdgeType : public DBEntityType {
 public:
     friend Writeback;
     using NodeTypes = std::set<NodeType*, DBObject::Comparator>;
+    using NodeTypeRange = STLRange<NodeTypes>;
 
     bool hasSourceType(const NodeType* nodeType) const;
     bool hasTargetType(const NodeType* nodeType) const;
+
+    NodeTypeRange sourceTypes() const;
+    NodeTypeRange targetTypes() const;
 
 private:
     NodeTypes _sourceTypes;

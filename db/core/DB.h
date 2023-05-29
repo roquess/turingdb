@@ -7,27 +7,28 @@
 #include "StringIndex.h"
 #include "StringRef.h"
 #include "DBIndex.h"
+#include "Range.h"
 
 namespace db {
 
 class Network;
 class NodeType;
 class EdgeType;
-class DBNetworkRange;
-class DBNodeTypeRange;
-class DBEdgeTypeRange;
 class Writeback;
 class DBLoader;
 class DBDumper;
 
 class DB {
 public:
-    friend DBNetworkRange;
-    friend DBNodeTypeRange;
-    friend DBEdgeTypeRange;
     friend Writeback;
     friend DBLoader;
     friend DBDumper;
+    using Networks = std::map<StringRef, Network*>;
+    using NodeTypes = std::map<StringRef, NodeType*>;
+    using EdgeTypes = std::map<StringRef, EdgeType*>;
+    using NetworkRange = STLIndexRange<Networks>;
+    using NodeTypeRange = STLIndexRange<NodeTypes>;
+    using EdgeTypeRange = STLIndexRange<EdgeTypes>;
 
     ~DB();
 
@@ -35,16 +36,16 @@ public:
 
     StringRef getString(const std::string& str);
 
+    NetworkRange networks() const;
+    NodeTypeRange nodeTypes() const;
+    EdgeTypeRange edgeTypes() const;
+
     NodeType* getNodeType(StringRef name) const;
     EdgeType* getEdgeType(StringRef name) const;
 
     Network* getNetwork(StringRef name) const;
 
 private:
-    using Networks = std::map<StringRef, Network*>;
-    using NodeTypes = std::map<StringRef, NodeType*>;
-    using EdgeTypes = std::map<StringRef, EdgeType*>;
-
     StringIndex _strIndex;
     Networks _networks;
     NodeTypes _nodeTypes;

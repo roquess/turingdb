@@ -26,3 +26,11 @@ bool EdgeType::hasSourceType(const NodeType* nodeType) const {
 bool EdgeType::hasTargetType(const NodeType* nodeType) const {
     return (_targetTypes.find(const_cast<NodeType*>(nodeType)) != _targetTypes.end());
 }
+
+EdgeType::NodeTypeRange EdgeType::sourceTypes() const {
+    return NodeTypeRange(&_sourceTypes);
+}
+
+EdgeType::NodeTypeRange EdgeType::targetTypes() const {
+    return NodeTypeRange(&_targetTypes);
+}

@@ -6,26 +6,28 @@
 
 #include "DBObject.h"
 #include "StringRef.h"
+#include "Range.h"
 
 namespace db {
 
 class Node;
 class Edge;
-class NetworkNodeRange;
-class NetworkEdgeRange;
 class Writeback;
 
 class Network : public DBObject {
 public:
-    friend NetworkNodeRange;
-    friend NetworkEdgeRange;
     friend Writeback;
+    using Nodes = std::vector<Node*>;
+    using Edges = std::vector<Edge*>;
+    using NodeRange = STLRange<Nodes>;
+    using EdgeRange = STLRange<Edges>;
 
     StringRef getName() const { return _name; }
 
+    NodeRange nodes() const;
+    EdgeRange edges() const;
+
 private:
-    using Nodes = std::vector<Node*>;
-    using Edges = std::vector<Edge*>;
     StringRef _name;
     Nodes _nodes;
     Edges _edges;

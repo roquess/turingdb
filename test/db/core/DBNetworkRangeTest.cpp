@@ -1,5 +1,4 @@
-#include "DBNetworkRange.h"
-#include "DBAccessor.h"
+#include "DB.h"
 #include "Network.h"
 #include "Writeback.h"
 
@@ -26,10 +25,8 @@ protected:
 };
 
 TEST_F(DBNetworkRangeTest, NetworkIteration) {
-    const DBAccessor accessor{_db};
-
     size_t i = 0;
-    for (Network* net : accessor.networks()) {
+    for (Network* net : _db->networks()) {
         ASSERT_EQ(net->getName().getSharedString()->getString(),
                   std::to_string(i) + "_Net");
         i++;

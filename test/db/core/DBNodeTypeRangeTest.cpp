@@ -1,5 +1,4 @@
-#include "DBNodeTypeRange.h"
-#include "DBAccessor.h"
+#include "DB.h"
 #include "NodeType.h"
 #include "Writeback.h"
 
@@ -26,10 +25,8 @@ protected:
 };
 
 TEST_F(DBNodeTypeRangeTest, NodeTypeIteration) {
-    const DBAccessor accessor{_db};
-
     size_t i = 0;
-    for (NodeType* nodeType : accessor.nodeTypes()) {
+    for (NodeType* nodeType : _db->nodeTypes()) {
         ASSERT_EQ(nodeType->getName().getSharedString()->getString(),
                   std::to_string(i) + "_NodeType");
         i++;

@@ -1,5 +1,4 @@
-#include "DBEdgeTypeRange.h"
-#include "DBAccessor.h"
+#include "DB.h"
 #include "EdgeType.h"
 #include "Writeback.h"
 
@@ -35,10 +34,8 @@ protected:
 };
 
 TEST_F(DBEdgeTypeRangeTest, EdgeTypeIteration) {
-    const DBAccessor accessor{_db};
-
     size_t i = 0;
-    for (EdgeType* edgeType : accessor.edgeTypes()) {
+    for (EdgeType* edgeType : _db->edgeTypes()) {
         ASSERT_EQ(edgeType->getName().getSharedString()->getString(),
                   std::to_string(i) + "_EdgeType");
         i++;
