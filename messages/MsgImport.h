@@ -42,7 +42,7 @@ MSG_ERROR(ERROR_NEO4J_HTTP_REQUEST, 2012,
     "Error in request to Neo4j '$0'")
 
 MSG_INFO(INFO_NEO4J_WAIT_WARMUP, 2013,
-    "Waiting $0 seconds for Neo4j to warmup")
+    "Waiting for Neo4j to warmup")
 
 MSG_ERROR(ERROR_FAILED_TO_PARSE_JSON, 2014,
     "Failed to parse JSON file '$0'")
@@ -79,6 +79,21 @@ MSG_ERROR(ERROR_FAILED_TO_CREATE_EDGE, 2023,
 
 MSG_ERROR(ERROR_FAILED_PARSE_GML_COMMAND, 2024,
           "Impossible to parse GML command at line $0")
+
+MSG_INFO(INFO_NEO4J_READY, 2025,
+         "Neo4j server is ready")
+
+MSG_ERROR(ERROR_NEO4J_ALREADY_RUNNING, 2026,
+          "Neo4j server is already running")
+
+MSG_ERROR(ERROR_NEO4J_DB_DIR_INCORRECT, 2027,
+          "The neo4j db dir ($0) should contain a dumped db file")
+
+MSG_ERROR(ERROR_IMPORT_FAILED_BAD_CURL_REQUEST, 2028,
+          "Problem with the curl request: $0")
+
+MSG_ERROR(ERROR_IMPORT_FAILED_BAD_JSON, 2029,
+          "Problem with the json file: $0")
 
 }
 

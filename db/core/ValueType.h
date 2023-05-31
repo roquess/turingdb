@@ -25,6 +25,7 @@ public:
     bool isDecimal() const { return _kind == VK_DECIMAL; }
     bool isString() const { return _kind == VK_STRING; }
 
+    static ValueType getType(ValueKind kind) { return ValueType(kind); }
     static ValueType intType() { return ValueType(VK_INT); }
     static ValueType unsignedType() { return ValueType(VK_UNSIGNED); }
     static ValueType boolType() { return ValueType(VK_BOOL); }

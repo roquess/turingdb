@@ -40,7 +40,7 @@ bool Neo4JSchemaExtract::extractNodes() {
 
         const auto& data = results.front()["data"];
 
-        std::string schemaClassName;
+        std::string type;
         for (const auto& record : data) {
             const auto& row = record["row"];
             if (row.empty()) {
@@ -48,23 +48,18 @@ bool Neo4JSchemaExtract::extractNodes() {
             }
 
             const auto& obj = row.front();
-            
-            const auto schemaClassIt = obj.find("schemaClass");
-            if (schemaClassIt == obj.end()) {
-                continue;
-            }
+            type = obj["type"];
 
-            const auto& schemaClass = *schemaClassIt;
-            if (schemaClass.is_string()) {
-                schemaClassName = schemaClass.get<std::string>();
-                _schemaClasses.insert(schemaClassName);
+            if (_attributes.find(type) == _attributes.end()) {
+
             }
 
             for (const auto& entry : obj.items()) {
-                _attributes[schemaClassName].insert(entry.key());
+                _attributes[type].insert(entry.key());
             }
         }
     } catch (const std::exception& e) {
+        BioLog::echo(e.what());
         BioLog::log(msg::ERROR_FAILED_TO_PARSE_JSON() << _nodesFile.string());
         return false;
     }

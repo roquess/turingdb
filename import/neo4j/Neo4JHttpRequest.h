@@ -20,10 +20,10 @@ public:
 
 private:
     std::string _outFile;
-    std::string _host;
-    unsigned _port {0};
-    std::string _user;
-    std::string _password;
+    std::string _host{"localhost"};
+    unsigned _port {7474};
+    std::string _user{"neo4j"};
+    std::string _password{"turing"};
     std::string _stmt;
 };
 
