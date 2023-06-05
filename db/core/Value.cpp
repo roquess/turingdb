@@ -39,9 +39,16 @@ Value Value::createDouble(double data) {
     return val;
 }
 
-Value Value::createString(StringRef data) {
+Value Value::createStringRef(StringRef data) {
+    Value val;
+    val._type = ValueType::VK_STRING_REF;
+    val._data = data;
+    return val;
+}
+
+Value Value::createString(std::string&& data) {
     Value val;
     val._type = ValueType::VK_STRING;
-    val._data = data;
+    val._data = std::forward<std::string>(data);
     return val;
 }

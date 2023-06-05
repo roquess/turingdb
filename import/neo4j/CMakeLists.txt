@@ -6,10 +6,13 @@ set(import_neo4j_sources
 
 add_library(bio_import_neo4j_s STATIC ${import_neo4j_sources})
 
+find_package(CURL REQUIRED)
+
 target_link_libraries(bio_import_neo4j_s
     common_s
     turing_log_s
     nlohmann_json
+    curl
     ${Boost_LIBRARIES})
 
 target_include_directories(bio_import_neo4j_s PRIVATE ${BIO_SOURCE_DIR}/messages)

@@ -19,7 +19,8 @@ public:
     static Value createUnsigned(uint64_t data);
     static Value createBool(bool data);
     static Value createDouble(double data);
-    static Value createString(StringRef data);
+    static Value createStringRef(StringRef data);
+    static Value createString(std::string&& data);
 
     ValueType getType() const { return _type; }
 
@@ -29,7 +30,8 @@ public:
     uint64_t getUint() const;
     bool getBool() const;
     double getDouble() const;
-    StringRef getString() const;
+    StringRef getStringRef() const;
+    const std::string& getString() const;
 
 private:
     ValueType _type {ValueType::VK_INVALID};
@@ -37,7 +39,8 @@ private:
                  uint64_t,
                  bool,
                  double,
-                 StringRef> _data;
+                 StringRef,
+                 std::string> _data;
 };
 
 }

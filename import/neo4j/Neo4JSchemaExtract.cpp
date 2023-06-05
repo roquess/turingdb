@@ -31,7 +31,7 @@ bool Neo4JSchemaExtract::extractNodes() {
 
         const auto doc = nlohmann::json::parse(jsonFile);
 
-        BioLog::log(msg::INFO_EXTRACTING_ENTITIES_FROM_NEO4J_DUMP());
+        //BioLog::log(msg::INFO_EXTRACTING_ENTITIES_FROM_NEO4J_DUMP());
 
         const auto& results = doc["results"];
         if (results.empty()) {
@@ -79,7 +79,7 @@ bool Neo4JSchemaExtract::extractRelations() {
 
         const auto doc = nlohmann::json::parse(jsonFile);
 
-        BioLog::log(msg::INFO_EXTRACTING_ENTITIES_FROM_NEO4J_DUMP());
+        //BioLog::log(msg::INFO_EXTRACTING_ENTITIES_FROM_NEO4J_DUMP());
 
         const auto& results = doc["results"];
         if (results.empty()) {

@@ -47,9 +47,6 @@ MSG_INFO(INFO_NEO4J_WAIT_WARMUP, 2013,
 MSG_ERROR(ERROR_FAILED_TO_PARSE_JSON, 2014,
     "Failed to parse JSON file '$0'")
 
-MSG_INFO(INFO_EXTRACTING_ENTITIES_FROM_NEO4J_DUMP, 2015,
-    "Extracting nodes and relations from Neo4j dump")
-
 MSG_ERROR(ERROR_UNEXPECTED_TOKEN, 2016,
           "Unexpected token '$0' at line $1")
 
@@ -94,6 +91,21 @@ MSG_ERROR(ERROR_IMPORT_FAILED_BAD_CURL_REQUEST, 2028,
 
 MSG_ERROR(ERROR_IMPORT_FAILED_BAD_JSON, 2029,
           "Problem with the json file: $0")
+
+MSG_ERROR(ERROR_NEO4J_TYPE_NOT_HANDLED, 2030,
+          "The '$0' type is not handled.")
+
+MSG_INFO(INFO_READING_NODE_PROPERTIES_FROM_NEO4J_DUMP, 2031,
+    "Extracting node properties from Neo4j dump")
+
+MSG_INFO(INFO_READING_NODES_FROM_NEO4J_DUMP, 2032,
+    "Extracting nodes from Neo4j dump")
+
+MSG_INFO(INFO_READING_EDGE_PROPERTIES_FROM_NEO4J_DUMP, 2033,
+    "Extracting edge properties from Neo4j dump")
+
+MSG_INFO(INFO_READING_EDGES_FROM_NEO4J_DUMP, 2034,
+    "Extracting edges from Neo4j dump")
 
 }
 

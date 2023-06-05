@@ -50,7 +50,7 @@ bool Neo4JInstance::setup() {
     // Decompress neo4j archive
     BioLog::log(msg::INFO_DECOMPRESS_NEO4J_ARCHIVE() << _neo4jDir.string());
     const int tarRes = boost::process::system(
-        "/usr/bin/tar", "zxf", _neo4jArchive.string(), "-C", NEO4J_DIR,
+        "/usr/bin/tar", "xf", _neo4jArchive.string(), "-C", NEO4J_DIR,
         "--strip-components=1");
 
     if (tarRes != 0) {
@@ -151,7 +151,7 @@ bool Neo4JInstance::importDumpedDB(const std::filesystem::path& dbFilePath) cons
     const std::string dbName = dbFilePath.stem();
 
     boost::process::system(_neo4jAdminBinary.string(), "load",
-                           "--database=" + dbName,
+                           "--database=neo4j",
                            "--from=" + dbFilePath.string(), "--force");
 
     return true;
