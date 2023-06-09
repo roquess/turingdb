@@ -64,6 +64,7 @@ inline db::NodeType* Neo4j4JsonParser::getOrCreateNodeType(db::StringRef name) {
     if (!obj) {
         obj = _db->getNodeType(name);
     }
+
     return obj;
 }
 
