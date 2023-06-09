@@ -1,10 +1,10 @@
 #pragma once
 
-#include <filesystem>
+#include "FileUtils.h"
 
 class Neo4JInstance {
 public:
-    Neo4JInstance();
+    Neo4JInstance(const FileUtils::Path& baseDir);
     ~Neo4JInstance();
 
     bool setup();
@@ -13,13 +13,10 @@ public:
     void destroy();
     bool isReady() const;
 
-    bool importDBDir(const std::string& dbPath);
-    bool changePassword(const std::string& oldPassword, const std::string& newPassword);
-    bool importDumpedDB(const std::filesystem::path& dbFilePath) const;
+    bool importDumpedDB(const FileUtils::Path& dbFilePath) const;
 
 private:
-    const std::filesystem::path _neo4jDir;
-    const std::filesystem::path _neo4jArchive;
-    const std::filesystem::path _neo4jBinary;
-    const std::filesystem::path _neo4jAdminBinary;
+    const FileUtils::Path _neo4jDir;
+    const FileUtils::Path _neo4jBinary;
+    const FileUtils::Path _neo4jAdminBinary;
 };

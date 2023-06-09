@@ -24,7 +24,7 @@ public:
     void setReducedOutput(bool value) { _neo4j4Parser.setReducedOutput(value); }
 
 private:
-    db::DB* _db{nullptr};
+    db::DB* _db {nullptr};
     JsonParsingStats _stats;
     Neo4j4JsonParser _neo4j4Parser;
     bool _reducedOutput = false;

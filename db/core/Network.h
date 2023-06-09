@@ -26,7 +26,7 @@ public:
 
     StringRef getName() const { return _name; }
     size_t getNodeCount() const;
-    Node* getNode(size_t id) const;
+    Node* getNode(DBIndex id) const;
 
     NodeRange nodes() const;
     EdgeRange edges() const;

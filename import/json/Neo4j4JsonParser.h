@@ -2,6 +2,7 @@
 
 #include "JsonParsingStats.h"
 #include "StringRef.h"
+#include "DBIndex.h"
 
 #include <unordered_map>
 
@@ -32,10 +33,10 @@ private:
 private:
     friend JsonParser;
 
-    db::DB* _db{nullptr};
+    db::DB* _db {nullptr};
     JsonParsingStats& _stats;
-    db::Writeback* _wb{nullptr};
-    std::unordered_map<size_t, size_t> _nodeIdMap;
+    db::Writeback* _wb {nullptr};
+    std::unordered_map<size_t, db::DBIndex> _nodeIdMap;
     bool _reducedOutput = false;
 
     db::Network* getOrCreateNetwork();

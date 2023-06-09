@@ -19,25 +19,24 @@ JsonParser::JsonParser(db::DB* db)
 bool JsonParser::parse(const std::string& data, Format format) {
     try {
         switch (format) {
+            case Format::Neo4j4_Stats:
+                return _neo4j4Parser.parseStats(data);
 
-        case Format::Neo4j4_Stats:
-            return _neo4j4Parser.parseStats(data);
+            case Format::Neo4j4_NodeProperties:
+                return _neo4j4Parser.parseNodeProperties(data);
 
-        case Format::Neo4j4_NodeProperties:
-            return _neo4j4Parser.parseNodeProperties(data);
+            case Format::Neo4j4_Nodes:
+                Log::BioLog::log(msg::INFO_JSON_DISPLAY_NODES_STATUS()
+                                 << _stats.parsedNodes << _stats.nodeCount);
+                return _neo4j4Parser.parseNodes(data);
 
-        case Format::Neo4j4_Nodes:
-            Log::BioLog::log(msg::INFO_JSON_DISPLAY_NODES_STATUS()
-                             << _stats.parsedNodes << _stats.nodeCount);
-            return _neo4j4Parser.parseNodes(data);
+            case Format::Neo4j4_EdgeProperties:
+                return _neo4j4Parser.parseEdgeProperties(data);
 
-        case Format::Neo4j4_EdgeProperties:
-            return _neo4j4Parser.parseEdgeProperties(data);
-
-        case Format::Neo4j4_Edges:
-            Log::BioLog::log(msg::INFO_JSON_DISPLAY_EDGES_STATUS()
-                             << _stats.parsedEdges << _stats.edgeCount);
-            return _neo4j4Parser.parseEdges(data);
+            case Format::Neo4j4_Edges:
+                Log::BioLog::log(msg::INFO_JSON_DISPLAY_EDGES_STATUS()
+                                 << _stats.parsedEdges << _stats.edgeCount);
+                return _neo4j4Parser.parseEdges(data);
         }
 
     } catch (const std::exception& e) {

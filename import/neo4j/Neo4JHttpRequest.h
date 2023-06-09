@@ -1,7 +1,8 @@
 #pragma once
 
-#include <atomic>
+#include <condition_variable>
 #include <filesystem>
+#include <mutex>
 
 class Neo4JHttpRequest {
 public:
@@ -16,6 +17,7 @@ public:
 
     Neo4JHttpRequest(RequestProps&& props);
     Neo4JHttpRequest(std::string&& statement);
+    Neo4JHttpRequest(const Neo4JHttpRequest&) = delete;
     Neo4JHttpRequest(Neo4JHttpRequest&&);
     ~Neo4JHttpRequest();
 
@@ -25,12 +27,12 @@ public:
     bool writeToFile(const std::filesystem::path& path) const;
     void clear();
     void reportError() const;
+    void setReady();
+    void waitReady();
 
     const std::string& getData() const { return _data; }
 
     bool success() const { return _result; }
-
-    bool finished() const { return _finished; }
 
 private:
     std::string _url;
@@ -39,7 +41,9 @@ private:
     std::string _statement;
     std::string _jsonRequest;
     std::string _data;
-    std::atomic<bool> _result{false};
-    std::atomic<bool> _finished{false};
-    bool _silent = false;
+    std::mutex _readyMutex;
+    std::condition_variable _readyCond;
+    bool _isReady {false};
+    bool _result {false};
+    bool _silent {false};
 };

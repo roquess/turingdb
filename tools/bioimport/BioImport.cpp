@@ -1,132 +1,25 @@
 #include "BioLog.h"
 #include "FileUtils.h"
 #include "JsonParser.h"
+#include "JsonParsingStats.h"
 #include "MsgCommon.h"
 #include "MsgImport.h"
-#include "Neo4JHttpRequest.h"
 #include "Neo4JInstance.h"
 #include "PerfStat.h"
 #include "TimerStat.h"
 #include "ToolInit.h"
+#include "tools/bioimport/ThreadHandler.h"
 
-#include <optional>
 #include <regex>
-#include <thread>
-#include <vector>
 
 #define BIOIMPORT_TOOL_NAME "bioimport"
 
 using namespace Log;
 using namespace std::literals;
 
-class ThreadHandler {
-public:
-    struct Requests {
-        Neo4JHttpRequest stats{
-            "CALL apoc.meta.stats() "
-            "YIELD nodeCount, relCount RETURN *",
-        };
-
-        Neo4JHttpRequest nodeProperties{
-            "CALL apoc.meta.nodeTypeProperties()",
-        };
-
-        std::vector<Neo4JHttpRequest> nodes;
-
-        Neo4JHttpRequest edgeProperties{
-            "CALL apoc.meta.relTypeProperties();",
-        };
-
-        std::vector<Neo4JHttpRequest> edges;
-    } requests;
-
-    bool start(JsonParser& parser) {
-        // Retrieving the node and edge counts
-        requests.stats.exec();
-        if (!requests.stats.success()) {
-            requests.stats.reportError();
-            return false;
-        }
-
-        if (!parser.parse(requests.stats.getData(),
-                          JsonParser::Format::Neo4j4_Stats)) {
-            return false;
-        }
-
-        const auto& stats = parser.getStats();
-        uint64_t nodeRequested = 0;
-
-        // Preparing node requests
-        while (nodeRequested < stats.nodeCount) {
-            requests.nodes.emplace_back(Neo4JHttpRequest::RequestProps{
-                .statement = "MATCH(n) "
-                             "RETURN labels(n), ID(n), properties(n) SKIP " +
-                             std::to_string(nodeRequested) + " LIMIT " +
-                             std::to_string(_nodeCountLimit) + ";",
-                .silent = true,
-            });
-
-            nodeRequested += _nodeCountLimit;
-        }
-
-        uint64_t edgeRequested = 0;
-
-        // Preparing node requests
-        while (edgeRequested < stats.edgeCount) {
-            requests.edges.emplace_back(Neo4JHttpRequest::RequestProps{
-                .statement =
-                    "MATCH (n1)-[e]->(n2) "
-                    "RETURN type(e), ID(n1), ID(n2), properties(e) SKIP " +
-                    std::to_string(edgeRequested) + " LIMIT " +
-                    std::to_string(_edgeCountLimit) + ";",
-                .silent = true,
-            });
-
-            edgeRequested += _edgeCountLimit;
-        }
-
-        _thread = std::thread(&ThreadHandler::exec, this);
-        return true;
-    }
-
-    void join() { _thread.join(); }
-
-private:
-    std::thread _thread;
-    static constexpr size_t _nodeCountLimit = 1000000;
-    static constexpr size_t _edgeCountLimit = 3000000;
-
-    void exec() {
-        requests.nodeProperties.exec();
-        if (!requests.nodeProperties.success()) {
-            return;
-        }
-
-        for (auto& nodeRequest : requests.nodes) {
-            nodeRequest.exec();
-            if (!nodeRequest.success()) {
-                return;
-            }
-        }
-
-        requests.edgeProperties.exec();
-        if (!requests.edgeProperties.success()) {
-            return;
-        }
-
-        for (auto& edgeRequest : requests.edges) {
-            edgeRequest.exec();
-            if (!edgeRequest.success()) {
-                return;
-            }
-        }
-    }
-};
-
 bool importNeo4j(const ToolInit& tool, const FileUtils::Path& filepath) {
     BioLog::log(msg::INFO_NEO4J_IMPORT_DUMP_FILE() << filepath.string());
     TimerStat timer{"Neo4j: import"};
-    Neo4JInstance instance;
 
     const FileUtils::Path& outDir = tool.getOutputsDir();
     const FileUtils::Path jsonDir = outDir / "json";
@@ -134,6 +27,7 @@ bool importNeo4j(const ToolInit& tool, const FileUtils::Path& filepath) {
     const FileUtils::Path nodePropertiesFile = jsonDir / "nodeProperties.json";
     const FileUtils::Path edgePropertiesFile = jsonDir / "edgeProperties.json";
 
+    Neo4JInstance instance{outDir};
     instance.setup();
     instance.importDumpedDB(filepath);
     instance.start();
@@ -168,9 +62,7 @@ bool importNeo4j(const ToolInit& tool, const FileUtils::Path& filepath) {
     Log::BioLog::log(msg::INFO_NEO4J_EDGE_COUNT() << stats.edgeCount);
 
     // Waiting for the node properties request to finish
-    while (!handler.requests.nodeProperties.finished()) {
-        std::this_thread::sleep_for(100ms);
-    }
+    handler.requests.nodeProperties.waitReady();
 
     if (!handler.requests.nodeProperties.success()) {
         instance.destroy();
@@ -194,9 +86,7 @@ bool importNeo4j(const ToolInit& tool, const FileUtils::Path& filepath) {
 
     for (auto& nodeRequest : handler.requests.nodes) {
         // Waiting for the nodes request to finish
-        while (!nodeRequest.finished()) {
-            std::this_thread::sleep_for(100ms);
-        }
+        nodeRequest.waitReady();
 
         if (!nodeRequest.success()) {
             instance.destroy();
@@ -220,9 +110,7 @@ bool importNeo4j(const ToolInit& tool, const FileUtils::Path& filepath) {
     handler.requests.nodes.clear();
 
     // Waiting for the edge properties request to finish
-    while (!handler.requests.edgeProperties.finished()) {
-        std::this_thread::sleep_for(100ms);
-    }
+    handler.requests.edgeProperties.waitReady();
 
     if (!handler.requests.edgeProperties.success()) {
         instance.destroy();
@@ -246,9 +134,7 @@ bool importNeo4j(const ToolInit& tool, const FileUtils::Path& filepath) {
 
     for (auto& edgeRequest : handler.requests.edges) {
         // Waiting for the edges request to finish
-        while (!edgeRequest.finished()) {
-            std::this_thread::sleep_for(100ms);
-        }
+        edgeRequest.waitReady();
 
         if (!edgeRequest.success()) {
             instance.destroy();
@@ -410,8 +296,8 @@ int main(int argc, const char** argv) {
 
     toolInit.init(argc, argv);
 
-    std::optional<std::string> neo4jFile;
-    std::optional<std::string> jsonNeo4jDir;
+    std::string neo4jFile;
+    std::string jsonNeo4jDir;
 
     for (const auto& option : argParser.options()) {
         const auto& optName = option.first;
@@ -423,12 +309,12 @@ int main(int argc, const char** argv) {
         }
     }
 
-    if (neo4jFile) {
-        importNeo4j(toolInit, neo4jFile.value());
+    if (!neo4jFile.empty()) {
+        importNeo4j(toolInit, neo4jFile);
     }
 
-    if (jsonNeo4jDir) {
-        importJsonNeo4j(toolInit, jsonNeo4jDir.value());
+    if (!jsonNeo4jDir.empty()) {
+        importJsonNeo4j(toolInit, jsonNeo4jDir);
     }
 
     BioLog::printSummary();

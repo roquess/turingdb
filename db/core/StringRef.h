@@ -28,15 +28,11 @@ public:
     StringRef(const SharedString* sharedStr);
     ~StringRef() = default;
 
-    friend std::string operator+(StringRef lhs,
-                       const std::string& rhs)
-    {
+    friend std::string operator+(StringRef lhs, const std::string& rhs) {
         return lhs._sharedStr ? lhs._sharedStr->getString() + rhs : rhs;
     }
 
-    friend std::string operator+(const std::string& lhs,
-                       StringRef rhs)
-    {
+    friend std::string operator+(const std::string& lhs, StringRef rhs) {
         return rhs._sharedStr ? lhs + rhs._sharedStr->getString() : lhs;
     }
 

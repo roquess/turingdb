@@ -33,15 +33,16 @@ Neo4JHttpRequest::Neo4JHttpRequest(std::string&& statement)
 }
 
 Neo4JHttpRequest::Neo4JHttpRequest(Neo4JHttpRequest&& other)
-    : _url(other._url),
-      _username(other._username),
-      _password(other._password),
-      _statement(other._statement),
-      _jsonRequest(other._jsonRequest),
-      _data(other._data),
-      _result(static_cast<bool>(other._result)),
-      _finished(static_cast<bool>(other._finished)),
-      _silent(other._silent)
+    : 
+    _url(std::move(other._url)),
+    _username(std::move(other._username)),
+    _password(std::move(other._password)),
+    _statement(std::move(other._statement)),
+    _jsonRequest(std::move(other._jsonRequest)),
+    _data(std::move(other._data)),
+    _isReady(std::move(other._isReady)),
+    _result(std::move(other._result)),
+    _silent(std::move(other._silent))
 {
 }
 
@@ -55,7 +56,7 @@ void Neo4JHttpRequest::exec() {
 
     if (!curl) {
         _result = false;
-        _finished = true;
+        setReady();
         return;
     }
 
@@ -90,14 +91,14 @@ void Neo4JHttpRequest::exec() {
     if (res != 0) {
         BioLog::log(msg::ERROR_NEO4J_HTTP_REQUEST() << _statement);
         _result = false;
-        _finished = true;
+        setReady();
         return;
     }
 
     curl_easy_cleanup(curl);
     curl_slist_free_all(headers);
     _result = true;
-    _finished = true;
+    setReady();
 }
 
 bool Neo4JHttpRequest::writeToFile(const std::filesystem::path& path) const {
@@ -111,4 +112,17 @@ void Neo4JHttpRequest::clear() {
 
 void Neo4JHttpRequest::reportError() const {
     BioLog::log(msg::ERROR_NEO4J_BAD_CURL_REQUEST() << _statement);
+}
+
+void Neo4JHttpRequest::setReady() {
+    std::unique_lock lock(_readyMutex);
+    _isReady = true;
+    _readyCond.notify_all();
+}
+
+void Neo4JHttpRequest::waitReady() {
+    std::unique_lock lock(_readyMutex);
+    while (!_isReady) {
+        _readyCond.wait(lock);
+    }
 }

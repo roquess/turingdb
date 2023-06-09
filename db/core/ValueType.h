@@ -19,7 +19,7 @@ public:
     ValueType(ValueKind valueKind);
 
     ValueKind getKind() const { return _kind; }
-    bool isValid() const { return _kind != VK_INVALID && _kind; }
+    bool isValid() const { return _kind != VK_INVALID; }
     bool isInt() const { return _kind == VK_INT; }
     bool isUnsigned() const { return _kind == VK_UNSIGNED; }
     bool isBool() const { return _kind == VK_BOOL; }

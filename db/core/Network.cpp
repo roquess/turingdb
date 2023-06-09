@@ -32,7 +32,7 @@ size_t Network::getNodeCount() const {
     return _nodes.size();
 }
 
-Node* Network::getNode(size_t id) const {
+Node* Network::getNode(DBIndex id) const {
     bioassert(_nodes.size() > id);
     return _nodes[id];
 }
