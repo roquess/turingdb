@@ -19,14 +19,20 @@ using JsonType = nlohmann::detail::value_t;
 using JsonObject = nlohmann::basic_json<>;
 
 const static std::unordered_map<std::string, db::ValueType> neo4jTypes = {
-    {"String",      db::ValueType{db::ValueType::ValueKind::VK_STRING}     },
-    {"StringArray", db::ValueType{db::ValueType::ValueKind::VK_INVALID}},
-    {"Double",      db::ValueType{db::ValueType::ValueKind::VK_DECIMAL}    },
-    {"Boolean",     db::ValueType{db::ValueType::ValueKind::VK_BOOL}       },
-    {"LocalDate",   db::ValueType{db::ValueType::ValueKind::VK_INVALID}},
-    {"Integer",     db::ValueType{db::ValueType::ValueKind::VK_INT}        },
-    {"Long",        db::ValueType{db::ValueType::ValueKind::VK_UNSIGNED}   },
-    {"Date",        db::ValueType{db::ValueType::ValueKind::VK_INVALID}},
+    {"String",         db::ValueType {db::ValueType::ValueKind::VK_STRING}  },
+    {"StringArray",    db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
+    {"Double",         db::ValueType {db::ValueType::ValueKind::VK_DECIMAL} },
+    {"DoubleArray",    db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
+    {"Boolean",        db::ValueType {db::ValueType::ValueKind::VK_BOOL}    },
+    {"BooleanArray",   db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
+    {"LocalDate",      db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
+    {"LocalDateArray", db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
+    {"Integer",        db::ValueType {db::ValueType::ValueKind::VK_INT}     },
+    {"IntegerArray",   db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
+    {"Long",           db::ValueType {db::ValueType::ValueKind::VK_UNSIGNED}},
+    {"LongArray",      db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
+    {"Date",           db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
+    {"DateArray",      db::ValueType {db::ValueType::ValueKind::VK_INVALID} },
 };
 
 const static std::unordered_map<std::string, std::string> stlTypes = {
@@ -73,10 +79,10 @@ static bool isExpectedType(const JsonObject& value) {
     if constexpr (std::is_same<T, std::string>()) {
         return value.type() == JsonType::string;
     } else if constexpr (std::is_same<T, int64_t>()) {
+        return value.type() == JsonType::number_integer;
+    } else if constexpr (std::is_same<T, uint64_t>()) {
         return value.type() == JsonType::number_integer ||
                value.type() == JsonType::number_unsigned;
-    } else if constexpr (std::is_same<T, uint64_t>()) {
-        return value.type() == JsonType::number_unsigned;
     } else if constexpr (std::is_same<T, double>()) {
         return value.type() == JsonType::number_float;
     } else if constexpr (std::is_same<T, bool>()) {
@@ -119,8 +125,7 @@ static T convert(const JsonObject& value) {
 }
 
 template <db::SupportedType T>
-static T castFromJsonType(JsonParsingStats& stats,
-                          const JsonObject& value) {
+static T castFromJsonType(JsonParsingStats& stats, const JsonObject& value) {
     T toReturn;
 
     if (!isExpectedType<T>(value)) {
@@ -152,7 +157,7 @@ static void handleProperty(const PropertyContext& c) {
         T value;
         value = castFromJsonType<T>(c.stats, c.val);
 
-        db::Property prop{
+        db::Property prop {
             c.propType,
             db::Value::create<T>(std::move(value)),
         };
@@ -181,7 +186,7 @@ Neo4j4JsonParser::~Neo4j4JsonParser() {
 }
 
 bool Neo4j4JsonParser::parseStats(const std::string& data) {
-    TimerStat timer{"JSON Parser: parsing Neo4J stats"};
+    TimerStat timer {"JSON Parser: parsing Neo4J stats"};
     if (!_reducedOutput) {
         Log::BioLog::log(msg::INFO_NEO4J_READING_STATS());
     }
@@ -195,7 +200,7 @@ bool Neo4j4JsonParser::parseStats(const std::string& data) {
 }
 
 bool Neo4j4JsonParser::parseNodeProperties(const std::string& data) {
-    TimerStat timer{"JSON Parser: parsing Neo4J node properties"};
+    TimerStat timer {"JSON Parser: parsing Neo4J node properties"};
     if (!_reducedOutput) {
         Log::BioLog::log(msg::INFO_NEO4J_READING_NODE_PROPERTIES());
     }
@@ -208,6 +213,10 @@ bool Neo4j4JsonParser::parseNodeProperties(const std::string& data) {
 
         const db::StringRef ntName = _db->getString(row.at(0));
         db::NodeType* nt = getOrCreateNodeType(ntName);
+        msgbioassert(
+            neo4jTypes.find(row.at(3).at(0)) != neo4jTypes.end(),
+            (row.at(3).at(0).get<std::string>() + " type is not supported")
+                .c_str());
 
         const db::StringRef propName = _db->getString(row.at(2));
         const db::ValueType valType = neo4jTypes.find(row.at(3).at(0))->second;
@@ -228,7 +237,7 @@ bool Neo4j4JsonParser::parseNodeProperties(const std::string& data) {
 }
 
 bool Neo4j4JsonParser::parseNodes(const std::string& data) {
-    TimerStat timer{"JSON Parser: parsing Neo4J nodes"};
+    TimerStat timer {"JSON Parser: parsing Neo4J nodes"};
     db::Network* net = getOrCreateNetwork();
 
     if (!_reducedOutput) {
@@ -324,7 +333,7 @@ bool Neo4j4JsonParser::parseNodes(const std::string& data) {
 }
 
 bool Neo4j4JsonParser::parseEdgeProperties(const std::string& data) {
-    TimerStat timer{"JSON Parser: parsing Neo4J edge properties"};
+    TimerStat timer {"JSON Parser: parsing Neo4J edge properties"};
     if (!_reducedOutput) {
         Log::BioLog::log(msg::INFO_NEO4J_READING_EDGE_PROPERTIES());
     }
@@ -408,7 +417,7 @@ bool Neo4j4JsonParser::parseEdgeProperties(const std::string& data) {
 }
 
 bool Neo4j4JsonParser::parseEdges(const std::string& data) {
-    TimerStat timer{"JSON Parser: parsing Neo4J edges"};
+    TimerStat timer {"JSON Parser: parsing Neo4J edges"};
     db::Network* net = getOrCreateNetwork();
 
     if (!_reducedOutput) {
