@@ -2,6 +2,7 @@
 #include "BioLog.h"
 #include "DB.h"
 #include "EntityLoader.h"
+#include "TimerStat.h"
 #include "TypeLoader.h"
 #include "FileUtils.h"
 #include "MsgCommon.h"
@@ -30,9 +31,12 @@ void DBLoader::setDBDirectoryName(const std::string& dirName) {
 
 bool DBLoader::load() {
     Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
+    TimerStat timer {"Loading Turing db: " + dbPath.string() };
+
     Path stringIndexPath = dbPath / "smap";
     Path typeIndexPath = dbPath / "types";
     Path entityIndexPath = dbPath / "entities";
+
     std::vector<StringRef> stringRefs;
 
     BioLog::log(msg::INFO_DB_LOADING_DATABASE() << dbPath);
