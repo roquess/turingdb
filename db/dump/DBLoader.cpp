@@ -29,6 +29,10 @@ void DBLoader::setDBDirectoryName(const std::string& dirName) {
 }
 
 bool DBLoader::load() {
+    if (!_db) {
+        return false;
+    }
+
     Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
     Path stringIndexPath = dbPath / "smap";
     Path typeIndexPath = dbPath / "types";

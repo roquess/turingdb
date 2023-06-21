@@ -153,3 +153,7 @@ bool FileUtils::listFiles(const Path& dir, std::vector<Path>& paths) {
 
     return true;
 }
+
+uint64_t FileUtils::fileSize(const Path& path) {
+    return std::filesystem::file_size(path);
+}
