@@ -46,7 +46,7 @@ TEST_F(StringIndexLoaderTest, Load) {
     StringIndexLoader loader(_indexPath);
     StringIndex index;
     std::vector<StringRef> stringRefs;
-    loader.load(index, stringRefs);
+    loader.load(index);
 
     for (size_t i = 0; i < 100; i++) {
         std::string s = std::to_string(i) + "_str";
@@ -74,7 +74,7 @@ TEST_F(StringIndexLoaderTest, LoadEmpty) {
 
     StringIndex index{};
     std::vector<StringRef> stringRefs;
-    loader.load(index, stringRefs);
+    loader.load(index);
 
     ASSERT_EQ(index.getSize(), 0);
 }
@@ -86,7 +86,7 @@ TEST_F(StringIndexLoaderTest, DumpTwice) {
 
     // Load original index
     StringIndex index{};
-    loader.load(index, stringRefs);
+    loader.load(index);
 
     // Modify the index and dump it
     const SharedString* temp = index.getString("New string").getSharedString();
@@ -96,7 +96,7 @@ TEST_F(StringIndexLoaderTest, DumpTwice) {
 
     // Reload the index
     StringIndex index2{};
-    loader.load(index2, stringRefs);
+    loader.load(index2);
 
     // index2 should have one more string
     ASSERT_EQ(index2.getSize(), _index.getSize() + 1);

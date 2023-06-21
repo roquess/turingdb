@@ -32,7 +32,7 @@ bool DBDumper::dump() {
     Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
     Path stringIndexPath = dbPath / "smap";
     Path typeIndexPath = dbPath / "types";
-    Path entityIndexPath = dbPath / "entities";
+    Path entityIndexPath = dbPath / "data";
 
     BioLog::log(msg::INFO_DB_DUMPING_DATABASE() << dbPath);
 

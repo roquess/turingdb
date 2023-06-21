@@ -1,4 +1,5 @@
 #include "EntityDumper.h"
+#include "BioAssert.h"
 #include "BioLog.h"
 #include "DB.h"
 #include "Edge.h"
@@ -12,11 +13,12 @@
 #include "capnp/EntityIndex.capnp.h"
 
 #include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <capnp/serialize.h>
 #include <functional>
 #include <unistd.h>
 
 namespace db {
+static constexpr inline size_t entityCountLimit = 100000;
 
 EntityDumper::EntityDumper(db::DB* db, const FileUtils::Path& indexPath)
     : _indexPath(indexPath),
@@ -25,7 +27,7 @@ EntityDumper::EntityDumper(db::DB* db, const FileUtils::Path& indexPath)
 }
 
 bool EntityDumper::dump() {
-    // Remove entities file if it already exists
+    // Remove data file if it already exists
     if (FileUtils::exists(_indexPath)) {
         if (!FileUtils::removeFile(_indexPath)) {
             Log::BioLog::log(msg::ERROR_FAILED_TO_REMOVE_FILE() << _indexPath);
@@ -33,12 +35,12 @@ bool EntityDumper::dump() {
         }
     }
 
-    const int indexFD = FileUtils::openForWrite(_indexPath);
+    int indexFD = FileUtils::openForWrite(_indexPath);
     if (indexFD < 0) {
         return false;
     }
 
-    const DB::NetworkRange networks = _db->networks();
+    DB::NetworkRange networks = _db->networks();
 
     ::capnp::MallocMessageBuilder message;
     auto entities = message.initRoot<OnDisk::EntityIndex>();
@@ -46,148 +48,180 @@ bool EntityDumper::dump() {
 
     size_t i = 0;
     for (const Network* net : networks) {
-        // Nodes
-        Network::NodeRange nodes = net->nodes();
-
         auto diskNetwork = networksBuilder[i];
+        const auto& nodes = net->_nodes;
+        const auto& edges = net->_edges;
+        size_t nodeCount = nodes.size();
+        size_t edgeCount = edges.size();
+        size_t nodeCountLeft = nodeCount;
+        size_t edgeCountLeft = edgeCount;
+
+        const size_t nodeModulo = (size_t)(entityCountLimit % nodeCountLeft != 0);
+        const size_t nodeSpanCount = nodeCountLeft / entityCountLimit
+                                   + nodeModulo;
+
+        const size_t edgeModulo = (size_t)(entityCountLimit % edgeCountLeft != 0);
+        const size_t edgeSpanCount = edgeCountLeft / entityCountLimit
+                                   + edgeModulo;
+
         diskNetwork.setNameId(net->getName().getID());
-        auto nodesBuilder = diskNetwork.initNodes(nodes.size());
+        diskNetwork.setNodeCount(nodeCountLeft);
+        diskNetwork.setEdgeCount(edgeCountLeft);
+        auto nodeSpans = diskNetwork.initNodeSpans(nodeSpanCount);
+        auto edgeSpans = diskNetwork.initEdgeSpans(edgeSpanCount);
 
-        size_t j = 0;
-        for (const Node* node : nodes) {
-            auto diskNode = nodesBuilder[j];
-            auto props = node->properties();
-            auto diskProperties = diskNode.initProperties(props.size());
+        // Nodes
+        size_t index = 0;
+        for (auto nodeSpan : nodeSpans) {
+            const size_t count = nodeCountLeft < entityCountLimit
+                                   ? nodeCountLeft
+                                   : entityCountLimit;
 
-            diskNode.setId(j);
-            diskNode.setNameId(node->getName().getID());
-            diskNode.setNodeTypeNameId(node->getType()->getName().getID());
+            auto diskNodes = nodeSpan.initNodes(count);
 
-            size_t k = 0;
-            for (const auto& [propType, propValue] : props) {
-                auto diskProp = diskProperties[k];
-                const auto kind = propType->getValueType().getKind();
-                const auto diskKind = static_cast<OnDisk::ValueKind>(kind);
-                diskProp.setKind(diskKind);
-                diskProp.setPropertyTypeNameId(propType->getName().getID());
+            for (size_t j = index; j < index + count; j++) {
+                const size_t localj = j - index;
+                const Node* node = nodes[j];
+                auto props = node->properties();
+                auto diskProperties = diskNodes[localj].initProperties(props.size());
+                diskNodes[localj].setId(j);
+                diskNodes[localj].setNameId(node->getName().getID());
+                diskNodes[localj].setNodeTypeNameId(node->getType()->getName().getID());
 
-                switch (kind) {
-                    case ValueType::VK_INT: {
-                        diskProp.getValue().setInt(propValue.getInt());
-                        break;
+                size_t k = 0;
+                for (const auto& [propType, propValue] : props) {
+                    auto diskProp = diskProperties[k];
+                    const auto kind = propType->getValueType().getKind();
+                    const auto diskKind = static_cast<OnDisk::ValueKind>(kind);
+                    diskProp.setKind(diskKind);
+                    diskProp.setPropertyTypeNameId(propType->getName().getID());
+
+                    switch (kind) {
+                        case ValueType::VK_INT: {
+                            diskProp.getValue().setInt(propValue.getInt());
+                            break;
+                        }
+                        case ValueType::VK_UNSIGNED: {
+                            diskProp.getValue().setUnsigned(propValue.getUint());
+                            break;
+                        }
+                        case ValueType::VK_BOOL: {
+                            diskProp.getValue().setBool(propValue.getBool());
+                            break;
+                        }
+                        case ValueType::VK_DECIMAL: {
+                            diskProp.getValue().setDecimal(propValue.getDouble());
+                            break;
+                        }
+                        case ValueType::VK_STRING: {
+                            diskProp.getValue().setString(propValue.getString());
+                            break;
+                        }
+                        case ValueType::VK_STRING_REF: {
+                            diskProp.getValue().setStringRefId(
+                                propValue.getStringRef().getID());
+                            diskProp.getValue().setStringRefId(0);
+                            break;
+                        }
+                        case ValueType::VK_INVALID: {
+                            Log::BioLog::echo(
+                                "[FATAL ERROR, SHOULD NOT OCCUR] An invalid "
+                                "property was encountered when dumping database");
+                            return false;
+                        }
+                        case ValueType::_SIZE: {
+                            Log::BioLog::echo(
+                                "[FATAL ERROR, SHOULD NOT OCCUR] An invalid "
+                                "property was encountered when dumping database");
+                            return false;
+                        }
                     }
-                    case ValueType::VK_UNSIGNED: {
-                        diskProp.getValue().setUnsigned(propValue.getUint());
-                        break;
-                    }
-                    case ValueType::VK_BOOL: {
-                        diskProp.getValue().setBool(propValue.getBool());
-                        break;
-                    }
-                    case ValueType::VK_DECIMAL: {
-                        diskProp.getValue().setDecimal(propValue.getDouble());
-                        break;
-                    }
-                    case ValueType::VK_STRING: {
-                        diskProp.getValue().setString(propValue.getString());
-                        break;
-                    }
-                    case ValueType::VK_STRING_REF: {
-                        diskProp.getValue().setStringRefId(
-                            propValue.getStringRef().getID());
-                        diskProp.getValue().setStringRefId(0);
-                        break;
-                    }
-                    case ValueType::VK_INVALID: {
-                        Log::BioLog::echo(
-                            "[FATAL ERROR, SHOULD NOT OCCUR] An invalid "
-                            "property was encountered when dumping database");
-                        break;
-                    }
-                    case ValueType::_SIZE: {
-                        Log::BioLog::echo(
-                            "[FATAL ERROR, SHOULD NOT OCCUR] An invalid "
-                            "property was encountered when dumping database");
-                        break;
-                    }
+                    k++;
                 }
-                k++;
             }
-            j++;
+
+            nodeCountLeft -= entityCountLimit;
+            index += count;
         }
 
         // Edges
-        Network::EdgeRange edges = net->edges();
+        index = 0;
+        for (auto edgeSpan : edgeSpans) {
+            const size_t count = edgeCountLeft < entityCountLimit
+                                   ? edgeCountLeft
+                                   : entityCountLimit;
+            auto diskEdges = edgeSpan.initEdges(count);
 
-        auto edgesBuilder = diskNetwork.initEdges(edges.size());
+            for (size_t j = index; j < index + count; j++) {
+                const size_t localj = j - index;
+                const Edge* edge = edges[j];
+                auto props = edge->properties();
+                auto diskProperties = diskEdges[localj].initProperties(props.size());
+                const StringRef edgeTypeName = edge->getType()->getName();
+                diskEdges[localj].setId(localj);
+                diskEdges[localj].setEdgeTypeNameId(edgeTypeName.getID());
+                diskEdges[localj].setSourceId(edge->getSource()->getIndex());
+                diskEdges[localj].setTargetId(edge->getTarget()->getIndex());
 
-        j = 0;
-        for (const Edge* edge : edges) {
-            auto diskEdge = edgesBuilder[j];
-            auto props = edge->properties();
-            auto diskProperties = diskEdge.initProperties(props.size());
+                size_t k = 0;
+                for (const auto& [propType, propValue] : props) {
+                    auto diskProp = diskProperties[k];
+                    const auto kind = propType->getValueType().getKind();
+                    const auto diskKind = static_cast<OnDisk::ValueKind>(kind);
+                    diskProp.setKind(diskKind);
+                    diskProp.setPropertyTypeNameId(propType->getName().getID());
 
-            diskEdge.setId(j);
-            diskEdge.setEdgeTypeNameId(edge->getType()->getName().getID());
-            diskEdge.setSourceId(edge->getSource()->getIndex());
-            diskEdge.setTargetId(edge->getTarget()->getIndex());
-
-            size_t k = 0;
-            for (const auto& [propType, propValue] : props) {
-                auto diskProp = diskProperties[k];
-                const auto kind = propType->getValueType().getKind();
-                const auto diskKind = static_cast<OnDisk::ValueKind>(kind);
-                diskProp.setKind(diskKind);
-                diskProp.setPropertyTypeNameId(propType->getName().getID());
-
-                switch (kind) {
-                    case ValueType::VK_INT: {
-                        diskProp.getValue().setInt(propValue.getInt());
-                        break;
+                    switch (kind) {
+                        case ValueType::VK_INT: {
+                            diskProp.getValue().setInt(propValue.getInt());
+                            break;
+                        }
+                        case ValueType::VK_UNSIGNED: {
+                            diskProp.getValue().setUnsigned(propValue.getUint());
+                            break;
+                        }
+                        case ValueType::VK_BOOL: {
+                            diskProp.getValue().setBool(propValue.getBool());
+                            break;
+                        }
+                        case ValueType::VK_DECIMAL: {
+                            diskProp.getValue().setDecimal(propValue.getDouble());
+                            break;
+                        }
+                        case ValueType::VK_STRING: {
+                            diskProp.getValue().setString(propValue.getString());
+                            break;
+                        }
+                        case ValueType::VK_STRING_REF: {
+                            diskProp.getValue().setStringRefId(
+                                propValue.getStringRef().getID());
+                            break;
+                        }
+                        case ValueType::VK_INVALID: {
+                            Log::BioLog::echo(
+                                "[FATAL ERROR, SHOULD NOT OCCUR] An invalid "
+                                "property was encountered when dumping database");
+                            return false;
+                        }
+                        case ValueType::_SIZE: {
+                            Log::BioLog::echo(
+                                "[FATAL ERROR, SHOULD NOT OCCUR] An invalid "
+                                "property was encountered when dumping database");
+                            return false;
+                        }
                     }
-                    case ValueType::VK_UNSIGNED: {
-                        diskProp.getValue().setUnsigned(propValue.getUint());
-                        break;
-                    }
-                    case ValueType::VK_BOOL: {
-                        diskProp.getValue().setBool(propValue.getBool());
-                        break;
-                    }
-                    case ValueType::VK_DECIMAL: {
-                        diskProp.getValue().setDecimal(propValue.getDouble());
-                        break;
-                    }
-                    case ValueType::VK_STRING: {
-                        diskProp.getValue().setString(propValue.getString());
-                        break;
-                    }
-                    case ValueType::VK_STRING_REF: {
-                        diskProp.getValue().setStringRefId(
-                            propValue.getStringRef().getID());
-                        break;
-                    }
-                    case ValueType::VK_INVALID: {
-                        Log::BioLog::echo(
-                            "[FATAL ERROR, SHOULD NOT OCCUR] An invalid "
-                            "property was encountered when dumping database");
-                        break;
-                    }
-                    case ValueType::_SIZE: {
-                        Log::BioLog::echo(
-                            "[FATAL ERROR, SHOULD NOT OCCUR] An invalid "
-                            "property was encountered when dumping database");
-                        break;
-                    }
+                    k++;
                 }
-                k++;
             }
-            j++;
+
+            edgeCountLeft -= entityCountLimit;
+            index += count;
         }
+
         i++;
     }
 
-    // Node
-    ::capnp::writePackedMessageToFd(indexFD, message);
+    ::capnp::writeMessageToFd(indexFD, message);
     close(indexFD);
 
     return true;

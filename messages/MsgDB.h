@@ -8,10 +8,19 @@ MSG_INFO(INFO_DB_DUMPING_DATABASE, 5001,
 MSG_INFO(INFO_DB_LOADING_DATABASE, 5002,
          "Loading Turing DB from $0")
 
-MSG_INFO(ERROR_DB_DUMPING_DATABASE, 5003,
+MSG_INFO(INFO_DB_LOADING_STRING_INDEX, 5003,
+         "Loading string index...")
+
+MSG_INFO(INFO_DB_LOADING_TYPE_INDEX, 5004,
+         "Loading type index...")
+
+MSG_INFO(INFO_DB_LOADING_ENTITY_INDEX, 5005,
+         "Loading entity index...")
+
+MSG_INFO(ERROR_DB_DUMPING_DATABASE, 5006,
          "Could not dump Turing DB to $0")
 
-MSG_INFO(ERROR_DB_LOADING_DATABASE, 5004,
+MSG_INFO(ERROR_DB_LOADING_DATABASE, 5007,
          "Could not load Turing DB from $0")
 
 }

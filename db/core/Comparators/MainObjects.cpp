@@ -6,25 +6,19 @@
 
 namespace db {
 
-using Networks = std::map<StringRef, Network*>;
-using Nodes = std::vector<Node*>;
-using Edges = std::vector<Edge*>;
-using NodeTypes = std::map<StringRef, NodeType*>;
-using EdgeTypes = std::map<StringRef, EdgeType*>;
-
 template <>
 bool Comparator<DB>::same(const DB* db1, const DB* db2) {
-    return Comparator<NodeTypes>::same(&db1->_nodeTypes, &db2->_nodeTypes)
-        && Comparator<EdgeTypes>::same(&db1->_edgeTypes, &db2->_edgeTypes)
-        && Comparator<Networks>::same(&db1->_networks, &db2->_networks);
+    return Comparator<DB::NodeTypes>::same(&db1->_nodeTypes, &db2->_nodeTypes)
+        && Comparator<DB::EdgeTypes>::same(&db1->_edgeTypes, &db2->_edgeTypes)
+        && Comparator<DB::Networks>::same(&db1->_networks, &db2->_networks);
 }
 
 template <>
 bool Comparator<Network>::same(const Network* net1, const Network* net2) {
     return Comparator<DBObject>::same(net1, net2)
         && StringRef::same(net1->_name, net2->_name)
-        && Comparator<Nodes>::same(&net1->_nodes, &net2->_nodes)
-        && Comparator<Edges>::same(&net1->_edges, &net2->_edges);
+        && Comparator<Network::Nodes>::same(&net1->_nodes, &net2->_nodes)
+        && Comparator<Network::Edges>::same(&net1->_edges, &net2->_edges);
 }
 
 template <>

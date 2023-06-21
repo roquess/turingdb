@@ -6,21 +6,18 @@
 
 namespace db {
 
-using NodeTypeSet = std::set<NodeType*, DBObject::Sorter>;
-using EdgeTypeSet = std::set<EdgeType*, DBObject::Sorter>;
-
 template <>
 bool Comparator<NodeType>::same(const NodeType* nt1, const NodeType* nt2) {
     return Comparator<DBEntityType>::same(nt1, nt2)
-        && Comparator<EdgeTypeSet>::same(&nt1->_inEdgeTypes, &nt2->_inEdgeTypes)
-        && Comparator<EdgeTypeSet>::same(&nt1->_outEdgeTypes, &nt2->_outEdgeTypes);
+        && Comparator<NodeType::EdgeTypes>::same(&nt1->_inEdgeTypes, &nt2->_inEdgeTypes)
+        && Comparator<NodeType::EdgeTypes>::same(&nt1->_outEdgeTypes, &nt2->_outEdgeTypes);
 }
 
 template <>
 bool Comparator<EdgeType>::same(const EdgeType* et1, const EdgeType* et2) {
     return Comparator<DBEntityType>::same(et1, et2)
-        && Comparator<NodeTypeSet>::same(&et1->_sourceTypes, &et2->_sourceTypes)
-        && Comparator<NodeTypeSet>::same(&et1->_targetTypes, &et2->_targetTypes);
+        && Comparator<EdgeType::NodeTypes>::same(&et1->_sourceTypes, &et2->_sourceTypes)
+        && Comparator<EdgeType::NodeTypes>::same(&et1->_targetTypes, &et2->_targetTypes);
 }
 
 template <>

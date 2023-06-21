@@ -15,10 +15,15 @@ public:
 
     StringIndexLoader(const Path& dbPath);
 
-    bool load(StringIndex& index, std::vector<StringRef>& stringRefs);
+    bool load(StringIndex& index);
+
+    StringRef operator[](size_t id) const {
+        return _stringIdMapping[id];
+    }
 
 private:
     Path _indexPath;
+    std::vector<StringRef> _stringIdMapping;
 };
 
 }

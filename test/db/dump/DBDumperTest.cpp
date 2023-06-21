@@ -31,7 +31,7 @@ protected:
 
         _stringIndexPath = _dbPath / "smap";
         _typeIndexPath = _dbPath / "types";
-        _entityIndexPath = _dbPath / "entities";
+        _entityIndexPath = _dbPath / "data";
 
         Log::BioLog::init();
         Log::BioLog::openFile(_logPath.string());
