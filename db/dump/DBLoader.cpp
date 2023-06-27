@@ -30,6 +30,10 @@ void DBLoader::setDBDirectoryName(const std::string& dirName) {
 }
 
 bool DBLoader::load() {
+    if (!_db) {
+        return false;
+    }
+
     Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
     TimerStat timer {"Loading Turing db: " + dbPath.string() };
 

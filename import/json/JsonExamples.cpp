@@ -8,13 +8,13 @@
 #include <iostream>
 #include <regex>
 
-db::DB* cyberSecurityDB() {
+db::DB* getNeo4j4DB(const std::string& dbName) {
     JsonParser parser {};
     parser.setReducedOutput(true);
 
     std::string turingHome = std::getenv("TURING_HOME");
     const FileUtils::Path jsonDir = FileUtils::Path {turingHome}  /
-                                    "neo4j" / "cyber-security-db";
+                                    "neo4j" / dbName;
 
     if (!FileUtils::exists(jsonDir)) {
         Log::BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS() << jsonDir);
@@ -29,22 +29,22 @@ db::DB* cyberSecurityDB() {
     return parser.getDB();
 }
 
+db::DB* cyberSecurityDB() {
+    return getNeo4j4DB("cyber-security-db");
+}
+
+db::DB* networkDB() {
+    return getNeo4j4DB("network-db");
+}
+
+db::DB* poleDB() {
+    return getNeo4j4DB("pole-db");
+}
+
+db::DB* stackoverflowDB() {
+    return getNeo4j4DB("stackoverflow-db");
+}
+
 db::DB* recommendationsDB() {
-    JsonParser parser {};
-    parser.setReducedOutput(true);
-
-    std::string turingHome = std::getenv("TURING_HOME");
-    const FileUtils::Path jsonDir = FileUtils::Path {turingHome} /
-                                    "neo4j" / "recommendations-db";
-
-    if (!FileUtils::exists(jsonDir)) {
-        Log::BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS() << jsonDir);
-        return nullptr;
-    }
-
-    if (!parser.parseJsonDir(jsonDir, JsonParser::DirFormat::Neo4j4)) {
-        return nullptr;
-    }
-
-    return parser.getDB();
+    return getNeo4j4DB("recommendations-db");
 }

@@ -22,4 +22,5 @@ public:
     static int openForWrite(const Path& path);
     static bool readContent(const Path& path, std::string& data);
     static bool listFiles(const Path& dir, std::vector<Path>& paths);
+    static uint64_t fileSize(const Path& path);
 };
