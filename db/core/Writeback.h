@@ -17,10 +17,12 @@ class EdgeType;
 class Property;
 class DBEntityType;
 class DBEntity;
+class TypeLoader;
 
 class Writeback {
 public:
     using NodeTypes = std::vector<NodeType*>;
+    friend TypeLoader;
 
     Writeback(DB* db);
     ~Writeback();
@@ -61,6 +63,20 @@ private:
     PropertyType* addPropertyTypeBase(DBEntityType* dbType,
                                       StringRef name,
                                       ValueType type);
+
+    PropertyType* addPropertyTypeBase(DBEntityType* dbType,
+                                      StringRef name,
+                                      ValueType type,
+                                      size_t id);
+
+    PropertyType* addPropertyType(NodeType* nodeType,
+                                  StringRef name,
+                                  ValueType type,
+                                  size_t id);
+    PropertyType* addPropertyType(EdgeType* nodeType,
+                                  StringRef name,
+                                  ValueType type,
+                                  size_t id);
 };
 
 }

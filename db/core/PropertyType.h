@@ -3,16 +3,18 @@
 #include "DBType.h"
 
 #include "ValueType.h"
+#include "Comparator.h"
 
 namespace db {
 
-class DBEntityType;
 class Writeback;
+class DBEntityType;
 
 class PropertyType : public DBType {
 public:
     friend DBEntityType;
     friend Writeback;
+    friend DBComparator;
 
     ValueType getValueType() const { return _valType; }
 
