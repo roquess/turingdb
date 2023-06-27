@@ -6,7 +6,7 @@
 #include "capnp/StringIndex.capnp.h"
 
 #include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <capnp/serialize.h>
 #include <cassert>
 #include <unistd.h>
 
@@ -17,11 +17,10 @@ StringIndexLoader::StringIndexLoader(const Path& dbPath)
 {
 }
 
-bool StringIndexLoader::load(StringIndex& index,
-                             std::vector<StringRef>& stringRefs) {
+bool StringIndexLoader::load(StringIndex& index) {
 
     index.clear();
-    stringRefs.clear();
+    _stringIdMapping.clear();
 
     if (!FileUtils::exists(_indexPath)) {
         return false;
@@ -33,14 +32,18 @@ bool StringIndexLoader::load(StringIndex& index,
         return false;
     }
 
-    ::capnp::PackedFdMessageReader message(indexFD);
+    //::capnp::PackedFdMessageReader message(indexFD);
+    ::capnp::StreamFdMessageReader message(indexFD, {
+        .traversalLimitInWords = 100000000000000,
+        .nestingLimit = 128,
+    });
     const auto stringReader = message.getRoot<OnDisk::StringIndex>();
 
-    stringRefs.resize(stringReader.getStrings().size());
+    _stringIdMapping.resize(stringReader.getStrings().size());
 
     for (OnDisk::SharedString::Reader s : stringReader.getStrings()) {
         const StringRef newString = index.insertString(s.getStr(), s.getId());
-        stringRefs[s.getId()] = newString;
+        _stringIdMapping[s.getId()] = newString;
     }
 
     close(indexFD);

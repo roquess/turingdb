@@ -7,7 +7,7 @@
 #include "capnp/StringIndex.capnp.h"
 
 #include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <capnp/serialize.h>
 #include <cassert>
 #include <unistd.h>
 
@@ -43,7 +43,7 @@ bool StringIndexDumper::dump(const StringIndex& index) {
         stringListBuilder[sstr->getID()].setStr(rstr);
     }
 
-    ::capnp::writePackedMessageToFd(indexFD, message);
+    ::capnp::writeMessageToFd(indexFD, message);
     close(indexFD);
 
     return true;

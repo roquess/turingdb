@@ -9,12 +9,12 @@
 #include "capnp/TypeIndex.capnp.h"
 
 #include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <capnp/serialize.h>
 #include <unistd.h>
 
 namespace db {
 
-TypeDumper::TypeDumper(db::DB* db, const FileUtils::Path& indexPath)
+TypeDumper::TypeDumper(const db::DB* db, const FileUtils::Path& indexPath)
     : _indexPath(indexPath),
       _db(db)
 {
@@ -121,7 +121,7 @@ bool TypeDumper::dump() {
         currentPropTypeId += propTypes.size();
     }
 
-    ::capnp::writePackedMessageToFd(indexFD, message);
+    ::capnp::writeMessageToFd(indexFD, message);
     close(indexFD);
 
     return true;

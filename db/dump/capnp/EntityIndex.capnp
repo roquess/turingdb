@@ -32,10 +32,20 @@ struct Edge {
     properties @4 :List(Property);
 }
 
+struct NodeSpan {
+    nodes @0 :List(Node);
+}
+
+struct EdgeSpan {
+    edges @0 :List(Edge);
+}
+
 struct Network {
     nameId @0 :UInt64;
-    nodes @1 :List(Node);
-    edges @2 :List(Edge);
+    nodeCount @1 :UInt64;
+    edgeCount @2 :UInt64;
+    nodeSpans @3 :List(NodeSpan);
+    edgeSpans @4 :List(EdgeSpan);
 }
 
 struct EntityIndex {

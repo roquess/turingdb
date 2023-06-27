@@ -1,7 +1,7 @@
-#include "DBLoader.h"
 #include "BioLog.h"
 #include "DB.h"
 #include "DBDumper.h"
+#include "DBLoader.h"
 #include "FileUtils.h"
 #include "JsonExamples.h"
 #include "NodeType.h"
@@ -11,7 +11,7 @@
 
 namespace db {
 
-class DBLoaderTest : public ::testing::Test {
+class LargeDBTest : public ::testing::Test {
 protected:
     void SetUp() override {
         const testing::TestInfo* const testInfo =
@@ -34,10 +34,9 @@ protected:
         Log::BioLog::init();
         Log::BioLog::openFile(_logPath.string());
 
-        _db = cyberSecurityDB();
-
-        DBDumper dumper(_db, _outDir);
-        dumper.dump();
+        _db = DB::create();
+        DBLoader loader {_db, "/home/dev/reactome.out"};
+        loader.load();
     }
 
     void TearDown() override {
@@ -48,16 +47,17 @@ protected:
         Log::BioLog::destroy();
     }
 
-    DB* _db{nullptr};
+    DB* _db {nullptr};
     std::string _outDir;
     FileUtils::Path _logPath;
 };
 
-TEST_F(DBLoaderTest, LoadDB) {
-    DB* db = DB::create();
+TEST_F(LargeDBTest, LoadDB) {
+    DBDumper dumper(_db, _outDir);
+    dumper.dump();
+
+    db::DB* db = db::DB::create();
     DBLoader loader(db, _outDir);
-    Writeback wb1{_db};
-    Writeback wb2{db};
 
     ASSERT_TRUE(loader.load());
     ASSERT_TRUE(DBComparator::same(_db, db));

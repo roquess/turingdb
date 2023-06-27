@@ -1,6 +1,5 @@
 #pragma once
 
-#include "StringRef.h"
 #include "FileUtils.h"
 
 #include <vector>
@@ -8,13 +7,13 @@
 namespace db {
 
 class DB;
-class StringIndex;
+class StringIndexLoader;
 
 class EntityLoader{
 public:
     EntityLoader(db::DB* db, const FileUtils::Path& dbPath);
 
-    bool load(const std::vector<StringRef>& strIndex);
+    bool load(const StringIndexLoader& strLoader);
 
 private:
     FileUtils::Path _indexPath;

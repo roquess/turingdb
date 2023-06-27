@@ -15,3 +15,12 @@ add_db_dumper_gtest(string_index_loader_tests StringIndexLoaderTest.cpp)
 add_db_dumper_gtest(string_index_dumper_tests StringIndexDumperTest.cpp)
 add_db_dumper_gtest(db_dumper_tests DBDumperTest.cpp)
 add_db_dumper_gtest(db_loader_tests DBLoaderTest.cpp)
+
+
+add_executable(LargeDBTest LargeDBTest.cpp)
+target_link_libraries(LargeDBTest PRIVATE
+    bio_import_json_s
+    turing_db_core_s
+    turing_db_dumper_s
+    turing_log_s gtest_main
+)
