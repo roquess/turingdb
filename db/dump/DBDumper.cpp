@@ -11,7 +11,7 @@
 using namespace db;
 using namespace Log;
 
-DBDumper::DBDumper(DB* db, const Path& outDir)
+DBDumper::DBDumper(const DB* db, const Path& outDir)
     : _outDir(outDir),
       _dbDirName(getDefaultDBDirectoryName()),
       _db(db)
