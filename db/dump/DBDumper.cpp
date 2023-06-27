@@ -6,6 +6,7 @@
 #include "MsgDB.h"
 #include "StringIndexDumper.h"
 #include "EntityDumper.h"
+#include "TimerStat.h"
 #include "TypeDumper.h"
 
 using namespace db;
@@ -30,6 +31,8 @@ void DBDumper::setDBDirectoryName(const std::string& dirName) {
 
 bool DBDumper::dump() {
     Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
+    TimerStat timer {"Dumping Turing db: " + dbPath.string() };
+
     Path stringIndexPath = dbPath / "smap";
     Path typeIndexPath = dbPath / "types";
     Path entityIndexPath = dbPath / "data";

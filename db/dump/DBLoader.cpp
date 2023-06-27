@@ -7,6 +7,7 @@
 #include "MsgDB.h"
 #include "StringIndexLoader.h"
 #include "TypeLoader.h"
+#include "TimerStat.h"
 
 using namespace db;
 using namespace Log;
@@ -30,6 +31,8 @@ void DBLoader::setDBDirectoryName(const std::string& dirName) {
 
 bool DBLoader::load() {
     Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
+    TimerStat timer {"Loading Turing db: " + dbPath.string() };
+
     Path stringIndexPath = dbPath / "smap";
     Path typeIndexPath = dbPath / "types";
     Path entityIndexPath = dbPath / "data";
