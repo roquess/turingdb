@@ -11,7 +11,7 @@
 using namespace db;
 using namespace Log;
 
-DBDumper::DBDumper(DB* db, const Path& outDir)
+DBDumper::DBDumper(const DB* db, const Path& outDir)
     : _outDir(outDir),
       _dbDirName(getDefaultDBDirectoryName()),
       _db(db)
@@ -32,7 +32,7 @@ bool DBDumper::dump() {
     Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
     Path stringIndexPath = dbPath / "smap";
     Path typeIndexPath = dbPath / "types";
-    Path entityIndexPath = dbPath / "entities";
+    Path entityIndexPath = dbPath / "data";
 
     BioLog::log(msg::INFO_DB_DUMPING_DATABASE() << dbPath);
 

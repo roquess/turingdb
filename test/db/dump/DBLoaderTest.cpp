@@ -73,13 +73,13 @@ protected:
         DB* db2 = DB::create();
         DBLoader loader2(db2, dir2);
         ASSERT_TRUE(loader2.load());
-        ASSERT_TRUE(Comparator<DB>::same(db1, db2));
+        ASSERT_TRUE(DBComparator::same(db1, db2));
 
         tryDump(db2, dir3);
         DB* db3 = DB::create();
         DBLoader loader3(db3, dir3);
         ASSERT_TRUE(loader3.load());
-        ASSERT_TRUE(Comparator<DB>::same(db1, db3));
+        ASSERT_TRUE(DBComparator::same(db1, db3));
 
         compareDirectories(dir2, dir3);
 

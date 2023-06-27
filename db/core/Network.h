@@ -15,12 +15,14 @@ class Node;
 class Edge;
 class DB;
 class Writeback;
+class EntityDumper;
 
 class Network : public DBObject {
 public:
     friend DB;
     friend Writeback;
-    friend Comparator<Network>;
+    friend DBComparator;
+    friend EntityDumper;
     using Nodes = std::vector<Node*>;
     using Edges = std::vector<Edge*>;
     using NodeRange = STLRange<Nodes>;

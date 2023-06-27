@@ -3,11 +3,12 @@
 #include "DB.h"
 #include "EdgeType.h"
 #include "NodeType.h"
+#include "StringIndexLoader.h"
 #include "Writeback.h"
 #include "capnp/TypeIndex.capnp.h"
 
 #include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <capnp/serialize.h>
 #include <unistd.h>
 
 namespace db {
@@ -27,7 +28,7 @@ TypeLoader::TypeLoader(db::DB* db, const FileUtils::Path& indexPath)
 {
 }
 
-bool TypeLoader::load(const std::vector<StringRef>& strIndex) {
+bool TypeLoader::load(const StringIndexLoader& strLoader) {
     if (!FileUtils::exists(_indexPath)) {
         return false;
     }
@@ -40,17 +41,21 @@ bool TypeLoader::load(const std::vector<StringRef>& strIndex) {
 
     Writeback wb(_db);
 
-    ::capnp::PackedFdMessageReader message(indexFD);
+    ::capnp::StreamFdMessageReader message(indexFD, {
+        .traversalLimitInWords = 100000000000000,
+        .nestingLimit = 128,
+    });
     const auto typeIndexReader = message.getRoot<OnDisk::TypeIndex>();
 
     for (const auto diskNodeType : typeIndexReader.getNodeTypes()) {
-        db::NodeType* nt = wb.createNodeType(strIndex[diskNodeType.getNameId()]);
+        const StringRef ntName = strLoader[diskNodeType.getNameId()];
+        db::NodeType* nt = wb.createNodeType(ntName);
 
         for (const auto diskPropType : diskNodeType.getPropertyTypes()) {
             const ValueType valType {
                 static_cast<ValueType::ValueKind>(diskPropType.getKind())};
 
-            const StringRef propName = strIndex[diskPropType.getNameId()];
+            const StringRef propName = strLoader[diskPropType.getNameId()];
             wb.addPropertyType(nt, propName, valType, diskPropType.getId());
         }
     }
@@ -63,20 +68,22 @@ bool TypeLoader::load(const std::vector<StringRef>& strIndex) {
         targets.clear();
 
         for (const auto diskSource : diskEdgeType.getSources()) {
-            sources.push_back(_db->getNodeType(strIndex[diskSource]));
+            const StringRef sourceName = strLoader[diskSource];
+            sources.push_back(_db->getNodeType(sourceName));
         }
 
         for (const auto diskTarget : diskEdgeType.getTargets()) {
-            targets.push_back(_db->getNodeType(strIndex[diskTarget]));
+            const StringRef targetName = strLoader[diskTarget];
+            targets.push_back(_db->getNodeType(targetName));
         }
 
-        db::EdgeType* et = wb.createEdgeType(strIndex[diskEdgeType.getNameId()],
-                                             sources, targets);
+        const StringRef edgeTypeName = strLoader[diskEdgeType.getNameId()];
+        db::EdgeType* et = wb.createEdgeType(edgeTypeName, sources, targets);
 
         for (const auto diskPropType : diskEdgeType.getPropertyTypes()) {
             const auto kind = static_cast<ValueType::ValueKind>(diskPropType.getKind());
             const ValueType valType {kind};
-            const StringRef propName = strIndex[diskPropType.getNameId()];
+            const StringRef propName = strLoader[diskPropType.getNameId()];
 
             wb.addPropertyType(et, propName, valType, diskPropType.getId());
         }
