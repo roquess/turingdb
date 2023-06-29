@@ -16,7 +16,7 @@ public:
     void setConcurrency(unsigned concurrency) { _concurrency = concurrency; }
 
 private:
-    std::string _serverAddr {"127.0.0.0"};
-    unsigned _port {6666};
+    std::string _serverAddr {"127.0.0.1"};
+    unsigned _port {50057};
     unsigned _concurrency {1};
 };

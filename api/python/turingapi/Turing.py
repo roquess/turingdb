@@ -5,7 +5,7 @@ import turingapi.proto.APIService_pb2 as APIService_pb2
 
 class Turing:
     def __init__(self, connection_str):
-        self.channel = grpc.insecure_channel(connection_str)
+        self.channel = grpc.insecure_channel(connection_str, options=(('grpc.enable_http_proxy', 0),))
         self.stub = APIServiceStub(self.channel)
 
 
