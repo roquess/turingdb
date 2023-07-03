@@ -10,7 +10,7 @@ class DBDumper {
 public:
     using Path = std::filesystem::path;
 
-    DBDumper(DB* db, const Path& outDir);
+    DBDumper(const DB* db, const Path& outDir);
     ~DBDumper();
 
     void setDBDirectoryName(const std::string& dirName);
@@ -23,7 +23,7 @@ public:
 private:
     const Path _outDir;
     std::string _dbDirName;
-    DB* _db{nullptr};
+    const DB* _db{nullptr};
 };
 
 }

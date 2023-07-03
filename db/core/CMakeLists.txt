@@ -11,6 +11,7 @@ set(db_sources
             Node.cpp
             Property.cpp
             Edge.cpp
+            Comparator.cpp
 
             ValueType.cpp
             Value.cpp
