@@ -36,6 +36,8 @@ endif()
 # C++ flags
 set(CMAKE_CXX_FLAGS "-std=${CPP_STANDARD} ${CPP_FEATURES} ${CPP_WARNINGS} ${OPTIMIZE_FLAGS}")
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 # Boost
 set(BOOST_VERSION boost-1.74)
 set(Boost_USE_STATIC_LIBS ON)
@@ -49,6 +51,18 @@ find_package(CURL REQUIRED)
 
 # Python
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+
+# Protobuf
+set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "")
+find_package(Protobuf REQUIRED
+    PATHS "/turing/tools/lib/cmake/protobuf")
+message(STATUS "Protobuf version ${Protobuf_VERSION}")
+
+# gRPC
+find_package(gRPC REQUIRED)
+
+# Cython utilities
+include(CythonLibrary)
 
 # CapnProto
 set(ENV{PKG_CONFIG_PATH} "/turing/tools/lib/pkgconfig/")
@@ -65,7 +79,8 @@ add_subdirectory(build)
 add_subdirectory(common)
 add_subdirectory(logging)
 add_subdirectory(db)
-add_subdirectory(apiserver)
+add_subdirectory(rpcserver)
+add_subdirectory(api)
 #add_subdirectory(demo)
 add_subdirectory(formats)
 add_subdirectory(import)
