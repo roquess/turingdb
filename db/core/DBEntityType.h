@@ -2,19 +2,21 @@
 
 #include <map>
 
+#include "Comparator.h"
 #include "DBType.h"
 
+#include "PropertyType.h"
 #include "StringRef.h"
 #include "Range.h"
 
 namespace db {
 
-class PropertyType;
 class Writeback;
 
 class DBEntityType : public DBType {
 public:
     friend Writeback;
+    friend DBComparator;
     using PropertyTypes = std::map<StringRef, PropertyType*>;
     using PropertyTypeRange = STLIndexRange<PropertyTypes>;
 

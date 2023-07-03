@@ -1,0 +1,50 @@
+#include "JsonExamples.h"
+#include "BioLog.h"
+#include "DB.h"
+#include "FileUtils.h"
+#include "JsonParser.h"
+#include "MsgCommon.h"
+
+#include <iostream>
+#include <regex>
+
+db::DB* getNeo4j4DB(const std::string& dbName) {
+    JsonParser parser {};
+    parser.setReducedOutput(true);
+
+    std::string turingHome = std::getenv("TURING_HOME");
+    const FileUtils::Path jsonDir = FileUtils::Path {turingHome}  /
+                                    "neo4j" / dbName;
+
+    if (!FileUtils::exists(jsonDir)) {
+        Log::BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS() << jsonDir);
+        std::cout << std::flush;
+        return nullptr;
+    }
+
+    if (!parser.parseJsonDir(jsonDir, JsonParser::DirFormat::Neo4j4)) {
+        return nullptr;
+    }
+
+    return parser.getDB();
+}
+
+db::DB* cyberSecurityDB() {
+    return getNeo4j4DB("cyber-security-db");
+}
+
+db::DB* networkDB() {
+    return getNeo4j4DB("network-db");
+}
+
+db::DB* poleDB() {
+    return getNeo4j4DB("pole-db");
+}
+
+db::DB* stackoverflowDB() {
+    return getNeo4j4DB("stackoverflow-db");
+}
+
+db::DB* recommendationsDB() {
+    return getNeo4j4DB("recommendations-db");
+}

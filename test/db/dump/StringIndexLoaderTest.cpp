@@ -45,6 +45,7 @@ protected:
 TEST_F(StringIndexLoaderTest, Load) {
     StringIndexLoader loader(_indexPath);
     StringIndex index;
+    std::vector<StringRef> stringRefs;
     loader.load(index);
 
     for (size_t i = 0; i < 100; i++) {
@@ -72,6 +73,7 @@ TEST_F(StringIndexLoaderTest, LoadEmpty) {
     dumper.dump(originalIndex);
 
     StringIndex index{};
+    std::vector<StringRef> stringRefs;
     loader.load(index);
 
     ASSERT_EQ(index.getSize(), 0);
@@ -80,6 +82,7 @@ TEST_F(StringIndexLoaderTest, LoadEmpty) {
 TEST_F(StringIndexLoaderTest, DumpTwice) {
     StringIndexDumper dumper(_indexPath);
     StringIndexLoader loader(_indexPath);
+    std::vector<StringRef> stringRefs;
 
     // Load original index
     StringIndex index{};

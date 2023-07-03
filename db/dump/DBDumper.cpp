@@ -5,11 +5,14 @@
 #include "MsgCommon.h"
 #include "MsgDB.h"
 #include "StringIndexDumper.h"
+#include "EntityDumper.h"
+#include "TimerStat.h"
+#include "TypeDumper.h"
 
 using namespace db;
 using namespace Log;
 
-DBDumper::DBDumper(DB* db, const Path& outDir)
+DBDumper::DBDumper(const DB* db, const Path& outDir)
     : _outDir(outDir),
       _dbDirName(getDefaultDBDirectoryName()),
       _db(db)
@@ -28,7 +31,11 @@ void DBDumper::setDBDirectoryName(const std::string& dirName) {
 
 bool DBDumper::dump() {
     Path dbPath = FileUtils::abspath(_outDir / _dbDirName);
+    TimerStat timer {"Dumping Turing db: " + dbPath.string() };
+
     Path stringIndexPath = dbPath / "smap";
+    Path typeIndexPath = dbPath / "types";
+    Path entityIndexPath = dbPath / "data";
 
     BioLog::log(msg::INFO_DB_DUMPING_DATABASE() << dbPath);
 
@@ -47,6 +54,18 @@ bool DBDumper::dump() {
 
     StringIndexDumper strDumper{stringIndexPath};
     if (!strDumper.dump(_db->_strIndex)) {
+        BioLog::log(msg::ERROR_DB_DUMPING_DATABASE() << dbPath);
+        return false;
+    }
+
+    TypeDumper typeDumper {_db, typeIndexPath};
+    if (!typeDumper.dump()) {
+        BioLog::log(msg::ERROR_DB_DUMPING_DATABASE() << dbPath);
+        return false;
+    }
+
+    EntityDumper entityDumper {_db, entityIndexPath};
+    if (!entityDumper.dump()) {
         BioLog::log(msg::ERROR_DB_DUMPING_DATABASE() << dbPath);
         return false;
     }

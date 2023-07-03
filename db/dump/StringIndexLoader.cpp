@@ -6,7 +6,7 @@
 #include "capnp/StringIndex.capnp.h"
 
 #include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <capnp/serialize.h>
 #include <cassert>
 #include <unistd.h>
 
@@ -18,29 +18,35 @@ StringIndexLoader::StringIndexLoader(const Path& dbPath)
 }
 
 bool StringIndexLoader::load(StringIndex& index) {
+
     index.clear();
+    _stringIdMapping.clear();
 
     if (!FileUtils::exists(_indexPath)) {
         return false;
     }
 
-    int stringIndexFD = FileUtils::openForRead(_indexPath);
+    const int indexFD = FileUtils::openForRead(_indexPath);
 
-    if (stringIndexFD < 0) {
+    if (indexFD < 0) {
         return false;
     }
 
-    ::capnp::PackedFdMessageReader message(stringIndexFD);
-    OnDisk::StringIndex::Reader strings =
-        message.getRoot<OnDisk::StringIndex>();
+    //::capnp::PackedFdMessageReader message(indexFD);
+    ::capnp::StreamFdMessageReader message(indexFD, {
+        .traversalLimitInWords = 100000000000000,
+        .nestingLimit = 128,
+    });
+    const auto stringReader = message.getRoot<OnDisk::StringIndex>();
 
+    _stringIdMapping.resize(stringReader.getStrings().size());
 
-    for (OnDisk::SharedString::Reader s : strings.getStrings()) {
-        index.insertString(s.getStr(), s.getId());
+    for (OnDisk::SharedString::Reader s : stringReader.getStrings()) {
+        const StringRef newString = index.insertString(s.getStr(), s.getId());
+        _stringIdMapping[s.getId()] = newString;
     }
 
-    close(stringIndexFD);
+    close(indexFD);
     return true;
 }
-
 }
