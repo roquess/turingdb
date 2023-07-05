@@ -60,14 +60,19 @@ TEST_F(PerfStatTest, MeasurePerfs) {
 
         size_t j = 0;
         for (std::string word; std::getline(linestream, word, ' '); ) {
-            if (j == 4) {
+            if (j == 5) {
                 std::stringstream wordstream{word};
                 float duration = 0.f;
                 wordstream >> duration;
                 ASSERT_GE(duration, durations[i]);
+                ASSERT_LT(duration, 0.1f);
                 break;
             }
             j++;
+        }
+
+        if (i == 3) {
+            break;
         }
 
         i++;
