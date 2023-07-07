@@ -1,4 +1,5 @@
 #include "Neo4jImport.h"
+#include "DBDumper.h"
 #include "JsonParser.h"
 #include "MsgCommon.h"
 #include "MsgImport.h"
@@ -6,20 +7,28 @@
 #include "ThreadHandler.h"
 #include "TimerStat.h"
 #include "BioLog.h"
-#include "db/dump/DBDumper.h"
 
 using namespace Log;
 
-bool Neo4jImport::importNeo4j(const FileUtils::Path& outDir, const FileUtils::Path& filepath) {
+Neo4jImport::Neo4jImport(db::DB* db, const Path& outDir)
+    : _db(db),
+    _outDir(outDir)
+{
+}
+
+Neo4jImport::~Neo4jImport() {
+}
+
+bool Neo4jImport::importNeo4j(const Path& filepath) {
     BioLog::log(msg::INFO_NEO4J_IMPORT_DUMP_FILE() << filepath.string());
     TimerStat timer {"Neo4j: import"};
 
-    const FileUtils::Path jsonDir = outDir / "json";
+    const FileUtils::Path jsonDir = _outDir / "json";
     const FileUtils::Path statsFile = jsonDir / "stats.json";
     const FileUtils::Path nodePropertiesFile = jsonDir / "nodeProperties.json";
     const FileUtils::Path edgePropertiesFile = jsonDir / "edgeProperties.json";
 
-    Neo4JInstance instance {outDir};
+    Neo4JInstance instance(_outDir);
     instance.setup();
     instance.importDumpedDB(filepath);
     instance.start();
@@ -32,7 +41,7 @@ bool Neo4jImport::importNeo4j(const FileUtils::Path& outDir, const FileUtils::Pa
     }
 
     // Initialization of the parser
-    JsonParser parser {};
+    JsonParser parser(_db);
     parser.setReducedOutput(true);
     const JsonParsingStats& stats = parser.getStats();
 
@@ -172,7 +181,7 @@ bool Neo4jImport::importNeo4j(const FileUtils::Path& outDir, const FileUtils::Pa
     Log::BioLog::log(msg::INFO_NEO4J_PARSED_NODE_COUNT() << stats.parsedNodes);
     Log::BioLog::log(msg::INFO_NEO4J_PARSED_EDGE_COUNT() << stats.parsedEdges);
 
-    db::DBDumper dumper{parser.getDB(), outDir / "turing.db"};
+    db::DBDumper dumper{parser.getDB(), _outDir / "turing.db" };
     dumper.dump();
 
     handler.join();
@@ -181,7 +190,7 @@ bool Neo4jImport::importNeo4j(const FileUtils::Path& outDir, const FileUtils::Pa
     return true;
 }
 
-bool Neo4jImport::importJsonNeo4j(const FileUtils::Path& outDir, const FileUtils::Path& jsonDir) {
+bool Neo4jImport::importJsonNeo4j(const Path& jsonDir) {
     BioLog::log(msg::INFO_NEO4J_IMPORT_JSON_FILES() << jsonDir.string());
     TimerStat timer {"Neo4j: import"};
 
@@ -195,7 +204,7 @@ bool Neo4jImport::importJsonNeo4j(const FileUtils::Path& outDir, const FileUtils
     }
 
     // Initialization of the parser
-    JsonParser parser {};
+    JsonParser parser(_db);
     parser.setReducedOutput(true);
     const JsonParsingStats& stats = parser.getStats();
 
@@ -229,7 +238,7 @@ bool Neo4jImport::importJsonNeo4j(const FileUtils::Path& outDir, const FileUtils
     Log::BioLog::log(msg::INFO_NEO4J_PARSED_NODE_COUNT() << stats.parsedNodes);
     Log::BioLog::log(msg::INFO_NEO4J_PARSED_EDGE_COUNT() << stats.parsedEdges);
 
-    db::DBDumper dumper{parser.getDB(), outDir / "turing.db"};
+    db::DBDumper dumper{parser.getDB(), _outDir / "turing.db"};
     dumper.dump();
 
     return true;
