@@ -1,10 +1,10 @@
 from __future__ import annotations
+from turingapi.Request import Request
+
 from typing import TYPE_CHECKING, Mapping
-
 if TYPE_CHECKING:
-    from turingapi import Turing
+    from turingapi.Turing import Turing
 
-from turingapi.requests import Response
 import turingapi.proto.APIService_pb2 as APIService_pb2
 import enum
 
@@ -25,40 +25,37 @@ class Database(DBObject):
         self._turing = turing
         self._networks = {}
 
-    def dump(self) -> Response[None]:
-        return Response.get(self._turing, "DumpDB", db_id=self._id)
+    def dump(self) -> None:
+        Request(self._turing, "DumpDB", db_id=self._id)
 
-    def unload(self) -> Response[None]:
-        return Response.get(self._turing, "UnloadDB", db_name=self._name)
+    def unload(self) -> None:
+        Request(self._turing, "UnloadDB", db_name=self._name)
 
-    def get_network(self, id: int) -> Network | None:
+    def _get_network(self, id: int) -> Network:
         if id not in self._networks:
-            res = self.list_networks()
-            if res.failed():
-                return None
+            self.list_networks()
+
         return self._networks[id]
 
-    def create_network(self, name: str) -> Response[Network]:
-        res = Response.get(self._turing, "CreateNetwork", db_id=self._id, name=name)
-        if res.failed():
-            return res
-        res.data = Network(self, res.data.network)
-        self._networks[res.data.id] = res.data
-        return res
+    def get_network(self, name: str) -> Network:
+        return self.list_networks()[name]
 
-    def create_node_type(self, name: str) -> Response[NodeType]:
-        res = Response.get(self._turing, "CreateNodeType", db_id=self._id, name=name)
-        if res.failed():
-            return res
-        res.data = NodeType(self, res.data.node_type)
-        return res
+    def create_network(self, name: str) -> Network:
+        res = Request(self._turing, "CreateNetwork", db_id=self._id, name=name)
+        net = Network(self, res.data.network)
+        self._networks[res.data.network.id] = net
+        return net
+
+    def create_node_type(self, name: str) -> NodeType:
+        res = Request(self._turing, "CreateNodeType", db_id=self._id, name=name)
+        return NodeType(self, res.data.node_type)
 
     def create_edge_type(
         self, name: str, sources: list[NodeType], targets: list[NodeType]
-    ) -> Response[EdgeType]:
+    ) -> EdgeType:
         source_ids = [nt.id for nt in sources]
         target_ids = [nt.id for nt in targets]
-        res = Response.get(
+        res = Request(
             self._turing,
             "CreateEdgeType",
             db_id=self.id,
@@ -66,41 +63,27 @@ class Database(DBObject):
             source_ids=source_ids,
             target_ids=target_ids,
         )
-        if res.failed():
-            return res
-        res.data = EdgeType(self, res.data.edge_type)
-        return res
+        return EdgeType(self, res.data.edge_type)
 
-    def list_node_types(self) -> Response[Mapping[str, NodeType]]:
-        res = Response.get(self._turing, "ListNodeTypes", db_id=self._id)
-        if res.failed():
-            return res
-        res.data = {nt.name: NodeType(self, nt) for nt in res.data.node_types}
-        return res
+    def list_node_types(self) -> Mapping[str, NodeType]:
+        res = Request(self._turing, "ListNodeTypes", db_id=self._id)
+        return {nt.name: NodeType(self, nt) for nt in res.data.node_types}
 
-    def list_edge_types(self) -> Response[Mapping[str, EdgeType]]:
-        res = Response.get(self._turing, "ListEdgeTypes", db_id=self._id)
-        if res.failed():
-            return res
-        res.data = {et.name: EdgeType(self, et) for et in res.data.edge_types}
-        return res
+    def list_edge_types(self) -> Mapping[str, EdgeType]:
+        res = Request(self._turing, "ListEdgeTypes", db_id=self._id)
+        return {et.name: EdgeType(self, et) for et in res.data.edge_types}
 
-    def list_networks(self) -> Response[Mapping[str, Network]]:
+    def list_networks(self) -> Mapping[str, Network]:
         """List the networks of a DB and caches them in the Database class"""
-        res = Response.get(self._turing, "ListNetworks", db_id=self._id)
-        if res.failed():
-            return res
+        res = Request(self._turing, "ListNetworks", db_id=self._id)
         networks = {net.name: None for net in res.data.networks}
         for net in res.data.networks:
             self._networks[net.id] = Network(self, net)
             networks[net.name] = Network(self, net)
-        res.data = networks
-        return res
+        return networks
 
-    def create_edge(
-        self, edge_type: EdgeType, source: Node, target: Node
-    ) -> Response[Edge]:
-        res = Response.get(
+    def create_edge(self, edge_type: EdgeType, source: Node, target: Node) -> Edge:
+        res = Request(
             self._turing,
             "CreateEdge",
             db_id=self.id,
@@ -108,31 +91,26 @@ class Database(DBObject):
             source_id=source.id,
             target_id=target.id,
         )
-        if res.failed():
-            return res
+        return Edge(self, res.data.edge)
 
-        res.data = Edge(self, res.data.edge)
-        return res
+    def list_nodes(self) -> list[Node]:
+        res = Request(self._turing, "ListNodes", db_id=self.id)
+        return [Node(self._get_network(n.net_id), n) for n in res.data.nodes]
 
-    def list_nodes(self) -> Response[list[Node]]:
-        res = Response.get(self._turing, "ListNodes", db_id=self.id)
-        if res.failed():
-            return res
-        res.data = [Node(self.get_network(n.net_id), n) for n in res.data.nodes]
-        return res
+    def list_nodes_by_id(self, ids: list[int]) -> list[Node]:
+        res = Request(self._turing, "ListNodesByID", db_id=self.id, node_ids=ids)
+        return [Node(self._get_network(n.net_id), n) for n in res.data.nodes]
 
-    def list_edges(self) -> Response[list[Edge]]:
-        res = Response.get(self._turing, "ListEdges", db_id=self.id)
-        if res.failed():
-            return res
-        res.data = [
-            Edge(
-                self,
-                e,
-            )
-            for e in res.data.edges
-        ]
-        return res
+    def list_edges(self) -> list[Edge]:
+        res = Request(self._turing, "ListEdges", db_id=self.id)
+        return [Edge(self, e) for e in res.data.edges]
+
+    def list_edges_by_id(self, ids: list[int]) -> list[Edge]:
+        res = Request(self._turing, "ListEdgesByID", db_id=self.id, edge_ids=ids)
+        return [Edge(self, e) for e in res.data.edges]
+
+    def __repr__(self) -> str:
+        return f'<Database "{self._name}" id={self.id}>'
 
 
 class ValueType(enum.Enum):
@@ -141,6 +119,9 @@ class ValueType(enum.Enum):
     BOOL = APIService_pb2.ValueType.BOOL
     STRING = APIService_pb2.ValueType.STRING
     DECIMAL = APIService_pb2.ValueType.DECIMAL
+
+    def __repr__(self) -> str:
+        return f'<ValueType {self.value}>'
 
 
 class EntityType(DBObject):
@@ -152,23 +133,20 @@ class EntityType(DBObject):
         self._name = name
         self._entity_type = entity_type
 
-    def list_property_types(self) -> Response[Mapping[str, PropertyType]]:
-        res = Response.get(
+    def list_property_types(self) -> Mapping[str, PropertyType]:
+        res = Request(
             self._db._turing,
             "ListPropertyTypes",
             db_id=self._db.id,
             entity_type_id=self._id,
             entity_type=self._entity_type,
         )
-        if res.failed():
-            return res
-        res.data = {pt.name: PropertyType(pt) for pt in res.data.property_types}
-        return res
+        return {pt.name: PropertyType(pt) for pt in res.data.property_types}
 
     def add_property_type(
         self, name: str, value_type: ValueType
-    ) -> Response[PropertyType]:
-        res = Response.get(
+    ) -> PropertyType:
+        res = Request(
             self._db._turing,
             "AddPropertyType",
             db_id=self._db.id,
@@ -178,21 +156,26 @@ class EntityType(DBObject):
                 name=name, value_type=value_type.value
             ),
         )
-        if res.failed():
-            return res
+        return PropertyType(res.data.property_type)
 
-        res.data = PropertyType(res.data.property_type)
-        return res.data
+    def __repr__(self) -> str:
+        return f'<EntityType "{self._name}" id={self.id}>'
 
 
 class NodeType(EntityType):
     def __init__(self, db: Database, nt):
         super().__init__(db, nt.id, nt.name, APIService_pb2.EntityType.NODE)
 
+    def __repr__(self) -> str:
+        return f'<NodeType "{self._name}" id={self.id}>'
+
 
 class EdgeType(EntityType):
     def __init__(self, db: Database, et):
         super().__init__(db, et.id, et.name, APIService_pb2.EntityType.EDGE)
+
+    def __repr__(self) -> str:
+        return f'<EdgeType "{self._name}" id={self.id}>'
 
 
 class Network(DBObject):
@@ -201,8 +184,8 @@ class Network(DBObject):
         self._db = db
         self._name = net.name
 
-    def create_node(self, node_type: NodeType, name: str = "") -> Response[Node]:
-        res = Response.get(
+    def create_node(self, node_type: NodeType, name: str = "") -> Node:
+        res = Request(
             self._db._turing,
             "CreateNode",
             db_id=self._db.id,
@@ -210,29 +193,34 @@ class Network(DBObject):
             name=name,
             node_type_id=node_type.id,
         )
-        if res.failed():
-            return res
-        res.data = Node(self, res.data.node)
-        return res
+        return Node(self, res.data.node)
 
-    def list_nodes(self) -> Response[list[Node]]:
-        res = Response.get(
+    def list_nodes(self) -> list[Node]:
+        res = Request(
             self._db._turing, "ListNodesFromNetwork", db_id=self._db.id, net_id=self.id
         )
-        if res.failed():
-            return res
-        res.data = [Node(self, n) for n in res.data.nodes]
-        return res
+        return [Node(self, n) for n in res.data.nodes]
 
-    def list_edges(self) -> Response[list[Edge]]:
-        res = Response.get(
+    def list_nodes_by_id(self, ids: list[int]) -> list[Node]:
+        res = Request(
+            self._db._turing, "ListNodesByIDFromNetwork", db_id=self._db.id, net_id=self.id, node_ids=ids
+        )
+        return [Node(self, n) for n in res.data.nodes]
+
+    def list_edges(self) -> list[Edge]:
+        res = Request(
             self._db._turing, "ListEdgesFromNetwork", db_id=self._db.id, net_id=self.id
         )
-        if res.failed():
-            return res
+        return [Edge(self._db, e) for e in res.data.edges]
 
-        res.data = [Edge(self._db, e) for e in res.data.edges]
-        return res
+    def list_edges_by_id(self, ids: list[int]) -> list[Edge]:
+        res = Request(
+            self._db._turing, "ListEdgesByIDFromNetwork", db_id=self._db.id, net_id=self.id, edge_ids=ids
+        )
+        return [Edge(self._db, e) for e in res.data.edges]
+
+    def __repr__(self) -> str:
+        return f'<Network "{self._name}" id={self.id}>'
 
 
 class PropertyType:
@@ -248,16 +236,22 @@ class PropertyType:
     def name(self) -> str:
         return self._name
 
+    def __repr__(self) -> str:
+        return f'<PropertyType "{self._name}" value_type={self._value_type}>'
+
 
 class Property:
     def __init__(self, p):
         self._name = p.property_type_name
         self._value_type = p.value_type
-        self._value = getattr(p, p.WhichOneof('value'))
+        self._value = getattr(p, p.WhichOneof("value"))
 
     @property
     def value(self):
         return self._value
+
+    def __repr__(self) -> str:
+        return f'<Property "{self._name}" value={self._value}>'
 
 
 class Entity(DBObject):
@@ -267,19 +261,16 @@ class Entity(DBObject):
         self._entity_type = entity_type
 
     def list_properties(self) -> Response(Mapping[str, Property]):
-        res = Response.get(
+        res = Request(
             self._db._turing,
             "ListEntityProperties",
             db_id=self._db.id,
             entity_type=self._entity_type,
             entity_id=self.id,
         )
-        if res.failed():
-            return res
-        res.data = {p.property_type_name: Property(p) for p in res.data.properties}
-        return res
+        return {p.property_type_name: Property(p) for p in res.data.properties}
 
-    def add_property(self, pt: PropertyType, value) -> Response[Property]:
+    def add_property(self, pt: PropertyType, value) -> Property:
         if pt.value_type == APIService_pb2.ValueType.INT:
             oneof = "int64"
         elif pt.value_type == APIService_pb2.ValueType.UNSIGNED:
@@ -291,7 +282,7 @@ class Entity(DBObject):
         elif pt.value_type == APIService_pb2.ValueType.DECIMAL:
             oneof = "decimal"
 
-        res = Response.get(
+        res = Request(
             self._db._turing,
             "AddEntityProperty",
             db_id=self._db.id,
@@ -301,11 +292,10 @@ class Entity(DBObject):
                 property_type_name=pt.name, value_type=pt.value_type, **{oneof: value}
             ),
         )
-        if res.failed():
-            return res
+        return Property(res.data.property)
 
-        res.data = Property(res.data.property)
-        return res
+    def __repr__(self) -> str:
+        return f'<Entity id={self.id}>'
 
 
 class Node(Entity):
@@ -316,9 +306,16 @@ class Node(Entity):
         self._in_edges_ids = node.in_edge_ids
         self._out_edges_ids = node.out_edge_ids
 
+    def __repr__(self) -> str:
+        return f'<Node name="{self._name}" id={self.id}>'
+
 
 class Edge(Entity):
     def __init__(self, db: Database, edge):
         super().__init__(edge.id, db, APIService_pb2.EntityType.EDGE)
         self._source_id = edge.source_id
         self._target_id = edge.target_id
+
+    def __repr__(self) -> str:
+        return f'<Edge id={self.id}>'
+

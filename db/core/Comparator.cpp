@@ -200,7 +200,7 @@ bool DBComparator::same<Network::Nodes>(const Network::Nodes* c1,
     auto it2 = c2->cbegin();
 
     while (it1 != c1->cend()) {
-        if (!DBComparator::same<DBObject>(*it1, *it2)) {
+        if (!DBComparator::same<DBObject>(it1->second, it2->second)) {
             return false;
         }
 
@@ -225,7 +225,7 @@ bool DBComparator::same<Network::Edges>(const Network::Edges* c1,
     auto it2 = c2->cbegin();
 
     while (it1 != c1->cend()) {
-        if (!DBComparator::same<DBObject>(*it1, *it2)) {
+        if (!DBComparator::same<DBObject>(it1->second, it2->second)) {
             return false;
         }
 

@@ -14,6 +14,8 @@
 #include "RPCServerConfig.h"
 #include "Writeback.h"
 
+#define MAX_ENTITY_COUNT 50000
+
 static const grpc::Status invalidDBStatus {grpc::StatusCode::NOT_FOUND,
                                            "The database ID is invalid"};
 
@@ -38,10 +40,10 @@ grpc::Status APIServiceImpl::ListAvailableDB(grpc::ServerContext* ctxt,
                                              const ListAvailableDBRequest* request,
                                              ListAvailableDBReply* reply) {
 
-    std::vector<std::string> dbNames;
-    listDB(dbNames);
+    std::vector<std::string> diskDbNames;
+    listDiskDB(diskDbNames);
 
-    for (std::string& name : dbNames) {
+    for (std::string& name : diskDbNames) {
         reply->add_db_names(std::move(name));
     }
 
@@ -65,16 +67,16 @@ grpc::Status APIServiceImpl::ListLoadedDB(grpc::ServerContext* ctxt,
 grpc::Status APIServiceImpl::LoadDB(grpc::ServerContext* ctxt,
                                     const LoadDBRequest* request,
                                     LoadDBReply* reply) {
-    std::vector<std::string> dbNames;
-    listDB(dbNames);
+    std::vector<std::string> diskDbNames;
+    listDiskDB(diskDbNames);
 
     if (_dbNameMapping.find(request->db_name()) != _dbNameMapping.end()) {
         return grpc::Status {grpc::ALREADY_EXISTS,
                              "The database is already loaded"};
     }
 
-    auto it = std::find(dbNames.cbegin(), dbNames.cend(), request->db_name());
-    if (it == dbNames.cend()) {
+    auto it = std::find(diskDbNames.cbegin(), diskDbNames.cend(), request->db_name());
+    if (it == diskDbNames.cend()) {
         return grpc::Status {grpc::NOT_FOUND,
                              "The database could not be found"};
     }
@@ -86,11 +88,12 @@ grpc::Status APIServiceImpl::LoadDB(grpc::ServerContext* ctxt,
                              "Could not load the database"};
     }
 
-    _databases.emplace(_databases.size(), db);
-    _dbNameMapping.emplace(request->db_name(), _databases.size() - 1);
-
-    reply->mutable_db()->set_id(_databases.size() - 1);
+    _databases.emplace(_nextAvailableId, db);
+    _dbNameMapping.emplace(request->db_name(), _nextAvailableId);
+    reply->mutable_db()->set_id(_nextAvailableId);
     reply->mutable_db()->set_name(request->db_name());
+
+    _nextAvailableId++;
 
     return grpc::Status::OK;
 }
@@ -138,11 +141,11 @@ grpc::Status APIServiceImpl::DumpDB(grpc::ServerContext* ctxt,
 grpc::Status APIServiceImpl::CreateDB(grpc::ServerContext* ctxt,
                                       const CreateDBRequest* request,
                                       CreateDBReply* reply) {
-    std::vector<std::string> dbNames;
-    listDB(dbNames);
+    std::vector<std::string> diskDbNames;
+    listDiskDB(diskDbNames);
 
-    auto it = std::find(dbNames.cbegin(), dbNames.cend(), request->db_name());
-    if (it != dbNames.cend()) {
+    auto it = std::find(diskDbNames.cbegin(), diskDbNames.cend(), request->db_name());
+    if (it != diskDbNames.cend()) {
         return grpc::Status {grpc::ALREADY_EXISTS,
                              "The database already exists"};
     }
@@ -153,11 +156,12 @@ grpc::Status APIServiceImpl::CreateDB(grpc::ServerContext* ctxt,
     }
 
     db::DB* db = db::DB::create();
-    _databases.emplace(_databases.size(), db);
-    _dbNameMapping.emplace(request->db_name(), _databases.size() - 1);
+    _databases.emplace(_nextAvailableId, db);
+    _dbNameMapping.emplace(request->db_name(), _nextAvailableId);
 
-    reply->mutable_db()->set_id(_databases.size() - 1);
+    reply->mutable_db()->set_id(_nextAvailableId);
     reply->mutable_db()->set_name(request->db_name());
+    _nextAvailableId++;
 
     return grpc::Status::OK;
 }
@@ -171,6 +175,14 @@ grpc::Status APIServiceImpl::ListNodes(grpc::ServerContext* ctxt,
 
     const db::DB* db = _databases.at(request->db_id());
     db::DB::NodeRange nodes = db->nodes();
+    if (nodes.size() > MAX_ENTITY_COUNT) {
+        return grpc::Status {
+            grpc::StatusCode::ABORTED,
+            "Too many nodes in the database to list all of them ("
+                + std::to_string(nodes.size())
+                + " in the database, maximum amount is "
+                + std::to_string(MAX_ENTITY_COUNT) + ")"};
+    }
 
     reply->mutable_nodes()->Reserve(nodes.size());
     for (const auto& pair : nodes) {
@@ -193,6 +205,42 @@ grpc::Status APIServiceImpl::ListNodes(grpc::ServerContext* ctxt,
     return grpc::Status::OK;
 }
 
+grpc::Status APIServiceImpl::ListNodesByID(grpc::ServerContext* ctxt,
+                                           const ListNodesByIDRequest* request,
+                                           ListNodesByIDReply* reply) {
+    if (!isDBValid(request->db_id())) {
+        return invalidDBStatus;
+    }
+
+    const db::DB* db = _databases.at(request->db_id());
+    reply->mutable_nodes()->Reserve(request->node_ids_size());
+
+    for (const auto& id : request->node_ids()) {
+        db::Node* n = db->getNode((db::DBIndex)id);
+        if (!n) {
+            return grpc::Status {grpc::StatusCode::NOT_FOUND,
+                                 "Node '" + std::to_string(id) + "' was not found"};
+        }
+
+        auto rn = reply->add_nodes();
+        rn->set_id(id);
+        rn->set_db_id(request->db_id());
+        rn->set_net_id(n->getNetwork()->getName().getID());
+
+        rn->mutable_out_edge_ids()->Reserve(n->outEdges().size());
+        for (const db::Edge* out : n->outEdges()) {
+            rn->add_out_edge_ids(out->getIndex());
+        }
+
+        rn->mutable_in_edge_ids()->Reserve(n->inEdges().size());
+        for (const db::Edge* in : n->inEdges()) {
+            rn->add_in_edge_ids(in->getIndex());
+        }
+    }
+
+    return grpc::Status::OK;
+}
+
 grpc::Status APIServiceImpl::ListEdges(grpc::ServerContext* ctxt,
                                        const ListEdgesRequest* request,
                                        ListEdgesReply* reply) {
@@ -203,6 +251,15 @@ grpc::Status APIServiceImpl::ListEdges(grpc::ServerContext* ctxt,
     const db::DB* db = _databases.at(request->db_id());
     db::DB::EdgeRange edges = db->edges();
 
+    if (edges.size() > MAX_ENTITY_COUNT) {
+        return grpc::Status {
+            grpc::StatusCode::ABORTED,
+            "Too many edges in the database to list all of them ("
+                + std::to_string(edges.size())
+                + " in the database, maximum amount is "
+                + std::to_string(MAX_ENTITY_COUNT) + ")"};
+    }
+
     reply->mutable_edges()->Reserve(edges.size());
     for (const auto& pair : edges) {
         auto* e = reply->add_edges();
@@ -210,6 +267,33 @@ grpc::Status APIServiceImpl::ListEdges(grpc::ServerContext* ctxt,
         e->set_db_id(request->db_id());
         e->set_source_id(pair.second->getSource()->getIndex());
         e->set_target_id(pair.second->getTarget()->getIndex());
+    }
+
+    return grpc::Status::OK;
+}
+
+grpc::Status APIServiceImpl::ListEdgesByID(grpc::ServerContext* ctxt,
+                                           const ListEdgesByIDRequest* request,
+                                           ListEdgesByIDReply* reply) {
+    if (!isDBValid(request->db_id())) {
+        return invalidDBStatus;
+    }
+
+    const db::DB* db = _databases.at(request->db_id());
+    reply->mutable_edges()->Reserve(request->edge_ids_size());
+
+    for (const auto& id : request->edge_ids()) {
+        db::Edge* e = db->getEdge((db::DBIndex)id);
+        if (!e) {
+            return grpc::Status {grpc::StatusCode::NOT_FOUND,
+                                 "Edge '" + std::to_string(id) + "' was not found"};
+        }
+
+        auto re = reply->add_edges();
+        re->set_id(id);
+        re->set_db_id(request->db_id());
+        re->set_source_id(e->getSource()->getIndex());
+        re->set_target_id(e->getTarget()->getIndex());
     }
 
     return grpc::Status::OK;
@@ -280,9 +364,55 @@ grpc::Status APIServiceImpl::ListNodesFromNetwork(grpc::ServerContext* ctxt,
     const db::DBIndex net_id {request->net_id()};
     const db::Network* net = db->getNetwork(net_id);
     db::Network::NodeRange nodes = net->nodes();
+    if (nodes.size() > MAX_ENTITY_COUNT) {
+        return grpc::Status {
+            grpc::StatusCode::ABORTED,
+            "Too many nodes in the database to list all of them ("
+                + std::to_string(nodes.size())
+                + " in the database, maximum amount is "
+                + std::to_string(MAX_ENTITY_COUNT) + ")"};
+    }
 
     reply->mutable_nodes()->Reserve(nodes.size());
-    for (const db::Node* node : nodes) {
+    for (const auto& [id, node] : nodes) {
+        auto* n = reply->add_nodes();
+        n->set_id(node->getIndex());
+        n->set_db_id(request->db_id());
+        n->set_net_id(net_id);
+
+        n->mutable_out_edge_ids()->Reserve(node->outEdges().size());
+        for (const db::Edge* out : node->outEdges()) {
+            n->add_out_edge_ids(out->getIndex());
+        }
+
+        n->mutable_in_edge_ids()->Reserve(node->inEdges().size());
+        for (const db::Edge* in : node->inEdges()) {
+            n->add_in_edge_ids(in->getIndex());
+        }
+    }
+
+    return grpc::Status::OK;
+}
+
+grpc::Status APIServiceImpl::ListNodesByIDFromNetwork(grpc::ServerContext* ctxt,
+                                                      const ListNodesByIDFromNetworkRequest* request,
+                                                      ListNodesByIDFromNetworkReply* reply) {
+    if (!isDBValid(request->db_id())) {
+        return invalidDBStatus;
+    }
+
+    const db::DB* db = _databases.at(request->db_id());
+    const db::DBIndex net_id {request->net_id()};
+    const db::Network* net = db->getNetwork(net_id);
+
+    reply->mutable_nodes()->Reserve(request->node_ids_size());
+
+    for (const auto& id : request->node_ids()) {
+        db::Node* node = net->getNode((db::DBIndex)id);
+        if (!node) {
+            return grpc::Status {grpc::StatusCode::NOT_FOUND,
+                                 "Node '" + std::to_string(id) + "' was not found"};
+        }
         auto* n = reply->add_nodes();
         n->set_id(node->getIndex());
         n->set_db_id(request->db_id());
@@ -314,8 +444,46 @@ grpc::Status APIServiceImpl::ListEdgesFromNetwork(grpc::ServerContext* ctxt,
     const db::Network* net = db->getNetwork(net_id);
     db::Network::EdgeRange edges = net->edges();
 
+    if (edges.size() > MAX_ENTITY_COUNT) {
+        return grpc::Status {
+            grpc::StatusCode::ABORTED,
+            "Too many edges in the database to list all of them ("
+                + std::to_string(edges.size())
+                + " in the database, maximum amount is "
+                + std::to_string(MAX_ENTITY_COUNT) + ")"};
+    }
+
     reply->mutable_edges()->Reserve(edges.size());
-    for (const db::Edge* edge : edges) {
+    for (const auto& [id, edge] : edges) {
+        auto* e = reply->add_edges();
+        e->set_id(edge->getIndex());
+        e->set_db_id(request->db_id());
+        e->set_source_id(edge->getSource()->getIndex());
+        e->set_target_id(edge->getTarget()->getIndex());
+    }
+
+    return grpc::Status::OK;
+}
+
+grpc::Status APIServiceImpl::ListEdgesByIDFromNetwork(grpc::ServerContext* ctxt,
+                                                      const ListEdgesByIDFromNetworkRequest* request,
+                                                      ListEdgesByIDFromNetworkReply* reply) {
+    if (!isDBValid(request->db_id())) {
+        return invalidDBStatus;
+    }
+
+    const db::DB* db = _databases.at(request->db_id());
+    const db::DBIndex net_id {request->net_id()};
+    const db::Network* net = db->getNetwork(net_id);
+
+    reply->mutable_edges()->Reserve(request->edge_ids_size());
+
+    for (const auto& id : request->edge_ids()) {
+        db::Edge* edge = net->getEdge((db::DBIndex)id);
+        if (!edge) {
+            return grpc::Status {grpc::StatusCode::NOT_FOUND,
+                                 "Edge '" + std::to_string(id) + "' was not found"};
+        }
         auto* e = reply->add_edges();
         e->set_id(edge->getIndex());
         e->set_db_id(request->db_id());
@@ -508,18 +676,26 @@ grpc::Status APIServiceImpl::CreateNode(grpc::ServerContext* ctxt,
     db::DB* db = _databases.at(request->db_id());
     db::Writeback wb {db};
     db::NodeType* nt = db->getNodeType((db::DBIndex)request->node_type_id());
-    bioassert(nt);
+    if (!nt) {
+        return grpc::Status {grpc::StatusCode::NOT_FOUND, "NodeType is invalid"};
+    }
     db::Network* net = db->getNetwork((db::DBIndex)request->net_id());
-    bioassert(net);
+    if (!net) {
+        return grpc::Status {grpc::StatusCode::NOT_FOUND, "Network is invalid"};
+    }
     const db::StringRef nodeName = db->getString(request->name());
     db::Node* node = wb.createNode(net, nt, nodeName);
-    bioassert(node);
-    auto* n = reply->mutable_node();
+    if (!node) {
+        return grpc::Status {grpc::StatusCode::INTERNAL, "Could not create node"};
+    }
+
+    auto n = new ::Node;
     n->set_db_id(request->db_id());
     n->set_net_id(request->net_id());
-    n->set_node_type_id(request->node_type_id());
+    n->set_id(node->getIndex());
     n->set_name(request->name());
-    n->set_id(node->getName().getID());
+    n->set_node_type_id(request->node_type_id());
+    reply->set_allocated_node(n);
 
     return grpc::Status::OK;
 }
@@ -550,12 +726,13 @@ grpc::Status APIServiceImpl::CreateEdge(grpc::ServerContext* ctxt,
         return grpc::Status {grpc::INVALID_ARGUMENT, "Could not create the edge"};
     }
 
-    auto* e = reply->mutable_edge();
+    auto e = new ::Edge;
     e->set_db_id(request->db_id());
     e->set_id(edge->getIndex());
     e->set_edge_type_id(request->edge_type_id());
     e->set_source_id(source->getIndex());
     e->set_target_id(target->getIndex());
+    reply->set_allocated_edge(e);
 
     return grpc::Status::OK;
 }
@@ -742,7 +919,7 @@ grpc::Status APIServiceImpl::ListPropertyTypes(grpc::ServerContext* ctxt,
     return grpc::Status::OK;
 }
 
-void APIServiceImpl::listDB(std::vector<std::string>& databaseNames) {
+void APIServiceImpl::listDiskDB(std::vector<std::string>& databaseNames) {
     std::vector<FileUtils::Path> paths;
     FileUtils::Path databasesPath {_config.getDatabasesPath()};
     FileUtils::listFiles(databasesPath, paths);

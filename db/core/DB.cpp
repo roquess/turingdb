@@ -29,6 +29,14 @@ DB::~DB() {
         delete edgeTypeEntry.second;
     }
     _edgeTypes.clear();
+
+    for (const auto& nodeEntry : _nodes) {
+        delete nodeEntry.second;
+    }
+
+    for (const auto& edgeEntry : _edges) {
+        delete edgeEntry.second;
+    }
 }
 
 DB* DB::create() {

@@ -30,8 +30,8 @@ public:
                         LoadDBReply* reply) override;
 
     grpc::Status UnloadDB(grpc::ServerContext* ctxt,
-                        const UnloadDBRequest* request,
-                        UnloadDBReply* reply) override;
+                          const UnloadDBRequest* request,
+                          UnloadDBReply* reply) override;
 
     grpc::Status CreateDB(grpc::ServerContext* ctxt,
                           const CreateDBRequest* request,
@@ -57,17 +57,33 @@ public:
                            const ListNodesRequest* request,
                            ListNodesReply* reply) override;
 
+    grpc::Status ListNodesByID(grpc::ServerContext* ctxt,
+                               const ListNodesByIDRequest* request,
+                               ListNodesByIDReply* reply) override;
+
     grpc::Status ListEdges(grpc::ServerContext* ctxt,
                            const ListEdgesRequest* request,
                            ListEdgesReply* reply) override;
+
+    grpc::Status ListEdgesByID(grpc::ServerContext* ctxt,
+                               const ListEdgesByIDRequest* request,
+                               ListEdgesByIDReply* reply) override;
 
     grpc::Status ListNodesFromNetwork(grpc::ServerContext* ctxt,
                                       const ListNodesFromNetworkRequest* request,
                                       ListNodesFromNetworkReply* reply) override;
 
+    grpc::Status ListNodesByIDFromNetwork(grpc::ServerContext* ctxt,
+                                          const ListNodesByIDFromNetworkRequest* request,
+                                          ListNodesByIDFromNetworkReply* reply) override;
+
     grpc::Status ListEdgesFromNetwork(grpc::ServerContext* ctxt,
                                       const ListEdgesFromNetworkRequest* request,
                                       ListEdgesFromNetworkReply* reply) override;
+
+    grpc::Status ListEdgesByIDFromNetwork(grpc::ServerContext* ctxt,
+                                          const ListEdgesByIDFromNetworkRequest* request,
+                                          ListEdgesByIDFromNetworkReply* reply) override;
 
     grpc::Status ListEntityProperties(grpc::ServerContext* ctxt,
                                       const ListEntityPropertiesRequest* request,
@@ -107,9 +123,10 @@ public:
 
 private:
     const RPCServerConfig& _config;
-    std::unordered_map<size_t, db::DB*> _databases;
-    std::unordered_map<std::string, size_t> _dbNameMapping;
+    std::map<size_t, db::DB*> _databases;
+    std::map<std::string, size_t> _dbNameMapping;
+    size_t _nextAvailableId = 0;
 
-    void listDB(std::vector<std::string>& databaseNames);
+    void listDiskDB(std::vector<std::string>& databaseNames);
     bool isDBValid(size_t id) const;
 };
