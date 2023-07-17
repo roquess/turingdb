@@ -3,10 +3,22 @@ import grpc
 
 
 class TuringError(Exception):
-    def __init__(self, message: str, code: grpc.StatusCode, err_type: str):
-        self._message = message
+    def __init__(self, details: str, code: grpc.StatusCode, err_type: str):
+        self._details = details 
         self._code = code
         self._type = "Error" + err_type
+
+    @property
+    def details(self) -> str:
+        return self._details
+
+    @property
+    def code(self):
+        return self._code
+
+    @property
+    def type(self) -> str:
+        return self._type
 
 
 class Request:
