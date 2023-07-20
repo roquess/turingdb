@@ -127,6 +127,21 @@ message PropertyType {
     ValueType value_type = 2;
 }
 
+message FilterID {
+    repeated uint64 ids = 1;
+}
+
+message FilterType {
+    oneof value {
+        uint64 node_type_id = 1;
+        uint64 edge_type_id = 2;
+    };
+}
+
+message FilterProperty {
+    Property property = 1;
+}
+
 message QueryCell {
     oneof value {
         string string = 1;
@@ -201,6 +216,9 @@ message ListNetworksReply {
 // ListNodes
 message ListNodesRequest {
     uint64 db_id = 1;
+    optional FilterType filter_type = 2;
+    optional FilterID filter_id = 3;
+    optional FilterProperty filter_property = 4;
 }
 message ListNodesReply {
     repeated Node nodes = 1;

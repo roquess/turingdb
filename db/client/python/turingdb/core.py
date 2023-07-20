@@ -101,8 +101,38 @@ class Database(DBObject):
         )
         return Edge(self, res.data.edge)
 
-    def list_nodes(self) -> list[Node]:
-        res = Request(self._turing, "ListNodes", db_id=self.id)
+    def list_nodes(self, ids: list[int]=[], node_type: NodeType=None, property: Property = None) -> list[Node]:
+        kwargs = {
+            "db_id": self.id
+        }
+        if len(ids) != 0:
+            kwargs["filter_id"] = dbService_pb2.FilterID(
+                ids=ids
+            )
+        if node_type != None:
+            kwargs["filter_type"] = dbService_pb2.FilterType(
+                node_type_id = node_type.id
+            )
+
+        if property != None:
+            if property.value_type.value == dbService_pb2.ValueType.INT:
+                oneof = "int64"
+            elif property.value_type.value == dbService_pb2.ValueType.UNSIGNED:
+                oneof = "uint64"
+            elif property.value_type.value == dbService_pb2.ValueType.STRING:
+                oneof = "string"
+            elif property.value_type.value == dbService_pb2.ValueType.BOOL:
+                oneof = "bool"
+            elif property.value_type.value == dbService_pb2.ValueType.DECIMAL:
+                oneof = "decimal"
+
+            kwargs["filter_property"] = dbService_pb2.FilterProperty(
+                property=dbService_pb2.Property(
+                    property_type_name=property.name,
+                    value_type=property.value_type.value, **{oneof: property.value}
+                )
+            )
+        res = Request(self._turing, "ListNodes", **kwargs)
         return [Node(self._get_network(n.net_id), n) for n in res.data.nodes]
 
     def list_nodes_by_id(self, ids: list[int]) -> list[Node]:
@@ -253,14 +283,22 @@ class PropertyType:
 
 
 class Property:
-    def __init__(self, p):
-        self._name = p.property_type_name
-        self._value_type = p.value_type
-        self._value = getattr(p, p.WhichOneof("value"))
+    def __init__(self, name: str, value_type: ValueType, value):
+        self._name = name
+        self._value_type = value_type
+        self._value = value
 
     @property
     def value(self):
         return self._value
+
+    @property
+    def value_type(self):
+        return self._value_type
+
+    @property
+    def name(self):
+        return self._name
 
     def __repr__(self) -> str:
         return f'<Property "{self._name}" value={self._value}>'
@@ -272,7 +310,7 @@ class Entity(DBObject):
         self._db = db
         self._entity_type = entity_type
 
-    def list_properties(self) -> Response(Mapping[str, Property]):
+    def list_properties(self) -> Mapping[str, Property]:
         res = Request(
             self._db._turing,
             "ListEntityProperties",
@@ -280,7 +318,11 @@ class Entity(DBObject):
             entity_type=self._entity_type,
             entity_id=self.id,
         )
-        return {p.property_type_name: Property(p) for p in res.data.properties}
+        return {p.property_type_name: Property(
+            p.property_type_name,
+            p.value_type,
+            getattr(p, p.WhichOneof("value"))
+        ) for p in res.data.properties}
 
     def add_property(self, pt: PropertyType, value) -> Property:
         if pt.value_type == dbService_pb2.ValueType.INT:
@@ -304,7 +346,11 @@ class Entity(DBObject):
                 property_type_name=pt.name, value_type=pt.value_type, **{oneof: value}
             ),
         )
-        return Property(res.data.property)
+        return Property(
+            res.data.property_type_name,
+            res.data.property.value_type,
+            getattr(res.data.property, res.data.property.WhichOneof("value"))
+        )
 
     def __repr__(self) -> str:
         return f'<Entity id={self.id}>'
@@ -321,6 +367,10 @@ class Node(Entity):
 
     def __repr__(self) -> str:
         return f'<Node name="{self._name}" id={self.id}>'
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     @property
     def in_edge_ids(self) -> list[int]:
