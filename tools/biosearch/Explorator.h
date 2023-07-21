@@ -2,9 +2,12 @@
 
 #include <vector>
 #include <memory>
+#include <set>
 
 #include "Writeback.h"
 #include "StringRef.h"
+#include "DBObject.h"
+
 #include "SubNetBuilder.h"
 
 namespace db {
@@ -19,6 +22,8 @@ class ExploratorTreeNode;
 // up to some maximum distance
 class Explorator {
 public:
+    using NodeSet = std::set<db::Node*, db::DBObject::Sorter>;
+
     Explorator(db::DB* db);
     ~Explorator();
 
@@ -30,14 +35,17 @@ public:
 
     db::Network* getResultNet() const { return _resNet; }
 
+    const NodeSet& pathways() const { return _pathways; }
+
 private:
-    size_t _maxDist {10};
+    size_t _maxDist {2};
     db::DB* _db {nullptr};
     db::Writeback _wb;
     std::vector<db::Node*> _seeds;
     ExploratorTree* _tree {nullptr};
     db::Network* _resNet {nullptr};
     std::unique_ptr<SubNetBuilder> _subNetBuilder;
+    NodeSet _pathways;
 
     db::StringRef _stIdName;
     db::StringRef _displayName;

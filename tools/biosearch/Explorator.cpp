@@ -89,6 +89,12 @@ void Explorator::run() {
 
 void Explorator::visit(ExploratorTreeNode* treeNode) {
     Node* node = treeNode->getNode();
+
+    if (SearchUtils::isReactomePathway(node)) {
+        _pathways.insert(node);
+        return;
+    }
+
     _subNetBuilder->addNode(node);
 }
 

@@ -147,6 +147,12 @@ int main(int argc, const char** argv) {
         explorator.run();
 
         subNet = explorator.getResultNet();
+
+        BioLog::echo("Pathways:");
+        for (const Node* pathway : explorator.pathways()) {
+            SearchUtils::printNode(pathway);
+        }
+        BioLog::echo("Number of pathways found: "+std::to_string(explorator.pathways().size()));
     }
 
     {
