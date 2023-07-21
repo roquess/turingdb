@@ -13,33 +13,11 @@
 #include "Node.h"
 #include "NodeSearch.h"
 #include "NodeType.h"
-#include "TimerStat.h"
 #include "Writeback.h"
 
-#define MAX_ENTITY_COUNT 50000
+#define MAX_ENTITY_COUNT 20000
 
 using namespace Log;
-
-using PropertyComparator = std::function<bool(const Property& p1, const db::Property& p2)>;
-
-static const std::unordered_map<ValueType, PropertyComparator> checkErase {
-    {ValueType::STRING,   [](const Property& p1, const db::Property& p2) {
-         auto& str = p2.getValue().getString();
-         return str.find(p1.string()) == str.npos;
-     }},
-    {ValueType::INT,      [](const Property& p1, const db::Property& p2) {
-         return p1.int64() != p2.getValue().getInt();
-     }},
-    {ValueType::UNSIGNED, [](const Property& p1, const db::Property& p2) {
-         return p1.uint64() != p2.getValue().getUint();
-     }},
-    {ValueType::BOOL,     [](const Property& p1, const db::Property& p2) {
-         return p1.boolean() != p2.getValue().getBool();
-     }},
-    {ValueType::DECIMAL,  [](const Property& p1, const db::Property& p2) {
-         return p1.decimal() != p2.getValue().getDouble();
-     }},
-};
 
 static grpc::Status invalidDBStatus() {
     return {grpc::StatusCode::NOT_FOUND, "The database ID is invalid"};
@@ -215,86 +193,6 @@ grpc::Status DBServiceImpl::CreateDB(grpc::ServerContext* ctxt,
 grpc::Status DBServiceImpl::ListNodes(grpc::ServerContext* ctxt,
                                       const ListNodesRequest* request,
                                       ListNodesReply* reply) {
-    TimerStat timer {"Listing nodes..."};
-#define Remy
-#ifdef Luc
-    if (!isDBValid(request->db_id())) {
-        return invalidDBStatus();
-    }
-
-    const db::DB* db = _databases.at(request->db_id());
-    db::DB::NodeRange nodes = db->nodes();
-    std::unordered_set<size_t> ids;
-
-    if (request->has_filter_id()) {
-        auto filter = request->filter_id();
-        for (size_t id : filter.ids()) {
-            ids.emplace(id);
-        }
-    } else {
-        for (const auto& [id, node] : nodes) {
-            ids.emplace(id);
-        }
-    }
-
-    if (request->has_filter_type()) {
-        std::erase_if(ids, [&](const size_t id) {
-            auto* nt = db->getNode((db::DBIndex)id)->getType();
-            return nt->getName().getID() != request->filter_type().node_type_id();
-        });
-    }
-
-    if (request->has_filter_property()) {
-        const auto& prop = request->filter_property().property();
-        auto checkEraseFunc = checkErase.at(prop.value_type());
-        std::erase_if(ids, [&](const size_t id) {
-            auto* n = db->getNode((db::DBIndex)id);
-            auto name = db->getString(prop.property_type_name());
-            auto* pt = n->getType()->getPropertyType(name);
-            if (!pt) {
-                return true;
-            }
-            auto p = n->getProperty(pt);
-            if (!p.isValid()) {
-                return true;
-            }
-            auto v = p.getValue();
-            auto kind = static_cast<ValueType>(v.getType().getKind());
-            if (kind != prop.value_type()) {
-                return true;
-            }
-            return checkEraseFunc(prop, p);
-        });
-    }
-
-    if (ids.size() > MAX_ENTITY_COUNT) {
-        return tooManyEntities(ids.size());
-    }
-
-    reply->mutable_nodes()->Reserve(nodes.size());
-    for (const auto& id : ids) {
-        auto* n = reply->add_nodes();
-        auto node = db->getNode((db::DBIndex)id);
-        n->set_id(id);
-        n->set_db_id(request->db_id());
-        n->set_net_id(node->getNetwork()->getName().getID());
-        n->set_node_type_id(node->getType()->getName().getID());
-
-        n->mutable_out_edge_ids()->Reserve(node->outEdges().size());
-        for (const db::Edge* out : node->outEdges()) {
-            n->add_out_edge_ids(out->getIndex());
-        }
-
-        n->mutable_in_edge_ids()->Reserve(node->inEdges().size());
-        for (const db::Edge* in : node->inEdges()) {
-            n->add_in_edge_ids(in->getIndex());
-        }
-    }
-
-    return grpc::Status::OK;
-#endif
-
-#ifdef Remy
     if (!isDBValid(request->db_id())) {
         return invalidDBStatus();
     }
@@ -352,7 +250,6 @@ grpc::Status DBServiceImpl::ListNodes(grpc::ServerContext* ctxt,
     }
 
     return grpc::Status::OK;
-#endif
 }
 
 grpc::Status DBServiceImpl::ListNodesByID(grpc::ServerContext* ctxt,

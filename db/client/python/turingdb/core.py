@@ -283,10 +283,10 @@ class PropertyType:
 
 
 class Property:
-    def __init__(self, name: str, value_type: ValueType, value):
+    def __init__(self, name: str, value, value_type: ValueType = ValueType.STRING):
         self._name = name
-        self._value_type = value_type
         self._value = value
+        self._value_type = value_type
 
     @property
     def value(self):
@@ -320,8 +320,8 @@ class Entity(DBObject):
         )
         return {p.property_type_name: Property(
             p.property_type_name,
+            getattr(p, p.WhichOneof("value")),
             p.value_type,
-            getattr(p, p.WhichOneof("value"))
         ) for p in res.data.properties}
 
     def add_property(self, pt: PropertyType, value) -> Property:
@@ -348,8 +348,8 @@ class Entity(DBObject):
         )
         return Property(
             res.data.property_type_name,
+            getattr(res.data.property, res.data.property.WhichOneof("value")),
             res.data.property.value_type,
-            getattr(res.data.property, res.data.property.WhichOneof("value"))
         )
 
     def __repr__(self) -> str:
