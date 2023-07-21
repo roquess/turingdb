@@ -1,2 +1,2 @@
 from .Turing import Turing
-from .core import ValueType
+from .core import ValueType, Property

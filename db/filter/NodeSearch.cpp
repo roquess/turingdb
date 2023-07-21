@@ -51,14 +51,26 @@ void NodeSearch::addAllowedType(const db::NodeType* nodeType) {
     _types.insert(nodeType);
 }
 
+void NodeSearch::addId(db::DBIndex id) {
+    _ids.insert(id);
+}
+
 void NodeSearch::run(std::vector<db::Node*>& result) {
     const bool checkType = !_types.empty();
     const bool checkProperties = !_properties.empty();
+    const bool checkIds = !_ids.empty();
 
     for (const auto& [id, node] : _db->nodes()) {
         if (checkType) {
             const auto typeIt = _types.find(node->getType());
             if (typeIt == _types.end()) {
+                continue;
+            }
+        }
+
+        if (checkIds) {
+            const auto idIt = _ids.find(node->getIndex());
+            if (idIt == _ids.end()) {
                 continue;
             }
         }

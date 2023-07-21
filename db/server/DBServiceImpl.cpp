@@ -1,27 +1,40 @@
 #include "DBServiceImpl.h"
 
+#include "BioLog.h"
 #include "DB.h"
 #include "DBDumper.h"
 #include "DBLoader.h"
+#include "DBServerConfig.h"
 #include "Edge.h"
 #include "EdgeMap.h"
 #include "EdgeType.h"
 #include "FileUtils.h"
 #include "Network.h"
 #include "Node.h"
+#include "NodeSearch.h"
 #include "NodeType.h"
-#include "DBServerConfig.h"
 #include "Writeback.h"
 
-#include "BioAssert.h"
-#include "BioLog.h"
-
-#define MAX_ENTITY_COUNT 50000
+#define MAX_ENTITY_COUNT 20000
 
 using namespace Log;
 
-static const grpc::Status invalidDBStatus {grpc::StatusCode::NOT_FOUND,
-                                           "The database ID is invalid"};
+static grpc::Status invalidDBStatus() {
+    return {grpc::StatusCode::NOT_FOUND, "The database ID is invalid"};
+}
+
+static grpc::Status tooManyEntities(size_t countRequested) {
+    return {grpc::StatusCode::ABORTED,
+            "Too many entities requested ("
+                + std::to_string(countRequested)
+                + ", maximum amount is "
+                + std::to_string(MAX_ENTITY_COUNT) + ")"};
+}
+
+static grpc::Status invalidPropertyType() {
+    return {grpc::StatusCode::ABORTED,
+            "Filtering by property only supports strings"};
+}
 
 DBServiceImpl::DBServiceImpl(const DBServerConfig& config)
     : _config(config)
@@ -42,14 +55,14 @@ grpc::Status DBServiceImpl::ExecuteQuery(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::GetStatus(grpc::ServerContext* ctxt,
-                                       const GetStatusRequest* request,
-                                       GetStatusReply* reply) {
+                                      const GetStatusRequest* request,
+                                      GetStatusReply* reply) {
     return grpc::Status::OK;
 }
 
 grpc::Status DBServiceImpl::ListAvailableDB(grpc::ServerContext* ctxt,
-                                             const ListAvailableDBRequest* request,
-                                             ListAvailableDBReply* reply) {
+                                            const ListAvailableDBRequest* request,
+                                            ListAvailableDBReply* reply) {
 
     std::vector<std::string> diskDbNames;
     listDiskDB(diskDbNames);
@@ -62,8 +75,8 @@ grpc::Status DBServiceImpl::ListAvailableDB(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListLoadedDB(grpc::ServerContext* ctxt,
-                                          const ListLoadedDBRequest* request,
-                                          ListLoadedDBReply* reply) {
+                                         const ListLoadedDBRequest* request,
+                                         ListLoadedDBReply* reply) {
 
     auto& dbs = *reply->mutable_dbs();
     for (const auto& [name, id] : _dbNameMapping) {
@@ -76,8 +89,8 @@ grpc::Status DBServiceImpl::ListLoadedDB(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::LoadDB(grpc::ServerContext* ctxt,
-                                    const LoadDBRequest* request,
-                                    LoadDBReply* reply) {
+                                   const LoadDBRequest* request,
+                                   LoadDBReply* reply) {
     std::vector<std::string> diskDbNames;
     listDiskDB(diskDbNames);
 
@@ -110,8 +123,8 @@ grpc::Status DBServiceImpl::LoadDB(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::UnloadDB(grpc::ServerContext* ctxt,
-                                      const UnloadDBRequest* request,
-                                      UnloadDBReply* reply) {
+                                     const UnloadDBRequest* request,
+                                     UnloadDBReply* reply) {
     const auto it = _dbNameMapping.find(request->db_name());
     if (it == _dbNameMapping.end()) {
         return grpc::Status {grpc::NOT_FOUND,
@@ -125,11 +138,11 @@ grpc::Status DBServiceImpl::UnloadDB(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::DumpDB(grpc::ServerContext* ctxt,
-                                    const DumpDBRequest* request,
-                                    DumpDBReply* reply) {
+                                   const DumpDBRequest* request,
+                                   DumpDBReply* reply) {
 
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const std::string& dbName = std::find_if(_dbNameMapping.cbegin(),
@@ -150,8 +163,8 @@ grpc::Status DBServiceImpl::DumpDB(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::CreateDB(grpc::ServerContext* ctxt,
-                                      const CreateDBRequest* request,
-                                      CreateDBReply* reply) {
+                                     const CreateDBRequest* request,
+                                     CreateDBReply* reply) {
     std::vector<std::string> diskDbNames;
     listDiskDB(diskDbNames);
 
@@ -178,38 +191,60 @@ grpc::Status DBServiceImpl::CreateDB(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListNodes(grpc::ServerContext* ctxt,
-                                       const ListNodesRequest* request,
-                                       ListNodesReply* reply) {
+                                      const ListNodesRequest* request,
+                                      ListNodesReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
-    const db::DB* db = _databases.at(request->db_id());
+    db::DB* db = _databases.at(request->db_id());
     db::DB::NodeRange nodes = db->nodes();
-    if (nodes.size() > MAX_ENTITY_COUNT) {
-        return grpc::Status {
-            grpc::StatusCode::ABORTED,
-            "Too many nodes in the database to list all of them ("
-                + std::to_string(nodes.size())
-                + " in the database, maximum amount is "
-                + std::to_string(MAX_ENTITY_COUNT) + ")"};
+    std::unordered_set<size_t> ids;
+    NodeSearch nodeSearch(db);
+
+    if (request->has_filter_type()) {
+        const size_t id = request->filter_type().node_type_id();
+        const db::NodeType* nt = db->getNodeType((db::DBIndex)id);
+        nodeSearch.addAllowedType(nt);
+    }
+
+    if (request->has_filter_id()) {
+        for (const size_t id : request->filter_id().ids()) {
+            nodeSearch.addId((db::DBIndex)id);
+        }
+    }
+
+    if (request->has_filter_property()) {
+        const auto& property = request->filter_property().property();
+        if (!property.has_string()) {
+            return invalidPropertyType();
+        }
+        nodeSearch.addProperty(property.property_type_name(), property.string());
+    }
+
+    std::vector<db::Node*> toReturn;
+    toReturn.reserve(MAX_ENTITY_COUNT);
+    nodeSearch.run(toReturn);
+
+    if (toReturn.size() > MAX_ENTITY_COUNT) {
+        return tooManyEntities(toReturn.size());
     }
 
     reply->mutable_nodes()->Reserve(nodes.size());
-    for (const auto& pair : nodes) {
+    for (const db::Node* node : toReturn) {
         auto* n = reply->add_nodes();
-        n->set_id(pair.first);
+        n->set_id(node->getIndex());
         n->set_db_id(request->db_id());
-        n->set_net_id(pair.second->getNetwork()->getName().getID());
-        n->set_node_type_id(pair.second->getType()->getName().getID());
+        n->set_net_id(node->getNetwork()->getName().getID());
+        n->set_node_type_id(node->getType()->getName().getID());
 
-        n->mutable_out_edge_ids()->Reserve(pair.second->outEdges().size());
-        for (const db::Edge* out : pair.second->outEdges()) {
+        n->mutable_out_edge_ids()->Reserve(node->outEdges().size());
+        for (const db::Edge* out : node->outEdges()) {
             n->add_out_edge_ids(out->getIndex());
         }
 
-        n->mutable_in_edge_ids()->Reserve(pair.second->inEdges().size());
-        for (const db::Edge* in : pair.second->inEdges()) {
+        n->mutable_in_edge_ids()->Reserve(node->inEdges().size());
+        for (const db::Edge* in : node->inEdges()) {
             n->add_in_edge_ids(in->getIndex());
         }
     }
@@ -218,10 +253,10 @@ grpc::Status DBServiceImpl::ListNodes(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListNodesByID(grpc::ServerContext* ctxt,
-                                           const ListNodesByIDRequest* request,
-                                           ListNodesByIDReply* reply) {
+                                          const ListNodesByIDRequest* request,
+                                          ListNodesByIDReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -255,10 +290,10 @@ grpc::Status DBServiceImpl::ListNodesByID(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListEdges(grpc::ServerContext* ctxt,
-                                       const ListEdgesRequest* request,
-                                       ListEdgesReply* reply) {
+                                      const ListEdgesRequest* request,
+                                      ListEdgesReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -287,10 +322,10 @@ grpc::Status DBServiceImpl::ListEdges(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListEdgesByID(grpc::ServerContext* ctxt,
-                                           const ListEdgesByIDRequest* request,
-                                           ListEdgesByIDReply* reply) {
+                                          const ListEdgesByIDRequest* request,
+                                          ListEdgesByIDReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -315,10 +350,10 @@ grpc::Status DBServiceImpl::ListEdgesByID(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListNodeTypes(grpc::ServerContext* ctxt,
-                                           const ListNodeTypesRequest* request,
-                                           ListNodeTypesReply* reply) {
+                                          const ListNodeTypesRequest* request,
+                                          ListNodeTypesReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -345,7 +380,7 @@ grpc::Status DBServiceImpl::ListNodeTypesByID(grpc::ServerContext* ctxt,
                                               const ListNodeTypesByIDRequest* request,
                                               ListNodeTypesByIDReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -375,10 +410,10 @@ grpc::Status DBServiceImpl::ListNodeTypesByID(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListEdgeTypes(grpc::ServerContext* ctxt,
-                                           const ListEdgeTypesRequest* request,
-                                           ListEdgeTypesReply* reply) {
+                                          const ListEdgeTypesRequest* request,
+                                          ListEdgeTypesReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -402,10 +437,10 @@ grpc::Status DBServiceImpl::ListEdgeTypes(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListEdgeTypesByID(grpc::ServerContext* ctxt,
-                                           const ListEdgeTypesByIDRequest* request,
-                                           ListEdgeTypesByIDReply* reply) {
+                                              const ListEdgeTypesByIDRequest* request,
+                                              ListEdgeTypesByIDReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -435,10 +470,10 @@ grpc::Status DBServiceImpl::ListEdgeTypesByID(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListNodesFromNetwork(grpc::ServerContext* ctxt,
-                                                  const ListNodesFromNetworkRequest* request,
-                                                  ListNodesFromNetworkReply* reply) {
+                                                 const ListNodesFromNetworkRequest* request,
+                                                 ListNodesFromNetworkReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -477,10 +512,10 @@ grpc::Status DBServiceImpl::ListNodesFromNetwork(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListNodesByIDFromNetwork(grpc::ServerContext* ctxt,
-                                                      const ListNodesByIDFromNetworkRequest* request,
-                                                      ListNodesByIDFromNetworkReply* reply) {
+                                                     const ListNodesByIDFromNetworkRequest* request,
+                                                     ListNodesByIDFromNetworkReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -516,10 +551,10 @@ grpc::Status DBServiceImpl::ListNodesByIDFromNetwork(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListEdgesFromNetwork(grpc::ServerContext* ctxt,
-                                                  const ListEdgesFromNetworkRequest* request,
-                                                  ListEdgesFromNetworkReply* reply) {
+                                                 const ListEdgesFromNetworkRequest* request,
+                                                 ListEdgesFromNetworkReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -550,10 +585,10 @@ grpc::Status DBServiceImpl::ListEdgesFromNetwork(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListEdgesByIDFromNetwork(grpc::ServerContext* ctxt,
-                                                      const ListEdgesByIDFromNetworkRequest* request,
-                                                      ListEdgesByIDFromNetworkReply* reply) {
+                                                     const ListEdgesByIDFromNetworkRequest* request,
+                                                     ListEdgesByIDFromNetworkReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -580,10 +615,10 @@ grpc::Status DBServiceImpl::ListEdgesByIDFromNetwork(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListNetworks(grpc::ServerContext* ctxt,
-                                          const ListNetworksRequest* request,
-                                          ListNetworksReply* reply) {
+                                         const ListNetworksRequest* request,
+                                         ListNetworksReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     const db::DB* db = _databases.at(request->db_id());
@@ -599,10 +634,10 @@ grpc::Status DBServiceImpl::ListNetworks(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListEntityProperties(grpc::ServerContext* ctxt,
-                                                  const ListEntityPropertiesRequest* request,
-                                                  ListEntityPropertiesReply* reply) {
+                                                 const ListEntityPropertiesRequest* request,
+                                                 ListEntityPropertiesReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());
@@ -661,10 +696,10 @@ grpc::Status DBServiceImpl::ListEntityProperties(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::CreateNodeType(grpc::ServerContext* ctxt,
-                                            const CreateNodeTypeRequest* request,
-                                            CreateNodeTypeReply* reply) {
+                                           const CreateNodeTypeRequest* request,
+                                           CreateNodeTypeReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());
@@ -686,10 +721,10 @@ grpc::Status DBServiceImpl::CreateNodeType(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::CreateEdgeType(grpc::ServerContext* ctxt,
-                                            const CreateEdgeTypeRequest* request,
-                                            CreateEdgeTypeReply* reply) {
+                                           const CreateEdgeTypeRequest* request,
+                                           CreateEdgeTypeReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());
@@ -731,10 +766,10 @@ grpc::Status DBServiceImpl::CreateEdgeType(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::CreateNetwork(grpc::ServerContext* ctxt,
-                                           const CreateNetworkRequest* request,
-                                           CreateNetworkReply* reply) {
+                                          const CreateNetworkRequest* request,
+                                          CreateNetworkReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());
@@ -752,10 +787,10 @@ grpc::Status DBServiceImpl::CreateNetwork(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::CreateNode(grpc::ServerContext* ctxt,
-                                        const CreateNodeRequest* request,
-                                        CreateNodeReply* reply) {
+                                       const CreateNodeRequest* request,
+                                       CreateNodeReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());
@@ -786,10 +821,10 @@ grpc::Status DBServiceImpl::CreateNode(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::CreateEdge(grpc::ServerContext* ctxt,
-                                        const CreateEdgeRequest* request,
-                                        CreateEdgeReply* reply) {
+                                       const CreateEdgeRequest* request,
+                                       CreateEdgeReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());
@@ -823,10 +858,10 @@ grpc::Status DBServiceImpl::CreateEdge(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::AddEntityProperty(grpc::ServerContext* ctxt,
-                                               const AddEntityPropertyRequest* request,
-                                               AddEntityPropertyReply* reply) {
+                                              const AddEntityPropertyRequest* request,
+                                              AddEntityPropertyReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());
@@ -889,10 +924,10 @@ grpc::Status DBServiceImpl::AddEntityProperty(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::AddPropertyType(grpc::ServerContext* ctxt,
-                                             const AddPropertyTypeRequest* request,
-                                             AddPropertyTypeReply* reply) {
+                                            const AddPropertyTypeRequest* request,
+                                            AddPropertyTypeReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());
@@ -948,10 +983,10 @@ grpc::Status DBServiceImpl::AddPropertyType(grpc::ServerContext* ctxt,
 }
 
 grpc::Status DBServiceImpl::ListPropertyTypes(grpc::ServerContext* ctxt,
-                                               const ListPropertyTypesRequest* request,
-                                               ListPropertyTypesReply* reply) {
+                                              const ListPropertyTypesRequest* request,
+                                              ListPropertyTypesReply* reply) {
     if (!isDBValid(request->db_id())) {
-        return invalidDBStatus;
+        return invalidDBStatus();
     }
 
     db::DB* db = _databases.at(request->db_id());

@@ -6,6 +6,7 @@
 #include <utility>
 #include <map>
 
+#include "DBIndex.h"
 #include "StringRef.h"
 
 namespace db {
@@ -24,6 +25,7 @@ public:
                      bool exact=false);
 
     void addAllowedType(const db::NodeType* nodeType);
+    void addId(db::DBIndex id);
 
     void run(std::vector<db::Node*>& result);
 
@@ -33,5 +35,6 @@ private:
 
     db::DB* _db {nullptr};
     std::unordered_set<const db::NodeType*> _types;
+    std::unordered_set<db::DBIndex> _ids;
     std::map<PropertyName, std::pair<Values, bool>> _properties;
 };
