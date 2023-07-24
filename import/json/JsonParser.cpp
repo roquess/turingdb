@@ -111,7 +111,7 @@ bool JsonParser::parseNeo4jJsonDir(const FileUtils::Path& jsonDir) {
     // Edges
     std::vector<FileUtils::Path> edgeFiles;
     FileUtils::listFiles(jsonDir, edgeFiles);
-    std::regex edgeRegex {"^edges_([0-9]*).$.json"};
+    std::regex edgeRegex {"edges_([0-9]*).json"};
     std::map<size_t, FileUtils::Path> edgeFilesOrdered;
 
     for (const FileUtils::Path& path : edgeFiles) {
