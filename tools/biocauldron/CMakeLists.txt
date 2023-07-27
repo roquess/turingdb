@@ -8,3 +8,6 @@ target_link_libraries(biocauldron PRIVATE
 target_include_directories(biocauldron PRIVATE ${BIO_SOURCE_DIR}/messages)
 
 install(TARGETS biocauldron DESTINATION bin)
+
+target_include_directories(biocauldron
+    PRIVATE ${BIO_SOURCE_DIR}/messages)

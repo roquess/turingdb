@@ -1,32 +1,28 @@
-#ifndef _UI_SERVER_
-#define _UI_SERVER_
+#pragma once
 
-#include "Command.h"
-
-#include <filesystem>
+#include "FileUtils.h"
 
 namespace ui {
 
+class ServerThreadEngine;
+
 class TuringUIServer {
 public:
-    using Path = std::filesystem::path;
-
-    TuringUIServer(const Path& outDir);
+    TuringUIServer(const FileUtils::Path& outDir);
     ~TuringUIServer();
 
-    int start();
-    void setCleanEnabled(bool enable) { _cleanEnabled = enable; }
+    void start();
+    void startDev();
+    void wait();
+
     int getReturnCode() const;
-    void getLogs(std::string& data) const;
 
 private:
-    bool _cleanEnabled {true};
-    Path _outDir;
-    Command _cmd;
+    FileUtils::Path _outDir;
+    int _returnCode = 0;
+    std::unique_ptr<ServerThreadEngine> _engine {nullptr};
 
     void cleanSite();
 };
 
 }
-
-#endif
