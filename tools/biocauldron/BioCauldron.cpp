@@ -13,7 +13,6 @@ int main(int argc, const char** argv) {
     ToolInit toolInit(BIOCAULDRON_TOOL_NAME);
 
     ArgParser& argParser = toolInit.getArgParser();
-    argParser.setArgsDesc("notebook.ipynb ...");
     argParser.addOption("dev",
                         "Use a developpment environment instead of production",
                         false);
@@ -26,7 +25,7 @@ int main(int argc, const char** argv) {
                  : server.start();
 
     server.wait();
-    int code = server.getReturnCode();
+    const int code = server.getReturnCode();
 
     if (code != 0) {
         BioLog::printSummary();

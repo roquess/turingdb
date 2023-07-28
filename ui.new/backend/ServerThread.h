@@ -6,7 +6,7 @@ namespace ui {
 
 class ServerThread {
 public:
-    virtual ~ServerThread() = default;
+    virtual ~ServerThread();
 
     void run();
     void runDev();

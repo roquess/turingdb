@@ -2,12 +2,15 @@
 
 namespace ui {
 
+ServerThread::~ServerThread() {
+}
+
 void ServerThread::run() {
-    _thread = std::thread {&ServerThread::task, this};
+    _thread = std::thread(&ServerThread::task, this);
 }
 
 void ServerThread::runDev() {
-    _thread = std::thread {&ServerThread::devTask, this};
+    _thread = std::thread(&ServerThread::devTask, this);
 }
 
 void ServerThread::join() {
