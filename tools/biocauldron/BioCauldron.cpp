@@ -1,27 +1,33 @@
 #include "ToolInit.h"
 
 #include "TuringUIServer.h"
-
 #include "BioLog.h"
 #include "MsgUIServer.h"
 
-#define BIOCAULDRON_TOOL_NAME     "biocauldron"
+#define BIOCAULDRON_TOOL_NAME "biocauldron"
 
 using namespace ui;
 using namespace Log;
 
 int main(int argc, const char** argv) {
     ToolInit toolInit(BIOCAULDRON_TOOL_NAME);
+
+    ArgParser& argParser = toolInit.getArgParser();
+    argParser.addOption("dev",
+                        "Use a developpment environment instead of production",
+                        false);
     toolInit.init(argc, argv);
 
-    TuringUIServer server(toolInit.getOutputsDir());
-    server.setCleanEnabled(false);
-    int code = server.start();
+    TuringUIServer server {toolInit.getOutputsDir()};
+
+    argParser.isOptionSet("dev")
+                 ? server.startDev()
+                 : server.start();
+
+    server.wait();
+    const int code = server.getReturnCode();
 
     if (code != 0) {
-        std::string logData;
-        server.getLogs(logData);
-        BioLog::log(msg::INFO_UI_SERVER_OUTPUT() << logData);
         BioLog::printSummary();
         BioLog::destroy();
         return EXIT_FAILURE;

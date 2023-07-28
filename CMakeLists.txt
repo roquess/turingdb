@@ -23,6 +23,12 @@ if (DEFINED ENV{DEBUG_BUILD})
     endif()
 endif()
 
+set(TURING_DEV FALSE)
+if (DEFINED ENV{TURING_DEV})
+    set(TURING_DEV TRUE)
+    add_definitions(-DTURING_DEV)
+endif()
+
 # Debug settings
 if (${DEBUG_BUILD})
     message(STATUS "Debug build")

@@ -3,27 +3,33 @@ from flask_cors import CORS
 from turingdb.Request import TuringError
 import turingdb
 import argparse
+import logging
 
-def run(static_folder):
+
+def run(args):
+    logging.basicConfig(filename="flask.log", level=logging.DEBUG)
     app = Flask(
         __name__,
         static_url_path="",
-        static_folder=static_folder,
-        template_folder=static_folder,
+        static_folder=args.static,
+        template_folder=args.static,
     )
-    CORS(app, support_credentials=True)
+    CORS(app)
 
     turing = turingdb.Turing("localhost:6666")
 
     @app.route("/")
     def index():
-        return render_template('index.html')
-
+        if args.dev:
+            return (
+                "<h1>ERROR: you're trying to access a "
+                "dev server with the wrong port</h1>"
+            )
+        return render_template("index.html")
 
     @app.route("/api/get_status")
     def get_status():
         return jsonify({"running": turing.running})
-
 
     @app.route("/api/list_available_databases")
     def list_available_databases():
@@ -39,7 +45,6 @@ def run(static_folder):
             }
         )
 
-
     @app.route("/api/list_loaded_databases")
     def list_loaded_databases():
         try:
@@ -54,7 +59,6 @@ def run(static_folder):
             }
         )
 
-
     @app.route("/api/is_db_loaded", methods=["GET"])
     def is_db_loaded():
         try:
@@ -63,7 +67,6 @@ def run(static_folder):
 
         except TuringError as err:
             return jsonify({"failed": True, "error": {"details": err.details}})
-
 
     @app.route("/api/load_database", methods=["POST"])
     def load_database():
@@ -80,7 +83,6 @@ def run(static_folder):
             }
         )
 
-
     @app.route("/api/get_database", methods=["POST"])
     def get_database():
         db_name = request.get_json()["db_name"]
@@ -95,13 +97,17 @@ def run(static_folder):
                 "db_id": db.id,
             }
         )
+
     app.run(debug=True, host="0.0.0.0")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="turingui",
         description="Starts the Turing UI server",
     )
+
     parser.add_argument("static", type=str, help="path to the static files")
+    parser.add_argument("--dev", action="store_true", help="Starts a dev server")
     args = parser.parse_args()
-    run(args.static)
+    run(args)

@@ -18,6 +18,7 @@ public:
     void addOption(const std::string& optionName,
                    const std::string& desc,
                    bool expectsArg);
+    bool isOptionSet(const std::string& optionName) const;
 
     void parse(int argc, const char** argv);
 

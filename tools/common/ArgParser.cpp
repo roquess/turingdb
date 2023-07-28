@@ -25,6 +25,14 @@ void ArgParser::addOption(const std::string& optionName,
     _optionMap[optionName] = Option(desc, expectsArg);
 }
 
+bool ArgParser::isOptionSet(const std::string& optionName) const {
+    return std::find_if(_options.cbegin(),
+                        _options.cend(),
+                        [&](const auto& opt) {
+                            return opt.first == optionName;
+                        }) != _options.end();
+}
+
 void ArgParser::parse(int argc, const char** argv) {
     std::string argStr;
     std::string optionName;
