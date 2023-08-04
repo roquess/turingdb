@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 export default class SelectedNodes {
     constructor(props) {
         this.nodes = props.nodes;
@@ -18,7 +16,7 @@ export default class SelectedNodes {
             prev.delete(node.id);
             return new Set(prev);
         });
-        this.setNodes(prev => prev.filter(n => node.id != n.id));
+        this.setNodes(prev => prev.filter(n => node.id !== n.id));
     }
 
     removeFromId(id) {
@@ -26,7 +24,7 @@ export default class SelectedNodes {
             prev.delete(id);
             return new Set(prev);
         });
-        this.setNodes(prev => prev.filter(n => id != n.id));
+        this.setNodes(prev => prev.filter(n => id !== n.id));
     }
 
     clear() {
