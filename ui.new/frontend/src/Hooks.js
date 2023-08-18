@@ -15,6 +15,7 @@ export const useReactive = (initialValue, deps) => {
         if (ref.current !== initialValue) {
             ref.current = initialValue;
         }
+    // eslint-disable-next-line
     }, [...deps, initialValue]);
 
     return [ref, setRef];
