@@ -83,22 +83,27 @@ def run(args):
             }
         )
 
-    @app.route("/api/list_nodes", methods=["GET"])
+    @app.route("/api/list_nodes", methods=["POST"])
     def list_nodes():
-        prop_name = request.args.get("property_name")
-        prop_value = request.args.get("property_value")
-        node_type_name = request.args.get("node_type_name")
-        ids = request.args.get("ids")
-        db_name = request.args.get("db_name")
+        data = request.get_json()
+        prop_name = data["prop_name"] if "prop_name" in data else None
+        prop_value = data["prop_value"] if "prop_value" in data else None
+        node_type_name = data["node_type_name"] if "node_type_name" in data else None
+        ids = data["ids"] if "ids" in data else None
+        db_name = data["db_name"]
+
         try:
             db = turing.get_db(db_name)
             params = {}
 
             if ids:
-                params["ids"] = [int(id) for id in ids.split(",")]
+                params["ids"] = [int(id) for id in ids]
 
             if node_type_name:
                 params["node_type"] = db.list_node_types()[node_type_name]
+
+            if prop_name and prop_value:
+                params["property"] = turingdb.Property(prop_name, prop_value);
 
             nodes = db.list_nodes(**params)
 
@@ -115,16 +120,57 @@ def run(args):
             ]
         )
 
-    @app.route("/api/list_edges", methods=["GET"])
+    @app.route("/api/list_string_property_types", methods=["POST"])
+    def list_string_property_types():
+        data = request.get_json()
+        db_name = data["db_name"]
+
+        try:
+            db = turing.get_db(db_name)
+            property_types = []
+
+            for nt in db.list_node_types().values():
+                for pt_name, pt in nt.list_property_types().items():
+                    if pt.value_type == turingdb.ValueType.STRING.value:
+                        property_types.append(pt_name)
+
+            property_types = set(property_types)
+
+        except TuringError as err:
+            return jsonify({"failed": True, "error": {"details": err.details}})
+
+        return jsonify(
+            [p_name for p_name in property_types]
+        )
+
+    @app.route("/api/list_node_properties", methods=["POST"])
+    def list_node_properties():
+        data = request.get_json()
+        db_name = data["db_name"]
+        id = data["id"] if "id" in data else None
+
+        try:
+            db = turing.get_db(db_name)
+            node = db.list_nodes(ids=[int(id)])[0]
+
+        except TuringError as err:
+            return jsonify({"failed": True, "error": {"details": err.details}})
+
+        return jsonify({
+            p_name: p.value for p_name, p in node.list_properties().items()
+        })
+
+    @app.route("/api/list_edges", methods=["POST"])
     def list_edges():
-        db_name = request.args.get("db_name")
-        ids = request.args.get("ids")
+        data = request.get_json()
+        db_name = data["db_name"]
+        ids = data["ids"] if "ids" in data else None
 
         try:
             db = turing.get_db(db_name)
 
             if ids:
-                edges = db.list_edges_by_id([int(id) for id in ids.split(',')])
+                edges = db.list_edges_by_id([int(id) for id in ids])
             else:
                 edges = []
 
@@ -135,16 +181,18 @@ def run(args):
             [
                 {
                     "id": e.id,
-                    "source_id": e.target_id,
-                    "target_id": e.source_id,
+                    "edge_type_name": e.edge_type.name,
+                    "source_id": e.source_id,
+                    "target_id": e.target_id,
                 }
                 for e in edges
             ]
         )
 
-    @app.route("/api/list_node_types", methods=["GET"])
+    @app.route("/api/list_node_types", methods=["POST"])
     def list_node_types():
-        db_name = request.args.get("db_name")
+        data = request.get_json()
+        db_name = data["db_name"]
 
         try:
             db = turing.get_db(db_name)
@@ -156,7 +204,9 @@ def run(args):
 
     @app.route("/api/get_database", methods=["POST"])
     def get_database():
-        db_name = request.get_json()["db_name"]
+        data = request.get_json()
+        db_name = data["db_name"]
+
         try:
             db = turing.get_db(db_name=db_name)
         except TuringError as err:

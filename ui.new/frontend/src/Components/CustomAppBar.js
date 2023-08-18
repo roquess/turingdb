@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react'
 import { styled, useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import MuiDrawer from '@mui/material/Drawer';
@@ -13,9 +13,10 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import DnsIcon from '@mui/icons-material/Dns';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { AppContext } from './App'
-import { useContext } from 'react'
+
+import { useDbName } from '../App/AppContext'
 import { DBSelector } from './'
+import { DrawerHeader } from '../App/App';
 
 const drawerWidth = 240;
 
@@ -78,6 +79,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 export default function CustomAppBar({ setCurrentMenu }) {
     const theme = useTheme();
     const [open, setOpen] = React.useState(false);
+    const [dbName] = useDbName();
 
     const handleDrawerOpen = () => {
         setOpen(true);
@@ -86,8 +88,6 @@ export default function CustomAppBar({ setCurrentMenu }) {
     const handleDrawerClose = () => {
         setOpen(false);
     };
-
-    const context = useContext(AppContext);
 
     return <>
         <AppBar position="fixed" open={open}>
@@ -111,16 +111,15 @@ export default function CustomAppBar({ setCurrentMenu }) {
                     alignItems: "center"
                 }}>
                     <Box variant="h5">
-                        {context.currentDb ? context.currentDb : "No database selected"}
+                        {dbName ? dbName: "No database selected"}
                     </Box>
-                    {context.StatusComponent}
                 </Box>
             </Toolbar>
         </AppBar>
 
         <Drawer variant="permanent" open={open}>
 
-            <context.DrawerHeader>
+            <DrawerHeader>
                 <ListItemButton
                     sx={{ justifyContent: "space-between" }}
                     onClick={handleDrawerClose}>
@@ -128,7 +127,7 @@ export default function CustomAppBar({ setCurrentMenu }) {
                     <div >Turing Biosystems</div>
                     {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
                 </ListItemButton>
-            </context.DrawerHeader>
+            </DrawerHeader>
 
             <List>
                 <ListItem
@@ -136,8 +135,8 @@ export default function CustomAppBar({ setCurrentMenu }) {
                     disablePadding
                     sx={{ display: 'block' }}
                     onClick={
-                        context.currentDb
-                            ? _ => setCurrentMenu("Database")
+                        dbName
+                            ? () => setCurrentMenu("Database")
                             : handleDrawerOpen
                     }
                 >
@@ -167,8 +166,8 @@ export default function CustomAppBar({ setCurrentMenu }) {
                     disablePadding
                     sx={{ display: 'block' }}
                     onClick={
-                        context.currentDb
-                            ? _ => setCurrentMenu("Viewer")
+                        dbName
+                            ? () => setCurrentMenu("Viewer")
                             : handleDrawerOpen
                     }
                 >

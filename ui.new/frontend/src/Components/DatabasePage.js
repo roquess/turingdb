@@ -1,80 +1,64 @@
-import { AppContext } from './App'
 import React from 'react'
-import { Box, Button } from '@mui/material';
 import axios from 'axios'
-import { DBInspector } from './'
+import { Box, Button, CircularProgress, Typography } from '@mui/material'
+import { useDbName } from '../App/AppContext'
+import DBInspector from './DBInspector'
+import { useReactive } from '../Hooks'
+import { Secondary } from '../Components'
 
+function DBLoader() {
+    const [dbName] = useDbName();
+    const [loaded, setLoaded] = useReactive(false, [dbName]);
+    const [loading, setLoading] = React.useState(false);
 
-export default function ViewerPage() {
-    const [dbLoading, setDbLoading] = React.useState(false);
-    const [dbLoaded, setDbLoaded] = React.useState(false);
-    const [fetchingDbLoaded, setFetchingDbLoaded] = React.useState(false);
-    const context = React.useContext(AppContext)
-
-    const contextRef = React.useRef(context);
-    React.useEffect(() => {
-        const c = contextRef.current;
-        setDbLoading(false);
-        setFetchingDbLoaded(true);
-        c.setStatus("", true);
-        axios
-            .get('/api/is_db_loaded', {
-                params: { db_name: context.currentDb }
-            })
+    React.useMemo(() => {
+        axios.get('/api/is_db_loaded', { params: { db_name: dbName } })
             .then(res => {
-                setDbLoaded(res.data.loaded);
-                setFetchingDbLoaded(false);
-                c.setIdleStatus()
+                if (res.data.error) {
+                    console.log("Error bioserver not started");
+                    return;
+                }
+                setLoaded(res.data.loaded)
             })
-            .catch(err => {
-                console.log(err);
+            .catch(error => {
+                console.log("Error", error);
+                setLoaded(false);
             });
-    }, [contextRef, context.currentDb]);
+    }, [dbName, setLoaded]);
 
-    const dbLoadedRef = React.useRef(dbLoaded);
-    React.useEffect(() => {
-        const c = contextRef.current;
-        if (dbLoading) {
-            if (!dbLoadedRef.current) {
-                axios.post("/api/load_database", {
-                    db_name: c.currentDb
-                }).then(_res => {
-                    setDbLoading(false);
-                    setDbLoaded(true);
-                    c.setIdleStatus();
-                });
-            }
-        }
-    }, [dbLoading, dbLoadedRef]);
+    const loadDatabase = React.useCallback(() => {
+        setLoading(true);
+        axios
+            .post('/api/load_database', { db_name: dbName })
+            .then(() => {
+                setLoading(false);
+                setLoaded(true);
+            });
+    }, [dbName, setLoaded]);
 
-    var content = <Box></Box>;
-
-    if (!context.currentDb) {
-        content = <Box>Select a database to start</Box>;
+    if (!dbName) {
+        return;
     }
 
-    else if (!dbLoaded) {
-        content = <Box sx={{ display: "flex" }}>
-            <Button
-                size="large"
-                variant="outlined"
-                sx={{
-                    justifyContent: "center"
-                }}
-                onClick={() => {
-                    setDbLoading(true);
-                    context.setStatus("Loading database", true);
-                }}
-            >
-                Load database
-            </Button>
-        </Box>;
-    }
-    else if (dbLoading || fetchingDbLoaded) {
-    }
-    else {
-        content = <DBInspector />;
-    }
+    return (
+        <Box>
+            {loading
+                ? <Box display="flex" justifyContent="center" alignItems="center">
+                    <Typography p={2} variant="h4">Loading <Secondary variant="h4">{dbName}</Secondary></Typography>
+                    <CircularProgress size={30}/>
+                </Box>
+                : loaded.current
+                    ? <DBInspector />
+                    : <Box display="flex" flexDirection="column" alignItems="center">
+                        <Typography p={2}>Database <Secondary>{dbName}</Secondary> not loaded.</Typography>
+                        <Button variant="contained" color="primary" onClick={loadDatabase}>
+                            Load Database
+                        </Button>
+                    </Box>}
+        </Box>
+    );
+}
 
-    return content;
+export default function DatabasePage() {
+    return <DBLoader />;
 }

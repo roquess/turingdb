@@ -10,7 +10,7 @@
   "style": {
     "width": "25",
     "height": "25",
-    "content": "data(name)",
+    "content": "data(turingId)",
     "font-size": "12px",
     "text-valign": "center",
     "text-halign": "center",
@@ -50,12 +50,12 @@
 }, {
   "selector": "edge",
   "style": {
-    "curve-style": "haystack",
+    "curve-style": "bezier",
     "haystack-radius": "0.5",
-    "opacity": "0.4",
-    "line-color": "#bbb",
-    "width": "2",
-    "overlay-padding": "3px"
+    "opacity": "0.5",
+    "width": "1",
+    "overlay-padding": "1px",
+    "target-arrow-shape": "triangle"
   }
 }, {
   "selector": "node.unhighlighted",

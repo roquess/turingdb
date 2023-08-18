@@ -1,7 +1,5 @@
-import { AppContext } from './App'
 import React from 'react'
 import { Box, Autocomplete, CircularProgress, TextField } from '@mui/material';
-import axios from 'axios'
 import CytoscapeComponent from 'react-cytoscapejs';
 import { useTheme } from '@emotion/react';
 import cytoscape from 'cytoscape';
@@ -11,20 +9,29 @@ import elk from 'cytoscape-elk'
 import klay from 'cytoscape-klay'
 import cise from 'cytoscape-cise'
 import { SelectedNodesContainer } from './'
+import { useCyLaout, useDbName, useNodes, useEdges, useInspectedNode } from '../App/AppContext';
 
-async function getCyStyle() {
+const getCyStyle = async () => {
     return await fetch('/cy-style.json')
-        .then(function(res) {
-            return res.json();
-        });
+        .then(res => res.json())
+        .catch(err => console.log(err));
 }
 
 export default function ViewerPage() {
-    const context = React.useContext(AppContext);
+    const [globalNodes] = useNodes();
+    const [globalEdges] = useEdges();
+    const [dbName] = useDbName();
+    const { hasId, selectManyById } = globalNodes;
+    const [, setInspectedNode] = useInspectedNode();
     const theme = useTheme();
     const [cyStyle, setCyStyle] = React.useState(null);
     const [edges, setEdges] = React.useState([]);
-    const [loading, setLoading] = React.useState(true);
+    const [cyLayout, setCyLayout] = useCyLaout();
+    const [cyState, setCyState] = React.useState(null);
+    const { get } = globalEdges;
+    const cySetup = React.useCallback(cy => {
+        setCyState(cy);
+    }, []);
 
     cytoscape.use(cola);
     cytoscape.use(dagre);
@@ -32,73 +39,92 @@ export default function ViewerPage() {
     cytoscape.use(klay);
     cytoscape.use(cise);
 
-    if (!context.currentDb) {
-        return <Box>Select a database to start</Box>;
-    }
-    console.log(context.selectedNodes.nodes);
-
-    if (loading) {
-        const ids = [
-            ...context.selectedNodes.nodes.map(
-                n => n.ins
-            ),
-            ...context.selectedNodes.nodes.map(
-                n => n.outs
-            )
-        ].flat();
-
-        if (ids.length !== 0) {
-            axios
-                .get("/api/list_edges", {
-                    params: {
-                        db_name: context.currentDb,
-                        ids: ids.reduce((f, s) => `${f},${s}`)
-                    }
-                })
-                .then(res => {
-                    setLoading(false);
-                    if (res.data.error) {
-                        console.log(res.data.error);
-                        setEdges([])
-                        return;
-                    }
-                    setEdges(res.data.filter(e =>
-                        context.selectedNodes.hasId(e.source_id)
-                        && context.selectedNodes.hasId(e.target_id)
-                    ));
-                })
-                .catch(err => {
-                    setLoading(false);
-                    setEdges([]);
-                    console.log("Error: ", err);
-                });
-
-            return <Box>Loading edges <CircularProgress s={20} /></Box>
+    React.useEffect(() => {
+        if (!cyState) {
+            return;
         }
+
+        cyState.on('onetap', event => {
+            const node = event.target.data();
+
+            if (!node.ins) {
+                return;
+            }
+
+            setInspectedNode(node);
+        })
+
+
+        cyState.on('dbltap', event => {
+            const node = event.target.data();
+
+            if (!node.ins) {
+                event.cy.layout({ name: cyLayout }).run();
+                return;
+            }
+            const edgeIds = [...node.ins, ...node.outs];
+
+            if (edgeIds.length === 0) {
+                return;
+            }
+
+            get(dbName, edgeIds)
+                .then(res => {
+                    const nodeIds = [...res.values()]
+                        .map(e => [e.source_id, e.target_id])
+                        .flat()
+                        .filter((id, i, arr) => arr.indexOf(id) === i);
+                    console.log(nodeIds);
+                    setEdges([...res.values()]
+                        .filter(e => hasId(e.source_id) && hasId(e.target_id)));
+                    selectManyById(dbName, nodeIds);
+                });
+        });
+    }, [cyState, dbName, cyLayout, get, selectManyById, setInspectedNode, hasId]);
+
+
+    const formatedNodes = React.useMemo(() =>
+        [...globalNodes.selected.values()]
+            .map(n => {
+                return {
+                    data: { ...n, id: n.id, turingId: n.id },
+                    group: "nodes"
+                };
+            }), [globalNodes]);
+
+    const formatedEdges = React.useMemo(() => {
+        return edges
+            .filter(e => hasId(e.source_id) && hasId(e.target_id))
+            .map(e => {
+                return {
+                    data: { turingId: e.id, source: e.source_id, target: e.target_id },
+                    group: "edges"
+                }
+            })
+    }, [edges, hasId]);
+
+    const elements = React.useMemo(() => [
+        ...formatedNodes,
+        ...formatedEdges
+    ], [formatedNodes, formatedEdges]);
+
+    React.useEffect(() => {
+        if (!cyState) {
+            return;
+        }
+
+        cyState.layout({ name: cyLayout }).run();
+    }, [cyState, cyLayout, elements]);
+
+
+    if (!dbName) {
+        return <Box>Select a database to start</Box>;
     }
 
     if (!cyStyle) {
         getCyStyle().then(res => setCyStyle(res));
         return <Box>Loading cytoscape <CircularProgress s={20} /></Box>
     }
-
-    const formatedNodes = context.selectedNodes.nodes.map(n => {
-        return {
-            data: { id: n.id, name: n.id },
-            group: "nodes"
-        };
-    });
-    const formatedEdges = edges.map(e => {
-        return {
-            data: { id: e.id, source: e.source_id, target: e.target_id },
-            group: "edges"
-        }
-    });
-
-    const elements = [
-        ...formatedNodes,
-        ...formatedEdges
-    ];
 
     const layouts = [
         "cola",
@@ -108,6 +134,7 @@ export default function ViewerPage() {
         "klay",
         "cise",
     ];
+
 
     return <Box>
         <SelectedNodesContainer />
@@ -120,11 +147,11 @@ export default function ViewerPage() {
             borderColor={theme.palette.background.paper}
             bgcolor={theme.palette.background.paper}
             flex={1}
-            height="84vh"
+            height="50vh"
         >
             <Autocomplete
-                value={context.selectedCyLayout}
-                onChange={(_e, newLayout) => context.setSelectedCyLayout(newLayout)}
+                value={cyLayout}
+                onChange={(_e, newLayout) => setCyLayout(newLayout)}
                 disablePortal
                 id="select-layout"
                 options={layouts}
@@ -133,15 +160,11 @@ export default function ViewerPage() {
             />
             <CytoscapeComponent
                 elements={elements}
-                layout={{
-                    name: context.selectedCyLayout
-                }}
+                cy={cySetup}
                 stylesheet={cyStyle}
-                style={{
-                    width: "100%",
-                    height: "100%",
-                }}
+                layout={{ name: cyLayout }}
+                style={{ width: "100%", height: "100%" }}
             />
         </Box>
-    </Box >
+    </Box>
 }
