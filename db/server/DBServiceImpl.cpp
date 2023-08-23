@@ -15,6 +15,8 @@
 #include "NodeType.h"
 #include "Writeback.h"
 
+#include "DBSession.h"
+
 #define MAX_ENTITY_COUNT 20000
 
 using namespace Log;
@@ -47,10 +49,11 @@ DBServiceImpl::~DBServiceImpl() {
     }
 }
 
-grpc::Status DBServiceImpl::ExecuteQuery(grpc::ServerContext* ctxt,
-                                         const ExecuteQueryRequest* request,
-                                         grpc::ServerWriter<ExecuteQueryReply>* writer) {
-    BioLog::echo(request->query_str());
+grpc::Status DBServiceImpl::Session(grpc::ServerContext* ctxt,
+                                    grpc::ServerReaderWriter<SessionResponse, SessionRequest>* stream) {
+    db::DBSession session(ctxt, stream);
+    session.process();
+
     return grpc::Status::OK;
 }
 

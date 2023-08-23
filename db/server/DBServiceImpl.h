@@ -4,6 +4,7 @@
 
 namespace db {
 class DB;
+class DBSession;
 }
 
 class DBServerConfig;
@@ -13,9 +14,8 @@ public:
     DBServiceImpl(const DBServerConfig& config);
     ~DBServiceImpl() override;
 
-    grpc::Status ExecuteQuery(grpc::ServerContext* ctxt,
-                              const ExecuteQueryRequest* request,
-                              grpc::ServerWriter<ExecuteQueryReply>* writer) override;
+    grpc::Status Session(grpc::ServerContext* ctxt,
+                         grpc::ServerReaderWriter<SessionResponse, SessionRequest>* stream) override;
 
     grpc::Status GetStatus(grpc::ServerContext* ctxt,
                            const GetStatusRequest* request,
@@ -138,7 +138,7 @@ private:
     std::map<size_t, db::DB*> _databases;
     std::map<std::string, size_t> _dbNameMapping;
     size_t _nextAvailableId = 0;
-
+    
     void listDiskDB(std::vector<std::string>& databaseNames);
     bool isDBValid(size_t id) const;
 };

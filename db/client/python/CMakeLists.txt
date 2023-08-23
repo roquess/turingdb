@@ -29,3 +29,5 @@ target_sources(turing_db_client_python PUBLIC ${proto_py})
 
 get_target_property(turing_db_client_python_sources turing_db_client_python SOURCES)
 install(FILES ${turing_db_client_python_sources} DESTINATION lib/python/turingdb/proto)
+
+add_subdirectory(turingdb2)
