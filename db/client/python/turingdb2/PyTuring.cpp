@@ -37,7 +37,7 @@ struct TuringWrapper {
         return Py_None;
     }
 
-    static PyObject* execute(TuringWrapper* self, PyObject* arg) {
+    static PyObject* exec(TuringWrapper* self, PyObject* arg) {
         if (PyUnicode_READY(arg) != 0) {
             setError("Failed to get canonical representation of argument string");
             return Py_None;
@@ -49,7 +49,7 @@ struct TuringWrapper {
             return Py_None;
         }
 
-        const bool execRes = self->_turing->executeQuery(data);
+        const bool execRes = self->_turing->exec(data);
         if (!execRes) {
             const std::string msg = "Execution of query failed";
             PyErr_SetString(getExecuteError(), msg.c_str());
@@ -61,7 +61,7 @@ struct TuringWrapper {
 PyMethodDef TuringWrapper_methods[] = {
     {"connect", (PyCFunction)TuringWrapper::connect, METH_NOARGS,
         "Start the connection to the Turing platform"},
-    {"execute", (PyCFunction)TuringWrapper::execute, METH_O,
+    {"exec", (PyCFunction)TuringWrapper::exec, METH_O,
         "Execute a query string"},
     {NULL} 
 };
