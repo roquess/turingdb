@@ -18,7 +18,7 @@ export default function DBInspector() {
     const [propertyValue, setPropertyValue] = React.useState("");
 
     return <Box>
-        <NodeInspector />
+        {/* <NodeInspector /> */}
         <NodeTypeFilterContainer
             selected={selectedNodeType}
             setSelected={setSelectedNodeType}

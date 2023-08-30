@@ -24,12 +24,12 @@ export function BorderedContainerTitle(props) {
 
 export default function BorderedContainer(props) {
     const theme = useTheme();
-    const { title, children, sx, ...style} = props;
+    const { disablePadding, title, children, sx, ...style} = props;
 
     return <Box
         border={2}
         borderRadius={1}
-        m="1em 1em 1em 1em"
+        m={disablePadding ? 0 : "1em 1em 1em 1em"}
         p={0}
         borderColor={theme.palette.background.paper}
         bgcolor={theme.palette.background.paper}
@@ -44,7 +44,7 @@ export default function BorderedContainer(props) {
         {title}
         {children &&
             <Box
-                p={1}
+                p={disablePadding ? 0 : 1}
                 overflow="auto"
             >
                 {children}

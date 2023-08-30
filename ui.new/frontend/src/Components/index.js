@@ -8,5 +8,6 @@ export { default as BorderedContainer } from './BorderedContainer';
 export { default as NodeStack } from './NodeStack';
 export { default as NodeInspector } from './NodeInspector';
 export { default as NodeChip } from './NodeChip';
-export { default as Span } from './Span'
-export { Primary, Secondary } from './Span'
+export { default as Span } from './Span';
+export { default as SideNodeInspector } from './SideNodeInspector';
+export { Primary, Secondary } from './Span';

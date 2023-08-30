@@ -13,7 +13,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import * as actions from '../App/actions';
 import * as thunks from '../App/thunks';
 import { useQuery } from '../App/queries';
-import NodeInspector from './NodeInspector';
 import { renderToString } from 'react-dom/server';
 
 const edgeCountLim = 40;
@@ -120,9 +119,15 @@ export default function ViewerPage() {
         ]);
 
         cy.on('onetap', event => {
+            dispatch(actions.inspectNode(null));
+
             const target = event.target;
-            if (!target.group) return;
-            if (target.group() !== "nodes") return;
+            if (!target.group) {
+                return;
+            };
+            if (target.group() !== "nodes") {
+                return;
+            };
 
             const node = event.target.data();
             dispatch(actions.inspectNode(node.turingData));
@@ -278,7 +283,6 @@ export default function ViewerPage() {
 
     return <>
         <Backdrop open={isFetching}><CircularProgress s={40} /></Backdrop>
-        {<NodeInspector />}
         <Modal
             open={(() => alertingNode !== null && alertingNode.inCount + alertingNode.outCount > edgeCountLim)()}
             onClose={() => setAlertingNode(null)}

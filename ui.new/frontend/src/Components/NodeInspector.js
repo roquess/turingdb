@@ -115,7 +115,7 @@ const Edges = (props) => {
 }
 
 export const Properties = (props) => {
-    const { node } = props;
+    const { node, title = true, disablePadding = false } = props;
     const dbName = useDbName();
 
     const listNodeProperties = React.useCallback(async () =>
@@ -133,16 +133,21 @@ export const Properties = (props) => {
             })
         , [dbName, node])
 
+    const queryKey = [
+        "list_node_properties",
+        node?.id
+    ];
     const { data, status } = useQuery(
-        ["properties", node && node.id],
+        queryKey,
         listNodeProperties,
     );
 
     const properties = data || {};
 
     return <BorderedContainer
-        title={<BorderedContainerTitle title="Node properties" />}
+        title={title && <BorderedContainerTitle title="Node properties" />}
         height={containerHeight}
+        disablePadding={disablePadding}
     >
         {node &
             status === "loading"
@@ -155,7 +160,7 @@ export const Properties = (props) => {
                 >
                     <Typography
                         variant="body2"
-                        p={1}
+                        p={disablePadding ? 0 : 1}
                     >
                         <Secondary>{pName}</Secondary>: <span>{properties[pName].toString()}</span>
                     </Typography>
@@ -164,7 +169,8 @@ export const Properties = (props) => {
     </BorderedContainer>
 }
 
-export default function NodeInspector() {
+export default function NodeInspector(props) {
+    const { open, onClose} = props
     const inspectedNode = useInspectedNode();
     const selectedNodes = useSelector((state) => state.selectedNodes);
     const dispatch = useDispatch();
@@ -200,8 +206,8 @@ export default function NodeInspector() {
     if (!inspectedNode) return <></>;
 
     return <Dialog
-        open={inspectedNode !== null}
-        onClose={() => dispatch(actions.inspectNode(null))}
+        open={open}
+        onClose={onClose}
         maxWidth="md"
         fullWidth
     >

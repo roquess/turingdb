@@ -14,10 +14,11 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import DnsIcon from '@mui/icons-material/Dns';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
-import { DBSelector } from './';
+import { DBSelector, SideNodeInspector } from './';
 import { DrawerHeader } from '../App/App';
 import { useDispatch, useSelector } from 'react-redux';
 import * as actions from '../App/actions';
+import { Divider } from '@mui/material';
 
 const drawerWidth = 240;
 
@@ -81,6 +82,8 @@ export default function CustomAppBar() {
     const theme = useTheme();
     const [open, setOpen] = React.useState(false);
     const dbName = useSelector((state) => state.dbName);
+    const inspectedNode = useSelector((state) => state.inspectedNode);
+    const page = useSelector((state) => state.page);
     const dispatch = useDispatch();
 
     React.useEffect(() => {
@@ -104,7 +107,7 @@ export default function CustomAppBar() {
                     onClick={handleDrawerOpen}
                     edge="start"
                     sx={{
-                        marginRight: 5,
+                        mr: 5,
                         ...(open && { display: 'none' }),
                     }}
                 >
@@ -117,7 +120,7 @@ export default function CustomAppBar() {
                     alignItems: "center"
                 }}>
                     <Box variant="h5">
-                        {dbName ? dbName: "No database selected"}
+                        {dbName ? dbName : "No database selected"}
                     </Box>
                 </Box>
             </Toolbar>
@@ -142,7 +145,10 @@ export default function CustomAppBar() {
                     sx={{ display: 'block' }}
                     onClick={
                         dbName
-                            ? () => dispatch(actions.setPage("Database"))
+                            ? () => {
+                                dispatch(actions.setPage("Database"));
+                                dispatch(actions.inspectNode(null));
+                            }
                             : handleDrawerOpen
                     }
                 >
@@ -173,7 +179,10 @@ export default function CustomAppBar() {
                     sx={{ display: 'block' }}
                     onClick={
                         dbName
-                            ? () => dispatch(actions.setPage("Viewer"))
+                            ? () => {
+                                dispatch(actions.setPage("Viewer"));
+                                dispatch(actions.inspectNode(null));
+                            }
                             : handleDrawerOpen
                     }
                 >
@@ -198,7 +207,10 @@ export default function CustomAppBar() {
                         {open ? "Viewer" : ""}
                     </ListItemButton>
                 </ListItem>
+                <Divider />
             </List>
+
+            <SideNodeInspector menuExpanded={open} open={open && page === 'Viewer'} />
         </Drawer>
     </>
 }

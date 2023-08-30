@@ -67,6 +67,7 @@ export default function NodeFilterContainer({
     const [error, setError] = React.useState(null);
     const selectedNodes = useSelector((state) => state.selectedNodes);
     const dbName = useDbName();
+    const inspectedNode = useSelector((state) => state.inspectedNode);
     const titleProps = { setError };
     const dispatch = useDispatch();
 
@@ -77,7 +78,7 @@ export default function NodeFilterContainer({
         </BorderedContainer >;
     }
 
-    const { data, isFetching} = useQuery(
+    const { data, isFetching } = useQuery(
         ["list_nodes", dbName, selectedNodeType, propertyName, propertyValue],
         React.useCallback(() => dispatch(thunks
             .fetchNodes(dbName, {
@@ -95,7 +96,7 @@ export default function NodeFilterContainer({
                 setTooManyNodes(false);
                 return Object.fromEntries(res.map(n => [n.id, n]));
             })
-        , [dbName, dispatch, propertyName, propertyValue, selectedNodeType])
+            , [dbName, dispatch, propertyName, propertyValue, selectedNodeType])
     )
 
     if (tooManyNodes) {
@@ -103,7 +104,7 @@ export default function NodeFilterContainer({
     }
 
     if (isFetching) {
-        return <Content><Box m={1}>Loading nodes <CircularProgress s={10}/></Box></Content>
+        return <Content><Box m={1}>Loading nodes <CircularProgress s={10} /></Box></Content>
     }
 
     const currentNodes = data || {};
@@ -117,7 +118,9 @@ export default function NodeFilterContainer({
 
     return <BorderedContainer title={<Title {...titleProps} />}>
         {error && <Alert severity="error">{error}</Alert>}
-        {<NodeInspector />}
+        <NodeInspector
+            open={inspectedNode !== null}
+            onClose={() => dispatch(actions.inspectNode(null))} />
         <NodeStack>
             {filteredKeys.map((id, i) => {
                 return <NodeChip
