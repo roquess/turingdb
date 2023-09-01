@@ -50,6 +50,10 @@ const PullResponse* QueryResult::fetch() {
 }
 
 QueryIterator QueryResult::begin() {
+    if (!_client) {
+        return QueryIterator();
+    }
+
     const PullResponse* pullResponse = fetch();
     if (!pullResponse) {
         return QueryIterator();

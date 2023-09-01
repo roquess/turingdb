@@ -16,9 +16,6 @@ QueryInterpreter::QueryExecution::QueryExecution(PullPlan* plan)
 }
 
 QueryInterpreter::QueryExecution::~QueryExecution() {
-    if (_plan) {
-        delete _plan;
-    }
 }
 
 // QueryInterpreter
@@ -28,6 +25,9 @@ QueryInterpreter::QueryInterpreter(InterpreterContext* interpCtxt)
 }
 
 QueryInterpreter::~QueryInterpreter() {
+    for (QueryExecution* queryExec : _queries) {
+        delete queryExec;
+    }
 }
 
 QueryInterpreter::PrepareResult QueryInterpreter::prepare(const std::string& query) {
@@ -43,7 +43,8 @@ QueryInterpreter::PrepareResult QueryInterpreter::prepare(const std::string& que
         return PrepareResult();
     }
 
-    const size_t qid = registerQuery(plan);
+    const size_t qid = _queries.size();
+    _queries.push_back(new QueryExecution(plan));
 
     PrepareResult res;
     res._success = true;
@@ -51,21 +52,13 @@ QueryInterpreter::PrepareResult QueryInterpreter::prepare(const std::string& que
     return res;
 }
 
-size_t QueryInterpreter::registerQuery(PullPlan* plan) {
-    const size_t qid = _queries.size();
-
-    _queries.emplace_back(plan);
-
-    return qid;
-}
-
 bool QueryInterpreter::pull(PullResponse* pullRes, size_t qid) {
     if (qid >= _queries.size()) {
         return false;
     }
 
-    QueryExecution& queryExec = _queries[qid];
-    PullPlan* pullPlan = queryExec._plan;
+    QueryExecution* queryExec = _queries[qid];
+    PullPlan* pullPlan = queryExec->getPlan();
     if (!pullPlan) {
         return false;
     }

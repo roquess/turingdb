@@ -9,6 +9,11 @@ TuringClientImpl::TuringClientImpl(const TuringConfig& config)
 {
 }
 
+void TuringClientImpl::shutdown() {
+    _stream.reset();
+    _stub = nullptr;
+}
+
 bool TuringClientImpl::connect() { 
     const std::string connectionStr = _config.getAddress()
         + ":" + std::to_string(_config.getPort());
@@ -43,11 +48,13 @@ QueryResult TuringClientImpl::exec(const std::string& queryStr) {
     query->set_query_str(queryStr);
 
     if (!_stream->Write(request)) {
+        shutdown();
         return QueryResult();
     }
 
     SessionResponse response;
     if (!_stream->Read(&response)) {
+        shutdown();
         return QueryResult();
     }
 
@@ -62,8 +69,13 @@ QueryResult TuringClientImpl::exec(const std::string& queryStr) {
 }
 
 bool TuringClientImpl::openSession() {
+    if (!_stub) {
+        return false;
+    }
+
     _stream = _stub->Session(&_sessionContext);
     if (!_stream) {
+        shutdown();
         return false;
     }
 
@@ -72,6 +84,7 @@ bool TuringClientImpl::openSession() {
     openSession->set_token("");
 
     if (!_stream->Write(request)) {
+        shutdown();
         return false;
     }
 
@@ -79,20 +92,27 @@ bool TuringClientImpl::openSession() {
 }
 
 bool TuringClientImpl::fetch(SessionResponse* response, uint64_t qid) {
+    if (!_stream) {
+        return false;
+    }
+
     SessionRequest request;
     PullRequest* pullReq = request.mutable_pull_req();
     pullReq->set_query_id(qid);
 
     if (!_stream->Write(request)) {
+        shutdown();
         return false;
     }
 
     response->Clear();
     if (!_stream->Read(response)) {
+        shutdown();
         return false;
     }
 
     if (!response->has_pull_res()) {
+        shutdown();
         return false;
     }
 

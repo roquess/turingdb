@@ -6,6 +6,7 @@ class InterpreterContext;
 class PullPlan;
 class QueryCommand;
 class ListCommand;
+class OpenCommand;
 
 class Planner {
 public:
@@ -19,6 +20,7 @@ private:
 
     PullPlan* planListCommand(const ListCommand* cmd);
     PullPlan* planListDatabases(const ListCommand* cmd);
+    PullPlan* planOpenCommand(const OpenCommand* cmd);
 };
 
 }

@@ -1,22 +1,22 @@
 #pragma once
 
 namespace db {
-class DBUniverse;
+class DBManager;
 }
 
 namespace db::query {
 
 class InterpreterContext {
 public:
-    explicit InterpreterContext(DBUniverse* universe)
-        : _universe(universe)
+    explicit InterpreterContext(DBManager* dbMan)
+        : _dbMan(dbMan)
     {
     }
 
-    DBUniverse* getUniverse() const { return _universe; }
+    DBManager* getDBManager() const { return _dbMan; }
 
 private:
-    DBUniverse* _universe {nullptr};
+    DBManager* _dbMan {nullptr};
 };
 
 }

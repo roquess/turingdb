@@ -18,10 +18,14 @@ public:
         bool _success {false};
     };
 
-    struct QueryExecution {
-        QueryExecution(PullPlan* plan);
+    class QueryExecution {
+    public:
+        explicit QueryExecution(PullPlan* plan);
         ~QueryExecution();
 
+        PullPlan* getPlan() const { return _plan; }
+
+    private:
         PullPlan* _plan {nullptr};
     };
 
@@ -34,9 +38,7 @@ public:
 
 private:
     InterpreterContext* _interpCtxt {nullptr};
-    std::vector<QueryExecution> _queries;
-
-    size_t registerQuery(PullPlan* plan);
+    std::vector<QueryExecution*> _queries;
 };
 
 }

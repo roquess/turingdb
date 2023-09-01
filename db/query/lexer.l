@@ -20,7 +20,16 @@ using namespace db::query;
 
 "databases" { return YParser::make_DATABASES(); }
 
+"open" { return YParser::make_OPEN(); }
 
+"close" { return YParser::make_CLOSE(); }
+
+\"[^\"]*\" {
+               if (yyleng <= 2) {
+                   return YParser::make_STRING_CONSTANT("");
+               }
+               return YParser::make_STRING_CONSTANT(std::string(yytext+1, yyleng-2));
+           } 
 
 .           { return YParser::make_UNKNOWN_TOKEN(); }
 

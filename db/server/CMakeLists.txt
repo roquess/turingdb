@@ -16,6 +16,7 @@ target_link_libraries(turing_db_server_s PRIVATE
     turing_db_proto_s
     turing_db_query_s
     turing_db_dumper_s
+    turing_db_manager_s
     turing_db_filter_s)
 
 target_link_libraries(turing_db_server_s PUBLIC turing_rpc_server_s)

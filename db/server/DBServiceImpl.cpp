@@ -13,6 +13,7 @@
 #include "NodeSearch.h"
 #include "NodeType.h"
 #include "Writeback.h"
+#include "DBManager.h"
 
 #include "DBSession.h"
 
@@ -38,17 +39,22 @@ static grpc::Status invalidPropertyType() {
 DBServiceImpl::DBServiceImpl(const DBServerConfig& config)
     : _config(config)
 {
+    _dbMan = new db::DBManager(_config.getDatabasesPath());
 }
 
 DBServiceImpl::~DBServiceImpl() {
     for (auto& [index, db] : _databases) {
         delete db;
     }
+
+    if (_dbMan) {
+        delete _dbMan;
+    }
 }
 
 grpc::Status DBServiceImpl::Session(grpc::ServerContext* ctxt,
                                     grpc::ServerReaderWriter<SessionResponse, SessionRequest>* stream) {
-    db::DBSession session(&_universe, ctxt, stream);
+    db::DBSession session(_dbMan, ctxt, stream);
     session.process();
 
     return grpc::Status::OK;

@@ -51,6 +51,8 @@ int main(int argc, const char** argv) {
 
         if (!res.isValid()) {
             BioLog::log(msg::ERROR_SHELL_ERROR_DURING_QUERY_EXECUTION());
+            linenoiseHistoryAdd(line);
+            continue;
         }
 
         for (const auto& row : res) {

@@ -22,3 +22,19 @@ ListCommand* ListCommand::create(ASTContext* ctxt) {
     listCmd->registerCmd(ctxt);
     return listCmd;
 }
+
+/* OpenCommand */
+
+OpenCommand::OpenCommand(const std::string& path)
+    : _path(path)
+{
+}
+
+OpenCommand::~OpenCommand() {
+}
+
+OpenCommand* OpenCommand::create(ASTContext* ctxt, const std::string& path) {
+    OpenCommand* openCmd = new OpenCommand(path);
+    openCmd->registerCmd(ctxt);
+    return openCmd;
+}

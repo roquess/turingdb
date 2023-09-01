@@ -7,13 +7,13 @@
 
 namespace db {
 
-class DBUniverse;
+class DBManager;
 
 class DBSession {
 public:
     using Stream = grpc::ServerReaderWriter<SessionResponse, SessionRequest>;
 
-    DBSession(DBUniverse* universe,
+    DBSession(DBManager* dbMan,
               grpc::ServerContext* grpcContext,
               Stream* stream);
 

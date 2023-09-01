@@ -1,12 +1,11 @@
 #pragma once
 
-#include "DBUniverse.h"
-
 #include "DBService.grpc.pb.h"
 
 namespace db {
 class DB;
 class DBSession;
+class DBManager;
 }
 
 class DBServerConfig;
@@ -137,7 +136,7 @@ public:
 
 private:
     const DBServerConfig& _config;
-    db::DBUniverse _universe;
+    db::DBManager* _dbMan {nullptr};
     std::map<size_t, db::DB*> _databases;
     std::map<std::string, size_t> _dbNameMapping;
     size_t _nextAvailableId = 0;

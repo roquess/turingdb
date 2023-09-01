@@ -2,12 +2,12 @@
 
 using namespace db;
 
-DBSession::DBSession(DBUniverse* universe,
+DBSession::DBSession(DBManager* dbMan,
                      grpc::ServerContext* grpcContext,
                      Stream* stream)
     : _grpcContext(grpcContext),
     _stream(stream),
-    _interpCtxt(universe),
+    _interpCtxt(dbMan),
     _interp(&_interpCtxt)
 {
 }

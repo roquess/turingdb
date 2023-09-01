@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace db::query {
 
 class ASTContext;
@@ -9,7 +11,8 @@ public:
     friend ASTContext;
 
     enum Kind {
-        QCOM_LIST_COMMAND
+        QCOM_LIST_COMMAND,
+        QCOM_OPEN_COMMAND
     };
 
     virtual Kind getKind() const = 0;
@@ -39,6 +42,21 @@ private:
 
     ListCommand();
     ~ListCommand();
+};
+
+class OpenCommand : public QueryCommand {
+public:
+    static OpenCommand* create(ASTContext* ctxt, const std::string& path);
+
+    Kind getKind() const override { return QCOM_OPEN_COMMAND; }
+
+    const std::string& getPath() const { return _path; }
+
+private:
+    std::string _path;
+
+    OpenCommand(const std::string& path);
+    ~OpenCommand();
 };
 
 }

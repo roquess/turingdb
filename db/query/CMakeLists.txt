@@ -32,4 +32,5 @@ target_include_directories(turing_db_query_s PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
 target_link_libraries(turing_db_query_s PRIVATE
     turing_db_proto_s
     turing_db_core_s
+    turing_db_manager_s
     common_s)

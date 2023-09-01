@@ -24,8 +24,6 @@ set(db_sources
 
             TypeCheck.cpp
 
-            DBUniverse.cpp
-
             StringIndex.cpp
             SharedString.cpp
             StringRef.cpp)

@@ -51,16 +51,22 @@ static db::query::YParser::symbol_type yylex(db::query::YScanner& scanner) {
 
 %token LIST
 %token DATABASES
+%token OPEN
+%token CLOSE
+
+%token <std::string> STRING_CONSTANT
 
 %token END
 
 %type<db::query::QueryCommand*> list_cmd
+%type<db::query::QueryCommand*> open_cmd
 
 %start query_unit
 
 %%
 
 query_unit: list_cmd { ctxt->setRoot($1); }
+          | open_cmd { ctxt->setRoot($1); }
           | error    { ctxt->setError(true); }
           ;
 
@@ -70,6 +76,12 @@ list_cmd: LIST DATABASES {
                             $$ = cmd;
                          }
         ;
+
+open_cmd : OPEN STRING_CONSTANT {
+                                    auto cmd = OpenCommand::create(ctxt, $2);
+                                    $$ = cmd;
+                                }
+         ;
 
 %%
 

@@ -18,8 +18,8 @@ public:
     TuringClientImpl(const TuringConfig& config);
 
     bool connect();
+    void shutdown();
     QueryResult exec(const std::string& queryStr);
-    bool openSession();
 
 private:
     const TuringConfig& _config;
@@ -27,6 +27,7 @@ private:
     std::shared_ptr<grpc::ClientReaderWriter<SessionRequest, SessionResponse>> _stream;
     grpc::ClientContext _sessionContext;
 
+    bool openSession();
     bool fetch(SessionResponse* response, uint64_t qid);
 };
 

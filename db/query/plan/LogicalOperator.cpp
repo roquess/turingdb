@@ -1,8 +1,16 @@
 #include "LogicalOperator.h"
 
 #include "Frame.h"
+#include "ExecutionContext.h"
+#include "InterpreterContext.h"
+#include "DBManager.h"
 
 using namespace db::query;
+
+LogicalOperator::LogicalOperator(const std::vector<Symbol*>& outputSymbols)
+    : _outputSymbols(outputSymbols)
+{
+}
 
 LogicalOperator::~LogicalOperator() {
 }
@@ -10,10 +18,40 @@ LogicalOperator::~LogicalOperator() {
 Cursor::~Cursor() {
 }
 
+// OpenDBOperator
+OpenDBOperator::OpenDBOperator(const std::string& name,
+                               const std::vector<Symbol*>& outputSymbols)
+    : LogicalOperator(outputSymbols),
+    _name(name)
+{
+}
+
+OpenDBOperator::~OpenDBOperator() {
+}
+
+Cursor* OpenDBOperator::makeCursor() {
+    OpenDBCursor* cursor = new OpenDBCursor(this);
+    return cursor;
+}
+
+OpenDBOperator::OpenDBCursor::OpenDBCursor(OpenDBOperator* self)
+    : _self(self)
+{
+}
+
+OpenDBOperator::OpenDBCursor::~OpenDBCursor() {
+}
+
+bool OpenDBOperator::OpenDBCursor::pull(Frame& frame, ExecutionContext* ctxt) {
+    DBManager* dbMan = ctxt->getInterpreterContext()->getDBManager();
+    return dbMan->loadDB(_self->_name);
+}
+
 // OutputTableOperator
 OutputTableOperator::OutputTableOperator(const std::vector<Symbol*>& outputSymbols,
                                          Callback callback)
-    : _callback(callback)
+    : LogicalOperator(outputSymbols),
+    _callback(callback)
 {
 }
 

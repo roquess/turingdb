@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <functional>
+#include <string>
 
 #include "Value.h"
 
@@ -19,6 +20,7 @@ public:
 
 class LogicalOperator {
 public:
+    LogicalOperator(const std::vector<Symbol*>& outputSymbols);
     virtual ~LogicalOperator();
 
     const std::vector<Symbol*>& getOutputSymbols() const { return _outputSymbols; }
@@ -27,6 +29,29 @@ public:
 
 protected:
     std::vector<Symbol*> _outputSymbols;
+};
+
+class OpenDBOperator : public LogicalOperator {
+public:
+    OpenDBOperator(const std::string& name,
+                   const std::vector<Symbol*>& outputSymbols);
+    ~OpenDBOperator();
+
+    Cursor* makeCursor() override;
+
+private:
+    const std::string _name;
+
+    class OpenDBCursor : public Cursor {
+    public:
+        OpenDBCursor(OpenDBOperator* self);
+        ~OpenDBCursor();
+
+        bool pull(Frame& frame, ExecutionContext* ctxt) override;
+
+    private:
+        OpenDBOperator* _self {nullptr};
+    };
 };
 
 class OutputTableOperator : public LogicalOperator {

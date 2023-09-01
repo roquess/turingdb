@@ -9,15 +9,18 @@ namespace db {
 
 class DB;
 
-class DBUniverse {
+class DBManager {
 public:
-    DBUniverse();
-    ~DBUniverse();
+    DBManager(const std::string& dbDirPath);
+    ~DBManager();
 
     void getDatabases(std::vector<std::string>& databases) const;
 
+    bool loadDB(const std::string& dbName);
+
 private:
     mutable std::shared_mutex _lock;
+    const std::string _dbDirPath;
     std::map<std::string, DB*> _databases;
 };
 
