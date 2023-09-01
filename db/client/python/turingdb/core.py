@@ -211,7 +211,6 @@ class NodeType(EntityType):
     def __repr__(self) -> str:
         return f'<NodeType "{self._name}" id={self.id}>'
 
-
 class EdgeType(EntityType):
     def __init__(self, db: Database, et):
         super().__init__(db, et.id, et.name, dbService_pb2.EntityType.EDGE)

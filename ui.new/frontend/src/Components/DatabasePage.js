@@ -1,80 +1,56 @@
-import { AppContext } from './App'
 import React from 'react'
-import { Box, Button } from '@mui/material';
 import axios from 'axios'
-import { DBInspector } from './'
+import { Box, Button, CircularProgress, Typography } from '@mui/material'
+import DBInspector from './DBInspector'
+import { Secondary } from '../Components'
+import { useQuery } from '../App/queries'
+import { useSelector } from 'react-redux'
 
+function DBLoader() {
+    const dbName = useSelector((state) => state.dbName);
+    const [isLoading, setIsLoading] = React.useState(false);
+    const { data: loaded, refetch } = useQuery(
+        ["is_db_loaded", dbName],
+        React.useCallback(async () => {
+            return dbName && await axios
+                .get('/api/is_db_loaded', { params: { db_name: dbName } })
+                .then(res => res.data.error ? false : res.data.loaded)
+                .catch(err => { console.log(err); return false })
+        }, [dbName]),
+        { staleTime: 0 }
+    );
 
-export default function ViewerPage() {
-    const [dbLoading, setDbLoading] = React.useState(false);
-    const [dbLoaded, setDbLoaded] = React.useState(false);
-    const [fetchingDbLoaded, setFetchingDbLoaded] = React.useState(false);
-    const context = React.useContext(AppContext)
+    React.useEffect(() => { refetch() }, [dbName, refetch]);
 
-    const contextRef = React.useRef(context);
-    React.useEffect(() => {
-        const c = contextRef.current;
-        setDbLoading(false);
-        setFetchingDbLoaded(true);
-        c.setStatus("", true);
+    const loadDatabase = React.useCallback(() => {
+        setIsLoading(true);
         axios
-            .get('/api/is_db_loaded', {
-                params: { db_name: context.currentDb }
-            })
-            .then(res => {
-                setDbLoaded(res.data.loaded);
-                setFetchingDbLoaded(false);
-                c.setIdleStatus()
-            })
-            .catch(err => {
-                console.log(err);
-            });
-    }, [contextRef, context.currentDb]);
+            .post('/api/load_database', { db_name: dbName })
+            .then(() => { setIsLoading(false); refetch(); });
+    }, [dbName, refetch]);
 
-    const dbLoadedRef = React.useRef(dbLoaded);
-    React.useEffect(() => {
-        const c = contextRef.current;
-        if (dbLoading) {
-            if (!dbLoadedRef.current) {
-                axios.post("/api/load_database", {
-                    db_name: c.currentDb
-                }).then(_res => {
-                    setDbLoading(false);
-                    setDbLoaded(true);
-                    c.setIdleStatus();
-                });
-            }
-        }
-    }, [dbLoading, dbLoadedRef]);
+    if (!dbName)
+        return;
 
-    var content = <Box></Box>;
+    return (
+        <Box>
+            {isLoading &&
+                <Box display="flex" justifyContent="center" alignItems="center">
+                    <Typography p={2} variant="h4">Loading <Secondary variant="h4">{dbName}</Secondary></Typography>
+                    <CircularProgress size={20} />
+                </Box>}
+            {loaded && <DBInspector />}
 
-    if (!context.currentDb) {
-        content = <Box>Select a database to start</Box>;
-    }
+            {!loaded && <Box display="flex" flexDirection="column" alignItems="center">
+                <Typography p={2}>Database <Secondary>{dbName}</Secondary> not loaded.</Typography>
+                <Button variant="contained" color="primary" onClick={loadDatabase}>
+                    Load Database
+                </Button>
+            </Box>}
+        </Box>
+    );
+}
 
-    else if (!dbLoaded) {
-        content = <Box sx={{ display: "flex" }}>
-            <Button
-                size="large"
-                variant="outlined"
-                sx={{
-                    justifyContent: "center"
-                }}
-                onClick={() => {
-                    setDbLoading(true);
-                    context.setStatus("Loading database", true);
-                }}
-            >
-                Load database
-            </Button>
-        </Box>;
-    }
-    else if (dbLoading || fetchingDbLoaded) {
-    }
-    else {
-        content = <DBInspector />;
-    }
-
-    return content;
+export default function DatabasePage() {
+    return <DBLoader />;
 }
