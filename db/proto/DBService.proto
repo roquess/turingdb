@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 service DBService {
-    rpc ExecuteQuery (ExecuteQueryRequest) returns (stream ExecuteQueryReply) {}
+    rpc Session (stream SessionRequest) returns (stream SessionResponse);
 
     rpc GetStatus (GetStatusRequest) returns (GetStatusReply) {}
 
@@ -140,24 +140,6 @@ message FilterType {
 
 message FilterProperty {
     Property property = 1;
-}
-
-message QueryCell {
-    oneof value {
-        string string = 1;
-        int64 int64 = 2;
-        uint64 uint64 = 3;
-        bool boolean = 4;
-        double decimal = 5;
-    };
-}
-
-// Query
-message ExecuteQueryRequest {
-    string query_str = 1;
-}
-message ExecuteQueryReply {
-    repeated QueryCell cells = 1;
 }
 
 // GetStatus
@@ -424,3 +406,58 @@ message ListPropertyTypesRequest {
 message ListPropertyTypesReply {
     repeated PropertyType property_types = 1;
 }
+
+message SessionRequest {
+    oneof req {
+        OpenSession open_req = 1;
+        ExecuteQuery query_req = 2;
+        PullRequest pull_req = 3;
+    }
+}
+
+message SessionResponse {
+    oneof res {
+        Success success_res = 1;
+        Failure failure_res = 2; 
+        PullResponse pull_res = 3;
+    }
+}
+
+message OpenSession {
+    string token = 1;
+}
+
+message ExecuteQuery {
+    string query_str = 1;
+}
+
+message PullRequest {
+    uint64 query_id = 1;
+}
+
+message Success {
+    uint64 query_id = 1;
+}
+
+message Failure {
+    string msg = 1;
+}
+
+message PullResponse {
+    repeated Record records = 1;
+}
+
+message Record {
+    repeated Cell cells = 1;
+}
+
+message Cell {
+    oneof value {
+        string string = 3;
+        int64 int64 = 4;
+        uint64 uint64 = 5;
+        bool boolean = 6;
+        double decimal = 7;
+    }
+}
+

@@ -1,6 +1,5 @@
 #include "DBServiceImpl.h"
 
-#include "BioLog.h"
 #include "DB.h"
 #include "DBDumper.h"
 #include "DBLoader.h"
@@ -14,10 +13,11 @@
 #include "NodeSearch.h"
 #include "NodeType.h"
 #include "Writeback.h"
+#include "DBManager.h"
+
+#include "DBSession.h"
 
 #define MAX_ENTITY_COUNT 20000
-
-using namespace Log;
 
 static grpc::Status invalidDBStatus() {
     return {grpc::StatusCode::NOT_FOUND, "The database ID is invalid"};
@@ -39,18 +39,24 @@ static grpc::Status invalidPropertyType() {
 DBServiceImpl::DBServiceImpl(const DBServerConfig& config)
     : _config(config)
 {
+    _dbMan = new db::DBManager(_config.getDatabasesPath());
 }
 
 DBServiceImpl::~DBServiceImpl() {
     for (auto& [index, db] : _databases) {
         delete db;
     }
+
+    if (_dbMan) {
+        delete _dbMan;
+    }
 }
 
-grpc::Status DBServiceImpl::ExecuteQuery(grpc::ServerContext* ctxt,
-                                         const ExecuteQueryRequest* request,
-                                         grpc::ServerWriter<ExecuteQueryReply>* writer) {
-    BioLog::echo(request->query_str());
+grpc::Status DBServiceImpl::Session(grpc::ServerContext* ctxt,
+                                    grpc::ServerReaderWriter<SessionResponse, SessionRequest>* stream) {
+    db::DBSession session(_dbMan, ctxt, stream);
+    session.process();
+
     return grpc::Status::OK;
 }
 
