@@ -2,35 +2,33 @@
   "selector": "core",
   "style": {
     "selection-box-color": "#AAD8FF",
-    "selection-box-border-color": "#8BB0D0",
     "selection-box-opacity": "0.5"
   }
 }, {
-  "selector": "node",
+  "selector": "node[type=\"selected\"]",
   "style": {
     "width": "25",
     "height": "25",
-    "content": "data(name)",
+    "content": "data(label)",
     "font-size": "12px",
     "text-valign": "center",
     "text-halign": "center",
-    "background-color": "#555",
-    "text-outline-color": "#555",
-    "text-outline-width": "2px",
+    "background-color": "#a55",
     "color": "#fff",
-    "overlay-padding": "6px",
     "z-index": "10"
   }
 }, {
-  "selector": "node[?attr]",
+  "selector": "node[type=\"neighbor\"]",
   "style": {
-    "shape": "rectangle",
-    "background-color": "#aaa",
-    "text-outline-color": "#aaa",
-    "width": "16px",
-    "height": "16px",
-    "font-size": "6px",
-    "z-index": "1"
+    "width": "25",
+    "height": "25",
+    "content": "data(label)",
+    "font-size": "8px",
+    "text-valign": "center",
+    "text-halign": "center",
+    "background-color": "#444",
+    "color": "#aaa",
+    "z-index": "10"
   }
 }, {
   "selector": "node[?query]",
@@ -41,21 +39,16 @@
 }, {
   "selector": "node:selected",
   "style": {
-    "border-width": "6px",
-    "border-color": "#AAD8FF",
-    "border-opacity": "0.5",
-    "background-color": "#77828C",
-    "text-outline-color": "#77828C"
+    "background-color": "#75c"
   }
 }, {
   "selector": "edge",
   "style": {
-    "curve-style": "haystack",
+    "curve-style": "bezier",
     "haystack-radius": "0.5",
-    "opacity": "0.4",
-    "line-color": "#bbb",
-    "width": "2",
-    "overlay-padding": "3px"
+    "opacity": "0.5",
+    "width": "1",
+    "target-arrow-shape": "triangle"
   }
 }, {
   "selector": "node.unhighlighted",
@@ -75,11 +68,7 @@
 }, {
   "selector": "node.highlighted",
   "style": {
-    "border-width": "6px",
-    "border-color": "#AAD8FF",
-    "border-opacity": "0.5",
-    "background-color": "#394855",
-    "text-outline-color": "#394855"
+    "background-color": "#A3f"
   }
 }, {
   "selector": "edge.filtered",

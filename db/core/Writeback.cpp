@@ -73,7 +73,7 @@ Edge* Writeback::createEdge(EdgeType* type, Node* source, Node* target) {
     }
 
     _db->addEdge(edge);
-    
+
     return edge;
 }
 

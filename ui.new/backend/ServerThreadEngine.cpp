@@ -1,11 +1,11 @@
 #include "ServerThreadEngine.h"
 
 #include "BioLog.h"
+#include "ServerThread.h"
 #include "BioserverThread.h"
 #include "FlaskThread.h"
 #include "MsgUIServer.h"
 #include "ReactThread.h"
-#include "TailwindThread.h"
 
 namespace ui {
 
@@ -37,10 +37,6 @@ void ServerThreadEngine::runDev() {
     auto& reactThread = _threads[(uint8_t)ServerType::REACT];
     reactThread = std::make_unique<ReactThread>();
     reactThread->runDev();
-
-    auto& tailwindTread = _threads[(uint8_t)ServerType::TAILWIND];
-    tailwindTread = std::make_unique<TailwindThread>();
-    tailwindTread->runDev();
 #endif
 }
 
@@ -52,8 +48,16 @@ void ServerThreadEngine::wait() {
     }
 }
 
-int ServerThreadEngine::getReturnCode() const {
-    return _returnCode;
+int ServerThreadEngine::getReturnCode(ServerType serverType) const {
+    if (!_threads[(uint8_t)serverType]) {
+        return 0;
+    }
+
+    return _threads[(uint8_t)serverType]->getReturnCode();
+}
+
+void ServerThreadEngine::getOutput(ServerType serverType, std::string& output) const {
+    FileUtils::readContent(_threads[(uint8_t)serverType]->getLogFilePath(), output);
 }
 
 }
