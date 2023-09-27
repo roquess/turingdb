@@ -17,10 +17,10 @@ public:
 
 private:
     InterpreterContext* _interpCtxt {nullptr};
-    std::string headerOk =
+    const std::string headerOk =
         "HTTP/1.1 200 OK\r\n";
-    std::string emptyLine = "\r\n";
-    std::string body = "{\"data\":[],\"errors\":[]}";
+    const std::string emptyLine = "\r\n";
+    const std::string body = "{\"data\":[],\"errors\":[]}";
 };
 
 }

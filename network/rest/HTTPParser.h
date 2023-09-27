@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 #include "Buffer.h"
 
@@ -14,25 +15,30 @@ public:
         POST
     };
 
-    explicit HTTPParser(const Buffer* inputBuffer);
+    explicit HTTPParser(Buffer* inputBuffer);
 
     bool analyze();
     
     const std::string& getURI() const { return _uri; }
 
+    std::string_view getPayload() const { return _payload; }
+
 private:
     Buffer::Reader _reader;
-    const char* _currentPtr {nullptr};
+    char* _currentPtr {nullptr};
     HTTPMethod _method {HTTPMethod::UNKNOWN};
     std::string _uri;
+    std::string_view _payload;
 
-    size_t getSize() const { return _reader.getSize(); }
-    const char* getEndPtr() const { return _reader.getData() + _reader.getSize(); }
+    size_t getSize() { return getEndPtr()-_currentPtr; }
+    char* getEndPtr() { return _reader.getData() + _reader.getSize(); }
 
     bool parseRequestLine();
     bool parseMethod();
     bool parseGET();
+    bool parsePOST();
     bool parseURI();
+    bool jumpToPayload();
 };
 
 }

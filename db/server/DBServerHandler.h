@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 class Buffer;
 
@@ -15,7 +16,9 @@ public:
     {
     }
 
-    void process(Buffer* outBuffer, const std::string& uri);
+    void process(Buffer* outBuffer,
+                 const std::string& uri,
+                 std::string_view payload);
 
 private:
     Interpreter* _interp {nullptr};

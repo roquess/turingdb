@@ -142,12 +142,12 @@ private:
     }
 
     bool process() {
-        const bool headerComplete = _parser.analyze();
-        if (!headerComplete) {
+        const bool analyzeComplete = _parser.analyze();
+        if (!analyzeComplete) {
             return false;
         }
 
-        _serverContext->process(&_outBuffer, _parser.getURI());
+        _serverContext->process(&_outBuffer, _parser.getURI(), _parser.getPayload());
         return true;
     }
 };

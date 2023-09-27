@@ -27,22 +27,23 @@ public:
 
     class Reader {
     public:
-        explicit Reader(const Buffer* buffer)
+        explicit Reader(Buffer* buffer)
             : _buffer(buffer)
         {
         }
 
         const char* getData() const { return _buffer->_data.data(); }
+        char* getData() { return _buffer->_data.data(); }
         size_t getSize() const { return _buffer->_bytes; }
 
         void dump() const;
 
     private:
-        const Buffer* _buffer {nullptr};
+        Buffer* _buffer {nullptr};
     };
 
     Writer getWriter() { return Writer(this); }
-    Reader getReader() const { return Reader(this); }
+    Reader getReader() { return Reader(this); }
 
 private:
     static constexpr size_t BUFFER_SIZE = 10*1024*1024;
