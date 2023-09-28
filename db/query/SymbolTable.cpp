@@ -9,6 +9,9 @@ SymbolTable::SymbolTable()
 }
 
 SymbolTable::~SymbolTable() {
+    for (Symbol* sym : _symbols) {
+        delete sym;
+    }
 }
 
 Symbol* SymbolTable::createSymbol(const std::string& name) {

@@ -1,7 +1,8 @@
 #pragma once
 
 #include <string>
-#include <string_view>
+
+#include "StringSpan.h"
 
 class Buffer;
 
@@ -18,7 +19,7 @@ public:
 
     void process(Buffer* outBuffer,
                  const std::string& uri,
-                 std::string_view payload);
+                 StringSpan payload);
 
 private:
     Interpreter* _interp {nullptr};

@@ -32,7 +32,7 @@ bool HTTPParser::analyze() {
         return false;
     }
 
-    _payload = std::string_view(_currentPtr, getSize());
+    _payload = StringSpan(_currentPtr, getSize());
 
     return true;
 }

@@ -12,11 +12,13 @@ QueryParser::QueryParser()
 {
 }
 
-QueryCommand* QueryParser::parse(const std::string& queryStr) {
+QueryCommand* QueryParser::parse(StringSpan query) {
     YScanner yscanner;
     YParser yparser(yscanner, &_astCtxt);
 
-    std::istringstream iss(queryStr);
+    std::istringstream iss;
+    iss.rdbuf()->pubsetbuf(query.getData(), query.getSize());
+
     yscanner.switch_streams(&iss, NULL);
 
     yparser.parse();

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <string>
-
 #include "ASTContext.h"
+
+#include "StringSpan.h"
 
 namespace db {
 
@@ -12,7 +12,7 @@ class QueryParser {
 public:
     QueryParser();
 
-    QueryCommand* parse(const std::string& queryStr);
+    QueryCommand* parse(StringSpan query);
 
 private:
     ASTContext _astCtxt;

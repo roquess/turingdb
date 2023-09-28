@@ -18,7 +18,7 @@ Interpreter::Interpreter(InterpreterContext* interpCtxt)
 Interpreter::~Interpreter() {
 }
 
-void Interpreter::execQuery(const std::string& query, Buffer* outBuffer) {
+void Interpreter::execQuery(StringSpan query, Buffer* outBuffer) {
     QueryParser parser;
 
     QueryCommand* cmd = parser.parse(query);

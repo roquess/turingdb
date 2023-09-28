@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "StringSpan.h"
+
 class Buffer;
 
 namespace db {
@@ -13,7 +15,7 @@ public:
     explicit Interpreter(InterpreterContext* interpCtxt);
     ~Interpreter();
 
-    void execQuery(const std::string& query, Buffer* outBuffer);
+    void execQuery(StringSpan query, Buffer* outBuffer);
 
 private:
     InterpreterContext* _interpCtxt {nullptr};
