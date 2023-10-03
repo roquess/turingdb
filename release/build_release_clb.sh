@@ -8,12 +8,12 @@ turing_dir=$1
 
 function build_package() {
 	# Build turing package
-	docker run -it -v $turing_dir:/home/dev/turing $turing_img /home/dev/turing/release/scripts/build_package.sh
+	docker run -it --user root -v $turing_dir:/home/dev/turing $turing_img /home/dev/turing/release/scripts/build_package.sh
 	error=$?
 
 	if [ ! "$error" == "0" ] ; then
 		echo 'Build failed'
-		docker run -it -v $turing_dir:/home/dev/turing $turing_img bash
+		docker run -it --user root -v $turing_dir:/home/dev/turing $turing_img bash
 		exit 1
 	fi
 
