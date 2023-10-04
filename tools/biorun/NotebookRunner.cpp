@@ -71,8 +71,35 @@ bool NotebookRunner::runNotebook(const Path& path) {
             return false;
         }
     }
+    
+    if (_generateReport) {
+        if (!generateReport(path)) {
+            BioLog::log(msg::ERROR_FAILED_TO_GENERATE_REPORT()
+                        << path.string());
+            return false;
+        }
+    }
 
     return true;
+}
+
+bool NotebookRunner::generateReport(const Path& path) {
+    TimerStat timer("Generating report for " + path.string());
+    
+    const char* turingHome = getenv("TURING_HOME");
+    if (!turingHome) {
+        BioLog::log(msg::ERROR_INCORRECT_ENV_SETUP());
+        return false;
+    }
+    
+    Command reportCmd("python3");
+    reportCmd.addArg(turingHome);
+    reportCmd.addArg(path.string());
+    reportCmd.setWorkingDir(_outDir);
+    reportCmd.setScriptPath(_outDir/"jupyter_exec.sh");
+
+    const auto logFile = _outDir/"jupyter_exec.log";
+    reportCmd.setLogFile(logFile);
 }
 
 bool NotebookRunner::executeNotebook(const Path& path) {
