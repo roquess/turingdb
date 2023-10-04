@@ -35,6 +35,7 @@ private:
     bool runNotebook(const Path& path);
     bool executeNotebook(const Path& path);
     bool exportNotebook(const Path& path, const std::string& toDest);
+    bool generateReport(const Path& path);
 };
 
 #endif
