@@ -1,10 +1,13 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace db {
 
 class ASTContext;
+class SelectField;
+class FromTarget;
 
 class QueryCommand {
 public:
@@ -12,7 +15,8 @@ public:
 
     enum Kind {
         QCOM_LIST_COMMAND,
-        QCOM_OPEN_COMMAND
+        QCOM_OPEN_COMMAND,
+        QCOM_SELECT_COMMAND
     };
 
     virtual Kind getKind() const = 0;
@@ -57,6 +61,29 @@ private:
 
     OpenCommand(const std::string& path);
     ~OpenCommand();
+};
+
+class SelectCommand : public QueryCommand {
+public:
+    using SelectFields = std::vector<SelectField*>;
+    using FromTargets = std::vector<FromTarget*>;
+
+    static SelectCommand* create(ASTContext* ctxt);
+
+    Kind getKind() const override { return QCOM_SELECT_COMMAND; }
+
+    const SelectFields& selectFields() const { return _selectFields; }
+    const FromTargets& fromTargets() const { return _fromTargets; }
+
+    void addSelectField(SelectField* field);
+    void addFromTarget(FromTarget* fromTarget);
+
+private:
+    SelectFields _selectFields;
+    FromTargets _fromTargets;
+
+    SelectCommand();
+    ~SelectCommand();
 };
 
 }

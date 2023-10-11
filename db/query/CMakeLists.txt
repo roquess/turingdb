@@ -20,6 +20,9 @@ set(query_sources
         ASTContext.cpp
         Frame.cpp
         QueryCommand.cpp
+        SelectField.cpp
+        FromTarget.cpp
+        PathPattern.cpp
         QueryParser.cpp
         Symbol.cpp
         SymbolTable.cpp
