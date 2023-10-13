@@ -1,4 +1,4 @@
-import { Autocomplete, CircularProgress, IconButton, TextField } from '@mui/material';
+import { Autocomplete, IconButton, TextField } from '@mui/material';
 import React from 'react';
 import BorderedContainer from './BorderedContainer';
 import SearchIcon from '@mui/icons-material/Search';

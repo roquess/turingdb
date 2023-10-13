@@ -23,7 +23,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { Icon } from "@blueprintjs/core";
 
 const usePropertyTypes = () => {
-    const dispatch = useDispatch();
     const displayedNodeProperty = useSelector(state => state.displayedNodeProperty);
     const edgeLabel = useSelector(state => state.visualizer.edgeLabel);
 
