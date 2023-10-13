@@ -56,6 +56,9 @@ MSG_ERROR(ERROR_INCORRECT_ENV_SETUP, 1016,
 MSG_ERROR(ERROR_IMPOSSIBLE_TO_RUN_COMMAND, 1017,
           "Impossible to launch a command: $0")
 
+MSG_ERROR(ERROR_FAILED_TO_RUN_SCRIPT, 1018,
+          "Impossible to run the script $0")
+
 }
 
 #endif
