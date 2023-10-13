@@ -2,6 +2,8 @@
 
 #include <array>
 #include <stddef.h>
+#include <string.h>
+#include <string>
 
 class Buffer {
 public:
@@ -15,10 +17,37 @@ public:
         {
         }
 
+        void reset() {
+            _buffer->_data[0] = '\0';
+            _buffer->_bytes = 0;
+        }
+
+        bool writeChar(char c) {
+            if (getBufferSize() < 1) {
+                return false;
+            }
+
+            char* buffer = getBuffer();
+            *buffer = c;
+            setWrittenBytes(1);
+
+            return true;
+        }
+
+        bool writeString(const std::string& str) {
+            if (str.size() > getBufferSize()) {
+                return false;
+            }
+
+            char* buffer = getBuffer();
+            strcpy(buffer, str.c_str());
+            setWrittenBytes(str.size());
+            return true;
+        }
+
         void setWrittenBytes(size_t bytesWritten) { _buffer->_bytes += bytesWritten; }
 
         char* getBuffer() { return &_buffer->_data[_buffer->_bytes]; }
-
         size_t getBufferSize() const { return Buffer::BUFFER_SIZE-_buffer->_bytes; }
 
     private:

@@ -1,8 +1,7 @@
 #include "Interpreter.h"
 
-#include <string.h>
 #include <string_view>
-#include <stdio.h>
+#include <chrono>
 
 #include "QueryParser.h"
 #include "plan/Planner.h"
@@ -13,40 +12,54 @@
 
 using namespace db;
 
+using Clock = std::chrono::system_clock;
+
 namespace {
 
-std::string_view getQueryStatusString(QueryStatus status) {
+static const std::string Ok = "OK";
+static const std::string ParseError = "PARSE_ERROR";
+static const std::string PlanError = "PLAN_ERROR";
+static const std::string ExecError = "EXEC_ERROR";
+static const std::string UnknownError = "UNKNOWN_ERROR";
+static const std::string BufferOverflow = "BUFFER_OVERFLOW";
+
+const std::string& getQueryStatusString(QueryStatus status) {
     switch (status) {
         case QueryStatus::OK:
-            return std::string_view("OK", 2);
+            return Ok;
 
         case QueryStatus::PARSE_ERROR:
-            return std::string_view("PARSE_ERROR", 11);
+            return ParseError;
 
         case QueryStatus::QUERY_PLAN_ERROR:
-            return std::string_view("PLAN_ERROR", 10);
+            return PlanError;
 
         case QueryStatus::EXEC_ERROR:
-            return std::string_view("EXEC_ERROR", 10);
+            return ExecError;
+
+        case QueryStatus::BUFFER_OVERFLOW:
+            return BufferOverflow;
 
         default:
-            return std::string_view("UNKNOWN_ERROR", 13);
+            return UnknownError;
     }
 }
 
-void writeObjectBegin(Buffer::Writer writer) {
-    char* buffer = writer.getBuffer();
-    *buffer = '{';
-    writer.setWrittenBytes(1);
+bool writeObjectBegin(Buffer::Writer writer) {
+    return writer.writeChar('{');
 }
 
-void writeObjectEnd(Buffer::Writer writer) {
-    char* buffer = writer.getBuffer();
-    *buffer = '}';
-    writer.setWrittenBytes(1);
+bool writeObjectEnd(Buffer::Writer writer) {
+    return writer.writeChar('}');
 }
 
-void writeSymbol(const Symbol* sym, Buffer::Writer writer) {
+bool writeSymbol(const Symbol* sym, Buffer::Writer writer) {
+    const std::string& symName = sym->getName();
+    const size_t symSize = symName.size();
+    if (writer.getBufferSize() < symSize+3) {
+        return false;
+    }
+
     char* buffer = writer.getBuffer();
     size_t bytesWritten = 0;
 
@@ -57,9 +70,7 @@ void writeSymbol(const Symbol* sym, Buffer::Writer writer) {
     }
 
     {
-        const std::string& symName = sym->getName();
         strcpy(buffer, symName.c_str());
-        const size_t symSize = symName.size();
         bytesWritten += symSize;
         buffer += symSize;
     }
@@ -76,54 +87,49 @@ void writeSymbol(const Symbol* sym, Buffer::Writer writer) {
     }
     
     writer.setWrittenBytes(bytesWritten);
+    return true;
 }
 
-void writeValue(const Value& value, Buffer::Writer writer) {
-    char* buffer = writer.getBuffer();
-    size_t bytes = 0;
-
+bool writeValue(const Value& value, Buffer::Writer writer) {
     switch (value.getType().getKind()) {
         case ValueType::VK_INT:
-        {
-            bytes = sprintf(buffer, "%li", value.getInt());
-        }
+            return writer.writeString(std::to_string(value.getInt()));
         break;
 
         case ValueType::VK_UNSIGNED:
-        {
-            bytes = sprintf(buffer, "%lu", value.getUint());
-        }
+            return writer.writeString(std::to_string(value.getUint()));
         break;
 
         case ValueType::VK_BOOL:
         {
             if (value.getBool()) {
-                strcpy(buffer, "true");
-                bytes = 4;
+                return writer.writeString("true");
             } else {
-                strcpy(buffer, "false");
-                bytes = 5;
+                return writer.writeString("false");
             }
         }
         break;
 
         case ValueType::VK_DECIMAL:
-        {
-            bytes = sprintf(buffer, "%lf", value.getDouble());
-        }
+            return writer.writeString(std::to_string(value.getDouble()));
         break;
 
         case ValueType::VK_STRING_REF:
         {
             const auto strRef = value.getStringRef();
             const auto size = strRef.size();
+            const auto writtenSize = size+2;
+            if (writer.getBufferSize() < writtenSize) {
+                return false;
+            }
+
+            char* buffer = writer.getBuffer();
             *buffer = '\"';
             buffer++;
             strcpy(buffer, strRef.begin());
             buffer += size;
             *buffer = '"';
-            buffer++;
-            bytes = size+2;
+            writer.setWrittenBytes(writtenSize);
         }
         break;
 
@@ -131,25 +137,28 @@ void writeValue(const Value& value, Buffer::Writer writer) {
         {
             const std::string& str = value.getString();
             const auto size = str.size();
+            const auto writtenSize = size+2;
+            if (writer.getBufferSize() < writtenSize) {
+                return false;
+            }
+
+            char* buffer = writer.getBuffer();
             *buffer = '\"';
             buffer++;
             strcpy(buffer, str.data());
             buffer += size;
             *buffer = '"';
             buffer++;
-            bytes = size+2;
+            writer.setWrittenBytes(writtenSize);
         }
         break;
 
         default:
-        {
-            strcpy(buffer, "null");
-            bytes = 4;
-        }
+            return writer.writeString("null");
         break;
     }
 
-    writer.setWrittenBytes(bytes);
+    return true;
 }
 
 }
@@ -163,6 +172,8 @@ Interpreter::~Interpreter() {
 }
 
 void Interpreter::execQuery(StringSpan query, Buffer* outBuffer) const {
+    const auto timeExecStart = Clock::now();
+
     QueryParser parser;
     QueryCommand* cmd = parser.parse(query);
     if (!cmd) {
@@ -174,47 +185,13 @@ void Interpreter::execQuery(StringSpan query, Buffer* outBuffer) const {
     if (!pullPlan) {
         return handleQueryError(QueryStatus::QUERY_PLAN_ERROR, outBuffer);
     }
+    
+    const auto timeExecEnd = Clock::now();
+    const std::chrono::duration<double, std::milli> duration = timeExecEnd - timeExecStart;
 
-    {
-        auto writer = outBuffer->getWriter();
-
-        // Write http response header
-        strcpy(writer.getBuffer(), headerOk.c_str());
-        writer.setWrittenBytes(headerOk.size()); 
-        strcpy(writer.getBuffer(), emptyLine.c_str());
-        writer.setWrittenBytes(emptyLine.size());
-
-        // Begin
-        strcpy(writer.getBuffer(), bodyBegin.c_str());
-        writer.setWrittenBytes(bodyBegin.size());
-
-        // Status
-        const std::string_view statusStr = getQueryStatusString(QueryStatus::OK);
-        strcpy(writer.getBuffer(), statusStr.data());
-        writer.setWrittenBytes(statusStr.size());
-
-        // Post status
-        strcpy(writer.getBuffer(), bodyPostStatus.c_str());
-        writer.setWrittenBytes(bodyPostStatus.size());
-
-        const SymbolTable* symTable = pullPlan->getSymbolTable();
-        while (pullPlan->pull() != PullStatus::DONE) {
-            const Frame& frame = pullPlan->getFrame();
-
-            writeObjectBegin(writer);
-
-            for (const Symbol* symbol : symTable->symbols()) {
-                const Value& value = frame[symbol];
-                writeSymbol(symbol, writer);
-                writeValue(value, writer);
-            }
-
-            writeObjectEnd(writer);
-        }
-
-        // End
-        strcpy(writer.getBuffer(), bodyEnd.c_str());
-        writer.setWrittenBytes(bodyEnd.size());
+    const bool writeRes = writeResponse(outBuffer, pullPlan, duration.count());
+    if (!writeRes) {
+        handleQueryError(QueryStatus::BUFFER_OVERFLOW, outBuffer);
     }
 
     // Cleanup
@@ -223,8 +200,83 @@ void Interpreter::execQuery(StringSpan query, Buffer* outBuffer) const {
     return;
 }
 
+bool Interpreter::writeResponse(Buffer* outBuffer,
+                                PullPlan* pullPlan,
+                                double execTime) const {
+    auto writer = outBuffer->getWriter();
+
+    // Write http response header
+    if (!writer.writeString(headerOk)) {
+        return false;
+    }
+    if (!writer.writeString(emptyLine)) {
+        return false;
+    }
+
+    // Begin
+    if (!writer.writeString(bodyBegin)) {
+        return false;
+    }
+
+    // Status
+    const std::string& statusStr = getQueryStatusString(QueryStatus::OK);
+    if (!writer.writeString(statusStr)) {
+        return false;
+    }
+
+    // Time
+    if (!writer.writeString(timeBeginStr)) {
+        return false;
+    }
+
+    const std::string durationStr = std::to_string(execTime)+"ms";
+    if (!writer.writeString(durationStr)) {
+        return false;
+    }
+
+    if (!writer.writeString(timeEndStr)) {
+        return false;
+    }
+
+    // Data begin
+    if (!writer.writeString(bodyDataBegin)) {
+        return false;
+    }
+
+    const SymbolTable* symTable = pullPlan->getSymbolTable();
+    while (pullPlan->pull() != PullStatus::DONE) {
+        const Frame& frame = pullPlan->getFrame();
+
+        if (!writeObjectBegin(writer)) {
+            return false;
+        }
+
+        for (const Symbol* symbol : symTable->symbols()) {
+            const Value& value = frame[symbol];
+            if (!writeSymbol(symbol, writer)) {
+                return false;
+            }
+            if (!writeValue(value, writer)) {
+                return false;
+            }
+        }
+
+        if (!writeObjectEnd(writer)) {
+            return false;
+        }
+    }
+
+    // End
+    if (!writer.writeString(bodyEnd)) {
+        return false;
+    }
+
+    return true;
+}
+
 void Interpreter::handleQueryError(QueryStatus status, Buffer* outBuffer) const {
     auto writer = outBuffer->getWriter();
+    writer.reset();
 
     // Write http response header
     strcpy(writer.getBuffer(), headerOk.c_str());
@@ -242,8 +294,8 @@ void Interpreter::handleQueryError(QueryStatus status, Buffer* outBuffer) const 
     writer.setWrittenBytes(statusStr.size());
 
     // Post status
-    strcpy(writer.getBuffer(), bodyPostStatus.c_str());
-    writer.setWrittenBytes(bodyPostStatus.size());
+    strcpy(writer.getBuffer(), bodyDataBegin.c_str());
+    writer.setWrittenBytes(bodyDataBegin.size());
 
     // End
     strcpy(writer.getBuffer(), bodyEnd.c_str());
