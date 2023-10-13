@@ -81,7 +81,7 @@ export default function NodeFilterContainer({
     }
 
     const { data, isFetching } = useQuery(
-        ["list_nodes", dbName, selectedNodeType, propertyValue],
+        ["list_nodes", dbName, selectedNodeType, displayedNodeProperty, propertyValue],
         React.useCallback(() => dispatch(thunks
             .fetchNodes(dbName, {
                 ...selectedNodeType ? { node_type_name: selectedNodeType } : {},

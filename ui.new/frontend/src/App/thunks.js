@@ -28,7 +28,7 @@ export const fetchNodes = (dbName, filters) => async (dispatch) => {
         })
         .then(res => {
             if (res.data.error) {
-                return []
+                return res.data;
             }
 
             if (filters.yield_edges) // Store nodes only if the info is complete

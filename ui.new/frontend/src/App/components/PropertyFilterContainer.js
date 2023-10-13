@@ -4,7 +4,7 @@ import BorderedContainer from './BorderedContainer';
 import SearchIcon from '@mui/icons-material/Search';
 import { BorderedContainerTitle } from './BorderedContainer';
 import { useNodePropertyTypesQuery } from '../queries';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import * as actions from '../actions';
 
 const useProperty = ({ setPropertyValue }) => {
@@ -28,7 +28,7 @@ const useProperty = ({ setPropertyValue }) => {
     }, []);
 
     return {
-        name, value,displayedValue,
+        name, value, displayedValue,
         search,
         setName, setValue
     };
@@ -37,15 +37,35 @@ const useProperty = ({ setPropertyValue }) => {
 export default function PropertyFilterContainer({
     setPropertyValue,
 }) {
-    const [enabled, setEnabled] = React.useState(false);
+    const dispatch = useDispatch();
     const {
         displayedValue,
         search,
         setName, setValue
     } = useProperty({ setPropertyValue });
+    const displayedNodeProperty = useSelector(state => state.displayedNodeProperty);
+    const { data: rawNodePropertyTypes } = useNodePropertyTypesQuery();
+    const nodePropertyTypes = React.useMemo(() => rawNodePropertyTypes || [], [rawNodePropertyTypes]);
+    const namingProps = React.useMemo(() =>
+        ["displayName", "label", "name", "Name", "NAME"]
+            .filter(p => nodePropertyTypes.includes(p))
+        , [nodePropertyTypes]);
 
-    const { data, isFetching } = useNodePropertyTypesQuery({ enabled });
-    const propertyNames = data || [];
+    const defaultNodeProperty = React.useMemo(() => {
+        if (namingProps[0]) return namingProps[0];
+
+        const regexProps = nodePropertyTypes.map(p => p.match("/name|Name|NAME|label|Label|LABEL/"));
+        return regexProps.length !== 0
+            ? regexProps[0]
+            : nodePropertyTypes[0];
+    }, [namingProps, nodePropertyTypes])
+
+    React.useEffect(() => {
+        if (displayedNodeProperty === null && defaultNodeProperty !== undefined) {
+            dispatch(actions.selectDisplayedProperty(defaultNodeProperty))
+        }
+
+    }, [defaultNodeProperty, dispatch, displayedNodeProperty]);
 
     return <form onSubmit={(e) => {
         e.preventDefault();
@@ -57,7 +77,6 @@ export default function PropertyFilterContainer({
                 <Autocomplete
                     id="property-name-filter"
                     blurOnSelect
-                    onOpen={() => setEnabled(true)}
                     onChange={(e, v) => {
                         setName(v);
                         if (!v) {
@@ -65,7 +84,8 @@ export default function PropertyFilterContainer({
                             e.currentTarget.form.requestSubmit();
                         }
                     }}
-                    options={propertyNames}
+                    value={displayedNodeProperty}
+                    options={nodePropertyTypes}
                     sx={{ width: "50%", m: 1 }}
                     size="small"
                     autoSelect
@@ -78,9 +98,6 @@ export default function PropertyFilterContainer({
                                 ...params.InputProps,
                                 endAdornment: (
                                     <React.Fragment>
-                                        {isFetching
-                                            ? <CircularProgress color="inherit" size={20} />
-                                            : null}
                                         {params.InputProps.endAdornment}
                                     </React.Fragment>
                                 ),

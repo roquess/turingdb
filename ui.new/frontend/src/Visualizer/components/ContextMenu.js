@@ -18,6 +18,19 @@ const NodeContextMenu = (props) => {
     const isSelected = selectedNodes[props.data.id] !== undefined;
     const nodeProps = props.data.properties;
 
+    const hideNodes = React.useCallback((cy) => {
+        const nodes = cy.nodes().filter(e => e.selected());
+        const selectedNodes = nodes.filter(e => e.data().type === "selected");
+        const neighborNodes = nodes.filter(e => e.data().type === "neighbor");
+        const selectedNodeIds = selectedNodes.map(n => n.id());
+        const neighborNodeIds = neighborNodes.map(n => n.id());
+
+        selectedNodeIds.length !== 0 && dispatch(thunks.getNodes(dbName, selectedNodeIds))
+            .then(res => Object.values(res).forEach(n => dispatch(appActions.unselectNode(n))));
+        neighborNodeIds.length !== 0 && dispatch(actions.hideNodes(neighborNodeIds));
+
+    }, [dbName, dispatch]);
+
     const VerticalLineIcon = () => <Icon
         icon="layout-linear"
         style={{
@@ -91,19 +104,43 @@ const NodeContextMenu = (props) => {
 
             {isSelected
                 // Selected nodes only
-                ? <MenuItem
-                    text="Hide"
-                    icon="graph-remove"
-                    onClick={() =>
-                        dispatch(thunks.getNodes(dbName, [props.data.id]))
-                            .then(res =>
-                                dispatch(appActions.unselectNode(res[props.data.id])))}
-                />
+                ? <>
+                    <MenuItem
+                        text="Hide"
+                        icon="graph-remove"
+                        onClick={() => hideNodes(props.cy.current)}
+                    />
+                    <MenuItem
+                        text="Collapse neighbors"
+                        icon="collapse-all"
+                        onClick={() => {
+                            const node = props.cy.current.$id(props.data.id);
+                            const nodeIds = node
+                                .neighborhood()
+                                .nodes()
+                                .map(n => n.id())
+                                .filter(id => !selectedNodes[id]);
+                            dispatch(actions.hideNodes(nodeIds))
+                        }}
+                    />
+                </>
 
                 // Neighbors nodes only
-                : <MenuItem text="Hide"
-                    onClick={() => dispatch(actions.hideNode(props.data.id))}
-                />}
+                : <>
+                    <MenuItem
+                        text="Add to selection"
+                        icon="add"
+                        onClick={() => {
+                            dispatch(thunks.getNodes(dbName, [props.data.id]))
+                                .then(res => dispatch(appActions.selectNode(res[props.data.id])))
+                        }}
+                    />
+                    <MenuItem
+                        text="Hide"
+                        icon="graph-remove"
+                        onClick={() => hideNodes(props.cy.current)}
+                    />
+                </>}
         </Menu>
     );
 };
@@ -112,7 +149,7 @@ const EdgeColorContextMenu = (props) => {
     const dispatch = useDispatch();
 
     return (
-        <Menu>
+        <Menu small>
             <MenuItem
                 text="Set edge colors..."
                 icon="tint"

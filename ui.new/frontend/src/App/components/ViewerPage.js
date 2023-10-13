@@ -31,28 +31,10 @@ const usePropertyTypes = () => {
     const { data: rawEdgePropertyTypes } = useEdgePropertyTypesQuery();
     const nodePropertyTypes = React.useMemo(() => rawNodePropertyTypes || [], [rawNodePropertyTypes]);
     const edgePropertyTypes = React.useMemo(() => rawEdgePropertyTypes || [], [rawEdgePropertyTypes]);
-    const namingProps = ["displayName", "label", "name", "Name", "NAME"]
-        .filter(p => nodePropertyTypes.includes(p));
-
-    const defaultNodeProperty = React.useMemo(() => {
-        if (namingProps[0]) return namingProps[0];
-
-        const regexProps = nodePropertyTypes.map(p => p.match("/name|Name|NAME|label|Label|LABEL/"));
-        return regexProps.length !== 0
-            ? regexProps[0]
-            : nodePropertyTypes[0];
-    }, [namingProps, nodePropertyTypes])
-
-    React.useEffect(() => {
-        if (displayedNodeProperty === null && defaultNodeProperty !== undefined) {
-            dispatch(actions.selectDisplayedProperty(defaultNodeProperty))
-        }
-
-    }, [defaultNodeProperty, dispatch, displayedNodeProperty]);
-
 
     return { nodePropertyTypes, edgePropertyTypes, displayedNodeProperty, edgeLabel };
 }
+
 const HiddenNodesContainer = (props) => {
     const hiddenNodeIds = useSelector(state => state.visualizer.hiddenNodeIds);
     const { visualizer } = props;
