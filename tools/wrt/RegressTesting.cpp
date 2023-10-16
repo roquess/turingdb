@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <sstream>
 #include <string>
+#include <thread>
+#include <chrono>
 
 #include "FileUtils.h"
 #include "Command.h"
@@ -88,7 +90,7 @@ void RegressTesting::analyzeDir(const Path& dir) {
 }
 
 void RegressTesting::analyzeTest(const Path& dir) {
-    const auto runScriptPath = dir/"run.py";
+    const auto runScriptPath = dir/"run.sh";
     if (!FileUtils::exists(runScriptPath)) {
         BioLog::log(msg::ERROR_FILE_NOT_EXISTS() << runScriptPath.string());
         _error = true;
@@ -100,41 +102,63 @@ void RegressTesting::analyzeTest(const Path& dir) {
 
 void RegressTesting::runTests() {
     TimerStat timerStat("Run tests");
-    for (const auto& testPath : _testPaths) {
-        runTest(testPath);
+
+    // Add all detected tests to the wait queue
+    for (const auto& path : _testPaths) {
+        _testWaitQueue.push_back(path);
+    }
+
+    if (_testWaitQueue.empty()) {
+        return;
+    }
+
+    // Put first job in the run set
+    {
+        const auto firstTest = _testWaitQueue.top();
+        _testWaitQueue.pop();
+        _runningTests.emplace_back(runTest(firstTest));
+    }
+
+    while (!_runningTests.empty()) {
+        // Check if a job is finished
+        auto it = _runningTests.begin();
+        while (it != _runningTests.end()) {
+            auto& child = *it;
+            if (!child.running()) {
+                const auto toBeRemoved = it;
+                it++;
+                _runningTests.erase(toBeRemoved);
+            } else {
+                ++it;
+            }
+        }
+
+        // Run tests if our concurrency setting allows it
+        if (_runningTests.size() < _concurrency) {
+            const auto firstTest = _testWaitQueue.top();
+            _testWaitQueue.pop();
+            _runningTests.emplace_back(runTest(firstTest));
+        }
+
+        std::this_thread::sleep_for(200ms);
     }
 }
 
-void RegressTesting::runTest(const Path& dir) {
-    const auto runScriptPath = dir/"run.py";
+ProcessChild RegressTesting::runTest(const Path& dir) {
+    const auto runScriptPath = dir/"run.sh";
     if (!FileUtils::exists(runScriptPath)) {
         BioLog::log(msg::ERROR_FILE_NOT_EXISTS() << runScriptPath.string());
         _error = true;
         return;
     }
 
-    Command cmd("python3");
-    cmd.addArg(runScriptPath.string());
+    Command cmd(runScriptPath.string());
     cmd.setWorkingDir(dir);
     cmd.setLogFile(dir/"run.log");
     cmd.setGenerateScript(true);
 
     BioLog::echo("Run: "+dir.string());
-    if (!cmd.run()) {
-        BioLog::log(msg::ERROR_FAILED_TO_RUN_SCRIPT() << runScriptPath.string());
-        BioLog::echo("Fail: "+dir.string());
-        _testFail.push_back(dir);
-        return;
-    }
-
-    const int res = cmd.getReturnCode();
-    if (res == 0) {
-        BioLog::echo("Pass: "+dir.string());
-        _testSuccess.push_back(dir);
-    } else {
-        BioLog::echo("Fail: "+dir.string());
-        _testFail.push_back(dir);
-    }
+    return cmd.runAsync(_processGroup);
 }
 
 void RegressTesting::writeTestResults() {

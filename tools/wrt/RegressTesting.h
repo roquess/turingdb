@@ -2,6 +2,10 @@
 
 #include <filesystem>
 #include <vector>
+#include <queue>
+#include <list>
+
+#include "BoostProcess.h"
 
 class RegressTesting {
 public:
@@ -15,15 +19,19 @@ public:
 
 private:
     const Path _reportDir;
+    size_t _concurrency {1};
     bool _error {false};
+    ProcessGroup _processGroup;
     std::vector<Path> _testPaths;
     std::vector<Path> _testFail;
     std::vector<Path> _testSuccess;
+    std::queue<Path> _testWaitQueue;
+    std::list<ProcessChild> _runningTests;
 
     void analyzeDir(const Path& dir);
     void analyzeTest(const Path& dir);
     void runTests();
-    void runTest(const Path& dir);
+    ProcessChild runTest(const Path& dir);
     void writeTestResults();
     void cleanDir(const Path& dir);
 };
