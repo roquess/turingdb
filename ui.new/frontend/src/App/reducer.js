@@ -4,7 +4,7 @@ import * as visualizer from '../Visualizer/reducer';
 
 const initialState = () => ({
     page: "Database",
-    themeMode: "light",
+    themeMode: "dark",
     visualizer: visualizer.initialState(),
     dbName: null,
     inspectedNode: null,
