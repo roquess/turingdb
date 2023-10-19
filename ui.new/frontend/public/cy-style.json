@@ -68,29 +68,16 @@
     "width": 1.0
   }
 }, {
-  "selector": "node.unhighlighted",
+  "selector": "node:selected",
   "style": {
-    "opacity": "0.2"
+    "background-color": "#96a",
+    "color": "#96a"
   }
 }, {
-  "selector": "edge.unhighlighted",
+  "selector": "edge:selected",
   "style": {
-    "opacity": "0.05"
-  }
-}, {
-  "selector": ".highlighted",
-  "style": {
-    "z-index": "999999"
-  }
-}, {
-  "selector": "node.highlighted",
-  "style": {
-    "background-color": "#A3f"
-  }
-}, {
-  "selector": "edge.filtered",
-  "style": {
-    "opacity": "0"
+    "line-color": "#96a",
+    "color": "#96a"
   }
 }]
 
