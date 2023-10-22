@@ -6,12 +6,15 @@ import {
     Alert,
 } from '@mui/material'
 import React from 'react'
-import { NodeStack, BorderedContainer, NodeInspector, NodeChip } from './'
+import NodeStack from './NodeStack'; 
+import BorderedContainer from './BorderedContainer';
+import NodeInspector from './NodeInspector';
+import NodeChip from './NodeChip';
 import { BorderedContainerTitle } from './BorderedContainer'
 import { useDispatch, useSelector } from 'react-redux'
-import * as actions from '../App/actions'
-import * as thunks from '../App/thunks'
-import { useQuery } from '../App/queries'
+import * as actions from '../actions'
+import * as thunks from '../thunks'
+import { useQuery } from '../queries'
 
 
 const Title = (props) => {
@@ -39,10 +42,10 @@ const Title = (props) => {
             }
 
             setError(null);
-            dispatch(thunks.getNodes(dbName, [id]))
+            dispatch(thunks.getNodes(dbName, [id], { yield_edges: true }))
                 .then(res => dispatch(actions.selectNode(Object.values(res)[0])));
         }}>
-            <Box display="flex" >
+            <Box display="flex">
                 <TextField
                     type="number"
                     id="node-id-field"
@@ -59,14 +62,14 @@ const Title = (props) => {
 
 export default function NodeFilterContainer({
     selectedNodeType,
-    propertyName,
     propertyValue
 }) {
     const [tooManyNodes, setTooManyNodes] = React.useState(false);
     const [error, setError] = React.useState(null);
-    const selectedNodes = useSelector((state) => state.selectedNodes);
-    const dbName = useSelector((state) => state.dbName);
-    const inspectedNode = useSelector((state) => state.inspectedNode);
+    const selectedNodes = useSelector(state => state.selectedNodes);
+    const dbName = useSelector(state => state.dbName);
+    const inspectedNode = useSelector(state => state.inspectedNode);
+    const displayedNodeProperty = useSelector(state => state.displayedNodeProperty);
     const titleProps = { setError };
     const dispatch = useDispatch();
 
@@ -78,12 +81,13 @@ export default function NodeFilterContainer({
     }
 
     const { data, isFetching } = useQuery(
-        ["list_nodes", dbName, selectedNodeType, propertyName, propertyValue],
+        ["list_nodes", dbName, selectedNodeType, displayedNodeProperty, propertyValue],
         React.useCallback(() => dispatch(thunks
             .fetchNodes(dbName, {
                 ...selectedNodeType ? { node_type_name: selectedNodeType } : {},
-                ...propertyName ? { prop_name: propertyName } : {},
+                ...displayedNodeProperty ? { prop_name: displayedNodeProperty } : {},
                 ...propertyValue ? { prop_value: propertyValue } : {},
+                yield_edges: false,
             }))
             .then(res => {
                 if (res.error) {
@@ -91,11 +95,11 @@ export default function NodeFilterContainer({
                     return {}
                 }
 
-                dispatch(actions.cacheNodes(res));
+                //dispatch(actions.cacheNodes(res));
                 setTooManyNodes(false);
                 return Object.fromEntries(res.map(n => [n.id, n]));
             })
-            , [dbName, dispatch, propertyName, propertyValue, selectedNodeType])
+            , [dbName, dispatch, displayedNodeProperty, propertyValue, selectedNodeType])
     )
 
     if (tooManyNodes) {
@@ -119,7 +123,11 @@ export default function NodeFilterContainer({
         {error && <Alert severity="error">{error}</Alert>}
         <NodeInspector
             open={inspectedNode !== null}
-            onClose={() => dispatch(actions.inspectNode(null))} />
+            onClose={() => dispatch(thunks.inspectNode(dbName, null))} />
+        <Button onClick={() =>
+            dispatch(thunks.getNodes(dbName, Object.keys(currentNodes), { yield_edges: true }))
+                .then(res => dispatch(actions.selectNodes(Object.values(res))))
+        }>Select all</Button>
         <NodeStack>
             {filteredKeys.map((id, i) => {
                 return <NodeChip
@@ -133,3 +141,4 @@ export default function NodeFilterContainer({
             <Box p={1}>... {remainingNodeCount} more nodes</Box>}
     </BorderedContainer >;
 }
+

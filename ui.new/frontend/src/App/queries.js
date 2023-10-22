@@ -1,7 +1,10 @@
+import React from 'react';
+import axios from 'axios';
 import { useQuery as useNativeQuery } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 
-export const useQuery = (key, fn, options = {}) => {
-    const res = useNativeQuery(key, fn, {
+export const useQuery = (key, fn, options = {}) =>
+    useNativeQuery(key, fn, {
         immutableCheck: { warnAfter: 256 },
         serializableCheck: { warnAfter: 256 },
         refetchOnMount: false,
@@ -10,5 +13,32 @@ export const useQuery = (key, fn, options = {}) => {
         ...options
     })
 
-    return res;
-}
+export const useNodePropertyTypesQuery = (options = {}) => {
+    const dbName = useSelector(state => state.dbName);
+    return useQuery(
+        ["list_node_property_types", dbName],
+        React.useCallback(() => axios
+            .post("/api/list_node_property_types", { db_name: dbName })
+            .then(res => res.data)
+            .catch(err => { console.log(err); return []; })
+            , [dbName]
+        ),
+        options
+    );
+
+};
+
+export const useEdgePropertyTypesQuery = (options = {}) => {
+    const dbName = useSelector(state => state.dbName);
+    return useQuery(
+        ["list_edge_property_types", dbName],
+        React.useCallback(() => axios
+            .post("/api/list_edge_property_types", { db_name: dbName })
+            .then(res => res.data)
+            .catch(err => { console.log(err); return []; })
+            , [dbName]
+        ),
+        options
+    );
+
+};

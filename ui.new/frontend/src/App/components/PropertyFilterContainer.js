@@ -1,27 +1,26 @@
-import axios from 'axios'
-import { Autocomplete, CircularProgress, IconButton, TextField } from '@mui/material'
-import React from 'react'
-import { BorderedContainer } from './'
-import SearchIcon from '@mui/icons-material/Search'
-import { BorderedContainerTitle } from './BorderedContainer'
-import { useQuery } from '../App/queries'
-import { useSelector } from 'react-redux'
+import { Autocomplete, IconButton, TextField } from '@mui/material';
+import React from 'react';
+import BorderedContainer from './BorderedContainer';
+import SearchIcon from '@mui/icons-material/Search';
+import { BorderedContainerTitle } from './BorderedContainer';
+import { useNodePropertyTypesQuery } from '../queries';
+import { useDispatch, useSelector } from 'react-redux';
+import * as actions from '../actions';
 
-const useProperty = ({ setPropertyName, setPropertyValue }) => {
+const useProperty = ({ setPropertyValue }) => {
+    const dispatch = useDispatch();
     const name = React.useRef(null);
     const value = React.useRef("");
-    const [displayedName, setDisplayedName] = React.useState(null);
     const [displayedValue, setDisplayedValue] = React.useState("");
 
     const search = React.useCallback(() => {
-        setPropertyName(name.current);
         setPropertyValue(value.current);
-    }, [setPropertyName, setPropertyValue]);
+    }, [setPropertyValue]);
 
     const setName = React.useCallback((v) => {
         name.current = v;
-        setDisplayedName(v);
-    }, []);
+        dispatch(actions.selectDisplayedProperty(v));
+    }, [dispatch]);
 
     const setValue = React.useCallback((v) => {
         value.current = v;
@@ -29,35 +28,44 @@ const useProperty = ({ setPropertyName, setPropertyValue }) => {
     }, []);
 
     return {
-        name, value,
-        displayedName, displayedValue,
+        name, value, displayedValue,
         search,
         setName, setValue
     };
 }
 
 export default function PropertyFilterContainer({
-    setPropertyName,
     setPropertyValue,
 }) {
-    const [enabled, setEnabled] = React.useState(false);
-    const dbName = useSelector((state) => state.dbName);
+    const dispatch = useDispatch();
     const {
         displayedValue,
         search,
         setName, setValue
-    } = useProperty({ setPropertyName, setPropertyValue });
+    } = useProperty({ setPropertyValue });
+    const displayedNodeProperty = useSelector(state => state.displayedNodeProperty);
+    const { data: rawNodePropertyTypes } = useNodePropertyTypesQuery();
+    const nodePropertyTypes = React.useMemo(() => rawNodePropertyTypes || [], [rawNodePropertyTypes]);
+    const namingProps = React.useMemo(() =>
+        ["displayName", "label", "name", "Name", "NAME"]
+            .filter(p => nodePropertyTypes.includes(p))
+        , [nodePropertyTypes]);
 
-    const { data, isFetching } = useQuery(
-        ["list_string_property_types", dbName],
-        React.useCallback(() => axios
-            .post("/api/list_string_property_types", { db_name: dbName })
-            .then(res => res.data)
-            .catch(err => { console.log(err); return []; })
-            , [dbName]),
-        { enabled }
-    )
-    const propertyNames = data || [];
+    const defaultNodeProperty = React.useMemo(() => {
+        if (namingProps[0]) return namingProps[0];
+
+        const regexProps = nodePropertyTypes.map(p => p.match("/name|Name|NAME|label|Label|LABEL/"));
+        return regexProps.length !== 0
+            ? regexProps[0]
+            : nodePropertyTypes[0];
+    }, [namingProps, nodePropertyTypes])
+
+    React.useEffect(() => {
+        if (displayedNodeProperty === null && defaultNodeProperty !== undefined) {
+            dispatch(actions.selectDisplayedProperty(defaultNodeProperty))
+        }
+
+    }, [defaultNodeProperty, dispatch, displayedNodeProperty]);
 
     return <form onSubmit={(e) => {
         e.preventDefault();
@@ -69,7 +77,6 @@ export default function PropertyFilterContainer({
                 <Autocomplete
                     id="property-name-filter"
                     blurOnSelect
-                    onOpen={() => setEnabled(true)}
                     onChange={(e, v) => {
                         setName(v);
                         if (!v) {
@@ -77,21 +84,20 @@ export default function PropertyFilterContainer({
                             e.currentTarget.form.requestSubmit();
                         }
                     }}
-                    options={propertyNames}
+                    value={displayedNodeProperty}
+                    options={nodePropertyTypes}
                     sx={{ width: "50%", m: 1 }}
                     size="small"
                     autoSelect
                     renderInput={(params) => (
                         <TextField
                             {...params}
+                            required
                             label="Property"
                             InputProps={{
                                 ...params.InputProps,
                                 endAdornment: (
                                     <React.Fragment>
-                                        {isFetching
-                                            ? <CircularProgress color="inherit" size={20} />
-                                            : null}
                                         {params.InputProps.endAdornment}
                                     </React.Fragment>
                                 ),
@@ -99,6 +105,7 @@ export default function PropertyFilterContainer({
                     )}
                 />
                 <TextField
+                    required
                     id="outlined-controlled"
                     label="Property value"
                     value={displayedValue}
@@ -110,3 +117,4 @@ export default function PropertyFilterContainer({
         </BorderedContainer >
     </form>;
 }
+

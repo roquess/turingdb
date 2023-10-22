@@ -1,7 +1,5 @@
-import axios from 'axios'
 import React from 'react'
 import { useSelector } from 'react-redux';
-import { useQuery } from '@tanstack/react-query';
 import { useTheme } from '@emotion/react';
 import HubIcon from '@mui/icons-material/Hub';
 
@@ -21,36 +19,12 @@ import NodeInspector from './NodeInspector';
 const SideNodeInspector = (props) => {
     const theme = useTheme();
     const { open, menuExpanded } = props
-    const inspectedNode = useSelector((state) => state.inspectedNode);
-    const dbName = useSelector((state) => state.dbName);
+    const inspectedNode = useSelector(state => state.inspectedNode);
     const [showFullInspector, setShowFullInspector] = React.useState(false);
 
-    const listNodeProperties = React.useCallback(async () =>
-        inspectedNode && await axios
-            .post("/api/list_node_properties", {
-                db_name: dbName,
-                id: inspectedNode.id,
-            })
-            .then(res => {
-                return res.data;
-            })
-            .catch(err => {
-                console.log(err);
-                return {};
-            })
-        , [dbName, inspectedNode])
-
-    const queryKey = [
-        "list_node_properties",
-        inspectedNode?.id
-    ];
-    const { data, status } = useQuery(
-        queryKey,
-        listNodeProperties,
-    );
-
-    const properties = data || {};
     if (!inspectedNode) return <></>;
+
+    const properties = inspectedNode.properties;
 
     return <Box
         m={1}
@@ -76,28 +50,34 @@ const SideNodeInspector = (props) => {
                 }}
             >
                 <HubIcon sx={{ mr: 3, color: theme.palette.primary.main }} />
-                <Typography sx={{ color: theme.palette.primary.main }}>Node {inspectedNode.id}</Typography>
+                <Typography sx={{ color: theme.palette.primary.main }}
+                >
+                    Node {inspectedNode.id}
+                </Typography>
             </ListItemIcon>
             {menuExpanded &&
-                (inspectedNode & status === "loading"
+                (!inspectedNode
                     ? <CircularProgress size={20} />
                     : <Box>
                         <Box overflow="auto">
-                        {Object.keys(properties).map(pName =>
-                            <Box
-                                key={"box-key-" + pName}
-                                display="flex"
-                                alignItems="center"
-                            >
-                                <Typography
-                                    variant="body2"
+                            <Typography variant="body2">
+                                <Secondary>Node type:</Secondary> {inspectedNode.node_type}
+                            </Typography>
+                            {Object.keys(properties).map(pName =>
+                                <Box
+                                    key={"box-key-" + pName}
+                                    display="flex"
+                                    alignItems="center"
                                 >
-                                    <Secondary>{pName}</Secondary>: <span>{properties[pName].toString()}</span>
-                                </Typography>
-                            </Box>)}
+                                    <Typography
+                                        variant="body2"
+                                    >
+                                        <Secondary>{pName}</Secondary>: <span>{properties[pName].toString()}</span>
+                                    </Typography>
+                                </Box>)}
                         </Box>
                         <Button onClick={() => setShowFullInspector(true)}>Inspect node</Button>
-                        <NodeInspector open={showFullInspector} onClose={() => setShowFullInspector(false)}/>
+                        <NodeInspector open={showFullInspector} onClose={() => setShowFullInspector(false)} />
                     </Box>
                 )
             }
@@ -106,3 +86,4 @@ const SideNodeInspector = (props) => {
 };
 
 export default SideNodeInspector;
+

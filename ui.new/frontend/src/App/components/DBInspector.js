@@ -4,16 +4,13 @@ import {
     Box
 } from '@mui/material'
 
-import {
-    NodeTypeFilterContainer,
-    PropertyFilterContainer,
-    NodeFilterContainer,
-    SelectedNodesContainer,
-} from './'
+import NodeTypeFilterContainer from './NodeTypeFilterContainer';
+import PropertyFilterContainer from './PropertyFilterContainer';
+import NodeFilterContainer from './NodeFilterContainer';
+import SelectedNodesContainer from './SelectedNodesContainer';
 
 export default function DBInspector() {
     const [selectedNodeType, setSelectedNodeType] = React.useState(null);
-    const [propertyName, setPropertyName] = React.useState(null);
     const [propertyValue, setPropertyValue] = React.useState("");
 
     return <Box>
@@ -23,18 +20,16 @@ export default function DBInspector() {
         />
 
         <PropertyFilterContainer
-            propertyName={propertyName}
-            setPropertyName={setPropertyName}
             propertyValue={propertyValue}
             setPropertyValue={setPropertyValue}
         />
 
         <NodeFilterContainer
             selectedNodeType={selectedNodeType}
-            propertyName={propertyName}
             propertyValue={propertyValue}
         />
 
         <SelectedNodesContainer />
     </Box>;
 }
+
