@@ -7,6 +7,8 @@
 
 #include "BoostProcess.h"
 
+class RegressJob;
+
 class RegressTesting {
 public:
     using Path = std::filesystem::path;
@@ -19,19 +21,20 @@ public:
 
 private:
     const Path _reportDir;
-    size_t _concurrency {1};
+    int _concurrency {1};
     bool _error {false};
     ProcessGroup _processGroup;
     std::vector<Path> _testPaths;
     std::vector<Path> _testFail;
     std::vector<Path> _testSuccess;
     std::queue<Path> _testWaitQueue;
-    std::list<ProcessChild> _runningTests;
+    std::list<RegressJob*> _runningTests;
 
     void analyzeDir(const Path& dir);
     void analyzeTest(const Path& dir);
     void runTests();
-    ProcessChild runTest(const Path& dir);
     void writeTestResults();
     void cleanDir(const Path& dir);
+    void populateRunQueue();
+    void processTestTermination(RegressJob* job);
 };

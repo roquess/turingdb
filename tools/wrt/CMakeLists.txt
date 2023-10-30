@@ -1,5 +1,6 @@
 
 set(wrt_sources
+        RegressJob.cpp
         RegressTesting.cpp
         wrt.cpp)
 

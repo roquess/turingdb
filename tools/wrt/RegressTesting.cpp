@@ -6,8 +6,10 @@
 #include <thread>
 #include <chrono>
 
+#include <boost/process.hpp>
+
 #include "FileUtils.h"
-#include "Command.h"
+#include "RegressJob.h"
 
 #include "TimerStat.h"
 #include "BioLog.h"
@@ -15,9 +17,11 @@
 #include "MsgWRT.h"
 
 using namespace Log;
+using namespace std::chrono_literals;
 
 RegressTesting::RegressTesting(const Path& reportDir)
-    : _reportDir(reportDir)
+    : _reportDir(reportDir),
+    _processGroup(std::make_unique<boost::process::group>())
 {
 }
 
@@ -105,7 +109,7 @@ void RegressTesting::runTests() {
 
     // Add all detected tests to the wait queue
     for (const auto& path : _testPaths) {
-        _testWaitQueue.push_back(path);
+        _testWaitQueue.push(path);
     }
 
     if (_testWaitQueue.empty()) {
@@ -113,52 +117,29 @@ void RegressTesting::runTests() {
     }
 
     // Put first job in the run set
-    {
-        const auto firstTest = _testWaitQueue.top();
-        _testWaitQueue.pop();
-        _runningTests.emplace_back(runTest(firstTest));
-    }
+    // We get a first job to run until we found one that can start
+    populateRunQueue();
 
     while (!_runningTests.empty()) {
         // Check if a job is finished
         auto it = _runningTests.begin();
         while (it != _runningTests.end()) {
-            auto& child = *it;
-            if (!child.running()) {
+            RegressJob* job = *it;
+            if (!job->isRunning()) {
+                processTestTermination(job);
+
                 const auto toBeRemoved = it;
-                it++;
+                ++it;
                 _runningTests.erase(toBeRemoved);
             } else {
-                ++it;
+                it++;
             }
         }
 
-        // Run tests if our concurrency setting allows it
-        if (_runningTests.size() < _concurrency) {
-            const auto firstTest = _testWaitQueue.top();
-            _testWaitQueue.pop();
-            _runningTests.emplace_back(runTest(firstTest));
-        }
+        populateRunQueue();
 
         std::this_thread::sleep_for(200ms);
     }
-}
-
-ProcessChild RegressTesting::runTest(const Path& dir) {
-    const auto runScriptPath = dir/"run.sh";
-    if (!FileUtils::exists(runScriptPath)) {
-        BioLog::log(msg::ERROR_FILE_NOT_EXISTS() << runScriptPath.string());
-        _error = true;
-        return;
-    }
-
-    Command cmd(runScriptPath.string());
-    cmd.setWorkingDir(dir);
-    cmd.setLogFile(dir/"run.log");
-    cmd.setGenerateScript(true);
-
-    BioLog::echo("Run: "+dir.string());
-    return cmd.runAsync(_processGroup);
 }
 
 void RegressTesting::writeTestResults() {
@@ -206,5 +187,34 @@ void RegressTesting::cleanDir(const Path& dir) {
                 }
             }
         }
+    }
+}
+
+void RegressTesting::populateRunQueue() {
+    const int capacity = _concurrency - _runningTests.size();
+    int jobRank = 0;
+
+    while (jobRank < capacity && !_testWaitQueue.empty()) {
+        const auto firstTest = _testWaitQueue.front();
+        _testWaitQueue.pop();
+        RegressJob* job = new RegressJob(firstTest);
+        if (!job->start(_processGroup)) {
+            continue;
+        }
+
+        _runningTests.push_back(job);
+        jobRank++;
+    }
+}
+
+void RegressTesting::processTestTermination(RegressJob* job) {
+    const int exitCode = job->getExitCode();
+    const auto& path = job->getPath();
+    if (exitCode == 0) {
+        BioLog::echo("Pass: "+path.string());
+        _testSuccess.emplace_back(path);
+    } else {
+        BioLog::echo("Fail: "+path.string());
+        _testFail.emplace_back(path);
     }
 }
