@@ -30,6 +30,8 @@ function build_package() {
 	rm -rf $package_name/lib/python/turing/db
 
 	cp -r build/turing_package/notebooks $package_name/notebooks
+	cp -r build/turing_package/scripts $package_name/scripts
+	cp -r build/turing_package/neo4j $package_name/neo4j
 
 	# Create package archive
 	tar -czvf $package_name.tar.gz $package_name
