@@ -9,28 +9,26 @@
   "style": {
     "z-index": "10",
     "content": "data(label)",
+    "background-color" : "data(iconColor)",
+    "color": "data(textColor)",
     "font-size": "12px",
     "font-weight": "normal",
     "text-valign": "bottom",
     "text-halign": "right",
     "background-opacity": 1.0,
-    "background-color" : "rgb(255,255,255)",
     "shape": "hexagon",
     "width": 23.0,
     "height": 20.0,
-    "text-opacity": 1.0,
-    "color": "rgb(204,204,204)"
+    "text-opacity": 1.0
   }
 }, {
   "selector": "node[type=\"neighbor\"]",
   "style": {
     "font-size": "12px",
     "background-opacity": 1.0,
-    "background-color" : "rgb(155,155,155)",
     "width": 12.0,
     "height": 10.0,
-    "text-opacity": 1.0,
-    "color": "rgb(164,164,164)"
+    "text-opacity": 1.0
   }
 }, {
   "selector": "node[?query]",
@@ -54,47 +52,33 @@
     "text-halign": "right",
     "curve-style": "bezier",
     "target-arrow-shape": "triangle",
-    "target-arrow-color": "rgb(0,193,0)",
+    "target-arrow-color": "data(lineColor)",
+    "line-color": "data(lineColor)",
     "arrow-scale": 1,
     "text-opacity": 1.0,
-    "color": "rgb(30,100,50)",
+    "color": "data(textColor)",
     "font-size": 12,
     "width": 2.0,
-    "line-color": "rgb(0,153,0)",
     "line-style": "solid",
     "text-wrap": "wrap"
   }
 }, {
   "selector": "edge[type=\"neighbor\"]",
   "style": {
-    "width": 1.0,
-    "target-arrow-color": "rgb(0,140,0)",
-    "line-color": "rgb(0, 80, 0)"
+    "width": 1.0
   }
 }, {
-  "selector": "node.unhighlighted",
+  "selector": "node:selected",
   "style": {
-    "opacity": "0.2"
+    "background-color": "#96a",
+    "color": "#96a"
   }
 }, {
-  "selector": "edge.unhighlighted",
+  "selector": "edge:selected",
   "style": {
-    "opacity": "0.05"
-  }
-}, {
-  "selector": ".highlighted",
-  "style": {
-    "z-index": "999999"
-  }
-}, {
-  "selector": "node.highlighted",
-  "style": {
-    "background-color": "#A3f"
-  }
-}, {
-  "selector": "edge.filtered",
-  "style": {
-    "opacity": "0"
+    "line-color": "#96a",
+    "color": "#96a",
+    "target-arrow-color": "#96a"
   }
 }]
 

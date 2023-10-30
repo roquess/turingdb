@@ -14,12 +14,15 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import DnsIcon from '@mui/icons-material/Dns';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 
-import { DBSelector, SideNodeInspector } from './';
-import { DrawerHeader } from '../App/App';
+import DBSelector from './DBSelector';
+import SideNodeInspector from './SideNodeInspector';
+import { DrawerHeader } from './App';
 import { useDispatch, useSelector } from 'react-redux';
-import * as actions from '../App/actions';
-import * as thunks from '../App/thunks';
+import * as actions from '../actions';
+import * as thunks from '../thunks';
 import { Divider } from '@mui/material';
 
 const drawerWidth = 240;
@@ -123,6 +126,20 @@ export default function CustomAppBar() {
                     <Box variant="h5">
                         {dbName ? dbName : "No database selected"}
                     </Box>
+                    <Box
+                    >
+                        <IconButton
+                            sx={{ ml: 1 }}
+                            onClick={() =>
+                                theme.palette.mode === 'dark'
+                                    ? dispatch(actions.setThemeMode('light'))
+                                    : dispatch(actions.setThemeMode('dark'))
+                            }
+                            color="inherit"
+                        >
+                            {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                        </IconButton>
+                    </Box>
                 </Box>
             </Toolbar>
         </AppBar>
@@ -222,6 +239,7 @@ export default function CustomAppBar() {
                     }
                 >
                     <ListItemButton
+                        disabled
                         sx={{
                             minHeight: 48,
                             justifyContent: open ? 'initial' : 'center',
