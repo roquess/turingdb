@@ -24,6 +24,7 @@ public:                                             \
 // MsgDB        5000
 // MsgRPCServer 6000
 // MsgShell     7000
+// MsgWRT       8000
 
 namespace Log {
 

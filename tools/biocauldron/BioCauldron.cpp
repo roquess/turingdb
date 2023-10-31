@@ -15,13 +15,11 @@ using namespace Log;
 // This is necessary to handle unix signals
 std::unique_ptr<TuringUIServer> server;
 
-void sigintHandler(int signum) {
-    if (signum == SIGINT) {
-        server->terminate();
-        BioLog::printSummary();
-        BioLog::destroy();
-        exit(EXIT_SUCCESS);
-    }
+void signalHandler(int signum) {
+    server->terminate();
+    BioLog::printSummary();
+    BioLog::destroy();
+    exit(EXIT_SUCCESS);
 }
 
 int main(int argc, const char** argv) {
@@ -39,7 +37,8 @@ int main(int argc, const char** argv) {
     server = std::make_unique<TuringUIServer>(toolInit.getOutputsDir());
     
     // Install signal handler to handle ctrl+C
-    signal(SIGINT, sigintHandler);
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
 
     // Start server
     if (startDevRequested) {
@@ -64,5 +63,5 @@ int main(int argc, const char** argv) {
 
     BioLog::printSummary();
     BioLog::destroy();
-    exit(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }
