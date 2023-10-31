@@ -15,11 +15,13 @@ int main(int argc, const char** argv) {
     ArgParser& argParser = toolInit.getArgParser();
     argParser.addOption("clean", "Clean all test directories", false);
     argParser.addOption("timeout", "Maximum running time of a test in seconds", true);
+    argParser.addOption("noclean", "Do not clean test directories", false);
 
     toolInit.init(argc, argv);
 
     bool cleanDir = false;
     size_t timeout = 0;
+    bool cleanIfSuccess = true;
     bool error = false;
     for (const auto& option : argParser.options()) {
         if (option.first == "clean") {
@@ -29,6 +31,8 @@ int main(int argc, const char** argv) {
             if (error) {
                 BioLog::log(msg::ERROR_INCORRECT_CMD_USAGE() << "timeout");
             }
+        } else if (option.first == "noclean") {
+            cleanIfSuccess = false;
         }
     }
 
@@ -40,6 +44,7 @@ int main(int argc, const char** argv) {
     }
 
     RegressTesting regress(toolInit.getReportsDir());
+    regress.setCleanIfSuccess(cleanIfSuccess);
 
     if (timeout > 0) {
         regress.setTimeout(timeout);

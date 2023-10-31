@@ -53,7 +53,12 @@ int main(int argc, const char** argv) {
         notebookRunner.addNotebook(arg);
     }
 
-    notebookRunner.run();
+    if (!notebookRunner.run()) {
+        BioLog::printSummary();
+        BioLog::destroy();
+        PerfStat::destroy();
+        return EXIT_FAILURE;
+    }
 
     BioLog::printSummary();
     BioLog::destroy();

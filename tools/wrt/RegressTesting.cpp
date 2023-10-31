@@ -162,7 +162,7 @@ void RegressTesting::writeTestResults() {
     }
 }
 
-void RegressTesting::cleanDir(const Path& dir) {
+void RegressTesting::cleanDir(const Path& dir, bool keepTopLevelWRT) {
     if (!FileUtils::isDirectory(dir)) {
         return;
     }
@@ -170,6 +170,10 @@ void RegressTesting::cleanDir(const Path& dir) {
     for (const auto& entry : std::filesystem::directory_iterator(dir)) {
         const auto entryPath = entry.path();
         if (FileUtils::isDirectory(entryPath)) {
+            if (keepTopLevelWRT && entryPath.filename() == "wrt.out") {
+                continue;
+            }
+
             if (entryPath.extension() == ".out") {
                 if (!FileUtils::removeDirectory(entryPath)) {
                     BioLog::log(msg::ERROR_FAILED_TO_REMOVE_DIRECTORY()
@@ -177,7 +181,7 @@ void RegressTesting::cleanDir(const Path& dir) {
                 }
             }
 
-            cleanDir(entryPath);
+            cleanDir(entryPath, false);
         } else {
             const auto name = entryPath.filename();
             if (name == "wrt.sum"
@@ -221,7 +225,10 @@ void RegressTesting::processTestTermination(RegressJob* job) {
     if (exitCode == 0) {
         BioLog::echo("Pass: "+path.string());
         _testSuccess.emplace_back(path);
-        cleanDir(path);
+
+        if (_cleanIfSuccess) {
+            cleanDir(path, true);
+        }
     } else {
         BioLog::echo("Fail: "+path.string());
         _testFail.emplace_back(path);
