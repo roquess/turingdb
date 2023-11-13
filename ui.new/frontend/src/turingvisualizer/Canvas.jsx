@@ -6,7 +6,6 @@ import cola from "cytoscape-cola";
 // Turing
 import { style, useVisualizerContext, useCanvasTrigger } from ".";
 
-console.log(cola);
 if (typeof cytoscape("core", "cola") === "undefined") {
   cytoscape.use(cola);
 }

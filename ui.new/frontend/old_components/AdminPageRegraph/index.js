@@ -288,8 +288,6 @@ const AdminPageContent = (props) => {
     });
   }, []);
 
-  console.log("RENDER: ", Object.keys(items).length);
-
   return (
     <div
       style={{
