@@ -6,7 +6,6 @@ import { ContextMenu as BPContextMenu } from "@blueprintjs/core";
 
 // Turing
 import { useVisualizerContext } from "./";
-import { useTheme } from "@emotion/react";
 
 const RawContextMenu = React.forwardRef((props, ref) => {
   return (
@@ -30,13 +29,12 @@ export const useContextMenuData = () => {
 
 export const ContextMenu = (props) => {
   const vis = useVisualizerContext();
-  const theme = useTheme();
 
   return (
     <RawContextMenu
       ref={vis.refs.contextMenu.ref}
       content={<div
-        className={theme.palette.mode === "dark" ? "bp5-dark" : "bp5"}>
+        className={vis.state().themeMode === "dark" ? "bp5-dark" : "bp5"}>
         {props.children}
       </div>}
     />

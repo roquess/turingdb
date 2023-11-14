@@ -109,7 +109,7 @@ const Canvas = () => {
 
           // If no elements to add or remove, it means the graph did not have
           // any element prior to this operation. Thus, we can center the camera
-          const centerGraph = toKeep.length === 0 && toRm.length === 0;
+          const firstRender = toKeep.length === 0 && toRm.length === 0;
 
           // Hack to start the animation from a decent initial guess:
           // - lock elements that did not change,
@@ -130,7 +130,7 @@ const Canvas = () => {
 
             const stop = () =>
               runCallbacks[nextLayoutName](it, nextLayoutId, nextLayout);
-            eles.layout({ ...lDef, centerGraph, stop }).run();
+            eles.layout({ ...lDef, firstRender, stop }).run();
           };
 
           const animationTime = 400;
@@ -140,7 +140,7 @@ const Canvas = () => {
             avoidOverlap: false,
             refresh: 2,
             animate: true,
-            centerGraph,
+            centerGraph: firstRender,
             handleDisconnected: false,
             stop,
           });
@@ -164,6 +164,7 @@ const Canvas = () => {
           const nextLayout = layouts.definitions[nextLayoutId];
           const nextLayoutName = nextLayout?.name || "end";
           const stop = () =>
+            vis.cy().fit();
             runCallbacks[nextLayoutName](it, nextLayoutId, nextLayout);
 
           eles.layout({ ...lDef, stop }).run();
