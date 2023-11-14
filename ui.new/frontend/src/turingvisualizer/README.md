@@ -106,6 +106,7 @@ const MyComponent = () => {
 
 Available trigger categories:
 - `elements`: The JSON dict that cytoscape uses to render stuff
+- `selectedNodeIds`: IDs of the selected nodes (the main nodes, which don't include their neighbors)
 - `filters`: The node filters 
 - `layouts`: The layouts object (using right click -> setLayout will execute callbacks stored here). 
 - `nodeLabel`: The node label displayed on the canvas
