@@ -130,7 +130,7 @@ const Canvas = () => {
 
             const stop = () =>
               runCallbacks[nextLayoutName](it, nextLayoutId, nextLayout);
-            eles.layout({ ...lDef, firstRender, stop }).run();
+            eles.layout({ ...lDef, centerGraph: firstRender, stop }).run();
           };
 
           const animationTime = 400;

@@ -186,13 +186,7 @@ const ViewerPageContent = () => {
     name: "setSelectedNodeIds",
 
     callback: () => {
-      const nodeIds = vis
-        .state()
-        .elements.filter(
-          (e) => e.group === "nodes" && e.data.type === "selected"
-        )
-        .map((e) => e.data.turing_id)
-        .sort();
+      const nodeIds = vis.state().selectedNodeIds;
       const currentIds = Object.keys(selectedNodesRef.current).sort();
 
       if (nodeIds.toString() !== currentIds.toString()) {
@@ -206,7 +200,7 @@ const ViewerPageContent = () => {
         ).filter((n) => nodeIdsMap[n.id]);
 
         dispatch(
-          thunks.getNodes(dbName, unknownNodeIds, { yield_edges: false })
+          thunks.getNodes(dbName, unknownNodeIds, { yield_edges: true})
         ).then((res) => {
           const unknownNodes = Object.values(res);
           dispatch(
