@@ -184,6 +184,10 @@ MSG_ERROR(ERROR_IMPORT_NET_APPLIED_WITH_WRONG_ORDER, 2056,
 
 MSG_ERROR(ERROR_NETWORK_ALREADY_EXISTS, 2057,
           "A network with the same name ($0) already exists")
+
+MSG_WARNING(WARNING_COULD_NOT_DEDUCE_NETWORK_NAME, 2058,
+          "Could not deduce a name for the network from the path given ($0). Provide one with "
+          "the '-net' option. Falling back to the full path")
 }
 
 #endif

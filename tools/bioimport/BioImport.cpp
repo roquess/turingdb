@@ -1,14 +1,9 @@
-#include <regex>
 #include <string>
 #include <vector>
 
 #include "GMLImport.h"
-#include "JsonParser.h"
-#include "JsonParsingStats.h"
-#include "Neo4JInstance.h"
 #include "Neo4jImport.h"
 #include "StringBuffer.h"
-#include "ThreadHandler.h"
 
 #include "DB.h"
 #include "DBDumper.h"
@@ -16,13 +11,10 @@
 #include "SchemaReport.h"
 
 #include "PerfStat.h"
-#include "TimerStat.h"
 #include "ToolInit.h"
 
-#include "BioAssert.h"
 #include "BioLog.h"
 #include "FileUtils.h"
-#include "MsgCommon.h"
 #include "MsgImport.h"
 #include "Writeback.h"
 
@@ -56,7 +48,7 @@ int main(int argc, const char** argv) {
     ArgParser& argParser = toolInit.getArgParser();
 
     argParser.addOption(
-        "turingdbPath",
+        "db-path",
         "Exports the turing database to the specified folder",
         "db_path");
 
@@ -66,7 +58,7 @@ int main(int argc, const char** argv) {
         "my_file.dump");
 
     argParser.addOption(
-        "jsonNeo4j",
+        "json-neo4j",
         "Imports json files from a json/ directory (default network name: \"my_json_dir\")",
         "my_json_dir");
 
@@ -95,14 +87,14 @@ int main(int argc, const char** argv) {
 
     for (const auto& option : argParser.options()) {
         const auto& optName = option.first;
-        if (optName == "turingdbPath") {
+        if (optName == "db-path") {
             turingdbPath = option.second;
         } else if (optName == "neo4j") {
             importData.emplace_back(ImportData {
                 .type = ImportType::NEO4J,
                 .path = option.second,
             });
-        } else if (optName == "jsonNeo4j") {
+        } else if (optName == "json-neo4j") {
             importData.emplace_back(ImportData {
                 .type = ImportType::JSON_NEO4J,
                 .path = option.second,
@@ -129,11 +121,7 @@ int main(int argc, const char** argv) {
 
             previousCmd.networkName = option.second;
         } else if (optName == "db") {
-            const FileUtils::Path path(option.second);
-            DBLoader loader(db, path);
-            if (!loader.load()) {
-                return cleanUp(EXIT_FAILURE);
-            }
+            existingDbPath = option.second;
         }
     }
 
@@ -145,13 +133,26 @@ int main(int argc, const char** argv) {
         return cleanUp(EXIT_SUCCESS);
     }
 
+    if (!existingDbPath.empty()) {
+        const FileUtils::Path path(existingDbPath);
+        DBLoader loader(db, path);
+        if (!loader.load()) {
+            return cleanUp(EXIT_FAILURE);
+        }
+    }
+
     for (const auto& data : importData) {
         Neo4jImport neo4jImport(db, toolInit.getOutputsDir());
 
-        const std::string networkName =
+        std::string networkName =
             data.networkName.empty()
                 ? FileUtils::Path(data.path).stem().string()
                 : data.networkName;
+
+        if (networkName.empty()) {
+            BioLog::log(msg::WARNING_COULD_NOT_DEDUCE_NETWORK_NAME() << data.path);
+            networkName = data.path;
+        }
 
         if (db->getNetwork(db->getString(networkName))) {
             Log::BioLog::log(msg::ERROR_NETWORK_ALREADY_EXISTS() << networkName);
