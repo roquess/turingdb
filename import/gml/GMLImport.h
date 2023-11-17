@@ -39,5 +39,6 @@ private:
     bool parseGenericCommand(std::string_view keyword);
     bool parseNodeCommand();
     bool parseEdgeCommand();
+    bool parseDBLinkageCommand(size_t sourceID, size_t targetID);
     db::Node* getNodeFromID(size_t id) const;
 };

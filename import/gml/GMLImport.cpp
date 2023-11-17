@@ -188,7 +188,12 @@ bool GMLImport::parseEdgeCommand() {
         }
     }
 
+    if (edgeTypeName == "DBLinkage") {
+        return parseDBLinkageCommand(sourceID, targetID);
+    }
+
     // Get source and target nodes
+
     Node* sourceNode = getNodeFromID(sourceID);
     Node* targetNode = getNodeFromID(targetID);
     if (!sourceNode) {
@@ -214,6 +219,113 @@ bool GMLImport::parseEdgeCommand() {
     if (!edgeType) {
         edgeType = _wb.createEdgeType(
             _db->getString(edgeTypeName),
+            srcType,
+            tgtType);
+    } else {
+        // Make sure that the EdgeType supports the
+        // src/tgt NodeType combo
+        _wb.addSourceNodeType(edgeType, srcType);
+        _wb.addTargetNodeType(edgeType, tgtType);
+        // addXNodeType is a tryAdd so no need to check if
+        // the edgeType has the X NodeType beforehand
+    }
+
+    // Create edge
+    Edge* edge = _wb.createEdge(edgeType, sourceNode, targetNode);
+    if (!edge) {
+        BioLog::log(msg::ERROR_FAILED_TO_CREATE_EDGE() << _lexer.getLine());
+        return false;
+    }
+
+    for (const auto& prop : _edgeProperties) {
+        if (prop.first != "id") {
+            const StringRef propName = _db->getString(std::string(prop.first));
+            PropertyType* pt = _wb.addPropertyType(edgeType, propName, ValueType::VK_STRING);
+            if (!pt) {
+                pt = edgeType->getPropertyType(propName);
+            }
+            _wb.setProperty(edge, Property(pt, Value::createString(std::string(prop.second))));
+        }
+    }
+
+    _insideEdge = false;
+
+    return true;
+}
+
+bool::GMLImport::parseDBLinkageCommand(size_t sourceID, size_t targetID) {
+    // Get source and target networks
+    std::string sourceNetName;
+    std::string targetNetName;
+
+    for (const auto& prop : _edgeProperties) {
+        if (prop.first == "source_network") {
+            sourceNetName = prop.second;
+        }
+        if (prop.first == "target_network") {
+            targetNetName = prop.second;
+        }
+    }
+
+    if (sourceNetName.empty()) {
+        BioLog::log(msg::ERROR_SOURCE_NETWORK_NOT_SPECIFIED()
+                    << _lexer.getLine());
+        return false;
+    }
+
+    if (targetNetName.empty()) {
+        BioLog::log(msg::ERROR_TARGET_NETWORK_NOT_SPECIFIED()
+                    << _lexer.getLine());
+        return false;
+    }
+
+    Network* sourceNet = _db->getNetwork(_db->getString(sourceNetName));
+    Network* targetNet = _db->getNetwork(_db->getString(targetNetName));
+    if (!sourceNet) {
+        BioLog::log(msg::ERROR_SOURCE_NETWORK_NOT_FOUND()
+                    << sourceNetName);
+        return false;
+    }
+
+    if (!targetNet) {
+        BioLog::log(msg::ERROR_TARGET_NETWORK_NOT_FOUND()
+                    << targetNetName);
+        return false;
+    }
+
+    // Here, sourceID should be an offseted id
+    // Loop through all networks in the db. if net->getIndex() < sourceNet->getIndex()
+    // we need to add the nodes.size() to the sourceID
+
+    for (const Network* net: _db->networks()) {
+        if (net->getIndex() < sourceNet->getIndex()) {
+            sourceID += net->nodes().size();
+        }
+        if (net->getIndex() < targetNet->getIndex()) {
+            targetID += net->nodes().size();
+        }
+    }
+    Node* sourceNode = sourceNet->getNode((DBIndex)sourceID);
+    Node* targetNode = targetNet->getNode((DBIndex)targetID);
+    if (!sourceNode) {
+        BioLog::log(msg::ERROR_NODE_ID_NOT_FOUND()
+                    << sourceID << _lexer.getLine());
+        return false;
+    }
+
+    if (!targetNode) {
+        BioLog::log(msg::ERROR_NODE_ID_NOT_FOUND()
+                    << targetID << _lexer.getLine());
+        return false;
+    }
+
+    db::EdgeType* edgeType = _db->getEdgeType(_db->getString("DBLinkage"));
+    db::NodeType* srcType = sourceNode->getType();
+    db::NodeType* tgtType = targetNode->getType();
+
+    if (!edgeType) {
+        edgeType = _wb.createEdgeType(
+            _db->getString("DBLinkage"),
             srcType,
             tgtType);
     } else {
