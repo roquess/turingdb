@@ -3,7 +3,6 @@ default:
 
 stages:
   - build
-  - test
 
 build-job:
   tags:
@@ -14,19 +13,10 @@ build-job:
     - make -j4
     - make test
     - release/check_python.sh
+    - cd test/regress && wrt -j 4
   artifacts:
     when: always
     paths:
       - unit_tests.xml
     reports:
       junit: unit_tests.xml
-
-regress-job:
-  tags:
-    - docker
-  stage: test
-  script:
-    - cd test/regress && wrt -j 4
-  artifacts:
-    when: always
-
