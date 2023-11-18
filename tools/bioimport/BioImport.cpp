@@ -89,11 +89,6 @@ int main(int argc, const char** argv) {
     for (const auto& option : argParser.options()) {
         const auto& optName = option.first;
         if (optName == "db-path") {
-            if (!FileUtils::exists(option.second)) {
-                BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS()
-                            << option.second);
-                return cleanUp(EXIT_FAILURE);
-            }
             turingdbPath = option.second;
         } else if (optName == "neo4j") {
             if (!FileUtils::exists(option.second)) {
