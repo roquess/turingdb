@@ -128,6 +128,9 @@ const useVisualizerState = (cyStyle) => {
     showNodes: (nodeIds) => showNodes(nodeIds),
     requestLayoutRun: (request) => requestLayoutRun(request),
     setFilters: (filters) => setFilters(filters),
+
+    // Overlays
+    toggleSearchNodesWindow: React.useRef(() => {}),
   };
 
   return {

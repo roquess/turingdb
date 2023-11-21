@@ -16,7 +16,7 @@ import { Icon, Popover } from "@blueprintjs/core";
 
 // Turing
 import { useVisualizerContext, useCanvasTrigger } from "@turingvisualizer";
-import SearchNodesWindow from "@ViewerPage/SearchNodesWindow";
+import SelectNodesMenu from "@ViewerPage/SelectNodesMenu";
 import HiddenNodesPopover from "@ViewerPage/HiddenNodesPopover";
 
 const btnStyle = {
@@ -122,13 +122,34 @@ const ActionsToolbar = (props) => {
         </IconButton>
       </Tooltip>
 
+      <Popover
+        enforceFocus={false}
+        placement="bottom-start"
+        interactionKind="click"
+        content={<SelectNodesMenu />}
+        renderTarget={({ isOpen, ...p }) => (
+          <Tooltip title="Select nodes" arrow>
+            <span>
+              {" "}
+              {/*Span is necessary for material-ui <Tooltip>*/}
+              <IconButton {...btnStyle} {...p}>
+                <Icon icon="select" size={22} style={{ paddingTop: 2 }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
+      />
+
       <Tooltip title="Fit canvas" arrow>
         <IconButton
           {...btnStyle}
           onClick={() =>
             vis.cy().animate(
               {
-                fit: vis.cy().nodes(),
+                fit: {
+                  eles: vis.cy().nodes(),
+                  padding: 100,
+                },
               },
               {
                 duration: 600,
@@ -195,17 +216,43 @@ const ActionsToolbar = (props) => {
         </IconButton>
       </Tooltip>
 
-      <Popover
-        enforceFocus={false}
-        placement="bottom-start"
-        interactionKind="click"
-        content={<SearchNodesWindow />}
-        renderTarget={({ isOpen, ...p }) => (
-          <IconButton {...btnStyle} {...p}>
-            <SearchIcon />
-          </IconButton>
-        )}
-      />
+      <Tooltip title="Collapse all neighbors" arrow>
+        <IconButton
+          {...btnStyle}
+          onClick={() => {
+            const selNodes = vis
+              .cy()
+              .nodes()
+              .filter((e) => e.data().type === "selected");
+            const neiData = Object.fromEntries(
+              selNodes
+                .neighborhood()
+                .filter(
+                  (e) => e.group() === "nodes" && e.data().type === "neighbor"
+                )
+                .map((n) => [
+                  n.data().turing_id,
+                  {
+                    ...n.data(),
+                    neighborNodeIds: n
+                      .connectedEdges()
+                      .map((e) =>
+                        e.data().turing_source_id !== n.data().turing_id
+                          ? e.data().turing_source_id
+                          : e.data().turing_target_id
+                      ),
+                  },
+                ])
+            );
+            vis.callbacks().hideNodes(neiData);
+          }}>
+          <Icon icon="collapse-all" />
+        </IconButton>
+      </Tooltip>
+
+      <IconButton {...btnStyle} onClick={vis.dialogs()["search-nodes"].toggle}>
+        <SearchIcon />
+      </IconButton>
     </>
   );
 };

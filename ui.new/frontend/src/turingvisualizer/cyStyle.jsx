@@ -42,12 +42,6 @@ const cyStyle = [
     },
   },
   {
-    selector: "node:selected",
-    style: {
-      "background-color": "#75c",
-    },
-  },
-  {
     selector: "edge",
     style: {
       content: "data(label)",
@@ -73,6 +67,12 @@ const cyStyle = [
     selector: 'edge[type="neighbor"]',
     style: {
       width: 1.0,
+    },
+  },
+  {
+    selector: "node:active",
+    style: {
+      "overlay-opacity": 0,
     },
   },
   {

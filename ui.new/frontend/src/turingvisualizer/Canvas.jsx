@@ -10,6 +10,16 @@ if (typeof cytoscape("core", "cola") === "undefined") {
   cytoscape.use(cola);
 }
 
+const onLayoutStop = (vis) => {
+  const viewport = vis.cy().getFitViewport();
+  const zoom = viewport?.zoom;
+
+  if (!zoom) return;
+
+  vis.cy().minZoom(zoom / 5);
+  vis.cy().maxZoom(6);
+};
+
 export const useCytoscapeInstance = () => {
   const vis = useVisualizerContext();
   const cytoscapeProps = vis.state().cytoscapeProps;
@@ -27,6 +37,8 @@ export const useCytoscapeInstance = () => {
     vis.cy().on("cxttap", (e) => evs.current.cxttap(vis, e));
     vis.cy().on("dragfreeon", (e) => evs.current.dragfreeon(vis, e));
     vis.cy().on("dbltap", (e) => evs.current.dbltap(vis, e));
+    vis.cy().on("render", (e) => evs.current.render(vis, e));
+    vis.cy().on("select unselect", (e) => evs.current.select(vis, e));
   }, [vis, cytoscapeProps.style]);
 
   return vis.refs.cy;
@@ -66,12 +78,12 @@ const Canvas = () => {
       const patchedElements = {};
 
       c.batch(() => {
+        if (toAdd.length !== 0 || toRm.length !== 0) c.elements().unselect();
         toAdd.forEach((e) => c.add(e));
         toRm.forEach((e) => c.remove(e));
 
         // Patching exiting elements
         toKeep.forEach((e1) => {
-          e1.unselect(); // Dismiss selection
           const e2 = mappedElements[e1.id()];
           const data1 = e1.data();
           const data2 = e2.data;
@@ -137,8 +149,8 @@ const Canvas = () => {
           const layout = eles.layout({
             ...lDef,
             maxSimulationTime: animationTime,
-            avoidOverlap: false,
-            refresh: 2,
+            avoidOverlap: true,
+            refresh: 1,
             animate: true,
             centerGraph: firstRender,
             handleDisconnected: false,
@@ -147,7 +159,7 @@ const Canvas = () => {
 
           addedElements.animate({
             style: { opacity: 1.0 },
-            duration: animationTime + 1000,
+            duration: animationTime + 600,
             easing: "ease-in-out-expo",
           });
 
@@ -163,9 +175,8 @@ const Canvas = () => {
           const nextLayoutId = it.next().value;
           const nextLayout = layouts.definitions[nextLayoutId];
           const nextLayoutName = nextLayout?.name || "end";
-          const stop = () =>
-            vis.cy().fit();
-            runCallbacks[nextLayoutName](it, nextLayoutId, nextLayout);
+          const stop = () => vis.cy().fit();
+          runCallbacks[nextLayoutName](it, nextLayoutId, nextLayout);
 
           eles.layout({ ...lDef, stop }).run();
         },
@@ -185,7 +196,9 @@ const Canvas = () => {
           eles.layout({ ...lDef, stop }).run();
         },
 
-        end: () => {},
+        end: () => {
+          onLayoutStop(vis);
+        },
       };
 
       if (nodesAdded || layouts.runRequested) {
@@ -193,6 +206,7 @@ const Canvas = () => {
         const it = Object.keys(layouts.definitions)[Symbol.iterator]();
         const firstLayoutId = it.next().value;
 
+        onLayoutStop(vis); // Execution at layout start too
         runCallbacks[firstLayout.name](it, firstLayoutId, firstLayout);
         vis.callbacks().requestLayoutRun(false);
       }

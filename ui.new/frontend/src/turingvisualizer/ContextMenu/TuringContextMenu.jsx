@@ -1,217 +1,49 @@
-// Core
-import React from "react";
-
 // @blueprintjs
 import { Icon, Menu, MenuDivider, MenuItem } from "@blueprintjs/core";
 
 // Turing
-import { COLOR_MODES, DISCRETE_COLORS } from "./constants";
-import { ContextMenu, useContextMenuData, useVisualizerContext } from "./";
+import { COLOR_MODES, DISCRETE_COLORS } from "../constants";
+import { ContextMenu, useContextMenuData } from "./ContextMenu";
+import { useVisualizerContext } from "../";
+import { useMenuActions } from "./hooks";
+import * as items from "./items";
 
 const NodeContextMenu = (props) => {
   const vis = useVisualizerContext();
-  const cy = vis.cy();
   const selectedNodeIds = vis.state().selectedNodeIds;
-  const layouts = vis.state().layouts;
   const nodeIds = Object.fromEntries(selectedNodeIds.map((id) => [id, true]));
   const data = vis.contextMenuData().data;
   const isSelected = nodeIds[data.turing_id];
-  const nodeProps = data.properties;
-
-  const highlightedNodes = cy.nodes().filter((e) => e.selected());
-  const highlightedSelectedNodes = highlightedNodes.filter(
-    (e) => e.data().type === "selected"
-  );
-  const highlightedNeighborNodes = highlightedNodes.filter(
-    (e) => e.data().type === "neighbor"
-  );
-  const highlightedSelectedNodeIds = Object.fromEntries(
-    highlightedSelectedNodes.map((n) => [n.data().turing_id, true])
-  );
-  const highlightedNeighborNodeData = Object.fromEntries(
-    highlightedNeighborNodes.map((n) => [
-      n.data().turing_id,
-      {
-        ...n.data(),
-        neighborNodeIds: n
-          .connectedEdges()
-          .map((e) =>
-            e.data().turing_source_id !== n.data().turing_id
-              ? e.data().turing_source_id
-              : e.data().turing_target_id
-          ),
-      },
-    ])
-  );
-
-  const hideNodes = React.useCallback(() => {
-    vis
-      .callbacks()
-      .setSelectedNodeIds(
-        selectedNodeIds.filter((id) => !highlightedSelectedNodeIds[id])
-      );
-    vis.callbacks().hideNodes(highlightedNeighborNodeData);
-  }, [
-    vis,
-    highlightedSelectedNodeIds,
-    highlightedNeighborNodeData,
-    selectedNodeIds,
-  ]);
-
-  const collapseNeighbors = React.useCallback(() => {
-    const neighborData = Object.fromEntries(
-      highlightedSelectedNodes
-        .neighborhood()
-        .filter((e) => e.group() === "nodes" && e.data().type === "neighbor")
-        .map((n) => [
-          n.data().turing_id,
-          {
-            ...n.data(),
-            neighborNodeIds: n
-              .connectedEdges()
-              .map((e) =>
-                e.data().turing_source_id !== n.data().turing_id
-                  ? e.data().turing_source_id
-                  : e.data().turing_target_id
-              ),
-          },
-        ])
-    );
-    vis.callbacks().hideNodes(neighborData);
-  }, [vis, highlightedSelectedNodes]);
-
-  const keepOnly = React.useCallback(() => {
-    const eles = vis
-      .cy()
-      .nodes()
-      .filter((e) => e.selected());
-    vis.callbacks().setSelectedNodeIds(eles.map((e) => e.data().turing_id));
-  }, [vis]);
-
-  const addToNetwork = React.useCallback(() => {
-    const eles = vis
-      .cy()
-      .nodes()
-      .filter((e) => e.selected());
-    vis
-      .callbacks()
-      .setSelectedNodeIds([
-        ...vis.state().selectedNodeIds,
-        ...eles.map((e) => e.data().turing_id),
-      ]);
-  }, [vis]);
-
-  const setVerticalLine = React.useCallback(() => {
-    const eles = cy.filter((e) => e.selected());
-    if (eles.length === 0) return;
-
-    const newLayout = {
-      name: "preset",
-      fit: false,
-      positions: {
-        ...Object.fromEntries(
-          eles.map((e, i) => [
-            e.id(),
-            { x: layouts.layoutCount * 50.0, y: i * 40.0 },
-          ])
-        ),
-      },
-    };
-
-    vis.callbacks().addLayout(
-      newLayout,
-      eles.map((e) => e.id())
-    );
-  }, [vis, cy, layouts.layoutCount]);
-
-  const VerticalLineIcon = () => (
-    <Icon icon="layout-linear" style={{ rotate: "90deg" }} />
-  );
+  const actions = useMenuActions();
 
   return (
     <Menu>
+      <MenuDivider title="General" />
       <NodeColorContextMenu nodePropertyTypes={props.nodePropertyTypes} />
       <MenuItem icon="layout" text="Set layout...">
-        <MenuItem
-          icon={<VerticalLineIcon />}
-          text="Vertical line"
-          onClick={setVerticalLine}
-        />
-        <MenuItem
-          icon="layout-auto"
-          text="Auto"
-          onClick={() => {
-            const eles = cy.filter((e) => e.selected());
-            if (eles.length === 0) return;
-            vis.callbacks().resetLayout(eles.map((e) => e.id()));
-          }}
-        />
+        <items.ItemLayoutVerticalLine actions={actions} />
+        <items.ItemLayoutAuto />
       </MenuItem>
+
+      <MenuDivider title="Selection" />
+      <items.ItemSelectNeighborhood />
       <MenuItem text="Select all..." icon="select">
-        <MenuItem icon="property" text="by same property...">
-          {Object.keys(nodeProps).map((propName) => (
-            <MenuItem
-              key={propName}
-              icon="label"
-              text={propName}
-              onClick={() =>
-                cy
-                  .filter(
-                    (e) =>
-                      e.data().properties[propName] &&
-                      e.data().properties[propName] === nodeProps[propName]
-                  )
-                  .forEach((e) => e.select())
-              }
-            />
-          ))}
-        </MenuItem>
-        <MenuItem
-          icon="property"
-          text="by same layout"
-          onClick={() =>
-            cy
-              .filter(
-                (e) => layouts.mapping[e.id()] === layouts.mapping[data.id]
-              )
-              .forEach((e) => e.select())
-          }
-        />
+        <items.ItemSelectAllBySameNodeType actions={actions} />
+        <items.ItemSelectAllBySameProperty actions={actions} />
+        <items.ItemSelectAllBySameLayout />
       </MenuItem>
+      <items.ItemSearchNodes />
 
-      <MenuItem
-        text="Hide"
-        intent="danger"
-        icon="graph-remove"
-        onClick={() => hideNodes()}
-      />
-      <MenuItem
-        icon="hurricane"
-        text="Keep only"
-        intent="danger"
-        onClick={keepOnly}
-      />
-
-      {isSelected ? (
-        // Selected nodes only
+      <MenuDivider title="Add / Remove" />
+      {isSelected && (
         <>
-          <MenuItem
-            text="Collapse neighbors"
-            icon="collapse-all"
-            onClick={() => collapseNeighbors()}
-          />
-        </>
-      ) : (
-        // Neighbors nodes only
-        <>
-          <MenuItem
-            text="Add to network"
-            intent="success"
-            icon="add"
-            onClick={addToNetwork}
-          />
+          <items.ItemCollapseNeighbors actions={actions} />
+          <items.ItemExpandNeighbors actions={actions} />
         </>
       )}
+      <items.ItemHideNodes actions={actions} />
+      <items.ItemKeepOnly actions={actions} />
+      {!isSelected && <items.ItemAddToNetwork actions={actions} />}
     </Menu>
   );
 };
@@ -279,11 +111,23 @@ const getPropertyTypesFromElements = (elements) =>
     .filter((p, i, arr) => arr.indexOf(p) === i);
 
 const BackgroundContextMenu = (props) => {
+  const actions = useMenuActions();
+
   return (
     <Menu>
-      <MenuDivider title="colors" />
+      <MenuDivider title="Colors" />
       <EdgeColorContextMenu edgePropertyTypes={props.edgePropertyTypes} />
       <NodeColorContextMenu nodePropertyTypes={props.nodePropertyTypes} />
+
+      <MenuDivider title="Selection" />
+
+      <MenuItem text="Select all..." icon="select">
+        <items.ItemSelectAllBySameNodeTypeNoData actions={actions} />
+        <items.ItemSelectAllBySamePropertyNoData actions={actions} />
+        {/*<items.ItemSelectAllBySameLayout />*/}
+      </MenuItem>
+
+      <items.ItemSearchNodes />
     </Menu>
   );
 };

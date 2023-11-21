@@ -4,10 +4,12 @@ import * as cyEvents from "./events";
 const useVisualizerReferences = () => {
   const state = React.useRef();
   const events = React.useRef({
-    onetap: (_vis, _e) => () => {},
+    onetap: (_vis, _e) => () => cyEvents.onetap(_vis, _e),
     cxttap: (vis, e) => cyEvents.cxttap(vis, e),
     dragfreeon: (vis, e) => cyEvents.dragfreeon(vis, e),
     dbltap: (vis, e) => cyEvents.dbltap(vis, e),
+    render: (vis, e) => cyEvents.render(vis, e),
+    select: (vis, e) => cyEvents.select(vis, e),
   });
 
   const callbacks = React.useRef();
@@ -20,6 +22,7 @@ const useVisualizerReferences = () => {
     edgeLabel: { core: {}, secondary: {} },
     hiddenNodes: { core: {}, secondary: {} },
   });
+  const dialogs = React.useRef({});
   const cy = React.useRef();
 
   const contextMenu = {
@@ -31,6 +34,7 @@ const useVisualizerReferences = () => {
   return {
     state,
     events,
+    dialogs,
     callbacks,
     triggers,
     cy,
@@ -60,6 +64,7 @@ export const VisualizerContextProvider = ({
         containerId,
         state: () => refs.state.current,
         events: () => refs.events.current,
+        dialogs: () => refs.dialogs.current,
         callbacks: () => refs.callbacks.current,
         triggers: () => refs.triggers.current,
         cy: () => refs.cy.current,
@@ -76,8 +81,8 @@ export const useVisualizerContext = () => React.useContext(VisualizerContext);
 
 export { default as Canvas } from "./Canvas";
 export { default as Visualizer } from "./Visualizer";
-export { default as TuringContextMenu } from "./TuringContextMenu";
 export { default as TestApp } from "./TestApp";
 export { default as style } from "./cyStyle";
-export { ContextMenu, useContextMenuData } from "./ContextMenu";
+export { ContextMenu, TuringContextMenu } from "./ContextMenu";
+
 export { useCanvasTrigger } from "./tools";

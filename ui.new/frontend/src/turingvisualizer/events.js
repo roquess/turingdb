@@ -96,12 +96,27 @@ export const dbltap = (vis, e) => {
     .setSelectedNodeIds([...vis.state().selectedNodeIds, node.turing_id]);
 };
 
-export const render = (cy) => {
-  const viewport = cy.getFitViewport();
-  const zoom = viewport?.zoom;
+export const select = (vis, e) => {
+  const unselected = vis.cy().$(":unselected");
+  const selected = vis.cy().$(":selected");
 
-  if (!zoom) return;
+  unselected.clearQueue();
+  selected.clearQueue();
+  unselected.stop();
+  selected.stop();
 
-  cy.minZoom(zoom / 2);
-  cy.maxZoom(zoom * 10);
+  if (selected.length !== 0) {
+    selected.animate({
+      style: { opacity: 1.0 },
+    });
+    unselected.animate({
+      style: { opacity: 1.0 },
+    });
+  } else {
+    unselected.animate({
+      style: { opacity: 1.0 },
+    });
+  }
 };
+
+export const render = (vis, e) => {};

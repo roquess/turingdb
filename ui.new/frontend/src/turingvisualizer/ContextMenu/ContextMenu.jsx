@@ -5,7 +5,7 @@ import React from "react";
 import { ContextMenu as BPContextMenu } from "@blueprintjs/core";
 
 // Turing
-import { useVisualizerContext } from "./";
+import { useVisualizerContext } from "../";
 
 const RawContextMenu = React.forwardRef((props, ref) => {
   return (
