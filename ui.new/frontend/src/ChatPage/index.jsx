@@ -3,35 +3,34 @@ import { useTheme } from "@emotion/react";
 import * as React from "react";
 
 // @blueprintjs
-import { Text, Button, Icon, TextArea, Card } from "@blueprintjs/core";
+import { Button, Icon, TextArea, Card} from "@blueprintjs/core";
 
 const useChatTheme = () => {
   const palette = useTheme().palette;
 
-  const generalTheme = {
-    aiMessageBg: "#0F6894",
-    userMessageBg: "#007067",
-  };
+  const generalTheme = {};
 
   return palette.mode === "dark"
     ? {
         ...generalTheme,
-        bg: "#050505",
-        promptBg: "#151522",
         brainIconColor: "#555",
         brainIconOpacity: 0.1,
+        aiMessageBg: "#0F6894",
+        userMessageBg: "#007067",
+        text: "#fff",
       }
     : {
         ...generalTheme,
-        bg: "#fff",
-        prompBg: "f8f8f8",
         brainIconColor: "#555",
         brainIconOpacity: 0.1,
+        text: "#000",
+        aiMessageBg: "#8ABBFF",
+        userMessageBg: "#72CA9B",
       };
 };
 
 const Message = (props) => {
-  const { userMessageBg, aiMessageBg } = useChatTheme();
+  const { userMessageBg, aiMessageBg, text } = useChatTheme();
 
   return (
     <div
@@ -40,6 +39,7 @@ const Message = (props) => {
         flexDirection: props.ai ? "row" : "row-reverse",
         alignItems: "center",
         justifyContent: props.ai ? "left" : "right",
+        padding: 4,
       }}>
       <Icon
         icon={props.ai ? "desktop" : "user"}
@@ -52,6 +52,7 @@ const Message = (props) => {
         style={{
           width: "max-content",
           padding: 5,
+          color: text,
           borderRadius: 5,
           backgroundColor: props.ai ? aiMessageBg : userMessageBg,
         }}>
@@ -62,8 +63,7 @@ const Message = (props) => {
 };
 
 const MessageList = ({ messages }) => {
-  const { bg, brainIconOpacity, brainIconColor } = useChatTheme();
-  console.log({messages})
+  const { brainIconOpacity, brainIconColor } = useChatTheme();
 
   const defaultStyle = {
     display: "flex",
@@ -73,6 +73,7 @@ const MessageList = ({ messages }) => {
 
   return messages.length === 0 ? (
     <Card
+      elevation={4}
       style={{
         ...defaultStyle,
         alignItems: "center",
@@ -90,6 +91,7 @@ const MessageList = ({ messages }) => {
     </Card>
   ) : (
     <Card
+      elevation={4}
       style={{
         ...defaultStyle,
         flexDirection: "column",
@@ -107,6 +109,7 @@ const Prompt = ({ messages, setMessages }) => {
 
   return (
     <Card
+      elevation={4}
       style={{
         display: "flex",
         justifyContent: "space-between",
@@ -114,18 +117,18 @@ const Prompt = ({ messages, setMessages }) => {
         padding: 10,
       }}>
       <TextArea
+        id="current-msg-prompt"
         asyncControl={true}
-        rightIcon="send-message"
         fill
         style={{ padingLeft: 10, height: "15vh", resize: "none" }}
-        content={currentMsg}
-        ellipsize
+        value={currentMsg}
         placeholder="Ask me anything..."
         onChange={(e) => setCurrentMsg(e.target.value)}
       />
       <div style={{ paddingLeft: 10 }}>
         <Button
           icon="send-message"
+          disabled={currentMsg.length === 0}
           onClick={() => {
             setMessages([
               ...messages,
@@ -135,6 +138,7 @@ const Prompt = ({ messages, setMessages }) => {
               },
             ]);
             setCurrentMsg("");
+            window.scrollTo(0, document.body.scrollHeight);
           }}
         />
       </div>
@@ -144,8 +148,7 @@ const Prompt = ({ messages, setMessages }) => {
 
 const ChatPage = () => {
   const [messages, setMessages] = React.useState([
-    { content: "test user question", ai: false },
-    { content: "response", ai: true },
+    { content: "Answer", ai: true },
   ]);
 
   return (
