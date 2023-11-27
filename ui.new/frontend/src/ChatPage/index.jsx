@@ -3,58 +3,107 @@ import { useTheme } from "@emotion/react";
 import * as React from "react";
 
 // @blueprintjs
-import { Button, Icon, TextArea, Card} from "@blueprintjs/core";
+import { Button, Icon, TextArea, Card } from "@blueprintjs/core";
 
 const useChatTheme = () => {
   const palette = useTheme().palette;
 
-  const generalTheme = {};
+  const generalTheme = {
+    iconSize: 14,
+    iconPadding: 4,
+    userNameSize: 13,
+  };
 
   return palette.mode === "dark"
     ? {
         ...generalTheme,
         brainIconColor: "#555",
         brainIconOpacity: 0.1,
-        aiMessageBg: "#0F6894",
-        userMessageBg: "#007067",
+        aiMessageBg: "#36495e",
+        userMessageBg: "#313F4C",
+        iconBackgroundColor: "#999",
         text: "#fff",
+        name: "#aaa",
       }
     : {
         ...generalTheme,
         brainIconColor: "#555",
         brainIconOpacity: 0.1,
         text: "#000",
-        aiMessageBg: "#8ABBFF",
-        userMessageBg: "#72CA9B",
+        iconBackgroundColor: "#333",
+        aiMessageBg: "#bcd9ff",
+        userMessageBg: "#bcffda",
+        name: "#444",
       };
 };
 
 const Message = (props) => {
-  const { userMessageBg, aiMessageBg, text } = useChatTheme();
+  const {
+    name,
+    userMessageBg,
+    aiMessageBg,
+    iconBackgroundColor,
+    text,
+    iconSize,
+    iconPadding,
+    userNameSize,
+  } = useChatTheme();
 
   return (
     <div
       style={{
         display: "flex",
-        flexDirection: props.ai ? "row" : "row-reverse",
-        alignItems: "center",
-        justifyContent: props.ai ? "left" : "right",
-        padding: 4,
+        flexDirection: "column",
+        alignItems: props.ai ? "start" : "end",
+        padding: 5,
       }}>
-      <Icon
-        icon={props.ai ? "desktop" : "user"}
-        size={30}
+      <div
         style={{
-          padding: "0px 9px 0px 9px",
-          color: props.ai ? aiMessageBg : userMessageBg,
-        }}></Icon>
+          display: "flex",
+          flexDirection: "row",
+          width: "maxContent",
+          alignItems: "center",
+        }}>
+        {props.ai || (
+          <div
+            style={{
+              fontSize: userNameSize,
+              padding: 5,
+              color: name,
+            }}>
+            You
+          </div>
+        )}
+        <Icon
+          icon={props.ai ? "desktop" : "user"}
+          size={iconSize}
+          style={{
+            marginBottom: 5,
+            padding: iconPadding,
+            backgroundColor: iconBackgroundColor,
+            borderRadius: "50%",
+            color: props.ai ? aiMessageBg : userMessageBg,
+            display: "block",
+          }}
+        />
+        {props.ai && (
+          <div
+            style={{
+              fontSize: userNameSize,
+              padding: 5,
+              color: name,
+            }}>
+            Assistant
+          </div>
+        )}
+      </div>
       <Card
         style={{
           width: "max-content",
-          padding: 5,
+          padding: "12px 20px 12px 20px",
           color: text,
-          borderRadius: 5,
           backgroundColor: props.ai ? aiMessageBg : userMessageBg,
+          maxWidth: "100%"
         }}>
         <code style={{ fontSize: 13 }}>{props.content}</code>
       </Card>
@@ -107,6 +156,10 @@ const MessageList = ({ messages }) => {
 const Prompt = ({ messages, setMessages }) => {
   const [currentMsg, setCurrentMsg] = React.useState("");
 
+  React.useEffect(() => {
+    window.scrollTo(0, document.body.scrollHeight);
+  }, [messages]);
+
   return (
     <Card
       elevation={4}
@@ -120,7 +173,7 @@ const Prompt = ({ messages, setMessages }) => {
         id="current-msg-prompt"
         asyncControl={true}
         fill
-        style={{ padingLeft: 10, height: "15vh", resize: "none" }}
+        style={{ padingLeft: 10, height: "8vh", resize: "none" }}
         value={currentMsg}
         placeholder="Ask me anything..."
         onChange={(e) => setCurrentMsg(e.target.value)}
@@ -138,7 +191,6 @@ const Prompt = ({ messages, setMessages }) => {
               },
             ]);
             setCurrentMsg("");
-            window.scrollTo(0, document.body.scrollHeight);
           }}
         />
       </div>
@@ -148,11 +200,15 @@ const Prompt = ({ messages, setMessages }) => {
 
 const ChatPage = () => {
   const [messages, setMessages] = React.useState([
-    { content: "Answer", ai: true },
+    {
+      content:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum et fringilla urna, a semper leo. Suspendisse feugiat hendrerit suscipit. Pellentesque commodo condimentum nulla, quis venenatis elit pretium sed. Donec quis turpis in dui ornare laoreet eu suscipit sapien. Quisque lobortis dapibus ante, a iaculis augue rhoncus vel. Fusce a hendrerit nisi. Donec ac laoreet sapien, in finibus magna. Nulla libero urna, malesuada",
+      ai: true,
+    },
   ]);
 
   return (
-    <div style={{ padding: 30 }}>
+    <div style={{ padding: 30, maxWidth: "100vh", overflow: "hidden" }}>
       <MessageList messages={messages} />
       <Prompt messages={messages} setMessages={setMessages} />
     </div>

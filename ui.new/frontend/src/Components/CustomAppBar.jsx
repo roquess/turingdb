@@ -25,7 +25,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
-import ChatIcon from '@mui/icons-material/Chat';
+import ChatIcon from "@mui/icons-material/Chat";
 
 // Turing
 import * as actions from "src/App/actions";
@@ -275,14 +275,10 @@ export default function CustomAppBar() {
             key="Chat"
             disablePadding
             sx={{ display: "block" }}
-            onClick={
-              dbName
-                ? () => {
-                    dispatch(actions.setPage("Chat"));
-                    dispatch(thunks.inspectNode(dbName, null));
-                  }
-                : handleDrawerOpen
-            }>
+            onClick={() => {
+              dispatch(actions.setPage("Chat"));
+              dispatch(thunks.inspectNode(dbName, null));
+            }}>
             <ListItemButton
               sx={{
                 minHeight: 48,
@@ -295,7 +291,7 @@ export default function CustomAppBar() {
                   mr: open ? 3 : "auto",
                   justifyContent: "center",
                 }}>
-                <ChatIcon/>
+                <ChatIcon />
               </ListItemIcon>
 
               {open ? "Chat" : ""}
