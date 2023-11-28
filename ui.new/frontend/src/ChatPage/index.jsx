@@ -1,41 +1,10 @@
 // Core
-import { useTheme } from "@emotion/react";
 import * as React from "react";
 
+import { useChatTheme } from "src/ChatPage/theme";
+
 // @blueprintjs
-import { Button, Icon, TextArea, Card } from "@blueprintjs/core";
-
-const useChatTheme = () => {
-  const palette = useTheme().palette;
-
-  const generalTheme = {
-    iconSize: 14,
-    iconPadding: 4,
-    userNameSize: 13,
-  };
-
-  return palette.mode === "dark"
-    ? {
-        ...generalTheme,
-        brainIconColor: "#555",
-        brainIconOpacity: 0.1,
-        aiMessageBg: "#36495e",
-        userMessageBg: "#313F4C",
-        iconBackgroundColor: "#999",
-        text: "#fff",
-        name: "#aaa",
-      }
-    : {
-        ...generalTheme,
-        brainIconColor: "#555",
-        brainIconOpacity: 0.1,
-        text: "#000",
-        iconBackgroundColor: "#333",
-        aiMessageBg: "#bcd9ff",
-        userMessageBg: "#bcffda",
-        name: "#444",
-      };
-};
+import { Button, Icon, TextArea, Card, Spinner } from "@blueprintjs/core";
 
 const Message = (props) => {
   const {
@@ -103,7 +72,7 @@ const Message = (props) => {
           padding: "12px 20px 12px 20px",
           color: text,
           backgroundColor: props.ai ? aiMessageBg : userMessageBg,
-          maxWidth: "100%"
+          maxWidth: "100%",
         }}>
         <code style={{ fontSize: 13 }}>{props.content}</code>
       </Card>
@@ -111,7 +80,7 @@ const Message = (props) => {
   );
 };
 
-const MessageList = ({ messages }) => {
+const MessageList = ({ messages, loading }) => {
   const { brainIconOpacity, brainIconColor } = useChatTheme();
 
   const defaultStyle = {
@@ -128,15 +97,25 @@ const MessageList = ({ messages }) => {
         alignItems: "center",
         justifyContent: "center",
       }}>
-      <Icon
-        icon="desktop"
-        size={100}
-        color={brainIconColor}
-        style={{
-          padding: 10,
-          opacity: brainIconOpacity,
-        }}
-      />
+      {loading ? (
+        <Spinner
+          size={100}
+          color={brainIconColor}
+          style={{
+            padding: 10,
+          }}
+        />
+      ) : (
+        <Icon
+          icon="desktop"
+          size={100}
+          color={brainIconColor}
+          style={{
+            padding: 10,
+            opacity: brainIconOpacity,
+          }}
+        />
+      )}
     </Card>
   ) : (
     <Card
@@ -153,12 +132,23 @@ const MessageList = ({ messages }) => {
   );
 };
 
-const Prompt = ({ messages, setMessages }) => {
+const Prompt = ({ loading, messages, setMessages }) => {
   const [currentMsg, setCurrentMsg] = React.useState("");
 
   React.useEffect(() => {
     window.scrollTo(0, document.body.scrollHeight);
   }, [messages]);
+
+  const submit = React.useCallback(() => {
+    setMessages([
+      ...messages,
+      {
+        content: currentMsg,
+        ai: false,
+      },
+    ]);
+    setCurrentMsg("");
+  }, [currentMsg, messages, setMessages]);
 
   return (
     <Card
@@ -172,45 +162,70 @@ const Prompt = ({ messages, setMessages }) => {
       <TextArea
         id="current-msg-prompt"
         asyncControl={true}
+        disabled={loading}
         fill
         style={{ padingLeft: 10, height: "8vh", resize: "none" }}
         value={currentMsg}
         placeholder="Ask me anything..."
         onChange={(e) => setCurrentMsg(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && e.shiftKey) {
+            e.preventDefault();
+            submit();
+          }
+        }}
       />
       <div style={{ paddingLeft: 10 }}>
         <Button
           icon="send-message"
           disabled={currentMsg.length === 0}
-          onClick={() => {
-            setMessages([
-              ...messages,
-              {
-                content: currentMsg,
-                ai: false,
-              },
-            ]);
-            setCurrentMsg("");
-          }}
+          onClick={submit}
         />
       </div>
     </Card>
   );
 };
 
+const useChatMessages = () => {
+  const [messages, setMessages] = React.useState([]);
+  const [preset, setPreset] = React.useState({});
+  const [loading, setLoading] = React.useState(true);
+
+  // Initialize preset answers
+  React.useEffect(() => {
+    fetch("chat-answers.json").then((res) =>
+      res.json().then((json) => {
+        setPreset(json);
+        setLoading(false);
+      })
+    );
+  }, []);
+
+  // React to message received
+  React.useEffect(() => {
+    const lastMessage = messages.slice(-1)[0];
+    if (!lastMessage || lastMessage.ai) return; // If it is an AI answer, return
+
+    const answer =
+      preset[lastMessage.content] ||
+      "Sorry but I did not understand your question";
+
+    setMessages([...messages, { content: answer, ai: true }]);
+  }, [preset, messages]);
+
+  return {
+    loading,
+    messages,
+    setMessages,
+  };
+};
 const ChatPage = () => {
-  const [messages, setMessages] = React.useState([
-    {
-      content:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum et fringilla urna, a semper leo. Suspendisse feugiat hendrerit suscipit. Pellentesque commodo condimentum nulla, quis venenatis elit pretium sed. Donec quis turpis in dui ornare laoreet eu suscipit sapien. Quisque lobortis dapibus ante, a iaculis augue rhoncus vel. Fusce a hendrerit nisi. Donec ac laoreet sapien, in finibus magna. Nulla libero urna, malesuada",
-      ai: true,
-    },
-  ]);
+  const { loading, messages, setMessages } = useChatMessages();
 
   return (
     <div style={{ padding: 30, maxWidth: "100vh", overflow: "hidden" }}>
-      <MessageList messages={messages} />
-      <Prompt messages={messages} setMessages={setMessages} />
+      <MessageList messages={messages} loading={loading} />
+      <Prompt loading={loading} messages={messages} setMessages={setMessages} />
     </div>
   );
 };
