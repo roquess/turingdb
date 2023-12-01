@@ -10,7 +10,7 @@ class Buffer;
 namespace db {
 
 class InterpreterContext;
-class PullPlan;
+class QueryPlan;
 
 class Interpreter {
 public:
@@ -30,7 +30,7 @@ private:
     const std::string bodyDataBegin = ",\"data\":[";
     const std::string bodyEnd = "]}\n";
 
-    bool writeResponse(Buffer* outBuffer, PullPlan* plan, double execTime) const;
+    bool writeResponse(Buffer* outBuffer, double execTime) const;
     void handleQueryError(QueryStatus status, Buffer* outBuffer) const;
 };
 

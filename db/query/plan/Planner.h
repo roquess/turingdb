@@ -1,26 +1,36 @@
 #pragma once
 
+#include <memory>
+
 namespace db {
 
-class InterpreterContext;
-class PullPlan;
 class QueryCommand;
+class InterpreterContext;
+class QueryPlan;
+class QueryPlanStep;
 class ListCommand;
 class OpenCommand;
+class SelectCommand;
 
 class Planner {
 public:
-    Planner(InterpreterContext* interpCtxt);
+    Planner(const QueryCommand* query,
+            InterpreterContext* interpCtxt);
     ~Planner();
 
-    PullPlan* makePlan(const QueryCommand* cmd);
+    QueryPlan* getQueryPlan() const { return _queryPlan.get(); }
+
+    bool buildQueryPlan();
 
 private:
+    const QueryCommand* _query {nullptr};
     InterpreterContext* _interpCtxt {nullptr};
+    std::unique_ptr<QueryPlan> _queryPlan;
 
-    PullPlan* planListCommand(const ListCommand* cmd);
-    PullPlan* planListDatabases(const ListCommand* cmd);
-    PullPlan* planOpenCommand(const OpenCommand* cmd);
+    bool planListCommand(const ListCommand* cmd);
+    bool planOpenCommand(const OpenCommand* cmd);
+    bool planSelectCommand(const SelectCommand* cmd);
+    QueryPlanStep* planPathPattern(const PathPattern* pattern);
 };
 
 }

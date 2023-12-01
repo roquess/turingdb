@@ -154,8 +154,7 @@ select_fields: STAR {
              ;
 
 from_target: path_pattern {
-                              auto target = FromTarget::create(ctxt);
-                              target->addPathPattern($1);
+                              auto target = FromTarget::create(ctxt, $1);
                               $$ = target;
                           }
            ;

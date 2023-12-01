@@ -78,7 +78,6 @@ private:
         }
 
         _inputBuffer.getWriter().setWrittenBytes(bytesRead);
-        //_inputBuffer.getReader().dump();
         const bool completed = process();
         if (completed) {
             const Buffer::Reader reader = _outBuffer.getReader();

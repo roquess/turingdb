@@ -1,75 +1,76 @@
 #include "Planner.h"
 
+#include <vector>
+
 #include "QueryCommand.h"
-#include "LogicalOperator.h"
-#include "Value.h"
-#include "SymbolTable.h"
-#include "PullPlan.h"
-#include "ExecutionContext.h"
-#include "InterpreterContext.h"
-#include "DBManager.h"
+#include "QueryPlan.h"
+#include "FromTarget.h"
+#include "PathPattern.h"
+
+#include "ListDBStep.h"
+#include "OpenDBStep.h"
 
 using namespace db;
 
-Planner::Planner(InterpreterContext* interpCtxt)
-    : _interpCtxt(interpCtxt)
+Planner::Planner(const QueryCommand* query,
+                 InterpreterContext* interpCtxt)
+    : _query(query),
+    _interpCtxt(interpCtxt),
+    _queryPlan(std::make_unique<QueryPlan>())
 {
 }
 
 Planner::~Planner() {
 }
 
-PullPlan* Planner::makePlan(const QueryCommand* cmd) {
-    switch (cmd->getKind()) {
+bool Planner::buildQueryPlan() {
+    switch (_query->getKind()) {
         case QueryCommand::QCOM_LIST_COMMAND:
-            return planListCommand(static_cast<const ListCommand*>(cmd));
+            return planListCommand(static_cast<const ListCommand*>(_query));
+        break;
 
         case QueryCommand::QCOM_OPEN_COMMAND:
-            return planOpenCommand(static_cast<const OpenCommand*>(cmd));
+            return planOpenCommand(static_cast<const OpenCommand*>(_query));
+        break;
+
+        case QueryCommand::QCOM_SELECT_COMMAND:
+            return planSelectCommand(static_cast<const SelectCommand*>(_query));
+        break;
 
         default:
-            return nullptr;
+            return false;
+        break;
     }
-    return nullptr;
 }
 
-PullPlan* Planner::planListCommand(const ListCommand* cmd) {
-    switch (cmd->getSubType()) {
-        case ListCommand::LCOM_DATABASES:
-            return planListDatabases(cmd);
-
-        default:
-            return nullptr;
-    }
-
-    return nullptr;
+bool Planner::planListCommand(const ListCommand* cmd) {
+    ListDBStep* listDB = new ListDBStep();
+    _queryPlan->addStep(listDB);
+    return true;
 }
 
-PullPlan* Planner::planListDatabases(const ListCommand* cmd) {
-    const auto callback = [](Frame& frame,
-                             ExecutionContext* ctxt,
-                             std::vector<std::vector<Value>>& rows) {
-        rows.clear();
-        auto interpCtxt = ctxt->getInterpreterContext();
-        DBManager* dbMan = interpCtxt->getDBManager();
+bool Planner::planOpenCommand(const OpenCommand* cmd) {
+    OpenDBStep* openDB = new OpenDBStep(cmd->getPath());
+    _queryPlan->addStep(openDB);
+    return true;
+}
 
-        std::vector<std::string> databases;
-        dbMan->getDatabases(databases);
-        for (auto& db : databases) {
-            rows.push_back(std::vector{Value::createString(std::move(db))});
+bool Planner::planSelectCommand(const SelectCommand* cmd) {
+    // Plan for each FROM target
+    std::vector<QueryPlanStep*> targetsSteps;
+    for (const FromTarget* fromTarget : cmd->fromTargets()) {
+        QueryPlanStep* patternStep = planPathPattern(fromTarget->getPattern());
+        if (!patternStep) {
+            return nullptr;
         }
-    };
 
-    SymbolTable* symTable = new SymbolTable();
-    std::vector<Symbol*> outputSymbols;
-    outputSymbols.push_back(symTable->createSymbol("name"));
+        targetsSteps.push_back(patternStep);
+    }
 
-    OutputTableOperator* plan = new OutputTableOperator(outputSymbols, callback);
-    return new PullPlan(plan, symTable, _interpCtxt);
+    return false;
 }
 
-PullPlan* Planner::planOpenCommand(const OpenCommand* cmd) {
-    SymbolTable* symTable = new SymbolTable();
-    OpenDBOperator* openDB = new OpenDBOperator(cmd->getPath(), std::vector<Symbol*>());
-    return new PullPlan(openDB, symTable, _interpCtxt);
+QueryPlanStep* Planner::planPathPattern(const PathPattern* pattern) {
+    for (const PathElement* pathElement : pattern->elements()) {
+    }
 }
