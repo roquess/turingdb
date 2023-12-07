@@ -11,6 +11,9 @@ const LENGTH_RATIO = 0.1;
 const useSettingsModal = () => {
   const vis = useVisualizerContext();
   const [filters, setFilters] = React.useState(vis.state().filters);
+  const [centerOnDoubleClicked, setCenterOnDoubleClicked] = React.useState(
+    vis.state().layouts.centerOnDoubleClicked
+  );
   const [edgeLengthVal, setEdgeLengthVal] = React.useState(
     INIT_EDGE_VAL * LENGTH_RATIO
   );
@@ -22,8 +25,12 @@ const useSettingsModal = () => {
     vis.callbacks().setDefaultCyLayout({
       ...vis.state().layouts.definitions[0],
       nodeSpacing: nodeSpacing,
-    })
+    });
   }, [vis, nodeSpacing]);
+
+  React.useEffect(() => {
+    vis.callbacks().centerOnDoubleClicked(centerOnDoubleClicked);
+  }, [vis, centerOnDoubleClicked]);
 
   const FilterCheckbox = (props) => {
     const vis = useVisualizerContext();
@@ -136,6 +143,17 @@ const useSettingsModal = () => {
             />
           </div>
           <LockMenu />
+          <Tooltip
+            content={"Double clicking a node centers the canvas onto it"}
+            usePortal={false}>
+            <Checkbox
+              label="Center on double click"
+              checked={centerOnDoubleClicked}
+              onChange={(e) => {
+                setCenterOnDoubleClicked(e.target.checked);
+              }}
+            />
+          </Tooltip>
         </div>
       );
     },

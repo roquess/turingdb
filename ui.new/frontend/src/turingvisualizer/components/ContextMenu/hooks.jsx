@@ -18,6 +18,21 @@ const useHighlightedNodes = () => {
     const selNodeIds = Object.fromEntries(
       selNodes.map((n) => [n.data().turing_id, true])
     );
+    const selNodeData = Object.fromEntries(
+      selNodes.map((n) => [
+        n.data().turing_id,
+        {
+          ...n.data(),
+          neighborNodeIds: n
+            .connectedEdges()
+            .map((e) =>
+              e.data().turing_source_id !== n.data().turing_id
+                ? e.data().turing_source_id
+                : e.data().turing_target_id
+            ),
+        },
+      ])
+    );
     const neiNodeData = Object.fromEntries(
       neiNodes.map((n) => [
         n.data().turing_id,
@@ -56,6 +71,7 @@ const useHighlightedNodes = () => {
       nodes,
       selNodes,
       selNodeIds,
+      selNodeData,
       neiNodes,
       neiNodeData,
       neiData,
@@ -75,7 +91,7 @@ export const useMenuActions = () => {
       .setSelectedNodeIds(
         vis.state().selectedNodeIds.filter((id) => !nodes.selNodeIds[id])
       );
-    vis.callbacks().hideNodes(nodes.neiNodeData);
+    vis.callbacks().hideNodes({ ...nodes.neiNodeData, ...nodes.selNodeData });
   }, [vis, getHighlightedData]);
 
   const collapseNeighbors = React.useCallback(() => {

@@ -7,6 +7,8 @@ export const UPDATE_LAYOUTS = "UPDATE_LAYOUTS";
 export const RESET_LAYOUT = "RESET_LAYOUT";
 export const REQUEST_RUN = "REQUEST_RUN";
 export const REQUEST_FIT = "REQUEST_FIT";
+export const CENTER_ON_DOUBLE_CLICKED = "CENTER_ON_DOUBLE_CLICKED";
+
 export const lockBehaviours = {
   ALL_SELECTED: 0,
   INTERACTED: 1,
@@ -51,6 +53,7 @@ export const layoutsInitialState = () => ({
   layoutCount: 1,
   runRequested: false,
   fitRequested: false,
+  centerOnDoubleClicked: false,
 });
 
 const useLayoutsReducer = (state, action) => {
@@ -153,6 +156,13 @@ const useLayoutsReducer = (state, action) => {
       }
     }
 
+    case CENTER_ON_DOUBLE_CLICKED: {
+      return {
+        ...state,
+        centerOnDoubleClicked: action.payload.value,
+      }
+    }
+
     default:
       return state;
   }
@@ -226,6 +236,15 @@ const useLayouts = () => {
     []
   );
 
+  const centerOnDoubleClicked = React.useCallback(
+    (value) =>
+      dispatch({
+        type: CENTER_ON_DOUBLE_CLICKED,
+        payload: { value },
+      }),
+    []
+  );
+
   return {
     layouts: state,
     setDefaultCyLayout,
@@ -234,6 +253,7 @@ const useLayouts = () => {
     resetLayout,
     requestLayoutRun,
     requestLayoutFit,
+    centerOnDoubleClicked,
   };
 };
 

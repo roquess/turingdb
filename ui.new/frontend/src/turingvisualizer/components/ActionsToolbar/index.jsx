@@ -122,6 +122,7 @@ const ActionsToolbar = ({
                     {
                       fit: {
                         eles: vis.cy().elements(),
+                        padding: 100,
                       },
                     },
                     {

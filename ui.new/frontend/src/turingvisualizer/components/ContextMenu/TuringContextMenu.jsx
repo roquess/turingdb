@@ -41,7 +41,6 @@ const NodeContextMenu = (props) => {
         <>
           <items.ItemCollapseNeighbors actions={actions} />
           <items.ItemExpandNeighbors actions={actions} />
-          <items.ItemDevelopNeighbors actions={actions} />
         </>
       )}
       <items.ItemHideNodes actions={actions} />

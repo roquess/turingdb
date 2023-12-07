@@ -68,7 +68,7 @@ const Canvas = () => {
       });
 
       // If nodes were added or layouts were modified, apply layouts
-      const nodesAdded = toAdd.length !== 0 || toRm.length !== 0;
+      const nodesAdded = toAdd.length !== 0;
 
       const runCallbacks = {
         cola: (it, lId, lDef) => {
@@ -187,6 +187,7 @@ const Canvas = () => {
             ...lDef,
             centerGraph: firstRender,
             fit: firstRender,
+            padding: firstRender ? 130 : 0,
             stop,
           });
 

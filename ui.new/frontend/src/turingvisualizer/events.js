@@ -96,6 +96,16 @@ export const dbltap = (vis, e) => {
   vis
     .callbacks()
     .setSelectedNodeIds([...vis.state().selectedNodeIds, node.turing_id]);
+
+  if (vis.state().layouts.centerOnDoubleClicked) {
+    vis.cy().animate({
+      center: {
+        eles: target,
+      },
+      duration: 700,
+      easing: "ease",
+    });
+  }
 };
 
 export const select = (vis) => {
