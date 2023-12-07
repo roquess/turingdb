@@ -24,13 +24,12 @@ import ActionsToolbar from "src/turingvisualizer/components/ActionsToolbar";
 const ViewerPageContent = () => {
   const vis = useVisualizerContext();
   const selectedNodesRef = useSelectorRef("selectedNodes");
-  const selectedNodes = useSelector(state => state.selectedNodes);
+  const selectedNodes = useSelector((state) => state.selectedNodes);
   const dbName = useSelector((state) => state.dbName);
   const dispatch = useDispatch();
 
   React.useEffect(
-    () =>
-      vis.callbacks().setSelectedNodeIds(Object.keys(selectedNodes)),
+    () => vis.callbacks().setSelectedNodeIds(Object.keys(selectedNodes)),
     [vis, selectedNodes]
   );
 
@@ -86,9 +85,11 @@ const ViewerPageContent = () => {
           );
         }}
         onNodeRemove={(n) => {
-          dispatch(actions.unselectNode(n))
+          dispatch(actions.unselectNode(n));
         }}
-      >
+        onNodeInspect={(n) => {
+          dispatch(thunks.inspectNode(dbName, n.id));
+        }}>
         <div
           style={{
             margin: 10,

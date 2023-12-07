@@ -27,6 +27,7 @@ const useVisualizerState = (cyStyle) => {
     updateLayout,
     resetLayout,
     requestLayoutRun,
+    requestLayoutFit,
   } = useLayouts();
   const { hiddenNodes, hideNode, hideNodes, showNodes } = useHiddenNodes();
   const { filters, setFilters } = useFilters();
@@ -127,6 +128,7 @@ const useVisualizerState = (cyStyle) => {
     hideNodes: (nodes) => hideNodes(nodes),
     showNodes: (nodeIds) => showNodes(nodeIds),
     requestLayoutRun: (request) => requestLayoutRun(request),
+    requestLayoutFit: (request) => requestLayoutFit(request),
     setFilters: (filters) => setFilters(filters),
   };
 

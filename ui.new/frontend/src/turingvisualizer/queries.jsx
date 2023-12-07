@@ -20,6 +20,8 @@ export const getRawFilters = (filters) => {
       ? [
           ["schemaClass", "ReferenceGeneProduct"],
           ["schemaClass", "ReferenceDatabase"],
+          ["schemaClass", "ReferenceDNASequence"],
+          ["schemaClass", "ReferenceRNASequence"],
         ]
       : []),
   ];

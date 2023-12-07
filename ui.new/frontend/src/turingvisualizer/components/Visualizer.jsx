@@ -17,6 +17,7 @@ const Visualizer = (props) => {
   useSearchNodesDatabaseWindow({
     onNodeAdd: props.onNodeAdd,
     onNodeRemove: props.onNodeRemove,
+    onNodeInspect: props.onNodeInspect,
   });
 
   return (

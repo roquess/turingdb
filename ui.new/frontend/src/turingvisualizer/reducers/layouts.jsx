@@ -6,6 +6,7 @@ export const UPDATE_LAYOUT = "UPDATE_LAYOUT";
 export const UPDATE_LAYOUTS = "UPDATE_LAYOUTS";
 export const RESET_LAYOUT = "RESET_LAYOUT";
 export const REQUEST_RUN = "REQUEST_RUN";
+export const REQUEST_FIT = "REQUEST_FIT";
 export const lockBehaviours = {
   ALL_SELECTED: 0,
   INTERACTED: 1,
@@ -25,16 +26,16 @@ const getEdgeLengthFn = (v) => (edge) => {
 const initialColaLayout = () => ({
   name: "cola",
   animate: true,
-  handleDisconnected: true,
+  handleDisconnected: false,
   infinite: false,
   randomize: false,
-  avoidOverlap: false,
+  avoidOverlap: true,
   maxSimulationTime: 1000,
   fit: false,
   centerGraph: false,
   convergenceThreshold: 0.005,
-  nodeSpacing: 0,
-  nodeDimensionsIncludeLabels: true,
+  nodeSpacing: 5,
+  nodeDimensionsIncludeLabels: false,
   edgeLengthVal: INIT_EDGE_VAL,
   refresh: 1,
   edgeLength: getEdgeLengthFn(INIT_EDGE_VAL),
@@ -49,6 +50,7 @@ export const layoutsInitialState = () => ({
   mapping: {}, // Maps the node ids to one of the layout ids
   layoutCount: 1,
   runRequested: false,
+  fitRequested: false,
 });
 
 const useLayoutsReducer = (state, action) => {
@@ -144,6 +146,13 @@ const useLayoutsReducer = (state, action) => {
       };
     }
 
+    case REQUEST_FIT: {
+      return {
+        ...state,
+        fitRequested: action.payload.request,
+      }
+    }
+
     default:
       return state;
   }
@@ -208,6 +217,15 @@ const useLayouts = () => {
     []
   );
 
+  const requestLayoutFit = React.useCallback(
+    (request) =>
+      dispatch({
+        type: REQUEST_FIT,
+        payload: { request },
+      }),
+    []
+  );
+
   return {
     layouts: state,
     setDefaultCyLayout,
@@ -215,6 +233,7 @@ const useLayouts = () => {
     updateLayout,
     resetLayout,
     requestLayoutRun,
+    requestLayoutFit,
   };
 };
 

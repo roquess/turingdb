@@ -4,16 +4,6 @@ import { useCytoscapeInstance } from "../cytoscape/instance";
 import { getFitViewport } from "../cytoscape/tools";
 import { lockBehaviours } from "src/turingvisualizer/reducers/layouts";
 
-const onLayoutStop = (vis) => {
-  const viewport = getFitViewport(vis.cy(), vis.cy().elements(), 100);
-  const zoom = viewport?.zoom;
-
-  if (!zoom) return;
-
-  vis.cy().minZoom(zoom);
-  vis.cy().maxZoom(6);
-};
-
 const Canvas = () => {
   const vis = useVisualizerContext();
   const cy = useCytoscapeInstance();
@@ -218,9 +208,11 @@ const Canvas = () => {
           const nextLayoutId = it.next().value;
           const nextLayout = layouts.definitions[nextLayoutId];
           const nextLayoutName = nextLayout?.name || "end";
-          runCallbacks[nextLayoutName](it, nextLayoutId, nextLayout);
+          const stop = () => {
+            runCallbacks[nextLayoutName](it, nextLayoutId, nextLayout);
+          };
 
-          eles.layout({ ...lDef }).run();
+          eles.layout({ ...lDef, stop }).run();
         },
 
         random: (it, lId, lDef) => {
@@ -238,7 +230,29 @@ const Canvas = () => {
           eles.layout({ ...lDef, stop }).run();
         },
 
-        end: () => {},
+        end: () => {
+          if (layouts.fitRequested) {
+            const viewport = getFitViewport(vis.cy(), vis.cy().elements(), 100);
+            const zoom = viewport?.zoom;
+
+            if (!zoom) return;
+
+            vis.cy().minZoom(zoom);
+            vis.cy().maxZoom(6);
+
+            vis.cy().animate(
+              {
+                fit: { padding: 100 },
+              },
+              {
+                duration: 600,
+                easing: "ease-in-out-sine",
+                queue: true,
+              }
+            );
+            vis.callbacks().requestLayoutFit(false);
+          }
+        },
       };
 
       if (nodesAdded || layouts.runRequested) {
@@ -246,7 +260,6 @@ const Canvas = () => {
         const it = Object.keys(layouts.definitions)[Symbol.iterator]();
         const firstLayoutId = it.next().value;
 
-        onLayoutStop(vis); // Execution at layout start too
         runCallbacks[firstLayout.name](it, firstLayoutId, firstLayout);
         vis.callbacks().requestLayoutRun(false);
       }

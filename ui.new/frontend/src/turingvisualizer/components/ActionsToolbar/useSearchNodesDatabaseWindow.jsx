@@ -21,15 +21,15 @@ const NODE_SCORES = {
 const useSearchNodesDatabaseWindow = (props) => {
   const dbName = useSelector((state) => state.dbName);
   const properties = usePropertyTypes(dbName);
-  const [currentPropName, setCurrentPropName] = React.useState();
-  const [currentPropValue, setCurrentPropValue] = React.useState();
+  const [currentPropName, setCurrentPropName] = React.useState("");
+  const [currentPropValue, setCurrentPropValue] = React.useState("");
   const selectedNodes = useSelector((state) => state.selectedNodes);
-  //const [currentSortValue, setCurrentSortValue] = React.useState<string>("");
   const { loading, nodes, query } = useNodes(
     dbName,
     currentPropName,
     currentPropValue
   );
+
   const nodeScores = React.useMemo(
     () =>
       Object.fromEntries(
@@ -124,11 +124,16 @@ const useSearchNodesDatabaseWindow = (props) => {
                     className="flex justify-between"
                     onClick={(e) => {
                       e.preventDefault();
+                      contentProps.onNodeInspect(n);
+                      e.stopPropagation();
                     }}>
                     <div className="flex space-x-2">
                       <Tag className="w-20 text-center">{n.id}</Tag>
-                      <div className={isSelected ? "primary-light" : ""}>
-                        {getNodePropValue(n, currentPropName)}
+                      <div>
+                        <div className={isSelected ? "primary-light" : ""}>
+                          {getNodePropValue(n, currentPropName)}
+                        </div>
+                        <div className="pl-9 text-sm gray3">{getNodeSecondaryPropValue(n, currentPropName)}</div>
                       </div>
                     </div>
                     {isSelected ? (
@@ -243,6 +248,14 @@ function usePropertyTypes(dbName) {
 const propValueLim = 40;
 function getNodePropValue(n, propName) {
   const v = n.properties[propName || ""] || "";
+  if (v.length > propValueLim) return v.slice(0, propValueLim - 3) + "...";
+  return v;
+}
+function getNodeSecondaryPropValue(n, propName) {
+  const secondaryPropName = propName === "displayName"
+    ? "schemaClass"
+    : "displayName";
+  const v = n.properties[secondaryPropName|| ""] || "";
   if (v.length > propValueLim) return v.slice(0, propValueLim - 3) + "...";
   return v;
 }

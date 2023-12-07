@@ -32,14 +32,15 @@ const showCellCellInteraction = (addLayout, cy) => {
     Math,
     filteredNodes.map((arr) => arr.length)
   );
-  const yStretch = 95.0;
+  const yStretch = 150.0;
   const aspectRatio = cy.width() / cy.height();
-  const canvasWidth = maxLength * yStretch * aspectRatio;
-  const xStretch = canvasWidth / nLines;
+  const layoutHeight = maxLength * yStretch;
+  const layoutWidth = layoutHeight * aspectRatio;
+  const xStretch = layoutWidth / (nLines - 1);
 
   uniqueTitleValues.forEach((_title, x) => {
     const currentNodes = filteredNodes[x];
-    const xPos = x * xStretch;
+    const xPos = x * xStretch - layoutWidth / 2;
     const yShift = (maxLength - currentNodes.length) / 2;
 
     addLayout(
@@ -120,13 +121,13 @@ const ActionsToolbar = ({
                   vis.cy().animate(
                     {
                       fit: {
-                        eles: vis.cy().nodes(),
-                        padding: 100,
+                        eles: vis.cy().elements(),
                       },
                     },
                     {
                       duration: 600,
                       easing: "ease-in-out-sine",
+                      queue: true,
                     }
                   )
                 }
@@ -159,6 +160,7 @@ const ActionsToolbar = ({
                 disabled={interactionDisabled}
                 onClick={() => {
                   showCellCellInteraction(vis.callbacks().addLayout, vis.cy());
+                  vis.callbacks().requestLayoutFit(true);
                 }}
               />
             </Tooltip>
