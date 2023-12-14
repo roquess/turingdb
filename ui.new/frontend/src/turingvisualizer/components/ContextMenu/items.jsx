@@ -345,6 +345,7 @@ export const ItemSearchNodes = () => {
       text="Search nodes..."
       icon="search"
       labelElement={<Icon icon="share" />}
+      onClick={vis.searchNodesDialog.open}
       popoverProps={{
         interactionKind: "click",
       }}

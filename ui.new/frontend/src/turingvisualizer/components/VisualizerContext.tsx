@@ -9,6 +9,7 @@ import {
   VisualizerState,
   VisualizerTriggers,
 } from "../types";
+import { DialogInfos, useDialog } from "./ActionsToolbar/tools";
 
 type VisualizerContextValueType = {
   refs?: VisualizerReferences;
@@ -27,6 +28,8 @@ type VisualizerContextValueType = {
   contextMenu: () => HTMLElement | undefined;
   contextMenuData: () => CxtMenuData | undefined;
   contextMenuSetData: (data: CxtMenuData) => void;
+
+  searchNodesDialog: DialogInfos;
 };
 
 export const VisualizerContext =
@@ -41,6 +44,14 @@ export const VisualizerContext =
     contextMenu: () => undefined,
     contextMenuData: () => undefined,
     contextMenuSetData: (_data: CxtMenuData) => {},
+
+    searchNodesDialog: {
+      isOpen: false,
+      open: () => {},
+      close: () => {},
+      toggle: () => {},
+      setIsOpen: () => {},
+    },
   });
 
 export const VisualizerContextProvider = ({
@@ -76,6 +87,8 @@ export const VisualizerContextProvider = ({
         eventHooks: () => refs.eventHooks.current,
         hookEvent: (eventName: string, key: string, callback: () => void) =>
           refs.hookEvent.current(eventName, key, callback),
+
+        searchNodesDialog: useDialog(),
       }}>
       {children}
     </VisualizerContext.Provider>

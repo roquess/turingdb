@@ -107,7 +107,7 @@ export const dbltap: CanvasEvent = (vis, e) => {
   }
 
   Object.entries(vis.state().hiddenNodes).forEach(([hiddenNodeId, n]) => {
-    if (n.neighborNodeIds.includes(node.turing_id)) {
+    if (n.neighborNodeIds?.includes(node.turing_id)) {
       vis.callbacks().showNodes([hiddenNodeId]);
     }
   });

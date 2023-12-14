@@ -13,7 +13,10 @@ import LabelMenus from "./LabelMenus";
 import SelectNodesMenu from "./SelectNodesMenu";
 import SettingsDialog from "./SettingsDialog";
 import HiddenNodesDialog from "./HiddenNodesDialog";
-import SearchNodesDialog from "./SearchNodesDialog";
+import {
+  SearchNodesDialog,
+  SearchNodesDialogButton,
+} from "./SearchNodesDialog";
 import AddNodeDialog from "./AddNodeDialog";
 import { useMenuActions } from "../ContextMenu/hooks";
 
@@ -118,8 +121,7 @@ const ActionsToolbar = ({
   const bpTheme = vis.state().themeMode === "dark" ? "bp5-dark" : "";
 
   return (
-    <div
-      className={`flex flex-1 justify-between flex-wrap ${bpTheme}`}>
+    <div className={`flex flex-1 justify-between flex-wrap ${bpTheme}`}>
       <ButtonGroup>
         {fitAction && (
           <Tooltip {...ttParams} content="Fit canvas">
@@ -153,7 +155,7 @@ const ActionsToolbar = ({
           </Tooltip>
         )}
 
-        {hiddenNodesAction && <HiddenNodesDialog/>}
+        {hiddenNodesAction && <HiddenNodesDialog />}
 
         {cellCellInteraction && (
           <Tooltip {...ttParams} content="Show cell-cell interaction">
@@ -203,13 +205,13 @@ const ActionsToolbar = ({
           </Tooltip>
         )}
 
-        <LabelMenus/>
+        <LabelMenus />
         {searchDatabaseAction && <AddNodeDialog />}
       </ButtonGroup>
 
       <ButtonGroup>
         {settingsAction && <SettingsDialog />}
-        {searchAction && <SearchNodesDialog />}
+        {searchAction && <SearchNodesDialogButton />}
 
         {selectAction && (
           <Popover

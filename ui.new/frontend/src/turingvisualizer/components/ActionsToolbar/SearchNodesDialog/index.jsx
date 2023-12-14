@@ -6,15 +6,27 @@ import { Button, Dialog, Tooltip } from "@blueprintjs/core";
 
 // Turing
 import { useVisualizerContext } from "../../../";
-import { useDialog, dialogParams, ttParams, useDefinedState } from "../tools";
+import { dialogParams, ttParams, useDefinedState } from "../tools";
 
 import QueryNodesBar from "./QueryNodesBar";
 import NodeContainer from "./NodeContainer";
 import { usePropertyTypes } from "../AddNodeDialog/nodes";
 
-export default function SearchNodesDialog() {
+export function SearchNodesDialogButton() {
   const vis = useVisualizerContext();
-  const dialog = useDialog();
+  return (
+    <Tooltip {...ttParams} content="Search nodes in current view">
+      <Button
+        icon="search"
+        text="Search view"
+        onClick={vis.searchNodesDialog.open}
+      />
+    </Tooltip>
+  );
+}
+
+export function SearchNodesDialog() {
+  const vis = useVisualizerContext();
 
   const propName = useDefinedState("");
   const [propValue, setPropValue] = React.useState("");
@@ -33,7 +45,7 @@ export default function SearchNodesDialog() {
     }
   }, [properties, propName.setOnce]);
 
-  const nodes = dialog.isOpen
+  const nodes = vis.searchNodesDialog.isOpen
     ? vis
         .cy()
         ?.nodes()
@@ -59,21 +71,15 @@ export default function SearchNodesDialog() {
     setPropValue,
     propNames: properties,
     nodes,
-    dialog,
   };
 
   return (
     <>
-      <Tooltip {...ttParams} content="Search nodes in current view">
-        <Button icon="search" text="Search view" onClick={dialog.open} />
-      </Tooltip>
       <Dialog
         {...dialogParams}
-        isOpen={dialog.isOpen}
-        onClose={dialog.close}
-        className={
-          dialogParams.className + " h-[70vh]"
-        }
+        isOpen={vis.searchNodesDialog.isOpen}
+        onClose={vis.searchNodesDialog.close}
+        className={dialogParams.className + " h-[70vh]"}
         title="Search nodes in graph">
         <QueryNodesBar {...componentProps} />
         <NodeContainer {...componentProps} />

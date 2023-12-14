@@ -109,8 +109,14 @@ def run(args):
         exclude_publications = (
             data["exclude_publications"] if "exclude_publications" in data else False
         )
-        node_property_filter_out = data["node_property_filter_out"] if "node_property_filter_out" in data else []
-        node_property_filter_in = data["node_property_filter_in"] if "node_property_filter_in" in data else []
+        node_property_filter_out = (
+            data["node_property_filter_out"]
+            if "node_property_filter_out" in data
+            else []
+        )
+        node_property_filter_in = (
+            data["node_property_filter_in"] if "node_property_filter_in" in data else []
+        )
         yield_edges = data["yield_edges"] if "yield_edges" in data else False
         nodes = []
 
@@ -130,12 +136,10 @@ def run(args):
             if prop_name and prop_value:
                 params["property"] = turingdb.Property(prop_name, prop_value)
 
-
             if ids and node_type_name is None and prop_name is None:
                 nodes = db.list_nodes_by_id(**params)
             else:
                 nodes = db.list_nodes(**params)
-
 
         except TuringError as err:
             return jsonify({"failed": True, "error": {"details": err.details}})
@@ -159,30 +163,24 @@ def run(args):
         def filter_out_props(node):
             props = node.list_properties()
             for p_name, p_value in node_property_filter_out:
-                if p_name not in props: continue
-                if props[p_name].value == p_value: return False
+                if p_name not in props:
+                    continue
+                if props[p_name].value == p_value:
+                    return False
             return True
 
         def filter_in_props(node):
             props = node.list_properties()
             for p_name, p_value in node_property_filter_in:
-                if p_name not in props: continue
-                if props[p_name].value != p_value: return False
+                if p_name not in props:
+                    continue
+                if props[p_name].value != p_value:
+                    return False
             return True
 
-        nodes = list(
-            filter(
-                filter_out_props,
-                nodes
-            )
-        )
+        nodes = list(filter(filter_out_props, nodes))
 
-        nodes = list(
-            filter(
-                filter_in_props,
-                nodes
-            )
-        )
+        nodes = list(filter(filter_in_props, nodes))
 
         base_nodes = [
             {
@@ -197,7 +195,7 @@ def run(args):
         ]
 
         if not yield_edges:
-            return jsonify(base_nodes)
+            return jsonify({"nodes": base_nodes})
 
         edges = [
             {
@@ -207,7 +205,9 @@ def run(args):
             for n in nodes
         ]
 
-        return jsonify([{**base_nodes[i], **edges[i]} for i in range(len(nodes))])
+        return jsonify(
+            {"nodes": [{**base_nodes[i], **edges[i]} for i in range(len(nodes))]}
+        )
 
     @app.route("/api/list_node_property_types", methods=["POST"])
     def list_node_property_types():
@@ -227,7 +227,7 @@ def run(args):
         except TuringError as err:
             return jsonify({"failed": True, "error": {"details": err.details}})
 
-        return jsonify([p_name for p_name in property_types])
+        return jsonify({"data": [p_name for p_name in property_types]})
 
     @app.route("/api/list_edge_property_types", methods=["POST"])
     def list_edge_property_types():
@@ -513,4 +513,3 @@ if __name__ == "__main__":
     parser.add_argument("--dev", action="store_true", help="Starts a dev server")
     args = parser.parse_args()
     run(args)
-

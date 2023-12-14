@@ -31,6 +31,8 @@ export function useDialog() {
   };
 }
 
+export type DialogInfos = ReturnType<typeof useDialog>;
+
 export function useDefinedState<T>(initValue: T) {
   const [value, set] = React.useState<T>(initValue);
   const ready = React.useRef<boolean>(false);

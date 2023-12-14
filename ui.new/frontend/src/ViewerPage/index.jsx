@@ -17,8 +17,8 @@ import * as actions from "src/App/actions";
 import * as thunks from "src/App/thunks";
 import { useCanvasTrigger } from "src/turingvisualizer/useCanvasTrigger";
 import { useSelectorRef } from "src/App/tools";
-import * as cyEvents from "src/turingvisualizer/events";
 import ActionsToolbar from "src/turingvisualizer/components/ActionsToolbar";
+import DialogContainer from "src/turingvisualizer/components/DialogContainer";
 import { PortalProvider } from "@blueprintjs/core";
 
 const ViewerPageContent = () => {
@@ -39,6 +39,7 @@ const ViewerPageContent = () => {
     name: "setInspectedNode",
 
     callback: () => {
+      if (!vis.state().inspectedNode) return;
       dispatch(thunks.inspectNode(dbName, vis.state().inspectedNode.turing_id));
     },
   });
@@ -105,6 +106,7 @@ const ViewerPageContent = () => {
               flexDirection: "row",
               alignItems: "center",
             }}>
+            <DialogContainer/>
             <ActionsToolbar
               settingsAction
               selectAction

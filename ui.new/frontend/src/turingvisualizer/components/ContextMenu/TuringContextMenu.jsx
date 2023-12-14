@@ -39,7 +39,7 @@ const NodeContextMenu = (props) => {
         <items.ItemSelectAllBySameProperty actions={actions} />
         <items.ItemSelectAllBySameLayout />
       </MenuItem>
-      <items.ItemSearchNodes />
+      <items.ItemSearchNodes/>
 
       <MenuDivider title="Add / Remove" />
       <items.ItemCollapseNeighbors disabled={!isSelected} actions={actions} />
@@ -141,6 +141,7 @@ const TuringContextMenu = () => {
   const [nodePropertyTypes, setNodePropertyTypes] = React.useState([]);
   const [edgePropertyTypes, setEdgePropertyTypes] = React.useState([]);
   const keepOnlyAlert = useDialog();
+  const searchNodesDialog = useDialog();
 
   // Call this hook at the beginning of your ContextMenuComponent
   useContextMenuData();

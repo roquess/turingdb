@@ -12,7 +12,7 @@ export default function NodeContainer(props) {
             key={"node-" + n.id()}
             interactive={true}
             onClick={() => {
-              props.dialog.close();
+              vis.searchNodesDialog.close();
               vis.cy().elements().unselect();
               vis.cy().animate(
                 {
