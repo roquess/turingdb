@@ -13,10 +13,7 @@ import LabelMenus from "./LabelMenus";
 import SelectNodesMenu from "./SelectNodesMenu";
 import SettingsDialog from "./SettingsDialog";
 import HiddenNodesDialog from "./HiddenNodesDialog";
-import {
-  SearchNodesDialog,
-  SearchNodesDialogButton,
-} from "./SearchNodesDialog";
+import { SearchNodesDialogButton } from "./SearchNodesDialog";
 import AddNodeDialog from "./AddNodeDialog";
 import { useMenuActions } from "../ContextMenu/hooks";
 
@@ -74,22 +71,23 @@ const ActionsToolbar = ({
   hiddenNodesAction = true,
   cellCellInteraction = true,
   expandAction = true,
-  developAction = true,
   collapseAction = true,
   searchAction = true,
   searchDatabaseAction = true,
 }) => {
   const vis = useVisualizerContext();
   const [interactionDisabled, setInteractionDisabled] = React.useState(true);
-  const [expandDisabled, setExpandDisabled] = React.useState(true);
+  const [collapseDisabled, setCollapseDisabled] = React.useState(false);
   const actions = useMenuActions();
 
   vis.hookEvent("select", "actionDisabled", () => {
-    setExpandDisabled(
-      vis
-        .cy()
-        .nodes()
-        .filter((n) => n.selected()).length === 0
+    const selectedNodes = vis.cy().$(":selected");
+    const selectedMainNodes = selectedNodes.filter(
+      (n) => n.data().type === "selected"
+    );
+
+    setCollapseDisabled(
+      selectedNodes.length !== 0 && selectedMainNodes.length === 0
     );
   });
 
@@ -174,7 +172,6 @@ const ActionsToolbar = ({
           <Tooltip {...ttParams} content="Expand all neighbors">
             <Button
               icon="expand-all"
-              disabled={expandDisabled}
               onClick={() => {
                 actions.expandNeighbors();
               }}
@@ -186,20 +183,9 @@ const ActionsToolbar = ({
           <Tooltip {...ttParams} content="Hides neighbors">
             <Button
               icon="collapse-all"
-              disabled={expandDisabled}
+              disabled={collapseDisabled}
               onClick={() => {
                 actions.collapseNeighbors();
-              }}
-            />
-          </Tooltip>
-        )}
-
-        {developAction && (
-          <Tooltip {...ttParams} content="Develop neighbors">
-            <Button
-              icon="fullscreen"
-              onClick={() => {
-                actions.developNeighbors();
               }}
             />
           </Tooltip>
