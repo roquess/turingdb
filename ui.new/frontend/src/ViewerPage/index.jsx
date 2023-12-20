@@ -19,7 +19,16 @@ import { useCanvasTrigger } from "src/turingvisualizer/useCanvasTrigger";
 import { useSelectorRef } from "src/App/tools";
 import ActionsToolbar from "src/turingvisualizer/components/ActionsToolbar";
 import DialogContainer from "src/turingvisualizer/components/DialogContainer";
-import { PortalProvider } from "@blueprintjs/core";
+import { ttParams } from "src/turingvisualizer/tools";
+import { Button, Icon, PortalProvider, Popover } from "@blueprintjs/core";
+
+const KeyIcon = ({ keyIcon = undefined, keyText = undefined }) => {
+  const props = {
+    ...(keyIcon && { icon: keyIcon }),
+    ...(keyText && { text: keyText }),
+  };
+  return <Button className="inline mx-1" {...props} />;
+};
 
 const ViewerPageContent = () => {
   const vis = useVisualizerContext();
@@ -79,7 +88,7 @@ const ViewerPageContent = () => {
 
   const bpTheme = theme.palette.mode === "dark" ? "bp5-dark" : "";
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-row">
       <PortalProvider portalClassName={bpTheme}>
         <Visualizer
           canvas={<Canvas />}
@@ -99,25 +108,74 @@ const ViewerPageContent = () => {
             dispatch(thunks.inspectNode(dbName, n.id));
           }}>
           <div
+            className="h-full flex flex-col p-4 items-start justify-between"
             style={{
-              margin: 10,
-              marginLeft: 20,
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
+              pointerEvents: "none",
             }}>
-            <DialogContainer/>
-            <ActionsToolbar
-              settingsAction
-              selectAction
-              fitAction
-              cleanAction
-              hiddenNodesAction
-              cellCellInteraction
-              expandAction
-              collapseAction
-              searchAction
-            />
+            <DialogContainer />
+            <div className="w-full">
+              <ActionsToolbar
+                settingsAction
+                selectAction
+                fitAction
+                cleanAction
+                hiddenNodesAction
+                cellCellInteraction
+                expandAction
+                collapseAction
+                searchAction
+              />
+            </div>
+            <div className="w-full flex flex-col items-end">
+              <div className="w-min pointer-events-auto">
+                <Popover
+                  {...ttParams}
+                  className="gray1"
+                  interactionKind="hover"
+                  placement="right-end"
+                  content={
+                    <div className="flex flex-col space-y-4 p-4 mr-4">
+                      <div className="flex flex-row space-x-2">
+                        <p>
+                          Press
+                          <KeyIcon keyIcon="key-control" keyText="ctrl" />
+                          <KeyIcon keyIcon="" keyText="A" />
+                          to select all elements in the graph
+                        </p>
+                      </div>
+
+                      <div className="flex flex-row space-x-2">
+                        <p>
+                          Press
+                          <KeyIcon keyIcon="key-control" keyText="ctrl" />
+                          <KeyIcon keyIcon="" keyText="F" />
+                          to search for an element in the graph
+                        </p>
+                      </div>
+
+                      <div className="flex flex-row space-x-2">
+                        <p>
+                          Press
+                          <KeyIcon keyIcon="key-control" keyText="ctrl" />
+                          while moving elements to move their unique neighbors
+                          as well
+                        </p>
+                      </div>
+
+                      <div className="flex flex-row space-x-2">
+                        <p>
+                          Press
+                          <KeyIcon keyIcon="key-shift" keyText="shift" />
+                          while moving elements to move all connected nodes as
+                          well
+                        </p>
+                      </div>
+                    </div>
+                  }>
+                  <Icon className="opacity-20" size={30} icon="help" />
+                </Popover>
+              </div>
+            </div>
           </div>
         </Visualizer>
       </PortalProvider>

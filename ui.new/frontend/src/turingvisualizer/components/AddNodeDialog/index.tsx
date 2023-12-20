@@ -9,15 +9,20 @@ import {
   Tag,
 } from "@blueprintjs/core";
 
-import { ttParams, dialogParams, useDialog, useDefinedState } from "../tools";
+import {
+  ttParams,
+  dialogParams,
+  useDialog,
+  useDefinedState,
+} from "../../tools";
 import {
   getNodePropValue,
   getNodeSecondaryPropValue,
   useNodes,
   usePropertyTypes,
 } from "./nodes";
-import { useVisualizerContext } from "src/turingvisualizer";
-import { SelectProperty } from "../SelectProperty";
+import { useVisualizerContext } from "../../context";
+import { SelectProperty } from "./SelectProperty";
 
 export default function AddNodeDialog() {
   const vis = useVisualizerContext();
@@ -81,7 +86,7 @@ export default function AddNodeDialog() {
               </div>
             ) : (
               sortedNodes.map((n) => {
-                const isSelected = selectedNodeIds.includes(n.id);
+                const isSelected = selectedNodeIds.includes(n.turing_id);
 
                 return (
                   <Card
@@ -95,7 +100,7 @@ export default function AddNodeDialog() {
                       e.stopPropagation();
                     }}>
                     <div className="flex space-x-2">
-                      <Tag className="w-20 text-center">{n.id}</Tag>
+                      <Tag className="w-20 text-center">{n.turing_id}</Tag>
                       <div>
                         <div className={isSelected ? "primary-light" : ""}>
                           {getNodePropValue(n, currentPropName.value)}

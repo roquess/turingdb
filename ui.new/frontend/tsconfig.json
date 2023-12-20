@@ -7,10 +7,11 @@
     "moduleResolution": "Bundler",
     "module": "es2020",
     "target": "es2020",
-    "jsx": "react-jsx",
+    "jsx": "preserve",
 
     "resolveJsonModule": true,
     "noImplicitAny": false,
+    "allowJs": true,
 
     // Strict mode (9)
     "strict": true,

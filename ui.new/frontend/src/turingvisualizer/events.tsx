@@ -96,7 +96,6 @@ export const dbltap: CanvasEvent = (vis, e) => {
   const target = e.target;
 
   if (!target.group) {
-    vis.cy().fit();
     return;
   }
 

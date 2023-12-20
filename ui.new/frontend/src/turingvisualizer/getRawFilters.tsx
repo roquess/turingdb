@@ -1,43 +1,43 @@
+import { Property } from "./types";
 
 export type Filters = {
-  hideCompartments: boolean,
-  hideSpecies: boolean,
-  hidePublications: boolean,
-  hideDatabaseReferences: boolean,
-  showOnlyHomoSapiens: boolean
+  hideCompartments?: boolean;
+  hideSpecies?: boolean;
+  hidePublications?: boolean;
+  hideDatabaseReferences?: boolean;
+  showOnlyHomoSapiens?: boolean;
 };
 
-export const getRawFilters = (filters: Filters) => {
-  const nodePropertyFilterOut = [
-    ...(filters.hideCompartments ? [["schemaClass", "Compartment"]] : []),
+export function getRawFilters(filters: Filters) {
+  let nodePropertyFilterOut: Property[] = [];
+  let nodePropertyFilterIn: Property[] = [];
 
-    ...(filters.hideSpecies ? [["schemaClass", "Species"]] : []),
+  if (filters.hideCompartments) {
+    nodePropertyFilterOut.push(["schemaClass", "Compartment"]);
+  }
+  if (filters.hideSpecies) {
+    nodePropertyFilterOut.push(["schemaClass", "Species"]);
+  }
 
-    ...(filters.hidePublications
-      ? [
-          ["schemaClass", "InstanceEdit"],
-          ["schemaClass", "ReviewStatus"],
-          ["schemaClass", "LiteratureReference"],
-        ]
-      : []),
+  if (filters.hidePublications) {
+    nodePropertyFilterOut.push(["schemaClass", "InstanceEdit"]);
+    nodePropertyFilterOut.push(["schemaClass", "ReviewStatus"]);
+    nodePropertyFilterOut.push(["schemaClass", "LiteratureReference"]);
+  }
 
-    ...(filters.hideDatabaseReferences
-      ? [
-          ["schemaClass", "ReferenceGeneProduct"],
-          ["schemaClass", "ReferenceDatabase"],
-          ["schemaClass", "ReferenceDNASequence"],
-          ["schemaClass", "ReferenceRNASequence"],
-        ]
-      : []),
-  ];
+  if (filters.hideDatabaseReferences) {
+    nodePropertyFilterOut.push(["schemaClass", "ReferenceGeneProduct"]);
+    nodePropertyFilterOut.push(["schemaClass", "ReferenceDatabase"]);
+    nodePropertyFilterOut.push(["schemaClass", "ReferenceDNASequence"]);
+    nodePropertyFilterOut.push(["schemaClass", "ReferenceRNASequence"]);
+  }
 
-  const nodePropertyFilterIn = [
-    ...(filters.showOnlyHomoSapiens ? [["speciesName", "Homo sapiens"]] : []),
-  ];
+  if (filters.showOnlyHomoSapiens) {
+    nodePropertyFilterIn.push(["speciesName", "Homo sapiens"]);
+  }
 
   return {
     nodePropertyFilterOut,
     nodePropertyFilterIn,
   };
-};
-
+}
