@@ -8,7 +8,7 @@ import { ButtonGroup, Tooltip, Popover, Button } from "@blueprintjs/core";
 import { useVisualizerContext } from "../../context";
 import { useCanvasTrigger } from "../../useCanvasTrigger";
 
-import { ttParams } from "../../tools";
+import { ttParams } from "./tools";
 import LabelMenus from "./LabelMenus";
 import SelectNodesMenu from "./SelectNodesMenu";
 import SettingsDialog from "./SettingsDialog";
@@ -119,9 +119,8 @@ const ActionsToolbar = ({
   const bpTheme = vis.state().themeMode === "dark" ? "bp5-dark" : "";
 
   return (
-    <div
-      className={`flex flex-1 pointer-events-none justify-between flex-wrap ${bpTheme}`}>
-      <ButtonGroup className="pointer-events-auto">
+    <div className={`flex flex-1 justify-between flex-wrap ${bpTheme}`}>
+      <ButtonGroup>
         {fitAction && (
           <Tooltip {...ttParams} content="Fit canvas">
             <Button
@@ -196,7 +195,7 @@ const ActionsToolbar = ({
         {searchDatabaseAction && <AddNodeDialog />}
       </ButtonGroup>
 
-      <ButtonGroup className="pointer-events-auto">
+      <ButtonGroup>
         {settingsAction && <SettingsDialog />}
         {searchAction && <SearchNodesDialogButton />}
 
