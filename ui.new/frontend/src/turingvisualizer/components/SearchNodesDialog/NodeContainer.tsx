@@ -1,8 +1,12 @@
-import { CardList, Card, Tag, Text } from "@blueprintjs/core";
-import { useVisualizerContext } from "../../../context";
+import { CardList, Card, Tag, Text, Intent } from "@blueprintjs/core";
+import { useVisualizerContext } from "../../context";
 
-export default function NodeContainer(props) {
+export default function NodeContainer(props: {
+  nodes: cytoscape.CollectionReturnValue | undefined;
+  propName: string;
+}) {
   const vis = useVisualizerContext();
+  if (!props.nodes) return <></>;
 
   return (
     <CardList className="overflow-auto flex-1">
@@ -13,8 +17,8 @@ export default function NodeContainer(props) {
             interactive={true}
             onClick={() => {
               vis.searchNodesDialog.close();
-              vis.cy().elements().unselect();
-              vis.cy().animate(
+              vis.cy()!.elements().unselect();
+              vis.cy()!.animate(
                 {
                   center: {
                     eles: n,
@@ -29,7 +33,7 @@ export default function NodeContainer(props) {
             }}>
             <div className="flex flex-col items-start">
               <Tag
-                intent={n.selected() ? "primary" : ""}
+                intent={n.selected() ? Intent.PRIMARY : undefined}
                 minimal
                 style={{ width: "min-content" }}>
                 id [{n.data().turing_id}]

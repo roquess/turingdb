@@ -5,11 +5,6 @@ import { useVisualizerContext } from "../context";
 const Visualizer = (props) => {
   useVisualizerState(props.cyStyle);
   const vis = useVisualizerContext();
-  //useSearchNodesDatabaseWindow({
-  //  onNodeAdd: props.onNodeAdd,
-  //  onNodeRemove: props.onNodeRemove,
-  //  onNodeInspect: props.onNodeInspect,
-  //});
 
   return (
     <div
@@ -41,17 +36,19 @@ const Visualizer = (props) => {
         style={{
           position: "absolute",
           width: "100%",
+          height:"100%",
           pointerEvents: "none",
         }}>
-        {React.Children.map(props.children, (child) =>
-          React.cloneElement(child, {
+        {React.Children.map(props.children, (child) => {
+          const pointerEvents = child.props.style?.pointerEvents || "auto";
+          return React.cloneElement(child, {
             ...child.props,
             style: {
               ...child.props.style,
-              pointerEvents: "auto",
+              pointerEvents: pointerEvents,
             },
-          })
-        )}
+          });
+        })}
       </div>
     </div>
   );
