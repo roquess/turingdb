@@ -8,13 +8,13 @@ import { ButtonGroup, Tooltip, Popover, Button } from "@blueprintjs/core";
 import { useVisualizerContext } from "../../context";
 import { useCanvasTrigger } from "../../useCanvasTrigger";
 
-import { ttParams } from "./tools";
+import { ttParams } from "../../tools";
 import LabelMenus from "./LabelMenus";
 import SelectNodesMenu from "./SelectNodesMenu";
-import SettingsDialog from "./SettingsDialog";
-import HiddenNodesDialog from "./HiddenNodesDialog";
-import { SearchNodesDialogButton } from "./SearchNodesDialog";
-import AddNodeDialog from "./AddNodeDialog";
+import SettingsDialog from "../SettingsDialog";
+import HiddenNodesDialog from "../HiddenNodesDialog";
+import { SearchNodesDialogButton } from "../SearchNodesDialog";
+import AddNodeDialog from "../AddNodeDialog";
 import { useMenuActions } from "../ContextMenu/hooks";
 
 const showCellCellInteraction = (addLayout, cy) => {
@@ -119,8 +119,9 @@ const ActionsToolbar = ({
   const bpTheme = vis.state().themeMode === "dark" ? "bp5-dark" : "";
 
   return (
-    <div className={`flex flex-1 justify-between flex-wrap ${bpTheme}`}>
-      <ButtonGroup>
+    <div
+      className={`flex flex-1 pointer-events-none justify-between flex-wrap ${bpTheme}`}>
+      <ButtonGroup className="pointer-events-auto">
         {fitAction && (
           <Tooltip {...ttParams} content="Fit canvas">
             <Button
@@ -195,7 +196,7 @@ const ActionsToolbar = ({
         {searchDatabaseAction && <AddNodeDialog />}
       </ButtonGroup>
 
-      <ButtonGroup>
+      <ButtonGroup className="pointer-events-auto">
         {settingsAction && <SettingsDialog />}
         {searchAction && <SearchNodesDialogButton />}
 

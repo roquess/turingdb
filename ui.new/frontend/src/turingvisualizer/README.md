@@ -117,6 +117,7 @@ Available trigger categories:
 
 - `elements`: The JSON dict that cytoscape uses to render stuff
 - `selectedNodeIds`: IDs of the selected nodes (the main nodes, which don't include their neighbors)
+- `inspectedNode`: Node currently inspected in the canvas
 - `filters`: The node filters
 - `layouts`: The layouts object (using right click -> setLayout will execute callbacks stored here).
 - `nodeLabel`: The node label displayed on the canvas
@@ -131,6 +132,10 @@ For now, here are the possible actions:
 ```JSX
 vis.callbacks().setSelectedNodeIds(ids)
 // Sets the selected nodes using an array of turing ids
+
+
+vis.callbacks().setInspectedNode(inspectedNode: GraphNodeData);
+// sets the node currently inspected
 
 vis.callbacks().setDefaultCyLayout(cyLayout)
 // Modifies the default cytoscape layout
@@ -164,8 +169,14 @@ vis.callbacks().showNodes(nodeIds) // nodeIds = [ n.data.turing_id ]
 vis.callbacks().requestLayoutRun(request)
 // runs all layouts
 
+vis.callbacks().requestLayoutFit(request)
+// fit the canvas to the window
+
 vis.callbacks().setFilters(filters)
 // sets the filters (see below)
+
+vis.callbacks().centerOnDoubleClicked(value: boolean)
+// Sets wether to center the canvas onto the double clicked node or not
 ```
 
 For example, set filters with:

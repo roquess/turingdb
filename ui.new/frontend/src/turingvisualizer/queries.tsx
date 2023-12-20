@@ -1,30 +1,42 @@
 import React from "react";
 import axios from "axios";
-import { useQuery as useNativeQuery } from "@tanstack/react-query";
-import { getRawFilters } from "./getRawFilters";
+import {
+  QueryFunction,
+  useQuery as useNativeQuery,
+} from "@tanstack/react-query";
+
+import { Filters, getRawFilters } from "./getRawFilters";
+import { GraphElement, GraphEdge, GraphNode, Property } from "./types";
 
 export { getRawFilters };
 
-export const useQuery = (key, fn, options = {}) =>
-  useNativeQuery({
+export function useQuery<T>(
+  key: any[],
+  fn: QueryFunction<T, string[], never>,
+  options = {}
+) {
+  return useNativeQuery({
     queryKey: key,
     queryFn: fn,
-    options: {
-      immutableCheck: { warnAfter: 256 },
-      serializableCheck: { warnAfter: 256 },
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      staleTime: 100_000,
-      ...options,
-    },
+    staleTime: 100_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    ...options,
   });
+}
 
+type UseElementsQueryParams = {
+  selectedNodeIds: string[];
+  dbName: string;
+  hiddenNodeIds: string[];
+  filters: Filters;
+};
 export const useElementsQuery = ({
   selectedNodeIds,
   dbName,
   hiddenNodeIds,
   filters,
-}) =>
+}: UseElementsQueryParams) =>
   useQuery(
     ["cytoscape_elements", dbName, selectedNodeIds, hiddenNodeIds, filters],
     React.useCallback(async () => {
@@ -34,7 +46,7 @@ export const useElementsQuery = ({
         getRawFilters(filters);
 
       const rawElements = await axios
-        .post("/api/viewer/init", {
+        .post<GraphElement[]>("/api/viewer/init", {
           db_name: dbName,
           node_ids: selectedNodeIds,
           hidden_node_ids: hiddenNodeIds,
@@ -51,10 +63,20 @@ export const useElementsQuery = ({
 export const useDevElementsQuery = () =>
   useQuery(
     ["cytoscape_dev_elements"],
-    async () => await fetch("/reactome-subset.json").then((res) => res.json())
+    async (): Promise<GraphElement[]> =>
+      fetch("/reactome-subset.json").then((res) => res.json())
   );
+type UseDevElementsParams = {
+  selectedNodeIds: string[];
+  hiddenNodeIds: string[];
+  filters: Filters;
+};
 
-export const useDevElements = ({ selectedNodeIds, hiddenNodeIds, filters }) => {
+export const useDevElements = ({
+  selectedNodeIds,
+  hiddenNodeIds,
+  filters,
+}: UseDevElementsParams) => {
   const { data: rawDevElements } = useDevElementsQuery();
   const devElements = rawDevElements || [];
 
@@ -66,18 +88,18 @@ export const useDevElements = ({ selectedNodeIds, hiddenNodeIds, filters }) => {
   const allNodes = Object.fromEntries(
     devElements
       .filter((e) => e.group === "nodes")
-      .map((n) => [n.data.turing_id, n])
+      .map((n) => [n.data.turing_id, n as GraphNode])
   );
 
-  const allEdges = Object.fromEntries(
+  const allEdges  = Object.fromEntries(
     devElements
       .filter((e) => e.group === "edges")
-      .map((e) => [e.data.turing_id, e])
+      .map((e) => [e.data.turing_id, e as GraphEdge])
   );
 
   // Selected nodes
   const selectedNodesMap = Object.fromEntries(
-    selectedNodeIds.map((id) => [id, allNodes[id]])
+    selectedNodeIds.map((id) => [id, allNodes[id]!])
   );
 
   for (const n of Object.values(selectedNodesMap)) {
@@ -114,7 +136,8 @@ export const useDevElements = ({ selectedNodeIds, hiddenNodeIds, filters }) => {
         const sourceIsSelected = selectedNodesMap[tsid] !== undefined;
         const targetIsSelected = selectedNodesMap[ttid] !== undefined;
 
-        const impliesOnlyOneSelectedNode = sourceIsSelected ^ targetIsSelected;
+        const impliesOnlyOneSelectedNode =
+          sourceIsSelected !== targetIsSelected;
         const impliesHiddenNode =
           hiddenNodeIdMap[tsid] || hiddenNodeIdMap[ttid];
 
@@ -131,7 +154,7 @@ export const useDevElements = ({ selectedNodeIds, hiddenNodeIds, filters }) => {
           .flat()
           .filter((nId) => !selectedNodesMap[nId]) // Not selected
       ),
-    ].map((nId) => [nId, allNodes[nId]])
+    ].map((nId) => [nId, allNodes[nId]!])
   );
 
   const filteredNeighborNodesMap = Object.fromEntries(
@@ -189,7 +212,7 @@ export const useDevElements = ({ selectedNodeIds, hiddenNodeIds, filters }) => {
   const importantNodesMap = Object.fromEntries(
     Object.entries(importantNodeCounts)
       .filter(([, count]) => count > 1)
-      .map(([id]) => [id, filteredNeighborNodesMap[id]])
+      .map(([id]) => [id, filteredNeighborNodesMap[id]!])
   );
 
   const importantEdgesMap = Object.fromEntries(
@@ -216,7 +239,7 @@ export const useDevElements = ({ selectedNodeIds, hiddenNodeIds, filters }) => {
         edgeCounts[tsid] += 1;
         edgeCounts[ttid] += 1;
 
-        if (edgeCounts[tsid] > 20 || edgeCounts[ttid] > 20) {
+        if (edgeCounts[tsid]! > 20 || edgeCounts[ttid]! > 20) {
           return false;
         }
 
@@ -236,7 +259,7 @@ export const useDevElements = ({ selectedNodeIds, hiddenNodeIds, filters }) => {
         ),
       ]
         .filter((id) => selectedNodesMap[id] === undefined)
-        .map((nId) => [nId, filteredNeighborNodesMap[nId]])
+        .map((nId) => [nId, filteredNeighborNodesMap[nId]!])
     ),
     ...importantNodesMap,
   };
@@ -260,15 +283,38 @@ export const useDevElements = ({ selectedNodeIds, hiddenNodeIds, filters }) => {
   return { data: rawElements };
 };
 
+export type ListNodesDevParams = {
+  filters: Filters;
+  additionalPropFilterOut: Property[];
+  additionalPropFilterIn: Property[];
+};
+
+export type ListEdgesDevParams = {
+  nodeId: string;
+  nodeFilters: Filters;
+  edgeTypeNames: string[];
+  additionalNodePropFilterOut: Property[];
+  additionalNodePropFilterIn: Property[];
+  edgePropFilterOut: Property[];
+  edgePropFilterIn: Property[];
+};
+
+export type GetNodesDevParams = {
+  nodeIds: string[];
+};
+
+export type GetEdgesDevParams = {
+  edgeIds: string[];
+};
+
 export const devEndpoints = {
   list_nodes: async ({
     filters = {},
     additionalPropFilterOut = [],
     additionalPropFilterIn = [],
-  }) => {
-    const devElements = await fetch("/reactome-subset.json").then((res) =>
-      res.json()
-    );
+  }: ListNodesDevParams) => {
+    const { data: rawDevElements } = useDevElementsQuery();
+    const devElements = rawDevElements || [];
 
     const { nodePropertyFilterOut, nodePropertyFilterIn } =
       getRawFilters(filters);
@@ -279,6 +325,7 @@ export const devEndpoints = {
 
     return devElements
       .filter((e) => e.group === "nodes")
+      .map((n) => n as GraphNode)
       .filter((n) => {
         const filterOutOk =
           filterOut.length === 0 ||
@@ -308,10 +355,10 @@ export const devEndpoints = {
     additionalNodePropFilterIn = [],
     edgePropFilterOut = [],
     edgePropFilterIn = [],
-  }) => {
-    const devElements = await fetch("/reactome-subset.json").then((res) =>
-      res.json()
-    );
+  }: ListEdgesDevParams) => {
+    const { data: rawDevElements } = useDevElementsQuery();
+    const devElements = rawDevElements || [];
+
     const mappedDevNodes = Object.fromEntries(
       devElements
         .filter((e) => e.group === "nodes")
@@ -336,6 +383,7 @@ export const devEndpoints = {
 
     return devElements
       .filter((e) => e.group === "edges")
+      .map((e) => e as GraphEdge)
       .filter(
         (e) =>
           e.data.turing_source_id === nodeId ||
@@ -344,7 +392,7 @@ export const devEndpoints = {
       .filter(
         (e) =>
           edgeTypeNames.length === 0 ||
-          mappedEdgeTypeNames[e.data.edge_type_name]
+          mappedEdgeTypeNames[e.data.edge_type_name!]
       )
       .filter((e) => {
         const filterOutOk =
@@ -368,8 +416,8 @@ export const devEndpoints = {
       .filter((e) => {
         const otherNode =
           e.data.turing_source_id === nodeId
-            ? mappedDevNodes[e.data.turing_target_id]
-            : mappedDevNodes[e.data.turing_source_id];
+            ? mappedDevNodes[e.data.turing_target_id]!
+            : mappedDevNodes[e.data.turing_source_id]!;
 
         const filterOutOk =
           nodeFilterOut.length === 0 ||
@@ -391,27 +439,25 @@ export const devEndpoints = {
       });
   },
 
-  get_nodes: async ({ nodeIds }) => {
-    const devElements = await fetch("/reactome-subset.json").then((res) =>
-      res.json()
-    );
+  get_nodes: async ({ nodeIds }: GetNodesDevParams) => {
+    const { data: rawDevElements } = useDevElementsQuery();
+    const devElements = rawDevElements || [];
 
     const mappedIds = Object.fromEntries(nodeIds.map((id) => [id, true]));
 
     return devElements.filter(
       (e) => mappedIds[e.data.turing_id] && e.group === "nodes"
-    );
+    ).map((n) => n as GraphNode);
   },
 
-  get_edges: async ({ edgeIds }) => {
-    const devElements = await fetch("/reactome-subset.json").then((res) =>
-      res.json()
-    );
+  get_edges: async ({ edgeIds }: GetEdgesDevParams) => {
+    const { data: rawDevElements } = useDevElementsQuery();
+    const devElements = rawDevElements || [];
 
     const mappedIds = Object.fromEntries(edgeIds.map((id) => [id, true]));
 
     return devElements.filter(
       (e) => mappedIds[e.data.turing_id] && e.group === "edges"
-    );
+    ).map((e) => e as GraphEdge);
   },
 };
