@@ -24,7 +24,8 @@ GMLImport::GMLImport(const StringBuffer* buffer,
     : _lexer(buffer->getData(), buffer->getSize()),
       _db(db),
       _wb(db),
-      _outNet(outNet) {
+      _outNet(outNet)
+{
 }
 
 GMLImport::~GMLImport() {
