@@ -64,13 +64,13 @@ bool EntityDumper::dump() {
     size_t edgeSpanCount = 0;
 
     if (nodeCountLeft != 0) {
-        const size_t nodeModulo = (size_t)(entityCountLimit % nodeCountLeft != 0);
+        const size_t nodeModulo = (size_t)((nodeCountLeft % entityCountLimit) != 0);
         nodeSpanCount = nodeCountLeft / entityCountLimit
                       + nodeModulo;
     }
 
     if (edgeCountLeft != 0) {
-        const size_t edgeModulo = (size_t)(entityCountLimit % edgeCountLeft != 0);
+        const size_t edgeModulo = (size_t)((edgeCountLeft % entityCountLimit) != 0);
         edgeSpanCount = edgeCountLeft / entityCountLimit
                       + edgeModulo;
     }

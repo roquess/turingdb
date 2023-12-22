@@ -126,13 +126,13 @@ bool EntityLoader::load(const StringIndexLoader& strLoader) {
 
             msgbioassert(sourceNode,
                 std::string(
-                    "Node map of size size " + std::to_string(_db->getNodeCount())
+                    "Node map of size " + std::to_string(_db->getNodeCount())
                     + " does not have the required index: " + std::to_string(sourceId)).c_str());
             Node* targetNode = _db->getNode((DBIndex)targetId);
 
             msgbioassert(targetNode,
                 std::string(
-                    "Node map of size size " + std::to_string(_db->getNodeCount())
+                    "Node map of size " + std::to_string(_db->getNodeCount())
                     + " does not have the required index: " + std::to_string(targetId)).c_str());
 
             Edge* e = wb.createEdge(et, sourceNode, targetNode);

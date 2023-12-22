@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 
+#include "CSVImport.h"
 #include "GMLImport.h"
 #include "Neo4jImport.h"
 #include "StringBuffer.h"
@@ -8,16 +9,16 @@
 #include "DB.h"
 #include "DBDumper.h"
 #include "DBLoader.h"
-#include "Writeback.h"
 #include "SchemaReport.h"
+#include "Writeback.h"
 
 #include "PerfStat.h"
 #include "ToolInit.h"
 
 #include "BioLog.h"
 #include "FileUtils.h"
-#include "MsgImport.h"
 #include "MsgCommon.h"
+#include "MsgImport.h"
 
 #define BIOIMPORT_TOOL_NAME "bioimport"
 
@@ -28,12 +29,14 @@ enum class ImportType {
     NEO4J,
     JSON_NEO4J,
     GML,
+    CSV,
 };
 
 struct ImportData {
     ImportType type;
     std::string path;
     std::string networkName;
+    std::string primaryKey;
 };
 
 int cleanUp(int returnCode) {
@@ -65,12 +68,22 @@ int main(int argc, const char** argv) {
 
     argParser.addOption(
         "gml",
-        "Imports a .gml file (default network name: \"my_gml\")",
-        "my_gml.gml");
+        "Imports a .gml file (default network name: \"my_file\")",
+        "my_file.gml");
+
+    argParser.addOption(
+        "csv",
+        "Imports a .csv file (default network name: \"my_file\")",
+        "my_file.csv");
+
+    argParser.addOption(
+        "primary-key",
+        "Sets the primary column of a .csv. Must follow a '-csv' option",
+        "ColumnName");
 
     argParser.addOption(
         "net",
-        "Sets the name of network. must follow an import option (-neo4, -gml, ...) ",
+        "Sets the name of network. Must follow an import option (-neo4, -gml, ...) ",
         "network_name");
 
     argParser.addOption(
@@ -121,6 +134,32 @@ int main(int argc, const char** argv) {
                 .type = ImportType::GML,
                 .path = option.second,
             });
+        } else if (optName == "csv") {
+            if (!FileUtils::exists(option.second)) {
+                BioLog::log(msg::ERROR_FILE_NOT_EXISTS()
+                            << option.second);
+                return cleanUp(EXIT_FAILURE);
+            }
+            importData.emplace_back(ImportData {
+                .type = ImportType::CSV,
+                .path = option.second,
+            });
+        } else if (optName == "primary-key") {
+            if (importData.size() == 0) {
+                BioLog::log(msg::ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER());
+                argParser.printHelp();
+                return cleanUp(EXIT_FAILURE);
+            }
+
+            ImportData& previousCmd = *(importData.end() - 1);
+
+            if (!previousCmd.primaryKey.empty()) {
+                BioLog::log(msg::ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER());
+                argParser.printHelp();
+                return cleanUp(EXIT_FAILURE);
+            }
+
+            previousCmd.primaryKey = option.second;
         } else if (optName == "net") {
             if (importData.size() == 0) {
                 BioLog::log(msg::ERROR_IMPORT_NET_APPLIED_WITH_WRONG_ORDER());
@@ -202,6 +241,26 @@ int main(int argc, const char** argv) {
                 db::Network* net = wb.createNetwork(db->getString(networkName));
                 GMLImport gmlImport(strBuffer, db, net);
                 gmlImport.run();
+                break;
+            }
+            case ImportType::CSV: {
+                const FileUtils::Path path(data.path);
+                StringBuffer* strBuffer = StringBuffer::readFromFile(path);
+                if (!strBuffer) {
+                    BioLog::log(msg::ERROR_FAILED_TO_OPEN_FOR_READ() << path.string());
+                    return cleanUp(EXIT_FAILURE);
+                }
+
+                Writeback wb(db);
+                db::Network* net = wb.createNetwork(db->getString(networkName));
+                CSVImport csvImport({
+                    .buffer = strBuffer,
+                    .db = db,
+                    .outNet = net,
+                    .delimiter = ',',
+                    .primaryColumn = data.primaryKey,
+                });
+                csvImport.run();
                 break;
             }
         }

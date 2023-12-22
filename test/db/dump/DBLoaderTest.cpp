@@ -14,8 +14,6 @@ protected:
         const testing::TestInfo* const testInfo =
             testing::UnitTest::GetInstance()->current_test_info();
 
-        Log::BioLog::init();
-
         _outDirName = testInfo->test_suite_name();
         _outDirName += "_";
         _outDirName += testInfo->name();

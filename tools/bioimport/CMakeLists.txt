@@ -8,7 +8,8 @@ target_link_libraries(bioimport
     turing_db_stats_s
     bio_import_neo4j_s
     bio_import_json_s
-    turing_gml_s
+    turing_import_gml_s
+    turing_import_csv_s
     tools_common_s)
 
 target_include_directories(bioimport PRIVATE ${BIO_SOURCE_DIR}/messages)
