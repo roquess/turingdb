@@ -179,7 +179,7 @@ MSG_ERROR(ERROR_IMPORT_NO_PATH_GIVEN, 2055,
           "or a path to a GML file with the -gml option")
 
 MSG_ERROR(ERROR_IMPORT_NET_APPLIED_WITH_WRONG_ORDER, 2056,
-          "Please precede the \"net\" argument with an import option "
+          "Please precede the \"-net\" argument by an import option "
           "(such as -neo4j, -jsonNeo4j, -gml, ...)")
 
 MSG_ERROR(ERROR_NETWORK_ALREADY_EXISTS, 2057,
@@ -200,6 +200,22 @@ MSG_ERROR(ERROR_SOURCE_NETWORK_NOT_FOUND, 2061,
 
 MSG_ERROR(ERROR_TARGET_NETWORK_NOT_FOUND, 2062,
           "Trying to link to a target network that does not exist ($0)")
+
+MSG_ERROR(ERROR_CSV_DUPLICATE_IN_HEADER, 2063,
+          "Encountered a duplicate value in header: '$0'")
+
+MSG_ERROR(ERROR_CSV_INVALID_PRIMARY_KEY, 2064,
+          "Specified primary column is invalid: '$0'")
+
+MSG_ERROR(ERROR_CSV_TOO_MANY_ENTRIES, 2065,
+          "Line $0 has too many cells")
+
+MSG_ERROR(ERROR_CSV_MISSING_ENTRY, 2066,
+          "Line $0 has missing cells")
+
+MSG_ERROR(ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER, 2067,
+          "Please precede the \"-primary-key\" argument by a \"-csv\" option")
+
 }
 
 #endif

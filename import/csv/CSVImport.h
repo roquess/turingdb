@@ -3,8 +3,6 @@
 #include "CSVLexer.h"
 #include "Writeback.h"
 
-#include <unordered_map>
-
 class StringBuffer;
 
 namespace db {

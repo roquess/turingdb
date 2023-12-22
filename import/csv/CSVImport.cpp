@@ -1,7 +1,10 @@
 #include "CSVImport.h"
+#include "BioAssert.h"
+#include "BioLog.h"
 #include "DB.h"
 #include "Edge.h"
 #include "EdgeType.h"
+#include "MsgImport.h"
 #include "Node.h"
 #include "NodeType.h"
 #include "StringBuffer.h"
@@ -12,7 +15,8 @@ CSVImport::CSVImport(InitArgs&& args)
       _db(args.db),
       _net(args.outNet),
       _wb(args.db),
-      _primaryColumn(std::move(args.primaryColumn)) {
+      _primaryColumn(std::move(args.primaryColumn))
+{
 }
 
 CSVImport::~CSVImport() {
@@ -39,6 +43,7 @@ bool CSVImport::run() {
             db::NodeType* nt = _wb.createNodeType(_db->getString(std::string(token.data)));
             if (!nt) {
                 // sth went wrong with nt creation -> probably already exists;
+                Log::BioLog::log(msg::ERROR_CSV_DUPLICATE_IN_HEADER() << std::string(token.data));
                 return false;
             }
 
@@ -56,6 +61,7 @@ bool CSVImport::run() {
 
     if (!primaryNodeType) {
         // Invalid primary node type
+        Log::BioLog::log(msg::ERROR_CSV_INVALID_PRIMARY_KEY() << _primaryColumn);
         return false;
     }
 
@@ -70,11 +76,7 @@ bool CSVImport::run() {
         const db::StringRef ntName = nt->getName();
         const db::StringRef etName = _db->getString(primaryNodeTypeName + "->" + ntName);
         db::EdgeType* et = _wb.createEdgeType(etName, primaryNodeType, nt);
-
-        if (!et) {
-            // sth went wrong
-            return false;
-        }
+        msgbioassert(et, "Something went wrong when creating edge type");
 
         edgeTypes[nt] = et;
     }
@@ -88,6 +90,7 @@ bool CSVImport::run() {
     // in the DB engine)
     std::unordered_map<db::StringRef, db::Node*> nodes;
 
+    size_t line = 1;
     while (token.type != CSVLexer::Token::Type::END
            && token.type != CSVLexer::Token::Type::ERROR) {
 
@@ -96,11 +99,20 @@ bool CSVImport::run() {
 
         // Parsing single row to create nodes
         size_t i = 0;
+        size_t delimiterParsed = 0;
+
         while (token.type != CSVLexer::Token::Type::END
                && token.type != CSVLexer::Token::Type::ERROR
                && token.type != CSVLexer::Token::Type::LINE_BREAK) {
 
+            if (token.type == CSVLexer::Token::Type::DELIMITER)
+                delimiterParsed++;
+
             if (token.type == CSVLexer::Token::Type::STRING) {
+                if (i >= nodeTypes.size()) {
+                    Log::BioLog::log(msg::ERROR_CSV_TOO_MANY_ENTRIES() << line);
+                    return false;
+                }
 
                 db::NodeType* nt = nodeTypes[i];
                 const db::StringRef nName = _db->getString(std::string(token.data));
@@ -108,10 +120,7 @@ bool CSVImport::run() {
                                 ? nodes.at(nName)
                                 : _wb.createNode(_net, nt, nName);
 
-                if (!n) {
-                    // sth went wrong
-                    return false;
-                }
+                msgbioassert(n, "Something went wrong when creating node");
 
                 if (nt == primaryNodeType) {
                     currentPrimaryNode = n;
@@ -133,6 +142,13 @@ bool CSVImport::run() {
             _lexer.next();
         }
 
+        // if parsed at least one delimiter (parsed at least one node)
+        // and did not parse enough nodes
+        if (delimiterParsed != 0 && delimiterParsed + 1 != nodeTypes.size()) {
+            Log::BioLog::log(msg::ERROR_CSV_MISSING_ENTRY() << line);
+            return false;
+        }
+
         // Now creating the edges
         for (db::Node* n : currentNodes) {
             if (n == currentPrimaryNode)
@@ -140,16 +156,13 @@ bool CSVImport::run() {
 
             const db::NodeType* nt = n->getType();
             const db::Edge* e = _wb.createEdge(edgeTypes.at(nt), currentPrimaryNode, n);
-
-            if (!e) {
-                // sth went wrong
-                return false;
-            }
+            msgbioassert(e, "Something went wrong when creating edge");
         }
 
         _lexer.moveRight();
         _lexer.next();
+        line++;
     }
 
-    return false;
+    return true;
 }

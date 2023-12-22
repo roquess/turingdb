@@ -4,7 +4,8 @@ CSVLexer::CSVLexer(std::string_view buffer, const char delimiter)
     : _buffer(buffer),
       _current(buffer.cbegin()),
       _end(buffer.cend()),
-      _delimiter(delimiter) {
+      _delimiter(delimiter)
+{
 }
 
 void CSVLexer::next() {

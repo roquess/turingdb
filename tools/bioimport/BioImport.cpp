@@ -36,6 +36,7 @@ struct ImportData {
     ImportType type;
     std::string path;
     std::string networkName;
+    std::string primaryKey;
 };
 
 int cleanUp(int returnCode) {
@@ -76,8 +77,13 @@ int main(int argc, const char** argv) {
         "my_file.csv");
 
     argParser.addOption(
+        "primary-key",
+        "Sets the primary column of a .csv. Must follow a '-csv' option",
+        "ColumnName");
+
+    argParser.addOption(
         "net",
-        "Sets the name of network. must follow an import option (-neo4, -gml, ...) ",
+        "Sets the name of network. Must follow an import option (-neo4, -gml, ...) ",
         "network_name");
 
     argParser.addOption(
@@ -138,6 +144,22 @@ int main(int argc, const char** argv) {
                 .type = ImportType::CSV,
                 .path = option.second,
             });
+        } else if (optName == "primary-key") {
+            if (importData.size() == 0) {
+                BioLog::log(msg::ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER());
+                argParser.printHelp();
+                return cleanUp(EXIT_FAILURE);
+            }
+
+            ImportData& previousCmd = *(importData.end() - 1);
+
+            if (!previousCmd.primaryKey.empty()) {
+                BioLog::log(msg::ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER());
+                argParser.printHelp();
+                return cleanUp(EXIT_FAILURE);
+            }
+
+            previousCmd.primaryKey = option.second;
         } else if (optName == "net") {
             if (importData.size() == 0) {
                 BioLog::log(msg::ERROR_IMPORT_NET_APPLIED_WITH_WRONG_ORDER());
@@ -236,7 +258,7 @@ int main(int argc, const char** argv) {
                     .db = db,
                     .outNet = net,
                     .delimiter = ',',
-                    .primaryColumn = "",
+                    .primaryColumn = data.primaryKey,
                 });
                 csvImport.run();
                 break;
