@@ -115,10 +115,18 @@ bool CSVImport::run() {
                 }
 
                 db::NodeType* nt = nodeTypes[i];
-                const db::StringRef nName = _db->getString(std::string(token.data));
+                const db::StringRef nName = _db->getString(std::string(token.data) + " " + nt->getName());
+                const db::StringRef nDisplayName = _db->getString(std::string(token.data));
                 db::Node* n = nodes.find(nName) != nodes.end()
                                 ? nodes.at(nName)
-                                : _wb.createNode(_net, nt, nName);
+                                : _wb.createNode(_net, nt, nDisplayName);
+
+                //if (nt != n->getType()) {
+                //    const auto currentName = nt->getName().getSharedString()->getString();
+                //    const auto previousName = primaryNodeType->getName().getSharedString()->getString();
+                //    Log::BioLog::log(msg::ERROR_CSV_REDEFINITION_OF_NODE() << line << currentName << previousName);
+                //    return false;
+                //}
 
                 msgbioassert(n, "Something went wrong when creating node");
 

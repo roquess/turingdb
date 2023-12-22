@@ -216,6 +216,9 @@ MSG_ERROR(ERROR_CSV_MISSING_ENTRY, 2066,
 MSG_ERROR(ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER, 2067,
           "Please precede the \"-primary-key\" argument by a \"-csv\" option")
 
+MSG_ERROR(ERROR_CSV_REDEFINITION_OF_NODE, 2068,
+          "Line $0: node of type '$1' was already registered as '$2'")
+
 }
 
 #endif
