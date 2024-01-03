@@ -11,6 +11,18 @@ public:
     {
     }
 
+    bool operator==(const EntityID& other) const {
+        return _id == other._id;
+    }
+
+    bool operator!=(const EntityID& other) const {
+        return !(*this == other);
+    }
+
+    bool operator<(const EntityID& other) const {
+        return _id < other._id;
+    }
+
     uint64_t getID() const { return _id; }
 
 private:

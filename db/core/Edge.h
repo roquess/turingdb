@@ -1,33 +1,30 @@
 #pragma once
 
-#include <vector>
-
 #include "EntityID.h"
 #include "RWSpinLock.h"
 #include "LabelID.h"
-#include "EdgeMap.h"
 
 namespace db {
 
-class NodeAccessor;
 class StorageAccessor;
-class Edge;
+class EdgeAccessor;
+class Node;
 
-class Node {
+class Edge {
 public:
-    friend NodeAccessor;
     friend StorageAccessor;
+    friend EdgeAccessor;
 
 private:
     EntityID _id;
     bool _deleted {false};
     mutable RWSpinLock _lock;
-    std::vector<LabelID> _labels;
-    EdgeMap _inEdges;
-    EdgeMap _outEdges;
+    LabelID _label;
+    Node* _source {nullptr};
+    Node* _target {nullptr};
 
-    Node(EntityID id);
-    ~Node();
+    Edge(EntityID id, Node* source, Node* target, LabelID label);
+    ~Edge();
 };
 
 }
