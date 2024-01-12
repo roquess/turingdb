@@ -438,10 +438,10 @@ devEndpoints["get_edges"]({
 ### List pathways related to a node
 
 ```JSX
-devEndpoints["list_pathways"](
+devEndpoints["list_pathways"]({
     devElements,
     nodeId: 1930248,
-)
+})
 ```
 
 ### Get all the nodes of a pathway
