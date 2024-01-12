@@ -218,6 +218,7 @@ export const useCytoscapeElements = (
 
   const { data: rawElements } = state.devMode
     ? useDevElements({
+        vis,
         selectedNodeIds: state.selectedNodeIds,
         filters: state.filters,
         hiddenNodeIds: Object.keys(state.hiddenNodes),

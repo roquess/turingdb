@@ -1,3 +1,6 @@
+// Core
+import React from "react";
+
 // @blueprintjs
 import { Dialog, Icon, Button, MenuItem } from "@blueprintjs/core";
 
@@ -5,6 +8,7 @@ import { Dialog, Icon, Button, MenuItem } from "@blueprintjs/core";
 import { useVisualizerContext } from "../../";
 import { SelectMenu } from "./select";
 import { getFragment } from "../../cytoscape/tools";
+import { devEndpoints } from "src/turingvisualizer/queries";
 
 const titleSizeLimit = 40;
 
@@ -366,6 +370,51 @@ export const ItemSelectUniqueNeighbors = () => {
           })
           .select();
         vis.cy().$id(data.id).select();
+      }}
+    />
+  );
+};
+
+export const ItemShowInPathway = () => {
+  const vis = useVisualizerContext();
+  const devElements = vis.state()?.devElements || [];
+  const [loading, setLoading] = React.useState(true);
+  const [pathway, setPathway] = React.useState(null);
+  const [pathwayNodes, setPathwayNodes] = React.useState([]);
+
+  const data = vis.contextMenuData().data;
+  devEndpoints["list_pathways"]({ devElements, nodeId: data.turing_id }).then(
+    (res) => {
+      setPathway(res[0]);
+    }
+  );
+
+  React.useEffect(() => {
+    if (!pathway) return;
+
+    devEndpoints["get_pathway"]({
+      devElements,
+      nodeId: pathway.data.turing_id,
+      filters: vis.state().filters
+    }).then((nodes) => {
+        setPathwayNodes(nodes)
+        setLoading(false)
+      });
+  }, [pathway]);
+
+  if (!pathway || loading) {
+    return <MenuItem icon="path" text="Show in pathway" disabled />;
+  }
+
+  return (
+    <MenuItem
+      icon="path"
+      text="Show in pathway"
+      onClick={() => {
+        if (!pathway) return;
+        vis
+          .callbacks()
+          .setSelectedNodeIds(pathwayNodes.map((n) => n.data.turing_id));
       }}
     />
   );

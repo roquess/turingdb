@@ -334,6 +334,8 @@ For example using react-query:
 // import
 import { devEndpoints } from 'turingvisualizer/queries';
 
+const devElements = vis.state()?.devElements || [];
+
 const { data, isFetching } = useQuery(
 
     // Query keys
@@ -342,6 +344,8 @@ const { data, isFetching } = useQuery(
     // Actual query
     () => {
         return devEndpoints["list_nodes"]({
+            devElements,
+
             // The usual filters
             filters: {
                 showOnlyHomoSapiens: true,
@@ -371,6 +375,8 @@ const { data, isFetching } = useQuery(
 
 ```JSX
 devEndpoints["list_edges"]({
+        devElements,
+
         nodeId: 1930248, // List the edges of the node 1930248
 
         nodeFilters: { // Filter edges according to the other node
@@ -413,6 +419,7 @@ This returns the nodes of given ids
 
 ```JSX
 devEndpoints["get_nodes"]({
+    devElements,
     nodeIds: [1930248, 1930250]
 })
 ```
@@ -423,7 +430,37 @@ This returns the edges of given ids
 
 ```JSX
 devEndpoints["get_edges"]({
+    devElements,
     edgeIds: [1930248, 1930250]
+})
+```
+
+### List pathways related to a node
+
+```JSX
+devEndpoints["list_pathways"](
+    devElements,
+    nodeId: 1930248,
+)
+```
+
+### Get all the nodes of a pathway
+
+```JSX
+devEndpoints["get_pathway"]({
+    devElements,
+    nodeId: pathwayNodeID, // One of the node ids returned by
+                           // the 'list_pathways' endpoint
+
+    filters: {
+        showOnlyHomoSapiens: true,
+        hidePublications: true,
+        hideCompartments: true,
+        hideSpecies: true,
+        hideDatabaseReferences: true,
+    },
+    additionalPropFilterIn: [],
+    additionalPropFilterOut: []
 })
 ```
 

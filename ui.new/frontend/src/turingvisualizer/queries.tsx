@@ -7,6 +7,7 @@ import {
 
 import { Filters, getRawFilters } from "./getRawFilters";
 import { GraphElement, GraphEdge, GraphNode, Property } from "./types";
+import { VisualizerContextValueType } from "./components/VisualizerContext";
 
 export { getRawFilters };
 
@@ -60,28 +61,23 @@ export const useElementsQuery = ({
     }, [dbName, selectedNodeIds, hiddenNodeIds, filters])
   );
 
-export const useDevElementsQuery = () =>
-  useQuery(
-    ["cytoscape_dev_elements"],
-    async (): Promise<GraphElement[]> =>
-      fetch("/reactome-subset.json").then((res) => res.json())
-  );
 type UseDevElementsParams = {
+  vis: VisualizerContextValueType;
   selectedNodeIds: string[];
   hiddenNodeIds: string[];
   filters: Filters;
 };
 
 export const useDevElements = ({
+  vis,
   selectedNodeIds,
   hiddenNodeIds,
   filters,
 }: UseDevElementsParams) => {
-  const { data: rawDevElements } = useDevElementsQuery();
-  const devElements = rawDevElements || [];
-
   const { nodePropertyFilterOut, nodePropertyFilterIn } =
     getRawFilters(filters);
+
+  const devElements = vis.state()?.devElements || [];
 
   if (devElements.length === 0) return { data: [] };
 
@@ -91,7 +87,7 @@ export const useDevElements = ({
       .map((n) => [n.data.turing_id, n as GraphNode])
   );
 
-  const allEdges  = Object.fromEntries(
+  const allEdges = Object.fromEntries(
     devElements
       .filter((e) => e.group === "edges")
       .map((e) => [e.data.turing_id, e as GraphEdge])
@@ -284,180 +280,289 @@ export const useDevElements = ({
 };
 
 export type ListNodesDevParams = {
-  filters: Filters;
-  additionalPropFilterOut: Property[];
-  additionalPropFilterIn: Property[];
+  devElements: GraphElement[];
+  filters?: Filters;
+  additionalPropFilterOut?: Property[];
+  additionalPropFilterIn?: Property[];
 };
 
 export type ListEdgesDevParams = {
+  devElements: GraphElement[];
   nodeId: string;
-  nodeFilters: Filters;
-  edgeTypeNames: string[];
-  additionalNodePropFilterOut: Property[];
-  additionalNodePropFilterIn: Property[];
-  edgePropFilterOut: Property[];
-  edgePropFilterIn: Property[];
+  nodeFilters?: Filters;
+  edgeTypeNames?: string[];
+  additionalNodePropFilterOut?: Property[];
+  additionalNodePropFilterIn?: Property[];
+  edgePropFilterOut?: Property[];
+  edgePropFilterIn?: Property[];
+};
+
+export type ListPathwaysDevParams = {
+  devElements: GraphElement[];
+  nodeId: string;
+  filters?: Filters;
+  additionalPropFilterOut?: Property[];
+  additionalPropFilterIn?: Property[];
 };
 
 export type GetNodesDevParams = {
+  devElements: GraphElement[];
   nodeIds: string[];
 };
 
 export type GetEdgesDevParams = {
+  devElements: GraphElement[];
   edgeIds: string[];
 };
 
 export const devEndpoints = {
-  list_nodes: async ({
-    filters = {},
-    additionalPropFilterOut = [],
-    additionalPropFilterIn = [],
-  }: ListNodesDevParams) => {
-    const { data: rawDevElements } = useDevElementsQuery();
-    const devElements = rawDevElements || [];
-
-    const { nodePropertyFilterOut, nodePropertyFilterIn } =
-      getRawFilters(filters);
-
-    const filterOut = [...nodePropertyFilterOut, ...additionalPropFilterOut];
-
-    const filterIn = [...nodePropertyFilterIn, ...additionalPropFilterIn];
-
-    return devElements
-      .filter((e) => e.group === "nodes")
-      .map((n) => n as GraphNode)
-      .filter((n) => {
-        const filterOutOk =
-          filterOut.length === 0 ||
-          filterOut.every(([pName, pValue]) => {
-            const v = n.data.properties[pName];
-            const hasProperty = v !== undefined;
-            return !hasProperty || v !== pValue;
-          });
-
-        const filterInOk =
-          filterIn.length === 0 ||
-          filterIn.every(([pName, pValue]) => {
-            const v = n.data.properties[pName];
-            const hasProperty = v !== undefined;
-            return !hasProperty || v.includes(pValue);
-          });
-
-        return filterOutOk && filterInOk;
-      });
-  },
-
-  list_edges: async ({
-    nodeId,
-    nodeFilters = {},
-    edgeTypeNames = [],
-    additionalNodePropFilterOut = [],
-    additionalNodePropFilterIn = [],
-    edgePropFilterOut = [],
-    edgePropFilterIn = [],
-  }: ListEdgesDevParams) => {
-    const { data: rawDevElements } = useDevElementsQuery();
-    const devElements = rawDevElements || [];
-
-    const mappedDevNodes = Object.fromEntries(
-      devElements
-        .filter((e) => e.group === "nodes")
-        .map((e) => [e.data.turing_id, e])
-    );
-    const mappedEdgeTypeNames = Object.fromEntries(
-      edgeTypeNames.map((name) => [name, true])
-    );
-
-    const { nodePropertyFilterOut, nodePropertyFilterIn } =
-      getRawFilters(nodeFilters);
-
-    const nodeFilterOut = [
-      ...nodePropertyFilterOut,
-      ...additionalNodePropFilterOut,
-    ];
-
-    const nodeFilterIn = [
-      ...nodePropertyFilterIn,
-      ...additionalNodePropFilterIn,
-    ];
-
-    return devElements
-      .filter((e) => e.group === "edges")
-      .map((e) => e as GraphEdge)
-      .filter(
-        (e) =>
-          e.data.turing_source_id === nodeId ||
-          e.data.turing_target_id === nodeId
-      )
-      .filter(
-        (e) =>
-          edgeTypeNames.length === 0 ||
-          mappedEdgeTypeNames[e.data.edge_type_name!]
-      )
-      .filter((e) => {
-        const filterOutOk =
-          edgePropFilterOut.length === 0 ||
-          edgePropFilterOut.every(([pName, pValue]) => {
-            const v = e.data.properties[pName];
-            const hasProperty = v !== undefined;
-            return !hasProperty || v.toString() !== pValue;
-          });
-
-        const filterInOk =
-          edgePropFilterIn.length === 0 ||
-          edgePropFilterIn.every(([pName, pValue]) => {
-            const v = e.data.properties[pName];
-            const hasProperty = v !== undefined;
-            return !hasProperty || v.toString().includes(pValue);
-          });
-
-        return filterOutOk && filterInOk;
-      })
-      .filter((e) => {
-        const otherNode =
-          e.data.turing_source_id === nodeId
-            ? mappedDevNodes[e.data.turing_target_id]!
-            : mappedDevNodes[e.data.turing_source_id]!;
-
-        const filterOutOk =
-          nodeFilterOut.length === 0 ||
-          nodeFilterOut.every(([pName, pValue]) => {
-            const v = otherNode.data.properties[pName];
-            const hasProperty = v !== undefined;
-            return !hasProperty || v !== pValue;
-          });
-
-        const filterInOk =
-          nodeFilterIn.length === 0 ||
-          nodeFilterIn.every(([pName, pValue]) => {
-            const v = otherNode.data.properties[pName];
-            const hasProperty = v !== undefined;
-            return !hasProperty || v.includes(pValue);
-          });
-
-        return filterOutOk && filterInOk;
-      });
-  },
-
-  get_nodes: async ({ nodeIds }: GetNodesDevParams) => {
-    const { data: rawDevElements } = useDevElementsQuery();
-    const devElements = rawDevElements || [];
-
-    const mappedIds = Object.fromEntries(nodeIds.map((id) => [id, true]));
-
-    return devElements.filter(
-      (e) => mappedIds[e.data.turing_id] && e.group === "nodes"
-    ).map((n) => n as GraphNode);
-  },
-
-  get_edges: async ({ edgeIds }: GetEdgesDevParams) => {
-    const { data: rawDevElements } = useDevElementsQuery();
-    const devElements = rawDevElements || [];
-
-    const mappedIds = Object.fromEntries(edgeIds.map((id) => [id, true]));
-
-    return devElements.filter(
-      (e) => mappedIds[e.data.turing_id] && e.group === "edges"
-    ).map((e) => e as GraphEdge);
-  },
+  list_nodes: list_nodes,
+  list_edges: list_edges,
+  get_nodes: get_nodes,
+  get_edges: get_edges,
+  list_pathways: list_pathways,
+  get_pathway: get_pathway,
 };
+
+async function list_nodes({
+  devElements,
+  filters = {},
+  additionalPropFilterOut = [],
+  additionalPropFilterIn = [],
+}: ListNodesDevParams) {
+  const { nodePropertyFilterOut, nodePropertyFilterIn } =
+    getRawFilters(filters);
+
+  const filterOut = [...nodePropertyFilterOut, ...additionalPropFilterOut];
+
+  const filterIn = [...nodePropertyFilterIn, ...additionalPropFilterIn];
+
+  return devElements
+    .filter((e) => e.group === "nodes")
+    .map((n) => n as GraphNode)
+    .filter((n) => {
+      const filterOutOk =
+        filterOut.length === 0 ||
+        filterOut.every(([pName, pValue]) => {
+          const v = n.data.properties[pName];
+          const hasProperty = v !== undefined;
+          return !hasProperty || v !== pValue;
+        });
+
+      const filterInOk =
+        filterIn.length === 0 ||
+        filterIn.every(([pName, pValue]) => {
+          const v = n.data.properties[pName];
+          const hasProperty = v !== undefined;
+          return !hasProperty || v.includes(pValue);
+        });
+
+      return filterOutOk && filterInOk;
+    });
+}
+
+async function list_edges({
+  devElements,
+  nodeId,
+  nodeFilters = {},
+  edgeTypeNames = [],
+  additionalNodePropFilterOut = [],
+  additionalNodePropFilterIn = [],
+  edgePropFilterOut = [],
+  edgePropFilterIn = [],
+}: ListEdgesDevParams) {
+  const mappedDevNodes = Object.fromEntries(
+    devElements
+      .filter((e) => e.group === "nodes")
+      .map((e) => [e.data.turing_id, e])
+  );
+  const mappedEdgeTypeNames = Object.fromEntries(
+    edgeTypeNames.map((name) => [name, true])
+  );
+
+  const { nodePropertyFilterOut, nodePropertyFilterIn } =
+    getRawFilters(nodeFilters);
+
+  const nodeFilterOut = [
+    ...nodePropertyFilterOut,
+    ...additionalNodePropFilterOut,
+  ];
+
+  const nodeFilterIn = [...nodePropertyFilterIn, ...additionalNodePropFilterIn];
+
+  return devElements
+    .filter((e) => e.group === "edges")
+    .map((e) => e as GraphEdge)
+    .filter(
+      (e) =>
+        e.data.turing_source_id === nodeId || e.data.turing_target_id === nodeId
+    )
+    .filter(
+      (e) =>
+        edgeTypeNames.length === 0 ||
+        mappedEdgeTypeNames[e.data.edge_type_name!]
+    )
+    .filter((e) => {
+      const filterOutOk =
+        edgePropFilterOut.length === 0 ||
+        edgePropFilterOut.every(([pName, pValue]) => {
+          const v = e.data.properties[pName];
+          const hasProperty = v !== undefined;
+          return !hasProperty || v.toString() !== pValue;
+        });
+
+      const filterInOk =
+        edgePropFilterIn.length === 0 ||
+        edgePropFilterIn.every(([pName, pValue]) => {
+          const v = e.data.properties[pName];
+          const hasProperty = v !== undefined;
+          return !hasProperty || v.toString().includes(pValue);
+        });
+
+      return filterOutOk && filterInOk;
+    })
+    .filter((e) => {
+      const otherNode =
+        e.data.turing_source_id === nodeId
+          ? mappedDevNodes[e.data.turing_target_id]!
+          : mappedDevNodes[e.data.turing_source_id]!;
+
+      const filterOutOk =
+        nodeFilterOut.length === 0 ||
+        nodeFilterOut.every(([pName, pValue]) => {
+          const v = otherNode.data.properties[pName];
+          const hasProperty = v !== undefined;
+          return !hasProperty || v !== pValue;
+        });
+
+      const filterInOk =
+        nodeFilterIn.length === 0 ||
+        nodeFilterIn.every(([pName, pValue]) => {
+          const v = otherNode.data.properties[pName];
+          const hasProperty = v !== undefined;
+          return !hasProperty || v.includes(pValue);
+        });
+
+      return filterOutOk && filterInOk;
+    });
+}
+
+async function get_nodes({ devElements, nodeIds }: GetNodesDevParams) {
+  const mappedIds = Object.fromEntries(nodeIds.map((id) => [id, true]));
+
+  return devElements
+    .filter((e) => mappedIds[e.data.turing_id] && e.group === "nodes")
+    .map((n) => n as GraphNode);
+}
+
+async function get_edges({ devElements, edgeIds }: GetEdgesDevParams) {
+  const mappedIds = Object.fromEntries(edgeIds.map((id) => [id, true]));
+
+  return devElements
+    .filter((e) => mappedIds[e.data.turing_id] && e.group === "edges")
+    .map((e) => e as GraphEdge);
+}
+
+function filter_nodes(
+  nodes: GraphNode[],
+  filters: Filters,
+  additionalPropFilterOut: Property[],
+  additionalPropFilterIn: Property[]
+) {
+  const { nodePropertyFilterOut, nodePropertyFilterIn } =
+    getRawFilters(filters);
+  const filterOut = [...nodePropertyFilterOut, ...additionalPropFilterOut];
+  const filterIn = [...nodePropertyFilterIn, ...additionalPropFilterIn];
+
+  return nodes.filter((n) => {
+    const filterOutOk =
+      filterOut.length === 0 ||
+      filterOut.every(([pName, pValue]) => {
+        const v = n.data.properties[pName];
+        const hasProperty = v !== undefined;
+        return !hasProperty || v !== pValue;
+      });
+
+    const filterInOk =
+      filterIn.length === 0 ||
+      filterIn.every(([pName, pValue]) => {
+        const v = n.data.properties[pName];
+        const hasProperty = v !== undefined;
+        return !hasProperty || v.includes(pValue);
+      });
+
+    return filterOutOk && filterInOk;
+  });
+}
+
+async function list_pathways({
+  devElements,
+  nodeId,
+  filters = {},
+  additionalPropFilterOut = [],
+  additionalPropFilterIn = [],
+}: ListPathwaysDevParams) {
+  const edges = await list_far_in_edges({ devElements, nodeId });
+  const nodes = await get_nodes({
+    devElements,
+    nodeIds: edges.map((edge) => edge.data.turing_source_id),
+  });
+  additionalPropFilterIn.push(["schemaClass", "Pathway"]);
+
+  return filter_nodes(
+    nodes,
+    filters,
+    additionalPropFilterIn,
+    additionalPropFilterOut
+  );
+}
+
+async function get_pathway({
+  devElements,
+  nodeId,
+  filters = {},
+  additionalPropFilterOut = [],
+  additionalPropFilterIn = [],
+}: ListPathwaysDevParams) {
+  const pathway = (await get_nodes({ devElements, nodeIds: [nodeId] }))[0];
+  if (!pathway) return;
+
+  const edges = await list_far_in_edges({
+    devElements,
+    nodeId: pathway.data.turing_id,
+  });
+  const nodes = await get_nodes({
+    devElements,
+    nodeIds: edges.map((edge) => edge.data.turing_source_id),
+  });
+
+  return filter_nodes(
+    nodes,
+    filters,
+    additionalPropFilterIn,
+    additionalPropFilterOut
+  );
+}
+
+async function list_far_in_edges(
+  { devElements, nodeId }: ListPathwaysDevParams,
+  maxDepth: number = 2,
+  depth: number = 0
+) {
+  if (depth > maxDepth) return [];
+
+  let edges = await list_edges({ devElements, nodeId });
+
+  for (const edge of edges) {
+    if (edge.data.turing_source_id !== nodeId) {
+      const newEdges = await list_far_in_edges(
+        { devElements, nodeId: edge.data.turing_source_id },
+        maxDepth,
+        depth + 1
+      );
+      edges = [edges, newEdges].flat();
+    }
+  }
+
+  return edges;
+}

@@ -11,7 +11,7 @@ import {
   VisualizerTriggers,
 } from "../types";
 
-type VisualizerContextValueType = {
+export type VisualizerContextValueType = {
   refs?: VisualizerReferences;
   themeMode?: string;
   canvasTheme?: string;
