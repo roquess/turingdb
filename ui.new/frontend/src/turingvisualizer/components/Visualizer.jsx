@@ -15,22 +15,6 @@ const Visualizer = (props) => {
         flex: 1,
       }}>
       {props.canvas}
-      {vis.state().devMode && (
-        <div
-          style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none",
-            opacity: 1,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "end",
-            paddingLeft: 20,
-          }}>
-          <p>Dev mode</p>
-        </div>
-      )}
       {props.contextMenu}
       <div
         style={{

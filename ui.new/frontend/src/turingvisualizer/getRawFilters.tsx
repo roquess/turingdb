@@ -20,6 +20,7 @@ export function getRawFilters(filters: Filters) {
   }
 
   if (filters.hidePublications) {
+    nodePropertyFilterOut.push(["schemaClass", "Person"]);
     nodePropertyFilterOut.push(["schemaClass", "InstanceEdit"]);
     nodePropertyFilterOut.push(["schemaClass", "ReviewStatus"]);
     nodePropertyFilterOut.push(["schemaClass", "LiteratureReference"]);

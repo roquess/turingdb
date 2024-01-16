@@ -42,7 +42,7 @@ const NodeContextMenu = (props) => {
       <items.ItemSearchNodes />
 
       <MenuDivider title="Add / Remove" />
-      {vis.state().devMode && <items.ItemShowInPathway />}
+      <items.ItemShowInPathway />
       <items.ItemCollapseNeighbors disabled={!isSelected} actions={actions} />
       <items.ItemExpandNeighbors actions={actions} />
       <items.ItemHideNodes actions={actions} />

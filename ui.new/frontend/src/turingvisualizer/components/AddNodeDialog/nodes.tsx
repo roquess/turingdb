@@ -24,12 +24,6 @@ type QueryNodeParams = {
   setNodes: React.Dispatch<React.SetStateAction<GraphNodeData[]>>;
 };
 
-type ListNodesRes = {
-  failed: boolean;
-  error: { details: string };
-  nodes: GraphNodeData[];
-};
-
 export function useNodes(
   dbName: string,
   propName: string | undefined,

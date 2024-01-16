@@ -30,6 +30,8 @@ service DBService {
     // Networks
     rpc ListNetworks (ListNetworksRequest) returns (ListNetworksReply) {}
     rpc CreateNetwork (CreateNetworkRequest) returns (CreateNetworkReply) {}
+    rpc ListPathways (ListPathwaysRequest) returns (ListPathwaysReply) {}
+    rpc GetPathway (GetPathwayRequest) returns (GetPathwayReply) {}
 
     // Nodes
     rpc ListNodes (ListNodesRequest) returns (ListNodesReply) {}
@@ -327,6 +329,24 @@ message CreateNetworkRequest {
 }
 message CreateNetworkReply {
     Network network = 1;
+}
+
+// ListPathways
+message ListPathwaysRequest {
+    uint64 db_id = 1;
+    uint64 node_id = 2;
+}
+message ListPathwaysReply {
+    repeated Node nodes = 1;
+}
+
+// GetPathway
+message GetPathwayRequest {
+    uint64 db_id = 1;
+    uint64 node_id = 2;
+}
+message GetPathwayReply {
+    repeated Node nodes = 1;
 }
 
 // CreateNodeType

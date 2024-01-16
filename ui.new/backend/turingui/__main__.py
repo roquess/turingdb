@@ -191,7 +191,7 @@ def run(args):
                 },
                 "type": "selected",
                 "in_edge_count": n.in_edge_count,
-                "out_edge_count": n.out_edge_count
+                "out_edge_count": n.out_edge_count,
             }
             for n in nodes
         ]
@@ -210,6 +210,66 @@ def run(args):
         return jsonify(
             {"nodes": [{**base_nodes[i], **edges[i]} for i in range(len(nodes))]}
         )
+
+    @app.route("/api/list_pathways", methods=["POST"])
+    def list_pathways():
+        data = request.get_json()
+        node_id = int(data.get("node_id"))
+        db_name = data["db_name"]
+
+        try:
+            db = turing.get_db(db_name)
+            node = db.list_nodes_by_id(ids=[node_id])[0]
+            pathway_nodes = db.list_pathways(node)
+
+        except TuringError as err:
+            return jsonify({"failed": True, "error": {"details": err.details}})
+
+        nodes = [
+            {
+                "id": n.id,
+                "node_type_name": n.node_type.name,
+                "properties": {
+                    p_name: p_value.value for p_name, p_value in n.properties.items()
+                },
+                "type": "selected",
+                "in_edge_count": n.in_edge_count,
+                "out_edge_count": n.out_edge_count,
+            }
+            for n in pathway_nodes
+        ]
+
+        return jsonify({"nodes": nodes})
+
+    @app.route("/api/get_pathway", methods=["POST"])
+    def get_pathway():
+        data = request.get_json()
+        node_id = int(data.get("node_id"))
+        db_name = str(data["db_name"])
+
+        try:
+            db = turing.get_db(db_name)
+            pathway_node = db.list_nodes_by_id(ids=[node_id])[0]
+            nodes = [pathway_node] + db.get_pathway(pathway_node)
+
+        except TuringError as err:
+            return jsonify({"failed": True, "error": {"details": err.details}})
+
+        nodes = [
+            {
+                "id": n.id,
+                "node_type_name": n.node_type.name,
+                "properties": {
+                    p_name: p_value.value for p_name, p_value in n.properties.items()
+                },
+                "type": "selected",
+                "in_edge_count": n.in_edge_count,
+                "out_edge_count": n.out_edge_count,
+            }
+            for n in nodes
+        ]
+
+        return jsonify({"nodes": nodes})
 
     @app.route("/api/list_node_property_types", methods=["POST"])
     def list_node_property_types():

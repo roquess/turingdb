@@ -16,7 +16,6 @@ export type VisualizerContextValueType = {
   themeMode?: string;
   canvasTheme?: string;
   dbName?: string;
-  devMode?: boolean;
   containerId?: string;
   hookEvent: HookEventFunction;
   state: () => VisualizerState | undefined;
@@ -30,6 +29,7 @@ export type VisualizerContextValueType = {
   contextMenuSetData: (data: CxtMenuData) => void;
 
   searchNodesDialog: DialogInfos;
+  showInPathwayDialog: DialogInfos;
 };
 
 export const VisualizerContext =
@@ -52,6 +52,14 @@ export const VisualizerContext =
       toggle: () => {},
       setIsOpen: () => {},
     },
+
+    showInPathwayDialog: {
+      isOpen: false,
+      open: () => {},
+      close: () => {},
+      toggle: () => {},
+      setIsOpen: () => {},
+    },
   });
 
 export const VisualizerContextProvider = ({
@@ -60,7 +68,6 @@ export const VisualizerContextProvider = ({
   themeMode,
   dbName,
   containerId,
-  devMode = false,
 }) => {
   const refs = useVisualizerReferences();
 
@@ -71,7 +78,6 @@ export const VisualizerContextProvider = ({
         themeMode,
         canvasTheme,
         dbName,
-        devMode,
         containerId,
         state: () => refs.state.current,
         events: () => refs.events.current,
@@ -89,6 +95,7 @@ export const VisualizerContextProvider = ({
           refs.hookEvent.current(eventName, key, callback),
 
         searchNodesDialog: useDialog(),
+        showInPathwayDialog: useDialog(),
       }}>
       {children}
     </VisualizerContext.Provider>

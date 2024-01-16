@@ -6,8 +6,14 @@ import {
 } from "@tanstack/react-query";
 
 import { Filters, getRawFilters } from "./getRawFilters";
-import { GraphElement, GraphEdge, GraphNode, Property } from "./types";
-import { VisualizerContextValueType } from "./components/VisualizerContext";
+import {
+  GraphElement,
+  GraphEdge,
+  GraphNode,
+  Property,
+  GraphNodeData,
+  GraphEdgeData,
+} from "./types";
 
 export { getRawFilters };
 
@@ -61,233 +67,16 @@ export const useElementsQuery = ({
     }, [dbName, selectedNodeIds, hiddenNodeIds, filters])
   );
 
-type UseDevElementsParams = {
-  vis: VisualizerContextValueType;
-  selectedNodeIds: string[];
-  hiddenNodeIds: string[];
-  filters: Filters;
-};
-
-export const useDevElements = ({
-  vis,
-  selectedNodeIds,
-  hiddenNodeIds,
-  filters,
-}: UseDevElementsParams) => {
-  const { nodePropertyFilterOut, nodePropertyFilterIn } =
-    getRawFilters(filters);
-
-  const devElements = vis.state()?.devElements || [];
-
-  if (devElements.length === 0) return { data: [] };
-
-  const allNodes = Object.fromEntries(
-    devElements
-      .filter((e) => e.group === "nodes")
-      .map((n) => [n.data.turing_id, n as GraphNode])
-  );
-
-  const allEdges = Object.fromEntries(
-    devElements
-      .filter((e) => e.group === "edges")
-      .map((e) => [e.data.turing_id, e as GraphEdge])
-  );
-
-  // Selected nodes
-  const selectedNodesMap = Object.fromEntries(
-    selectedNodeIds.map((id) => [id, allNodes[id]!])
-  );
-
-  for (const n of Object.values(selectedNodesMap)) {
-    n.data.type = "selected";
-  }
-
-  // Connecting edges
-  const connectingEdgesMap = Object.fromEntries(
-    Object.values(allEdges)
-      .filter(
-        (e) =>
-          selectedNodesMap[e.data.turing_source_id] &&
-          selectedNodesMap[e.data.turing_target_id]
-      )
-      .map((e) => [e.data.turing_id, e])
-  );
-
-  for (const e of Object.values(connectingEdgesMap)) {
-    e.data.type = "connecting";
-  }
-
-  // Neighbor edges are edges that are connected to only one selected node
-  // + that don't imply hidden nodes
-  // + that only imply nodes that respect the filters
-  const hiddenNodeIdMap = Object.fromEntries(
-    hiddenNodeIds.map((id) => [id, true])
-  );
-
-  const allNeighborEdgesMap = Object.fromEntries(
-    Object.values(allEdges)
-      .filter((e) => {
-        const tsid = e.data.turing_source_id;
-        const ttid = e.data.turing_target_id;
-        const sourceIsSelected = selectedNodesMap[tsid] !== undefined;
-        const targetIsSelected = selectedNodesMap[ttid] !== undefined;
-
-        const impliesOnlyOneSelectedNode =
-          sourceIsSelected !== targetIsSelected;
-        const impliesHiddenNode =
-          hiddenNodeIdMap[tsid] || hiddenNodeIdMap[ttid];
-
-        return impliesOnlyOneSelectedNode && !impliesHiddenNode;
-      })
-      .map((e) => [e.data.turing_id, e])
-  );
-
-  const allNeighborNodesMap = Object.fromEntries(
-    [
-      ...new Set(
-        Object.values(allNeighborEdgesMap) // Set for unique ids
-          .map((e) => [e.data.turing_source_id, e.data.turing_target_id])
-          .flat()
-          .filter((nId) => !selectedNodesMap[nId]) // Not selected
-      ),
-    ].map((nId) => [nId, allNodes[nId]!])
-  );
-
-  const filteredNeighborNodesMap = Object.fromEntries(
-    Object.values(allNeighborNodesMap)
-      .filter((n) => {
-        const filterOutOk =
-          nodePropertyFilterOut.length === 0
-            ? [true]
-            : nodePropertyFilterOut.every(([pName, pValue]) => {
-                const v = n.data.properties[pName];
-                const hasProperty = v !== undefined;
-                return !hasProperty || v !== pValue;
-              });
-
-        const filterInOk =
-          nodePropertyFilterIn.length === 0
-            ? [true]
-            : nodePropertyFilterIn.some(([pName, pValue]) => {
-                const v = n.data.properties[pName];
-                const hasProperty = v !== undefined;
-                return !hasProperty || v === pValue;
-              });
-
-        return filterOutOk && filterInOk;
-      })
-      .map((n) => [n.data.turing_id, n])
-  );
-
-  const filteredNeighborEdgesMap = Object.fromEntries(
-    Object.values(allNeighborEdgesMap)
-      .filter((e) => {
-        const tsid = e.data.turing_source_id;
-        const ttid = e.data.turing_target_id;
-        const sourceValid =
-          filteredNeighborNodesMap[tsid] || selectedNodesMap[tsid];
-        const targetValid =
-          filteredNeighborNodesMap[ttid] || selectedNodesMap[ttid];
-
-        return sourceValid && targetValid;
-      })
-      .map((e) => [e.data.turing_id, e])
-  );
-
-  const importantNodeCounts = Object.fromEntries(
-    Object.keys(filteredNeighborNodesMap).map((id) => [id, 0])
-  );
-
-  for (const e of Object.values(filteredNeighborEdgesMap)) {
-    if (selectedNodesMap[e.data.turing_source_id] === undefined)
-      importantNodeCounts[e.data.turing_source_id] += 1;
-    if (selectedNodesMap[e.data.turing_target_id] === undefined)
-      importantNodeCounts[e.data.turing_target_id] += 1;
-  }
-
-  const importantNodesMap = Object.fromEntries(
-    Object.entries(importantNodeCounts)
-      .filter(([, count]) => count > 1)
-      .map(([id]) => [id, filteredNeighborNodesMap[id]!])
-  );
-
-  const importantEdgesMap = Object.fromEntries(
-    Object.entries(filteredNeighborEdgesMap).filter(([, e]) => {
-      const sourceIsImportant =
-        importantNodesMap[e.data.turing_source_id] !== undefined;
-      const targetIsImportant =
-        importantNodesMap[e.data.turing_target_id] !== undefined;
-
-      return sourceIsImportant || targetIsImportant;
-    })
-  );
-
-  const edgeCounts = Object.fromEntries(
-    Object.keys(allNodes).map((id) => [id, 0])
-  );
-
-  const neighborEdgesMap = {
-    ...Object.fromEntries(
-      Object.entries(filteredNeighborEdgesMap).filter(([, e]) => {
-        const tsid = e.data.turing_source_id;
-        const ttid = e.data.turing_target_id;
-
-        edgeCounts[tsid] += 1;
-        edgeCounts[ttid] += 1;
-
-        if (edgeCounts[tsid]! > 20 || edgeCounts[ttid]! > 20) {
-          return false;
-        }
-
-        return true;
-      })
-    ),
-    ...importantEdgesMap,
-  };
-
-  const neighborNodesMap = {
-    ...Object.fromEntries(
-      [
-        ...new Set(
-          Object.values(neighborEdgesMap) // Set for unique ids
-            .map((e) => [e.data.turing_source_id, e.data.turing_target_id])
-            .flat()
-        ),
-      ]
-        .filter((id) => selectedNodesMap[id] === undefined)
-        .map((nId) => [nId, filteredNeighborNodesMap[nId]!])
-    ),
-    ...importantNodesMap,
-  };
-
-  for (const e of Object.values(neighborEdgesMap)) {
-    e.data.type = "neighbor";
-  }
-
-  for (const e of Object.values(neighborNodesMap)) {
-    e.data.type = "neighbor";
-  }
-
-  const rawElements = [
-    ...Object.values(selectedNodesMap),
-    ...Object.values(connectingEdgesMap),
-
-    ...Object.values(neighborNodesMap),
-    ...Object.values(neighborEdgesMap),
-  ];
-
-  return { data: rawElements };
-};
-
 export type ListNodesDevParams = {
-  devElements: GraphElement[];
+  dbName?: string;
   filters?: Filters;
   additionalPropFilterOut?: Property[];
   additionalPropFilterIn?: Property[];
+  yield_edges?: boolean;
 };
 
 export type ListEdgesDevParams = {
-  devElements: GraphElement[];
+  dbName?: string;
   nodeId: string;
   nodeFilters?: Filters;
   edgeTypeNames?: string[];
@@ -298,271 +87,275 @@ export type ListEdgesDevParams = {
 };
 
 export type ListPathwaysDevParams = {
-  devElements: GraphElement[];
+  dbName?: string;
   nodeId: string;
-  filters?: Filters;
-  additionalPropFilterOut?: Property[];
-  additionalPropFilterIn?: Property[];
+};
+
+export type GetPathwayDevParams = {
+  dbName?: string;
+  nodeId: string;
 };
 
 export type GetNodesDevParams = {
-  devElements: GraphElement[];
+  dbName?: string;
   nodeIds: string[];
+  yield_edges: boolean;
 };
 
 export type GetEdgesDevParams = {
-  devElements: GraphElement[];
+  dbName?: string;
   edgeIds: string[];
 };
 
-export const devEndpoints = {
-  list_nodes: list_nodes,
-  list_edges: list_edges,
-  get_nodes: get_nodes,
-  get_edges: get_edges,
-  list_pathways: list_pathways,
-  get_pathway: get_pathway,
+export type Endpoints = {
+  list_nodes: typeof prod_list_nodes;
+  list_edges: typeof prod_list_edges;
+  get_nodes: typeof prod_get_nodes;
+  get_edges: typeof prod_get_edges;
+  list_pathways: typeof prod_list_pathways;
+  get_pathway: typeof prod_get_pathway;
 };
 
-async function list_nodes({
-  devElements,
+export const endpoints: Endpoints = {
+  list_nodes: prod_list_nodes,
+  list_edges: prod_list_edges,
+  get_nodes: prod_get_nodes,
+  get_edges: prod_get_edges,
+  list_pathways: prod_list_pathways,
+  get_pathway: prod_get_pathway,
+};
+
+type ListNodesRes = {
+  failed: boolean;
+  error: { details: string };
+  nodes: GraphNodeData[];
+};
+
+type ListEdgesRes = {
+  failed: boolean;
+  error: { details: string };
+  edges: GraphEdgeData[];
+};
+
+type ListPathwaysRes = {
+  failed: boolean;
+  error: { details: string };
+  nodes: GraphNodeData[];
+};
+
+type GetPathwayRes = {
+  failed: boolean;
+  error: { details: string };
+  nodes: GraphNodeData[];
+};
+
+async function prod_list_nodes({
+  dbName = "reactome",
   filters = {},
   additionalPropFilterOut = [],
   additionalPropFilterIn = [],
-}: ListNodesDevParams) {
+  yield_edges = false,
+}: ListNodesDevParams): Promise<GraphNode[]> {
   const { nodePropertyFilterOut, nodePropertyFilterIn } =
     getRawFilters(filters);
-
   const filterOut = [...nodePropertyFilterOut, ...additionalPropFilterOut];
-
   const filterIn = [...nodePropertyFilterIn, ...additionalPropFilterIn];
 
-  return devElements
-    .filter((e) => e.group === "nodes")
-    .map((n) => n as GraphNode)
-    .filter((n) => {
-      const filterOutOk =
-        filterOut.length === 0 ||
-        filterOut.every(([pName, pValue]) => {
-          const v = n.data.properties[pName];
-          const hasProperty = v !== undefined;
-          return !hasProperty || v !== pValue;
-        });
-
-      const filterInOk =
-        filterIn.length === 0 ||
-        filterIn.every(([pName, pValue]) => {
-          const v = n.data.properties[pName];
-          const hasProperty = v !== undefined;
-          return !hasProperty || v.includes(pValue);
-        });
-
-      return filterOutOk && filterInOk;
+  return await axios
+    .post<ListNodesRes>("/api/list_nodes", {
+      db_name: dbName,
+      node_property_filter_out: filterOut,
+      node_property_filter_in: filterIn,
+      yield_edges,
+    })
+    .then((res) => {
+      if (res.data.failed) {
+        return [];
+      }
+      return res.data.nodes.map((n) => {
+        return {
+          group: "nodes",
+          data: {
+            ...n,
+            id: String(n.id + 1),
+            turing_id: String(n.id),
+          },
+        };
+      });
     });
 }
 
-async function list_edges({
-  devElements,
+async function prod_list_edges({
+  dbName = "reactome",
   nodeId,
-  nodeFilters = {},
   edgeTypeNames = [],
-  additionalNodePropFilterOut = [],
-  additionalNodePropFilterIn = [],
   edgePropFilterOut = [],
   edgePropFilterIn = [],
 }: ListEdgesDevParams) {
-  const mappedDevNodes = Object.fromEntries(
-    devElements
-      .filter((e) => e.group === "nodes")
-      .map((e) => [e.data.turing_id, e])
-  );
-  const mappedEdgeTypeNames = Object.fromEntries(
-    edgeTypeNames.map((name) => [name, true])
-  );
-
-  const { nodePropertyFilterOut, nodePropertyFilterIn } =
-    getRawFilters(nodeFilters);
-
-  const nodeFilterOut = [
-    ...nodePropertyFilterOut,
-    ...additionalNodePropFilterOut,
-  ];
-
-  const nodeFilterIn = [...nodePropertyFilterIn, ...additionalNodePropFilterIn];
-
-  return devElements
-    .filter((e) => e.group === "edges")
-    .map((e) => e as GraphEdge)
-    .filter(
-      (e) =>
-        e.data.turing_source_id === nodeId || e.data.turing_target_id === nodeId
-    )
-    .filter(
-      (e) =>
-        edgeTypeNames.length === 0 ||
-        mappedEdgeTypeNames[e.data.edge_type_name!]
-    )
-    .filter((e) => {
-      const filterOutOk =
-        edgePropFilterOut.length === 0 ||
-        edgePropFilterOut.every(([pName, pValue]) => {
-          const v = e.data.properties[pName];
-          const hasProperty = v !== undefined;
-          return !hasProperty || v.toString() !== pValue;
-        });
-
-      const filterInOk =
-        edgePropFilterIn.length === 0 ||
-        edgePropFilterIn.every(([pName, pValue]) => {
-          const v = e.data.properties[pName];
-          const hasProperty = v !== undefined;
-          return !hasProperty || v.toString().includes(pValue);
-        });
-
-      return filterOutOk && filterInOk;
+  const node = (
+    await prod_get_nodes({
+      dbName,
+      nodeIds: [nodeId],
+      yield_edges: true,
     })
-    .filter((e) => {
-      const otherNode =
-        e.data.turing_source_id === nodeId
-          ? mappedDevNodes[e.data.turing_target_id]!
-          : mappedDevNodes[e.data.turing_source_id]!;
+  )[0]!;
 
-      const filterOutOk =
-        nodeFilterOut.length === 0 ||
-        nodeFilterOut.every(([pName, pValue]) => {
-          const v = otherNode.data.properties[pName];
-          const hasProperty = v !== undefined;
-          return !hasProperty || v !== pValue;
-        });
-
-      const filterInOk =
-        nodeFilterIn.length === 0 ||
-        nodeFilterIn.every(([pName, pValue]) => {
-          const v = otherNode.data.properties[pName];
-          const hasProperty = v !== undefined;
-          return !hasProperty || v.includes(pValue);
-        });
-
-      return filterOutOk && filterInOk;
+  const ins = node.data.ins!;
+  const outs = node.data.outs!;
+  let edges: GraphEdge[] = await axios
+    .post<ListEdgesRes>("/api/list_edges", {
+      db_name: dbName,
+      ids: [...ins, ...outs],
+    })
+    .then((res) => {
+      return res.data.edges.map((e) => {
+        return {
+          group: "edges",
+          data: {
+            ...e,
+            id: String(e.id + 1),
+            turing_id: String(e.id),
+            turing_source_id: String(e.source_id),
+            turing_target_id: String(e.target_id),
+          },
+        };
+      });
     });
-}
 
-async function get_nodes({ devElements, nodeIds }: GetNodesDevParams) {
-  const mappedIds = Object.fromEntries(nodeIds.map((id) => [id, true]));
-
-  return devElements
-    .filter((e) => mappedIds[e.data.turing_id] && e.group === "nodes")
-    .map((n) => n as GraphNode);
-}
-
-async function get_edges({ devElements, edgeIds }: GetEdgesDevParams) {
-  const mappedIds = Object.fromEntries(edgeIds.map((id) => [id, true]));
-
-  return devElements
-    .filter((e) => mappedIds[e.data.turing_id] && e.group === "edges")
-    .map((e) => e as GraphEdge);
-}
-
-function filter_nodes(
-  nodes: GraphNode[],
-  filters: Filters,
-  additionalPropFilterOut: Property[],
-  additionalPropFilterIn: Property[]
-) {
-  const { nodePropertyFilterOut, nodePropertyFilterIn } =
-    getRawFilters(filters);
-  const filterOut = [...nodePropertyFilterOut, ...additionalPropFilterOut];
-  const filterIn = [...nodePropertyFilterIn, ...additionalPropFilterIn];
-
-  return nodes.filter((n) => {
+  edges = edges.filter((e) => {
     const filterOutOk =
-      filterOut.length === 0 ||
-      filterOut.every(([pName, pValue]) => {
-        const v = n.data.properties[pName];
+      edgePropFilterOut.length === 0 ||
+      edgePropFilterOut.every(([pName, pValue]) => {
+        const v = e.data.properties[pName];
         const hasProperty = v !== undefined;
-        return !hasProperty || v !== pValue;
+        return !hasProperty || v.toString() !== pValue;
       });
 
     const filterInOk =
-      filterIn.length === 0 ||
-      filterIn.every(([pName, pValue]) => {
-        const v = n.data.properties[pName];
+      edgePropFilterIn.length === 0 ||
+      edgePropFilterIn.every(([pName, pValue]) => {
+        const v = e.data.properties[pName];
         const hasProperty = v !== undefined;
-        return !hasProperty || v.includes(pValue);
+        return !hasProperty || v.toString().includes(pValue);
       });
 
     return filterOutOk && filterInOk;
   });
-}
 
-async function list_pathways({
-  devElements,
-  nodeId,
-  filters = {},
-  additionalPropFilterOut = [],
-  additionalPropFilterIn = [],
-}: ListPathwaysDevParams) {
-  const edges = await list_far_in_edges({ devElements, nodeId });
-  const nodes = await get_nodes({
-    devElements,
-    nodeIds: edges.map((edge) => edge.data.turing_source_id),
-  });
-  additionalPropFilterIn.push(["schemaClass", "Pathway"]);
+  const mappedEdgeTypeNames = Object.fromEntries(
+    edgeTypeNames.map((name) => [name, true])
+  );
 
-  return filter_nodes(
-    nodes,
-    filters,
-    additionalPropFilterIn,
-    additionalPropFilterOut
+  return edges.filter(
+    (e) =>
+      edgeTypeNames.length === 0 || mappedEdgeTypeNames[e.data.edge_type_name!]
   );
 }
 
-async function get_pathway({
-  devElements,
-  nodeId,
-  filters = {},
-  additionalPropFilterOut = [],
-  additionalPropFilterIn = [],
-}: ListPathwaysDevParams) {
-  const pathway = (await get_nodes({ devElements, nodeIds: [nodeId] }))[0];
-  if (!pathway) return;
-
-  const edges = await list_far_in_edges({
-    devElements,
-    nodeId: pathway.data.turing_id,
-  });
-  const nodes = await get_nodes({
-    devElements,
-    nodeIds: edges.map((edge) => edge.data.turing_source_id),
-  });
-
-  return filter_nodes(
-    nodes,
-    filters,
-    additionalPropFilterIn,
-    additionalPropFilterOut
-  );
+async function prod_get_nodes({
+  dbName = "reactome",
+  nodeIds,
+  yield_edges = false,
+}: GetNodesDevParams): Promise<GraphNode[]> {
+  return await axios
+    .post<ListNodesRes>("/api/list_nodes", {
+      db_name: dbName,
+      ids: nodeIds,
+      yield_edges,
+    })
+    .then((res) => {
+      if (res.data.failed) {
+        return [];
+      }
+      return res.data.nodes.map((n) => {
+        return {
+          group: "nodes",
+          data: {
+            ...n,
+            id: String(n.id + 1),
+            turing_id: String(n.id),
+          },
+        };
+      });
+    });
 }
 
-async function list_far_in_edges(
-  { devElements, nodeId }: ListPathwaysDevParams,
-  maxDepth: number = 2,
-  depth: number = 0
-) {
-  if (depth > maxDepth) return [];
+async function prod_get_edges({
+  dbName = "reactome",
+  edgeIds,
+}: GetEdgesDevParams): Promise<GraphEdge[]> {
+  return await axios
+    .post<ListEdgesRes>("/api/list_edges", {
+      db_name: dbName,
+      ids: edgeIds,
+    })
+    .then((res) => {
+      if (res.data.failed) {
+        return [];
+      }
+      return res.data.edges.map((e) => {
+        return {
+          group: "edges",
+          data: {
+            ...e,
+            id: String(e.id + 1),
+            turing_id: String(e.id),
+            turing_source_id: String(e.source_id),
+            turing_target_id: String(e.target_id),
+          },
+        };
+      });
+    });
+}
 
-  let edges = await list_edges({ devElements, nodeId });
+async function prod_list_pathways({
+  nodeId,
+  dbName,
+}: ListPathwaysDevParams): Promise<GraphNode[]> {
+  return await axios
+    .post<ListPathwaysRes>("/api/list_pathways", {
+      db_name: dbName,
+      node_id: nodeId,
+    })
+    .then((res) => {
+      if (res.data.failed) {
+        return [];
+      }
+      return res.data.nodes.map((n) => {
+        return {
+          group: "nodes",
+          data: {
+            ...n,
+            id: String(n.id + 1),
+            turing_id: String(n.id),
+          },
+        };
+      });
+    });
+}
 
-  for (const edge of edges) {
-    if (edge.data.turing_source_id !== nodeId) {
-      const newEdges = await list_far_in_edges(
-        { devElements, nodeId: edge.data.turing_source_id },
-        maxDepth,
-        depth + 1
-      );
-      edges = [edges, newEdges].flat();
-    }
-  }
-
-  return edges;
+async function prod_get_pathway({
+  nodeId,
+  dbName,
+}: GetPathwayDevParams): Promise<GraphNode[]> {
+  return await axios
+    .post<GetPathwayRes>("/api/get_pathway", {
+      db_name: dbName,
+      node_id: nodeId,
+    })
+    .then((res) => {
+      if (res.data.failed) {
+        return [];
+      }
+      return res.data.nodes.map((n) => {
+        return {
+          group: "nodes",
+          data: {
+            ...n,
+            id: String(n.id + 1),
+            turing_id: String(n.id),
+          },
+        };
+      });
+    });
 }

@@ -1,5 +1,6 @@
 #include "DBServiceImpl.h"
 
+#include "BioLog.h"
 #include "DB.h"
 #include "DBDumper.h"
 #include "DBLoader.h"
@@ -176,8 +177,9 @@ static grpc::Status buildRpcNode(const BuildNodeQueryParams& params) {
     params.rpcNode->set_in_edge_count(params.node->inEdgeCount());
     params.rpcNode->set_out_edge_count(params.node->outEdgeCount());
 
-    if (!params.yieldEdges)
+    if (!params.yieldEdges) {
         return buildRpcProperties(params.node, params.rpcNode);
+    }
 
     size_t edge_count = 0;
     for (const db::Edge* in : params.node->inEdges()) {
@@ -220,9 +222,8 @@ static grpc::Status buildRpcNode(const BuildNodeQueryParams& params) {
 }
 
 DBServiceImpl::DBServiceImpl(const DBServerConfig& config)
-    : _config(config)
-{
-    _dbMan = new db::DBManager(_config.getDatabasesPath());
+    : _config(config),
+      _dbMan(new db::DBManager(_config.getDatabasesPath())) {
 }
 
 DBServiceImpl::~DBServiceImpl() {
@@ -953,6 +954,256 @@ grpc::Status DBServiceImpl::CreateNetwork(grpc::ServerContext* ctxt,
     return grpc::Status::OK;
 }
 
+namespace {
+
+void searchNeighborhood(
+    std::unordered_set<const db::Node*>& previouslyVisited,
+    std::unordered_set<const db::Node*>& foundNodes,
+    const db::Node* n,
+    size_t currentDepth,
+    size_t maxDepth,
+    const std::vector<db::StringRef>& inEdgeTypeNames,
+    const std::vector<db::StringRef>& outEdgeTypeNames,
+    const std::vector<std::pair<std::string, std::string>>& excludeNodeProperties,
+    const std::vector<std::pair<std::string, std::string>>& necessaryNodeProperties) {
+
+    if (currentDepth > maxDepth
+        || previouslyVisited.find(n) != previouslyVisited.end()) {
+        return;
+    }
+
+    previouslyVisited.insert(n);
+
+    for (const db::Edge* inEdge : n->inEdges()) {
+        const db::Node* source = inEdge->getSource();
+
+        const bool edgeIsValid = std::any_of(
+            inEdgeTypeNames.cbegin(),
+            inEdgeTypeNames.cend(),
+            [&](const db::StringRef& edgeName) {
+                return db::StringRef::same(edgeName, inEdge->getType()->getName());
+            });
+
+        if (!edgeIsValid) {
+            continue;
+        }
+
+        const bool nodeHasExcludedProp = std::any_of(
+            excludeNodeProperties.cbegin(),
+            excludeNodeProperties.cend(),
+            [&](const auto& pair) {
+                for (const auto& [nodePName, nodePValue] : source->properties()) {
+                    const bool pTypeMatches = pair.first == nodePName->getName().getSharedString()->getString();
+                    if (pTypeMatches && pair.second == nodePValue.getString()) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+        if (nodeHasExcludedProp) {
+            continue;
+        }
+
+        const bool nodeHasNecessaryProps = std::all_of(
+            necessaryNodeProperties.cbegin(),
+            necessaryNodeProperties.cend(),
+            [&](const auto& pair) {
+                for (const auto& [nodePName, nodePValue] : source->properties()) {
+                    const bool pTypeMatches = pair.first == nodePName->getName().getSharedString()->getString();
+                    if (pTypeMatches && pair.second == nodePValue.getString()) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+        if (nodeHasNecessaryProps) {
+            foundNodes.insert(source);
+        }
+
+        searchNeighborhood(
+            previouslyVisited,
+            foundNodes,
+            source,
+            currentDepth + 1,
+            maxDepth,
+            inEdgeTypeNames,
+            outEdgeTypeNames,
+            excludeNodeProperties,
+            necessaryNodeProperties);
+    }
+
+    for (const db::Edge* outEdge : n->outEdges()) {
+        const db::Node* target = outEdge->getTarget();
+
+        const bool edgeIsValid = std::any_of(
+            outEdgeTypeNames.cbegin(),
+            outEdgeTypeNames.cend(),
+            [&](const db::StringRef& edgeName) {
+                return db::StringRef::same(edgeName, outEdge->getType()->getName());
+            });
+
+        if (!edgeIsValid) {
+            continue;
+        }
+
+        const bool nodeHasExcludedProp = std::any_of(
+            excludeNodeProperties.cbegin(),
+            excludeNodeProperties.cend(),
+            [&](const auto& pair) {
+                for (const auto& [nodePName, nodePValue] : target->properties()) {
+                    const bool pTypeMatches = pair.first == nodePName->getName().getSharedString()->getString();
+                    if (pTypeMatches && pair.second == nodePValue.getString()) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+        if (nodeHasExcludedProp) {
+            continue;
+        }
+
+        const bool nodeHasNecessaryProps = std::all_of(
+            necessaryNodeProperties.cbegin(),
+            necessaryNodeProperties.cend(),
+            [&](const auto& pair) {
+                for (const auto& [nodePName, nodePValue] : target->properties()) {
+                    const bool pTypeMatches = pair.first == nodePName->getName().getSharedString()->getString();
+                    if (pTypeMatches && pair.second == nodePValue.getString()) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+        if (nodeHasNecessaryProps) {
+            foundNodes.insert(target);
+        }
+
+        searchNeighborhood(
+            previouslyVisited,
+            foundNodes,
+            target,
+            currentDepth + 1,
+            maxDepth,
+            inEdgeTypeNames,
+            outEdgeTypeNames,
+            excludeNodeProperties,
+            necessaryNodeProperties);
+    }
+}
+
+}
+
+grpc::Status DBServiceImpl::ListPathways(grpc::ServerContext* ctxt,
+                                         const ListPathwaysRequest* request,
+                                         ListPathwaysReply* reply) {
+    if (!isDBValid(request->db_id())) {
+        return invalidDBStatus();
+    }
+
+    db::DB* db = _databases.at(request->db_id());
+    const db::Node* node = db->getNode((db::DBIndex)request->node_id());
+    if (!node) {
+        return grpc::Status {grpc::StatusCode::NOT_FOUND, "Node does not exist"};
+    }
+
+    std::unordered_set<const db::Node*> previouslyVisited;
+    std::unordered_set<const db::Node*> pathways;
+    const std::vector<db::StringRef> inEdgeTypeNames = {
+        db->getString("input"),
+        db->getString("output"),
+        db->getString("hasEvent"),
+    };
+    const std::vector<db::StringRef> outEdgeTypeNames = {};
+    const std::vector<std::pair<std::string, std::string>> necessaryNodeProperties = {
+        {"schemaClass", "Pathway"}
+    };
+    const std::vector<std::pair<std::string, std::string>> excludeNodeProperties = {};
+
+    ::searchNeighborhood(previouslyVisited,
+                         pathways,
+                         node,
+                         0, // Current depth
+                         3, // Max depth
+                         inEdgeTypeNames,
+                         outEdgeTypeNames,
+                         excludeNodeProperties,
+                         necessaryNodeProperties);
+
+    reply->mutable_nodes()->Reserve(pathways.size());
+    for (const db::Node* node : pathways) {
+        auto* n = reply->add_nodes();
+        grpc::Status status = buildRpcNode({
+            .dbId = request->db_id(),
+            .rpcNode = n,
+            .node = node,
+            .yieldEdges = false,
+        });
+
+        if (!status.ok()) {
+            return status;
+        }
+    }
+
+    return grpc::Status::OK;
+}
+
+grpc::Status DBServiceImpl::GetPathway(grpc::ServerContext* ctxt,
+                                       const GetPathwayRequest* request,
+                                       GetPathwayReply* reply) {
+    if (!isDBValid(request->db_id())) {
+        return invalidDBStatus();
+    }
+
+    db::DB* db = _databases.at(request->db_id());
+    const db::Node* pathwayNode = db->getNode((db::DBIndex)request->node_id());
+    if (!pathwayNode) {
+        return grpc::Status {grpc::StatusCode::NOT_FOUND, "Node does not exist"};
+    }
+
+    std::unordered_set<const db::Node*> previouslyVisited;
+    std::unordered_set<const db::Node*> pathways;
+    const std::vector<db::StringRef> inEdgeTypeNames = {
+    };
+    const std::vector<db::StringRef> outEdgeTypeNames = {
+        db->getString("input"),
+        db->getString("output"),
+        db->getString("hasEvent"),
+    };
+    const std::vector<std::pair<std::string, std::string>> necessaryNodeProperties = {};
+    const std::vector<std::pair<std::string, std::string>> excludeNodeProperties = {};
+
+    ::searchNeighborhood(previouslyVisited,
+                         pathways,
+                         pathwayNode,
+                         0, // Current depth
+                         3, // Max depth
+                         inEdgeTypeNames,
+                         outEdgeTypeNames,
+                         excludeNodeProperties,
+                         necessaryNodeProperties);
+
+    reply->mutable_nodes()->Reserve(pathways.size());
+    for (const db::Node* node : pathways) {
+        auto* n = reply->add_nodes();
+        grpc::Status status = buildRpcNode({
+            .dbId = request->db_id(),
+            .rpcNode = n,
+            .node = node,
+            .yieldEdges = false,
+        });
+
+        if (!status.ok()) {
+            return status;
+        }
+    }
+
+    return grpc::Status::OK;
+}
+
 grpc::Status DBServiceImpl::CreateNode(grpc::ServerContext* ctxt,
                                        const CreateNodeRequest* request,
                                        CreateNodeReply* reply) {
@@ -1221,4 +1472,3 @@ void DBServiceImpl::listDiskDB(std::vector<std::string>& databaseNames) {
 bool DBServiceImpl::isDBValid(size_t id) const {
     return _databases.find(id) != _databases.end();
 }
-

@@ -114,6 +114,14 @@ public:
                                const CreateNetworkRequest* request,
                                CreateNetworkReply* reply) override;
 
+    grpc::Status ListPathways(grpc::ServerContext* ctxt,
+                              const ListPathwaysRequest* request,
+                              ListPathwaysReply* reply) override;
+
+    grpc::Status GetPathway(grpc::ServerContext* ctxt,
+                            const GetPathwayRequest* request,
+                            GetPathwayReply* reply) override;
+
     grpc::Status CreateNode(grpc::ServerContext* ctxt,
                             const CreateNodeRequest* request,
                             CreateNodeReply* reply) override;
@@ -140,7 +148,7 @@ private:
     std::map<size_t, db::DB*> _databases;
     std::map<std::string, size_t> _dbNameMapping;
     size_t _nextAvailableId = 0;
-    
+
     void listDiskDB(std::vector<std::string>& databaseNames);
     bool isDBValid(size_t id) const;
 };

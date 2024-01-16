@@ -32,7 +32,7 @@ const initialColaLayout = () => ({
   infinite: false,
   randomize: false,
   avoidOverlap: true,
-  maxSimulationTime: 1000,
+  maxSimulationTime: 1300,
   fit: false,
   centerGraph: false,
   convergenceThreshold: 0.005,

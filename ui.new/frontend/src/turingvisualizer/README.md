@@ -332,9 +332,10 @@ For example using react-query:
 
 ```JSX
 // import
-import { devEndpoints } from 'turingvisualizer/queries';
+import { useEndpoints } from 'turingvisualizer/queries';
 
 const devElements = vis.state()?.devElements || [];
+const endpoints = useEndpoints(devMode)
 
 const { data, isFetching } = useQuery(
 
@@ -343,8 +344,9 @@ const { data, isFetching } = useQuery(
 
     // Actual query
     () => {
-        return devEndpoints["list_nodes"]({
-            devElements,
+        return endpoints["list_nodes"]({
+            devElements, // Only in dev mode
+            dbName, // Only in prod mode
 
             // The usual filters
             filters: {
@@ -374,8 +376,9 @@ const { data, isFetching } = useQuery(
 ### List edges
 
 ```JSX
-devEndpoints["list_edges"]({
-        devElements,
+endpoints["list_edges"]({
+        devElements, // Only in dev mode
+        dbName, // Only in prod mode
 
         nodeId: 1930248, // List the edges of the node 1930248
 
@@ -418,8 +421,9 @@ devEndpoints["list_edges"]({
 This returns the nodes of given ids
 
 ```JSX
-devEndpoints["get_nodes"]({
-    devElements,
+endpoints["get_nodes"]({
+    devElements, // Only in dev mode
+    dbName, // Only in prod mode
     nodeIds: [1930248, 1930250]
 })
 ```
@@ -429,8 +433,9 @@ devEndpoints["get_nodes"]({
 This returns the edges of given ids
 
 ```JSX
-devEndpoints["get_edges"]({
-    devElements,
+endpoints["get_edges"]({
+    devElements, // Only in dev mode
+    dbName, // Only in prod mode
     edgeIds: [1930248, 1930250]
 })
 ```
@@ -438,8 +443,9 @@ devEndpoints["get_edges"]({
 ### List pathways related to a node
 
 ```JSX
-devEndpoints["list_pathways"]({
-    devElements,
+endpoints["list_pathways"]({
+    devElements, // Only in dev mode
+    dbName, // Only in prod mode
     nodeId: 1930248,
 })
 ```
@@ -447,8 +453,9 @@ devEndpoints["list_pathways"]({
 ### Get all the nodes of a pathway
 
 ```JSX
-devEndpoints["get_pathway"]({
-    devElements,
+endpoints["get_pathway"]({
+    devElements, // Only in dev mode
+    dbName, // Only in prod mode
     nodeId: pathwayNodeID, // One of the node ids returned by
                            // the 'list_pathways' endpoint
 

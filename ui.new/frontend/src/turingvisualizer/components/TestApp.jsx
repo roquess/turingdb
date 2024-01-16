@@ -18,7 +18,6 @@ import {
   TuringContextMenu,
 } from "./";
 import DialogContainer from "./DialogContainer";
-import { devEndpoints } from "../queries";
 
 const AddNodeButton = () => {
   const vis = useVisualizerContext();
@@ -66,7 +65,6 @@ const AppContent = ({ hideHowTo }) => {
   const [edgeLabels, setEdgeLabels] = React.useState([]);
 
   const vis = useVisualizerContext();
-  const devElements = vis.state()?.devElements || [];
 
   const cyStyle = [
     ...style,
@@ -170,7 +168,6 @@ const App = () => {
         themeMode="light"
         dbName="reactome"
         containerId="cy1"
-        devMode // Use a fake connection to the database
       >
         <div
           style={{
@@ -186,8 +183,7 @@ const App = () => {
       <VisualizerContextProvider
         themeMode="dark"
         dbName="reactome"
-        containerId="cy2"
-        devMode>
+        containerId="cy2">
         <div
           style={{
             display: "flex",

@@ -35,14 +35,6 @@ const useVisualizerState = (cyStyle) => {
   const { hiddenNodes, hideNode, hideNodes, showNodes } = useHiddenNodes();
   const { filters, setFilters } = useFilters();
 
-  const [devElements, setDevElements] = React.useState([]);
-  React.useEffect(() => {
-    vis.devMode &&
-      fetch("/reactome-subset.json").then(async (res) =>
-        setDevElements(await res.json())
-      );
-  }, [vis.devMode]);
-
   vis.refs.state.current = {
     dbName: vis.dbName,
     themeMode: vis.themeMode,
@@ -56,8 +48,6 @@ const useVisualizerState = (cyStyle) => {
     edgeColors,
     layouts,
     filters,
-    devMode: vis.devMode,
-    devElements,
     cytoscapeProps: {
       style: cyStyle,
     },
