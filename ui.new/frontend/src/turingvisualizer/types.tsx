@@ -1,5 +1,6 @@
 import { CanvasThemes } from "./cytoscape/tools";
 import { Filters } from "./getRawFilters";
+import cytoscape from 'cytoscape';
 
 export type Property = [string, string];
 
@@ -16,7 +17,7 @@ export type ColorSet = {
 
 export type CxtMenuData = {
   group: string;
-  data: cytoscape.Collection;
+  data: any;
 };
 
 export type LayoutDefinition = {
@@ -38,6 +39,8 @@ export type GraphNodeData = {
   node_type_name: string;
   properties: ElementProperties[];
   neighborNodeIds?: string[];
+  ins?: string[],
+  outs?: string[],
 };
 
 export type GraphEdgeData = {
@@ -46,6 +49,8 @@ export type GraphEdgeData = {
   type: "connecting" | "neighbor";
   turing_source_id: string;
   turing_target_id: string;
+  source_id?: string;
+  target_id?: string;
   edge_type_name: string;
   properties: ElementProperties;
 };
@@ -92,7 +97,6 @@ export type VisualizerState = {
   dbName: string;
   themeMode?: "light" | "dark";
   canvasTheme?: CanvasThemes;
-  devMode?: boolean;
   inspectedNode: GraphNodeData;
   layouts: {
     definitions: {

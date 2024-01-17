@@ -1,3 +1,6 @@
+// Core
+import React from "react";
+
 // @blueprintjs
 import { Dialog, Icon, Button, MenuItem } from "@blueprintjs/core";
 
@@ -367,6 +370,17 @@ export const ItemSelectUniqueNeighbors = () => {
           .select();
         vis.cy().$id(data.id).select();
       }}
+    />
+  );
+};
+
+export const ItemShowInPathway = () => {
+  const vis = useVisualizerContext();
+  return (
+    <MenuItem
+      icon="path"
+      text="Show in pathway"
+      onClick={vis.showInPathwayDialog.open}
     />
   );
 };

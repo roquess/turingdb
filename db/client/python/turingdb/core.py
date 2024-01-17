@@ -205,6 +205,14 @@ class Database(DBObject):
     def __repr__(self) -> str:
         return f'<Database "{self._name}" id={self.id}>'
 
+    def list_pathways(self, node: Node) -> list[Node]:
+        res = Request(self._turing, "ListPathways", db_id=self.id, node_id=node.id)
+        return [Node(self._get_network(n.net_id), n) for n in res.data.nodes]
+
+    def get_pathway(self, pathway: Node) -> list[Node]:
+        res = Request(self._turing, "GetPathway", db_id=self.id, node_id=pathway.id)
+        return [Node(self._get_network(n.net_id), n) for n in res.data.nodes]
+
 
 class ValueType(enum.Enum):
     INT = dbService_pb2.ValueType.INT

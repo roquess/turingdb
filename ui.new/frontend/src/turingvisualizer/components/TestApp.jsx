@@ -65,6 +65,7 @@ const AppContent = ({ hideHowTo }) => {
   const [edgeLabels, setEdgeLabels] = React.useState([]);
 
   const vis = useVisualizerContext();
+
   const cyStyle = [
     ...style,
     {
@@ -167,7 +168,6 @@ const App = () => {
         themeMode="light"
         dbName="reactome"
         containerId="cy1"
-        devMode // Use a fake connection to the database
       >
         <div
           style={{
@@ -183,8 +183,7 @@ const App = () => {
       <VisualizerContextProvider
         themeMode="dark"
         dbName="reactome"
-        containerId="cy2"
-        devMode>
+        containerId="cy2">
         <div
           style={{
             display: "flex",

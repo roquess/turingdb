@@ -3,7 +3,7 @@ import React from "react";
 import cytoscape from "cytoscape";
 
 //Turing
-import { useDevElements, useElementsQuery } from "../queries";
+import { useElementsQuery } from "../queries";
 import { useElementColorMakers } from "../colors";
 import { useVisualizerContext } from "../";
 import { GraphNode, GraphEdge, GraphElement, VisualizerState } from "../types";
@@ -216,18 +216,12 @@ export const useCytoscapeElements = (
   const previousElements = React.useRef<GraphElement[]>([]);
   const vis = useVisualizerContext();
 
-  const { data: rawElements } = state.devMode
-    ? useDevElements({
-        selectedNodeIds: state.selectedNodeIds,
-        filters: state.filters,
-        hiddenNodeIds: Object.keys(state.hiddenNodes),
-      })
-    : useElementsQuery({
-        selectedNodeIds: state.selectedNodeIds,
-        dbName: state.dbName,
-        filters: state.filters,
-        hiddenNodeIds: Object.keys(state.hiddenNodes),
-      });
+  const { data: rawElements } = useElementsQuery({
+    selectedNodeIds: state.selectedNodeIds,
+    dbName: state.dbName,
+    filters: state.filters,
+    hiddenNodeIds: Object.keys(state.hiddenNodes),
+  });
 
   const elements = React.useMemo(() => {
     return rawElements || previousElements.current;

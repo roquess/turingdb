@@ -48,7 +48,6 @@ const useVisualizerState = (cyStyle) => {
     edgeColors,
     layouts,
     filters,
-    devMode: vis.devMode,
     cytoscapeProps: {
       style: cyStyle,
     },

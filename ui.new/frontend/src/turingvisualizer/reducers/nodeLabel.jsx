@@ -2,7 +2,7 @@ import React from "react";
 
 const SET_NODE_LABEL = "SET_NODE_LABEL";
 
-export const nodeLabelInitialState = () => "Node Type";
+export const nodeLabelInitialState = () => "displayName";
 
 const useNodeLabelReducer = (state, action) => {
   switch (action.type) {
