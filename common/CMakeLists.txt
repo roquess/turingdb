@@ -10,7 +10,7 @@ set(common_sources
         PerfStat.cpp
         Report.cpp
         SpinLock.cpp
-        RWSpinLock.cpp)
+        RWSpinLock.cpp
         ProcessUtils.cpp
         Report.cpp)
 
