@@ -1,44 +1,54 @@
-#include "ToolInit.h"
+#include <signal.h>
+#include <boost/process.hpp>
 
-#include <csignal>
+#include "TuringUIServer.h"
+
+#include "ToolInit.h"
 
 #include "BioLog.h"
 #include "MsgUIServer.h"
-#include "TuringUIServer.h"
 
 #define BIOCAULDRON_TOOL_NAME "biocauldron"
 
 using namespace ui;
 using namespace Log;
 
-static std::unique_ptr<TuringUIServer> server;
+// This is necessary to handle unix signals
+std::unique_ptr<TuringUIServer> server;
 
-void sigintHandler(int signum) {
-    if (signum == SIGINT) {
-        server->terminate();
-        BioLog::printSummary();
-        BioLog::destroy();
-        exit(EXIT_SUCCESS);
-    }
+void signalHandler(int signum) {
+    server->terminate();
+    BioLog::printSummary();
+    BioLog::destroy();
+    exit(EXIT_SUCCESS);
 }
 
 int main(int argc, const char** argv) {
     ToolInit toolInit(BIOCAULDRON_TOOL_NAME);
 
     ArgParser& argParser = toolInit.getArgParser();
-    argParser.addOption("dev",
-                        "Use a developpment environment instead of production",
-                        false);
+    argParser.addOption("dev", "Use a developpment environment instead of production");
     toolInit.init(argc, argv);
-    signal(SIGINT, sigintHandler);
+
+    const bool startDevRequested = argParser.isOptionSet("dev");
+
+    // Create server
     server = std::make_unique<TuringUIServer>(toolInit.getOutputsDir());
 
-    argParser.isOptionSet("dev")
-        ? server->startDev()
-        : server->start();
+    // Install signal handler to handle ctrl+C
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
 
+    // Start server
+    if (startDevRequested) {
+        server->startDev();
+    } else {
+        server->start();
+    }
+
+    // Wait for termination
     const ui::ServerType serverType = server->waitServerDone();
-    int code = server->getReturnCode(serverType);
+    const int code = server->getReturnCode(serverType);
 
     std::string output;
     server->getOutput(serverType, output);
@@ -49,7 +59,8 @@ int main(int argc, const char** argv) {
                 << output);
 
     server->terminate();
+
     BioLog::printSummary();
     BioLog::destroy();
-    exit(EXIT_FAILURE);
+    return EXIT_SUCCESS;
 }

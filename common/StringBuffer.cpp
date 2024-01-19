@@ -16,7 +16,7 @@ class MallocStringBuffer : public StringBuffer {
         {
         }
 
-        ~MallocStringBuffer() { 
+        ~MallocStringBuffer() override { 
             delete[] _data; 
         }
 
@@ -32,7 +32,7 @@ class MmapStringBuffer : public StringBuffer {
         {
         }
 
-        ~MmapStringBuffer() {
+        ~MmapStringBuffer() override {
             [[maybe_unused]] int res = munmap(_data, _size);
             assert(res == 0);
         }

@@ -4,9 +4,6 @@
 #include "DBDumper.h"
 #include "FileUtils.h"
 #include "JsonExamples.h"
-#include "NodeType.h"
-#include "PropertyType.h"
-#include "Writeback.h"
 #include "gtest/gtest.h"
 
 namespace db {
@@ -16,8 +13,6 @@ protected:
     void SetUp() override {
         const testing::TestInfo* const testInfo =
             testing::UnitTest::GetInstance()->current_test_info();
-
-        Log::BioLog::init();
 
         _outDirName = testInfo->test_suite_name();
         _outDirName += "_";
@@ -114,3 +109,4 @@ TEST_F(DBLoaderTest, StackoverflowDB) {
 }
 
 }
+

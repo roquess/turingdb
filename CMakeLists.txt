@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.6)
 
 project(biodesigner)
 
@@ -8,9 +8,6 @@ set(CLANG_NEEDED_VERSION "9.4.0")
 
 # C++ standard
 set(CPP_STANDARD "c++20")
-
-# C++ features
-#set(CPP_FEATURES "-fno-rtti")
 
 # C++ warning flags
 set(CPP_WARNINGS "-Wall -Werror -Wunused-function -Wunused-variable")
@@ -94,6 +91,8 @@ add_subdirectory(rpcserver)
 add_subdirectory(formats)
 add_subdirectory(import)
 add_subdirectory(sgc)
+add_subdirectory(network)
+add_subdirectory(mind)
 #add_subdirectory(ui)
 add_subdirectory(ui.new)
 add_subdirectory(python)
