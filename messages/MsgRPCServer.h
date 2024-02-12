@@ -17,5 +17,5 @@ MSG_ERROR(ERROR_RPC_DB_DOES_NOT_EXIST, 6004,
           "Could not load db \"$0\": does not exist")
 
 MSG_ERROR(ERROR_RPC_DURING_LOADING, 6005,
-          "Could not load db \"$0\": could not load bd")
+          "Could not load db \"$0\": error during import")
 }

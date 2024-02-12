@@ -32,7 +32,7 @@ int main(int argc, const char** argv) {
     toolInit.init(argc, argv);
 
     const bool startDevRequested = argParser.isOptionSet("dev");
-    [[maybe_unused]] const bool prototypeRequested = argParser.isOptionSet("prototype");
+    const bool prototypeRequested = argParser.isOptionSet("prototype");
 
     // Create server
     server = std::make_unique<TuringUIServer>(toolInit.getOutputsDir());
@@ -55,23 +55,23 @@ int main(int argc, const char** argv) {
         }
     }
 
-        // Wait for termination
-        const ui::ServerType serverType = server->waitServerDone();
-        const int code = server->getReturnCode(serverType);
+    // Wait for termination
+    const ui::ServerType serverType = server->waitServerDone();
+    const int code = server->getReturnCode(serverType);
 
-        std::string output;
-        server->getOutput(serverType, output);
+    std::string output;
+    server->getOutput(serverType, output);
 
-        BioLog::log(msg::ERROR_DURING_SERVER_EXECUTION()
-                    << SERVER_NAMES.at(serverType)
-                    << code
-                    << output);
+    BioLog::log(msg::ERROR_DURING_SERVER_EXECUTION()
+                << SERVER_NAMES.at(serverType)
+                << code
+                << output);
 
-        server->terminate();
+    server->terminate();
 
-        BioLog::printSummary();
-        BioLog::destroy();
-        return EXIT_SUCCESS;
+    BioLog::printSummary();
+    BioLog::destroy();
+    return EXIT_SUCCESS;
 
     //
 }

@@ -70,7 +70,7 @@ ProcessChild Command::runAsync(ProcessGroup& group) {
             boost::process::std_out > _logFile.string(),
             boost::process::std_err > _logFile.string(),
             *group);
-    } 
+    }
 
     return std::make_unique<boost::process::child>(
         bashCmd,

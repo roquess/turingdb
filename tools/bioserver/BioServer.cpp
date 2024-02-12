@@ -11,7 +11,7 @@ int main(int argc, const char** argv) {
     ToolInit toolInit("bioserver");
 
     ArgParser& argParser = toolInit.getArgParser();
-    argParser.addOption("load", "Loads the requested db at start", "db-name");
+    argParser.addOption("load", "Loads the requested db at start", "db_name");
 
     toolInit.init(argc, argv);
 

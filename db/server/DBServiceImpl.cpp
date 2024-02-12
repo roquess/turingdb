@@ -230,21 +230,21 @@ bool DBServiceImpl::loadDatabases(const std::vector<std::string>& dbNames) {
 
     for (const std::string& dbName : dbNames) {
         if (_dbNameMapping.find(dbName) != _dbNameMapping.end()) {
-          Log::BioLog::log(msg::ERROR_RPC_DB_ALREADY_LOADED() << dbName);
+            Log::BioLog::log(msg::ERROR_RPC_DB_ALREADY_LOADED() << dbName);
             return false;
         }
 
         auto it = std::find(diskDbNames.cbegin(), diskDbNames.cend(), dbName);
         if (it == diskDbNames.cend()) {
-          Log::BioLog::log(msg::ERROR_RPC_DB_DOES_NOT_EXIST() << dbName);
-          return false;
+            Log::BioLog::log(msg::ERROR_RPC_DB_DOES_NOT_EXIST() << dbName);
+            return false;
         }
 
         db::DB* db = db::DB::create();
         db::DBLoader loader {db, FileUtils::Path(_config.getDatabasesPath()) / dbName};
         if (!loader.load()) {
-          Log::BioLog::log(msg::ERROR_RPC_DURING_LOADING() << dbName);
-          return false;
+            Log::BioLog::log(msg::ERROR_RPC_DURING_LOADING() << dbName);
+            return false;
         }
 
         _databases.emplace(_nextAvailableId, db);
