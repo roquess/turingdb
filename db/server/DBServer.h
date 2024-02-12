@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 class DBServerConfig;
 
 class DBServer {
@@ -8,6 +11,7 @@ public:
     ~DBServer();
 
     bool run();
+    bool run(const std::vector<std::string>& dbNames);
 
 private:
     const DBServerConfig& _config;

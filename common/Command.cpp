@@ -56,6 +56,13 @@ ProcessChild Command::runAsync(ProcessGroup& group) {
     std::string bashCmd;
     getBashCmd(bashCmd, true);
 
+    if (_stdoutEnabled) {
+        return std::make_unique<boost::process::child>(
+            bashCmd,
+            boost::process::std_in.close(),
+            *group);
+    }
+
     if (_writeLogFile) {
         return std::make_unique<boost::process::child>(
             bashCmd,
@@ -63,7 +70,7 @@ ProcessChild Command::runAsync(ProcessGroup& group) {
             boost::process::std_out > _logFile.string(),
             boost::process::std_err > _logFile.string(),
             *group);
-    }
+    } 
 
     return std::make_unique<boost::process::child>(
         bashCmd,
@@ -108,8 +115,9 @@ void Command::generateCmdString(std::string& cmdStr, bool async) {
         cmdStr += "'";
     }
 
-    if (async)
+    if (async) {
         return;
+    }
 
     if (_stdoutEnabled) {
         cmdStr += " 2>&1 | tee '";
