@@ -3,3 +3,5 @@
 __pycache__/
 wrt.out
 node_modules
+ui/frontend/site
+ui/frontend_prototype/site
