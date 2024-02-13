@@ -7,11 +7,13 @@
 #include "Edge.h"
 #include "EdgeType.h"
 #include "FileUtils.h"
+#include "MsgRPCServer.h"
 #include "Network.h"
 #include "Node.h"
 #include "NodeSearch.h"
 #include "NodeType.h"
 #include "Writeback.h"
+#include "BioLog.h"
 
 #define MAX_ENTITY_COUNT 20000
 
@@ -220,6 +222,37 @@ static grpc::Status buildRpcNode(const BuildNodeQueryParams& params) {
 DBServiceImpl::DBServiceImpl(const DBServerConfig& config)
     : _config(config)
 {
+}
+
+bool DBServiceImpl::loadDatabases(const std::vector<std::string>& dbNames) {
+    std::vector<std::string> diskDbNames;
+    listDiskDB(diskDbNames);
+
+    for (const std::string& dbName : dbNames) {
+        if (_dbNameMapping.find(dbName) != _dbNameMapping.end()) {
+            Log::BioLog::log(msg::ERROR_RPC_DB_ALREADY_LOADED() << dbName);
+            return false;
+        }
+
+        auto it = std::find(diskDbNames.cbegin(), diskDbNames.cend(), dbName);
+        if (it == diskDbNames.cend()) {
+            Log::BioLog::log(msg::ERROR_RPC_DB_DOES_NOT_EXIST() << dbName);
+            return false;
+        }
+
+        db::DB* db = db::DB::create();
+        db::DBLoader loader {db, FileUtils::Path(_config.getDatabasesPath()) / dbName};
+        if (!loader.load()) {
+            Log::BioLog::log(msg::ERROR_RPC_DURING_LOADING() << dbName);
+            return false;
+        }
+
+        _databases.emplace(_nextAvailableId, db);
+        _dbNameMapping.emplace(dbName, _nextAvailableId);
+        _nextAvailableId++;
+    }
+
+    return true;
 }
 
 DBServiceImpl::~DBServiceImpl() {

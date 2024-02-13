@@ -20,3 +20,14 @@ bool DBServer::run() {
     rpcServer.addService(&apiService);
     return rpcServer.run();
 }
+
+bool DBServer::run(const std::vector<std::string>& dbNames) {
+    RPCServer rpcServer(_config.getRPCConfig());
+    DBServiceImpl apiService(_config);
+    if (!apiService.loadDatabases(dbNames)) {
+        return false;
+    }
+
+    rpcServer.addService(&apiService);
+    return rpcServer.run();
+}

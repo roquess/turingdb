@@ -14,6 +14,8 @@ public:
     DBServiceImpl(const DBServerConfig& config);
     ~DBServiceImpl() override;
 
+    bool loadDatabases(const std::vector<std::string>& dbNames);
+
     grpc::Status GetStatus(grpc::ServerContext* ctxt,
                            const GetStatusRequest* request,
                            GetStatusReply* reply) override;

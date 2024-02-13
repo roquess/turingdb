@@ -1,5 +1,5 @@
-#include <signal.h>
 #include <boost/process.hpp>
+#include <signal.h>
 
 #include "TuringUIServer.h"
 
@@ -27,10 +27,12 @@ int main(int argc, const char** argv) {
     ToolInit toolInit(BIOCAULDRON_TOOL_NAME);
 
     ArgParser& argParser = toolInit.getArgParser();
-    argParser.addOption("dev", "Use a developpment environment instead of production");
+    argParser.addOption("dev", "Use a development environment instead of production");
+    argParser.addOption("prototype", "Use the prototype version of the UI");
     toolInit.init(argc, argv);
 
     const bool startDevRequested = argParser.isOptionSet("dev");
+    const bool prototypeRequested = argParser.isOptionSet("prototype");
 
     // Create server
     server = std::make_unique<TuringUIServer>(toolInit.getOutputsDir());
@@ -39,11 +41,18 @@ int main(int argc, const char** argv) {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
 
-    // Start server
-    if (startDevRequested) {
-        server->startDev();
+    if (!prototypeRequested) {
+        if (startDevRequested) {
+            server->startDev();
+        } else {
+            server->start({"reactome"});
+        }
     } else {
-        server->start();
+        if (startDevRequested) {
+            server->startPrototypeDev();
+        } else {
+            server->startPrototype({});
+        }
     }
 
     // Wait for termination
@@ -63,4 +72,6 @@ int main(int argc, const char** argv) {
     BioLog::printSummary();
     BioLog::destroy();
     return EXIT_SUCCESS;
+
+    //
 }
