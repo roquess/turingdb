@@ -52,7 +52,7 @@ int main(int argc, const char** argv) {
     {
         for (const auto& path : dbPaths) {
             DBLoader loader(db, path);
-            const bool res = loader.load();
+            [[maybe_unused]] const bool res = loader.load();
             bioassert(res);
         }
     }
@@ -158,7 +158,7 @@ int main(int argc, const char** argv) {
     {
         BioLog::echo("Dumping result net as gml");
         GMLDumper dumper(subNet, toolInit.getOutputsDir()/"out.gml");
-        const bool res = dumper.dump();
+        [[maybe_unused]] const bool res = dumper.dump();
         bioassert(res);
     }
 

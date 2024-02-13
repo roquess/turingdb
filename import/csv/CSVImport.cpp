@@ -158,7 +158,7 @@ bool CSVImport::run() {
             }
 
             const db::NodeType* nt = n->getType();
-            const db::Edge* e = _wb.createEdge(edgeTypes.at(nt), currentPrimaryNode, n);
+            [[maybe_unused]] const db::Edge* e = _wb.createEdge(edgeTypes.at(nt), currentPrimaryNode, n);
             msgbioassert(e, "Something went wrong when creating edge");
         }
 
