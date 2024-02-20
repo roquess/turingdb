@@ -15,7 +15,7 @@ public:
     {
     }
 
-    operator bool() const { return !_error.has_value(); }
+    operator bool() const { return !hasError(); }
 
     bool hasValue() const { return _value.has_value(); }
     bool hasError() const { return _error.has_error(); }
