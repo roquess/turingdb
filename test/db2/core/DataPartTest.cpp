@@ -1,0 +1,67 @@
+#include "DataPart.h"
+#include "BioLog.h"
+#include "FileUtils.h"
+#include "TemporaryDataBuffer.h"
+
+#include <gtest/gtest.h>
+
+using namespace db;
+
+class DataPartTest : public ::testing::Test {
+protected:
+    DataPartTest()
+        : _tempBuffer(0, 0)
+    {
+    }
+
+    void SetUp() override {
+        const testing::TestInfo* const testInfo =
+            testing::UnitTest::GetInstance()->current_test_info();
+
+        srand(0);
+        _outDir = testInfo->test_suite_name();
+        _outDir += "_";
+        _outDir += testInfo->name();
+        _outDir += ".out";
+        _logPath = FileUtils::Path(_outDir) / "log";
+
+        if (FileUtils::exists(_outDir)) {
+            FileUtils::removeDirectory(_outDir);
+        }
+        FileUtils::createDirectory(_outDir);
+
+        Log::BioLog::init();
+        Log::BioLog::openFile(_logPath.string());
+
+        std::vector<EntityID> nodeIDs(100);
+
+        // Nodes
+        for (auto& nodeID : nodeIDs) {
+            nodeID = _tempBuffer.addNode();
+        }
+
+        // Edges
+        size_t edgeCount = 100;
+        for (size_t i = 0; i < edgeCount; i++) {
+            EntityID source = rand() % nodeIDs.size();
+            EntityID target = rand() % nodeIDs.size();
+            _tempBuffer.addEdge(0, source, target);
+        }
+    }
+
+    void TearDown() override {
+        Log::BioLog::destroy();
+    }
+
+    std::string _outDir;
+    FileUtils::Path _logPath;
+    TemporaryDataBuffer _tempBuffer;
+};
+
+TEST_F(DataPartTest, CreateTest) {
+    DataPart dp;
+    dp.load(0, 0, _tempBuffer);
+
+    ASSERT_EQ(dp.getNodeCount(), _tempBuffer.getCoreNodeCount());
+    ASSERT_EQ(dp.getCoreEdgeCount(), _tempBuffer.getCoreEdgeCount());
+}

@@ -11,7 +11,6 @@ public:
     ~RWSpinLock();
 
     RWSpinLock(const RWSpinLock&) = delete;
-    RWSpinLock(RWSpinLock&& other);
     RWSpinLock& operator=(const RWSpinLock&) = delete;
     RWSpinLock& operator=(RWSpinLock &&) = delete;
 
