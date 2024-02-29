@@ -41,17 +41,17 @@ protected:
 
         // First node and edge IDs: 0, 0
         TemporaryDataBuffer tempData1 = _db->createTempBuffer();
-        tempData1.addNode();        // Node 0
-        tempData1.addNode();        // Node 1
-        tempData1.addNode();        // Node 2
+        tempData1.addNode({0});        // Node 0
+        tempData1.addNode({0});        // Node 1
+        tempData1.addNode({1});        // Node 2
         tempData1.addEdge(0, 0, 1); // Edge 0
         tempData1.addEdge(0, 0, 2); // Edge 1
 
         // Concurrent writing
         // First node and edge IDs: 0, 0
         TemporaryDataBuffer tempData2 = _db->createTempBuffer();
-        tempData2.addNode();        // Node 3
-        tempData2.addNode();        // Node 4
+        tempData2.addNode({0, 1});        // Node 3
+        tempData2.addNode({1});        // Node 4
         tempData2.addEdge(0, 0, 1); // Edge 2 [3->4]
         tempData2.addEdge(0, 0, 1); // Edge 3 [3->4]
         tempData2.addEdge(0, 1, 0); // Edge 4 [4->3]
@@ -67,10 +67,10 @@ protected:
 
         // First node and edge IDs: 5, 5
         TemporaryDataBuffer tempData4 = _db->createTempBuffer();
-        tempData4.addNode(); // Node 5
-        tempData4.addNode(); // Node 6
-        tempData4.addNode(); // Node 7
-        tempData4.addNode(); // Node 8
+        tempData4.addNode({0, 1}); // Node 5
+        tempData4.addNode({0}); // Node 6
+        tempData4.addNode({1}); // Node 7
+        tempData4.addNode({1}); // Node 8
         // Reference node in previous datapart
         tempData4.addEdge(0, 6, 3); // Edge 5
         tempData4.addEdge(0, 6, 8); // Edge 6
