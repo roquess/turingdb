@@ -81,7 +81,7 @@ TEST(FlatEdgeContainerTest, Create) {
     std::unique_ptr<FlatEdgeContainer> edges = containerBuilder.build();
 
     std::string output;
-    for (const auto& edge : edges->get()) {
+    for (const auto& edge : edges->getAll()) {
         output += std::to_string(edge._edgeID.getID());
         output += std::to_string(edge._nodeID.getID());
         output += std::to_string(edge._otherID.getID());
@@ -102,7 +102,7 @@ TEST(FlatEdgeContainerTest, Create) {
     ASSERT_STREQ(output.c_str(), "3 2 2 1 1 2 ");
 
     output.clear();
-    for (const auto& edge : edges->get({1})) {
+    for (const auto& edge : edges->getSpanFromLabelSet({1})) {
         output += std::to_string(edge._edgeID.getID());
         output += std::to_string(edge._nodeID.getID());
         output += std::to_string(edge._otherID.getID());
