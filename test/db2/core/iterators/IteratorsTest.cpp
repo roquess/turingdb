@@ -6,15 +6,14 @@
 #include "FileUtils.h"
 #include "Reader.h"
 #include "TemporaryDataBuffer.h"
-#include "iterators/GetCoreEdgesIterator.h"
-#include "iterators/GetPatchEdgesIterator.h"
 #include "iterators/GetCoreInEdgesIterator.h"
-#include "iterators/GetPatchInEdgesIterator.h"
 #include "iterators/GetCoreOutEdgesIterator.h"
+#include "iterators/GetPatchInEdgesIterator.h"
 #include "iterators/GetPatchOutEdgesIterator.h"
 #include "iterators/ScanCoreEdgesIterator.h"
-#include "iterators/ScanPatchEdgesIterator.h"
+#include "iterators/ScanNodesByLabelIterator.h"
 #include "iterators/ScanNodesIterator.h"
+#include "iterators/ScanPatchEdgesIterator.h"
 
 using namespace db;
 
@@ -46,17 +45,17 @@ protected:
 
         // First node and edge IDs: 0, 0
         TemporaryDataBuffer tempData1 = access.createTempBuffer();
-        nodeIDs.insert(tempData1.addNode());        // Node 0
-        nodeIDs.insert(tempData1.addNode());        // Node 1
-        nodeIDs.insert(tempData1.addNode());        // Node 2
+        nodeIDs.insert(tempData1.addNode({0}));     // Node 0
+        nodeIDs.insert(tempData1.addNode({0}));     // Node 1
+        nodeIDs.insert(tempData1.addNode({1}));     // Node 2
         edgeIDs.insert(tempData1.addEdge(0, 0, 1)); // Edge 0
         edgeIDs.insert(tempData1.addEdge(0, 0, 2)); // Edge 1
 
         // Concurrent writing
         // First node and edge IDs: 0, 0
         TemporaryDataBuffer tempData2 = access.createTempBuffer();
-        nodeIDs.insert(tempData2.addNode());        // Node 3
-        nodeIDs.insert(tempData2.addNode());        // Node 4
+        nodeIDs.insert(tempData2.addNode({0, 1}));  // Node 3
+        nodeIDs.insert(tempData2.addNode({1}));     // Node 4
         edgeIDs.insert(tempData2.addEdge(0, 0, 1)); // Edge 2 [3->4]
         edgeIDs.insert(tempData2.addEdge(0, 0, 1)); // Edge 3 [3->4]
         edgeIDs.insert(tempData2.addEdge(0, 1, 0)); // Edge 4 [4->3]
@@ -72,10 +71,10 @@ protected:
 
         // First node and edge IDs: 5, 5
         TemporaryDataBuffer tempData4 = access.createTempBuffer();
-        nodeIDs.insert(tempData4.addNode()); // Node 5
-        nodeIDs.insert(tempData4.addNode()); // Node 6
-        nodeIDs.insert(tempData4.addNode()); // Node 7
-        nodeIDs.insert(tempData4.addNode()); // Node 8
+        nodeIDs.insert(tempData4.addNode({0, 1})); // Node 5
+        nodeIDs.insert(tempData4.addNode({0}));    // Node 6
+        nodeIDs.insert(tempData4.addNode({1}));    // Node 7
+        nodeIDs.insert(tempData4.addNode({1}));    // Node 8
         // Reference node in previous datapart
         edgeIDs.insert(tempData4.addEdge(0, 6, 3)); // Edge 5
         edgeIDs.insert(tempData4.addEdge(0, 6, 8)); // Edge 6
@@ -110,14 +109,13 @@ TEST_F(IteratorsTest, ScanCoreEdgesIteratorTest) {
         std::cout << "(" << v._edgeID.getID() << ", " << source.getID() << ", " << target.getID() << ")\n";
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         it.next();
     }
 
     Log::BioLog::echo(output);
-
-    ASSERT_STREQ(output.c_str(), "001102234334443563668778");
+    ASSERT_STREQ(output.c_str(), "001 102 443 234 334 778 563 668 ");
 }
 
 TEST_F(IteratorsTest, ScanPatchEdgesIteratorTest) {
@@ -134,12 +132,12 @@ TEST_F(IteratorsTest, ScanPatchEdgesIteratorTest) {
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         coreIt.next();
     }
 
-    ASSERT_STREQ(output.c_str(), "001102234334443563668778");
+    ASSERT_STREQ(output.c_str(), "001 102 443 234 334 778 563 668 ");
 
     while (patchIt.isValid()) {
         const auto& v = patchIt.get();
@@ -148,14 +146,14 @@ TEST_F(IteratorsTest, ScanPatchEdgesIteratorTest) {
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         patchIt.next();
     }
 
     Log::BioLog::echo(output);
 
-    ASSERT_STREQ(output.c_str(), "001102234334443563668778828");
+    ASSERT_STREQ(output.c_str(), "001 102 443 234 334 778 563 668 828 ");
 }
 
 TEST_F(IteratorsTest, ScanNodesIteratorTest) {
@@ -176,68 +174,124 @@ TEST_F(IteratorsTest, ScanNodesIteratorTest) {
     ASSERT_STREQ(output.c_str(), "012345678");
 }
 
-TEST_F(IteratorsTest, GetCoreEdgesIteratorTest) {
+TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
     auto access = _db->access();
     auto reader = access.getReader();
-    ColumnNodes inputNodeIDs = {1, 3, 8};
-    auto it = reader.getGetCoreEdgesIterator(&inputNodeIDs);
+    auto it = reader.getScanNodesByLabelIterator({1});
 
     std::string output;
     while (it.isValid()) {
-        const auto& v = it.get();
-        const auto& [source, target] = v._edgeDir == EdgeDirection::Incoming
-                                         ? std::make_pair(v._otherID, v._nodeID)
-                                         : std::make_pair(v._nodeID, v._otherID);
-        output += std::to_string(v._edgeID.getID());
-        output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        const EntityID v = it.get();
+        output += std::to_string(v.getID());
 
         it.next();
     }
 
     Log::BioLog::echo(output);
 
-    ASSERT_STREQ(output.c_str(), "234334001443668778828");
+    ASSERT_STREQ(output.c_str(), "243785");
+}
+
+TEST_F(IteratorsTest, GetCoreEdgesIteratorTest) {
+    auto access = _db->access();
+    auto reader = access.getReader();
+    ColumnNodes inputNodeIDs = {1, 3, 8};
+    auto coreOutIt = reader.getGetCoreOutEdgesIterator(&inputNodeIDs);
+    auto coreInIt = reader.getGetCoreInEdgesIterator(&inputNodeIDs);
+
+    std::string output;
+
+    while (coreOutIt.isValid()) {
+        const auto& v = coreOutIt.get();
+        const auto& [source, target] = v._edgeDir == EdgeDirection::Incoming
+                                         ? std::make_pair(v._otherID, v._nodeID)
+                                         : std::make_pair(v._nodeID, v._otherID);
+        output += std::to_string(v._edgeID.getID());
+        output += std::to_string(source.getID());
+        output += std::to_string(target.getID()) + " ";
+
+        coreOutIt.next();
+    }
+
+    while (coreInIt.isValid()) {
+        const auto& v = coreInIt.get();
+        const auto& [source, target] = v._edgeDir == EdgeDirection::Incoming
+                                         ? std::make_pair(v._otherID, v._nodeID)
+                                         : std::make_pair(v._nodeID, v._otherID);
+        output += std::to_string(v._edgeID.getID());
+        output += std::to_string(source.getID());
+        output += std::to_string(target.getID()) + " ";
+
+        coreInIt.next();
+    }
+
+    Log::BioLog::echo(output);
+
+    ASSERT_STREQ(output.c_str(), "234 334 001 443 668 778 828 ");
 }
 
 TEST_F(IteratorsTest, GetPatchEdgesIteratorTest) {
     auto access = _db->access();
     auto reader = access.getReader();
     ColumnNodes inputNodeIDs = {1, 3, 8};
-    auto coreIt = reader.getGetCoreEdgesIterator(&inputNodeIDs);
-    auto patchIt = reader.getGetPatchEdgesIterator(&inputNodeIDs);
+    auto coreOutIt = reader.getGetCoreOutEdgesIterator(&inputNodeIDs);
+    auto patchOutIt = reader.getGetPatchOutEdgesIterator(&inputNodeIDs);
+    auto coreInIt = reader.getGetCoreInEdgesIterator(&inputNodeIDs);
+    auto patchInIt = reader.getGetPatchInEdgesIterator(&inputNodeIDs);
 
     std::string output;
 
-    while (coreIt.isValid()) {
-        const auto& v = coreIt.get();
+    while (coreOutIt.isValid()) {
+        const auto& v = coreOutIt.get();
         const auto& [source, target] = v._edgeDir == EdgeDirection::Incoming
                                          ? std::make_pair(v._otherID, v._nodeID)
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
-        coreIt.next();
+        coreOutIt.next();
     }
 
-    ASSERT_STREQ(output.c_str(), "234334001443668778828");
-
-    while (patchIt.isValid()) {
-        const auto& v = patchIt.get();
+    while (coreInIt.isValid()) {
+        const auto& v = coreInIt.get();
         const auto& [source, target] = v._edgeDir == EdgeDirection::Incoming
                                          ? std::make_pair(v._otherID, v._nodeID)
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
-        patchIt.next();
+        coreInIt.next();
+    }
+
+    while (patchOutIt.isValid()) {
+        const auto& v = patchOutIt.get();
+        const auto& [source, target] = v._edgeDir == EdgeDirection::Incoming
+                                         ? std::make_pair(v._otherID, v._nodeID)
+                                         : std::make_pair(v._nodeID, v._otherID);
+        output += std::to_string(v._edgeID.getID());
+        output += std::to_string(source.getID());
+        output += std::to_string(target.getID()) + " ";
+
+        patchOutIt.next();
+    }
+
+    while (patchInIt.isValid()) {
+        const auto& v = patchInIt.get();
+        const auto& [source, target] = v._edgeDir == EdgeDirection::Incoming
+                                         ? std::make_pair(v._otherID, v._nodeID)
+                                         : std::make_pair(v._nodeID, v._otherID);
+        output += std::to_string(v._edgeID.getID());
+        output += std::to_string(source.getID());
+        output += std::to_string(target.getID()) + " ";
+
+        patchInIt.next();
     }
 
     Log::BioLog::echo(output);
 
-    ASSERT_STREQ(output.c_str(), "234334001443668778828563");
+    ASSERT_STREQ(output.c_str(), "234 334 001 443 668 778 828 563 ");
 }
 
 TEST_F(IteratorsTest, GetCoreInEdgesIteratorTest) {
@@ -254,14 +308,14 @@ TEST_F(IteratorsTest, GetCoreInEdgesIteratorTest) {
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         it.next();
     }
 
     Log::BioLog::echo(output);
 
-    ASSERT_STREQ(output.c_str(), "001443668778828");
+    ASSERT_STREQ(output.c_str(), "001 443 668 778 828 ");
 }
 
 TEST_F(IteratorsTest, GetPatchInEdgesIteratorTest) {
@@ -280,12 +334,12 @@ TEST_F(IteratorsTest, GetPatchInEdgesIteratorTest) {
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         coreIt.next();
     }
 
-    ASSERT_STREQ(output.c_str(), "001443668778828");
+    ASSERT_STREQ(output.c_str(), "001 443 668 778 828 ");
 
     while (patchIt.isValid()) {
         const auto& v = patchIt.get();
@@ -294,14 +348,14 @@ TEST_F(IteratorsTest, GetPatchInEdgesIteratorTest) {
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         patchIt.next();
     }
 
     Log::BioLog::echo(output);
 
-    ASSERT_STREQ(output.c_str(), "001443668778828563");
+    ASSERT_STREQ(output.c_str(), "001 443 668 778 828 563 ");
 }
 
 TEST_F(IteratorsTest, GetCoreOutEdgesIteratorTest) {
@@ -318,14 +372,14 @@ TEST_F(IteratorsTest, GetCoreOutEdgesIteratorTest) {
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         it.next();
     }
 
     Log::BioLog::echo(output);
 
-    ASSERT_STREQ(output.c_str(), "234334");
+    ASSERT_STREQ(output.c_str(), "234 334 ");
 }
 
 TEST_F(IteratorsTest, GetPatchOutEdgesIteratorTest) {
@@ -344,12 +398,12 @@ TEST_F(IteratorsTest, GetPatchOutEdgesIteratorTest) {
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         coreIt.next();
     }
 
-    ASSERT_STREQ(output.c_str(), "234334");
+    ASSERT_STREQ(output.c_str(), "234 334 ");
 
     while (patchIt.isValid()) {
         const auto& v = patchIt.get();
@@ -358,12 +412,12 @@ TEST_F(IteratorsTest, GetPatchOutEdgesIteratorTest) {
                                          : std::make_pair(v._nodeID, v._otherID);
         output += std::to_string(v._edgeID.getID());
         output += std::to_string(source.getID());
-        output += std::to_string(target.getID());
+        output += std::to_string(target.getID()) + " ";
 
         patchIt.next();
     }
 
     Log::BioLog::echo(output);
 
-    ASSERT_STREQ(output.c_str(), "234334828");
+    ASSERT_STREQ(output.c_str(), "234 334 828 ");
 }

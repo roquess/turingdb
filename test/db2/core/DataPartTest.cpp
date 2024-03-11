@@ -37,7 +37,7 @@ protected:
 
         // Nodes
         for (auto& nodeID : nodeIDs) {
-            nodeID = _tempBuffer.addNode();
+            nodeID = _tempBuffer.addNode({0});
         }
 
         // Edges

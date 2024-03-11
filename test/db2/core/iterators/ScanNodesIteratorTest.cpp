@@ -26,7 +26,7 @@ TEST_F(ScanNodesIteratorTest, emptyDB) {
     auto db = std::make_unique<DB>();
     auto access = db->access();
     auto reader = access.getReader();
-    
+
     auto it = reader.getScanNodesIterator();
     ASSERT_TRUE(!it.isValid());
 
@@ -78,7 +78,7 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
     {
         TemporaryDataBuffer buf = access.createTempBuffer();
         for (size_t i = 0; i < ChunkConfig::CHUNK_SIZE; i++) {
-            buf.addNode();
+            buf.addNode({0});
         } 
 
         ASSERT_EQ(buf.getCoreNodeCount(), ChunkConfig::CHUNK_SIZE);
@@ -121,7 +121,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
     for (auto i = 0; i < 8; i++) {
         TemporaryDataBuffer buf = access.createTempBuffer();
         for (size_t i = 0; i < ChunkConfig::CHUNK_SIZE; i++) {
-            buf.addNode();
+            buf.addNode({0});
         } 
 
         ASSERT_EQ(buf.getCoreNodeCount(), ChunkConfig::CHUNK_SIZE);
@@ -169,7 +169,7 @@ TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
     {
         TemporaryDataBuffer buf = access.createTempBuffer();
         for (size_t i = 0; i < nodeCount; i++) {
-            buf.addNode();
+            buf.addNode({0});
         } 
 
         access.pushDataPart(buf);

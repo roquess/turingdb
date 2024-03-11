@@ -10,8 +10,8 @@ void TestUtils::generateMillionTestDB(DBAccess& acc) {
 
     TemporaryDataBuffer buf = acc.createTempBuffer();
     for (size_t i = 0; i < nodeCount; i++) {
-        buf.addNode();
-    } 
+        buf.addNode({0});
+    }
 
     acc.pushDataPart(buf);
 }

@@ -42,7 +42,7 @@ TEST_F(TemporaryDataBufferTest, CreateTest) {
 
     // Nodes
     for (auto& nodeID : nodeIDs) {
-        nodeID = tempBuffer.addNode();
+        nodeID = tempBuffer.addNode({0});
     }
 
     // Edges
