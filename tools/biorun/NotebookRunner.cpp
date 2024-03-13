@@ -105,6 +105,10 @@ bool NotebookRunner::generateReport(const Path& path) {
     reportCmd.addArg(_outDir/"pdf_reports"); //reportCmd.addArg(_reportsDir.string());
     reportCmd.addArg("-so");
     reportCmd.addArg(_outDir.string());
+
+    for (const auto& envVar : _envVars) {
+        reportCmd.setEnvVar(envVar.argName, envVar.argValue);
+    }
     
     reportCmd.setScriptPath(_outDir/"generate_report.sh");
 
