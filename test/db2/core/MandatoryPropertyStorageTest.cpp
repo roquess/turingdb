@@ -1,5 +1,5 @@
-#include "mandatory/MandatoryGenerics.h"
 #include "mandatory/MandatoryBools.h"
+#include "mandatory/MandatoryGenerics.h"
 #include "mandatory/MandatoryStrings.h"
 
 #include <gtest/gtest.h>
@@ -20,6 +20,8 @@ std::unique_ptr<MandatoryGenerics<T>> buildStorage(const std::vector<TestNode>& 
     typename MandatoryGenerics<T>::Builder builder;
     std::unordered_map<LabelSet, size_t> nodeCounts;
 
+    builder.startBuilding(nodes.size());
+
     for (const auto& node : nodes) {
         nodeCounts[node._labelset]++;
     }
@@ -36,9 +38,12 @@ std::unique_ptr<MandatoryGenerics<T>> buildStorage(const std::vector<TestNode>& 
         } else if constexpr (std::is_same_v<T, PropType::Int64>) {
             builder.setNextProp(node._labelset, node._intProp);
         }
+        builder.finishNode(node._labelset);
     }
 
-    return builder.build();
+    PropertyStorage* ptr = builder.build().release();
+    return std::unique_ptr<MandatoryGenerics<T>> {
+        static_cast<MandatoryGenerics<T>*>(ptr)};
 }
 
 TEST(MandatoryPropertyStorageTest, Create) {
@@ -51,9 +56,6 @@ TEST(MandatoryPropertyStorageTest, Create) {
         nodes[i] = {
             ._id = EntityID(i),
             ._labelset = {i % 3},
-            ._stringProp = "ps" + std::to_string(i),
-            ._boolProp = (bool)(i % 2),
-            ._intProp = (int64_t)i,
         };
 
         stringDefs[nodes[i]._labelset].push_back(&nodes[i]._stringProp);

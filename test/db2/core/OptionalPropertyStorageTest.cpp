@@ -1,52 +1,140 @@
-#include "OptionalPropertyStorage.h"
+#include "optional/OptionalBools.h"
+#include "optional/OptionalGenerics.h"
+#include "optional/OptionalStrings.h"
 
 #include <gtest/gtest.h>
 
 using namespace db;
-using namespace std;
-using namespace chrono;
+
+struct TestNode {
+    EntityID _id = 0;
+    LabelSet _labelset;
+    std::optional<std::string> _stringProp;
+    std::optional<bool> _boolProp;
+    std::optional<int64_t> _intProp;
+};
+
+template <typename T>
+std::unique_ptr<OptionalGenerics<T>> buildStorage(const std::vector<TestNode>& nodes) {
+    typename OptionalGenerics<T>::Builder builder;
+    std::unordered_map<LabelSet, size_t> nodeCounts;
+
+    builder.startBuilding(nodes.size());
+
+    for (const auto& node : nodes) {
+        nodeCounts[node._labelset]++;
+    }
+
+    for (const auto& [labelset, count] : nodeCounts) {
+        builder.addNodeLabelSet(labelset, count);
+    }
+
+    for (const auto& node : nodes) {
+        if constexpr (std::is_same_v<T, PropType::String>) {
+            builder.setNextProp(node._labelset, node._stringProp);
+        } else if constexpr (std::is_same_v<T, PropType::Bool>) {
+            builder.setNextProp(node._labelset, node._boolProp);
+        } else if constexpr (std::is_same_v<T, PropType::Int64>) {
+            builder.setNextProp(node._labelset, node._intProp);
+        }
+        builder.finishNode(node._labelset);
+    }
+
+    PropertyStorage* ptr = builder.build().release();
+    return std::unique_ptr<OptionalGenerics<T>> {
+        static_cast<OptionalGenerics<T>*>(ptr)};
+}
 
 TEST(OptionalPropertyStorageTest, Create) {
+    std::vector<TestNode> nodes(1000);
+    std::unordered_map<LabelSet, std::vector<std::optional<std::string>*>> stringDefs;
+    std::unordered_map<LabelSet, std::vector<std::optional<bool>>> boolDefs;
+    std::unordered_map<LabelSet, std::vector<std::optional<int64_t>>> integerDefs;
 
-    //srand(0);
-    //constexpr size_t count = 100000;
+    for (size_t i = 0; i < nodes.size(); i++) {
+        nodes[i] = {
+            ._id = EntityID(i),
+            ._labelset = {i % 3},
+        };
 
-    //std::vector<bool> checks(count);
-    //for (size_t i = 0; i < count; i++) {
-    //    checks[i] = rand() % 2;
-    //}
+        if (i % 6 == 0) {
+            nodes[i]._stringProp = "ps" + std::to_string(i);
+        }
 
-    //BoolContainer<uint64_t> bools;
-    //OptionalContainer<uint64_t> opts;
+        if (i % 7 == 0) {
+            nodes[i]._boolProp = (bool)(i % 2);
+        }
 
-    //constexpr auto measureInit = [](auto& container,
-    //                                const std::vector<bool>& checks,
-    //                                std::string_view msg) {
-    //    auto t0 = std::chrono::high_resolution_clock::now();
-    //    container.init(count, checks);
-    //    auto t1 = std::chrono::high_resolution_clock::now();
-    //    auto dur = duration_cast<microseconds>(t1 - t0).count();
-    //    std::cout << msg << dur / 1000.0f << " ms" << std::endl;
-    //};
+        if (i % 8 == 0) {
+            nodes[i]._intProp = (int64_t)i;
+        }
 
-    //constexpr auto measureIsValid = [](const auto& container,
-    //                                   std::string_view msg) {
-    //    std::vector<bool> valid(count);
-    //    auto t0 = std::chrono::high_resolution_clock::now();
-    //    for (size_t i = 0; i < count; i++) {
-    //        valid[i] = container.isValid(i);
-    //    }
-    //    auto t1 = std::chrono::high_resolution_clock::now();
-    //    auto dur = duration_cast<microseconds>(t1 - t0).count();
-    //    std::cout << msg << dur / 1000.0f << " ms "
-    //              << std::count_if(valid.begin(), valid.end(), [](bool v) {
-    //                     return v;
-    //                 })
-    //              << std::endl;
-    //};
+        stringDefs[nodes[i]._labelset].push_back(&nodes[i]._stringProp);
+        boolDefs[nodes[i]._labelset].push_back(nodes[i]._boolProp);
+        integerDefs[nodes[i]._labelset].push_back(nodes[i]._intProp);
+    }
 
-    //measureInit(bools, checks, "BoolContainer init:");
-    //measureInit(opts, checks, "OptionalContainer init:");
-    //measureIsValid(bools, "BoolContainer isValid:");
-    //measureIsValid(opts, "OptionalContainer isValid:");
+    auto strings = buildStorage<PropType::String>(nodes);
+
+    for (const auto& [labelset, comparison] : stringDefs) {
+        const auto s = strings->getSpanFromLabelSet(labelset);
+
+        std::string output1;
+        for (const auto& prop : s) {
+            if (prop.has_value()) {
+                output1 += prop.value() + " ";
+            }
+        }
+
+        std::string output2;
+        for (const auto& prop : comparison) {
+            if (prop->has_value()) {
+                output2 += prop->value() + " ";
+            }
+        }
+
+        ASSERT_STREQ(output1.c_str(), output2.c_str());
+    }
+
+    auto bools = buildStorage<PropType::Bool>(nodes);
+    for (const auto& [labelset, comparison] : boolDefs) {
+        const auto b = bools->getSpanFromLabelSet(labelset);
+
+        std::string output1;
+        for (const auto& prop : b) {
+            if (prop.has_value()) {
+                output1 += std::to_string(prop.value());
+            }
+        }
+
+        std::string output2;
+        for (const auto& prop : comparison) {
+            if (prop.has_value()) {
+                output2 += std::to_string(prop.value());
+            }
+        }
+
+        ASSERT_STREQ(output1.c_str(), output2.c_str());
+    }
+
+    auto integers = buildStorage<PropType::Int64>(nodes);
+    for (const auto& [labelset, comparison] : integerDefs) {
+        const auto b = integers->getSpanFromLabelSet(labelset);
+
+        std::string output1;
+        for (const auto& prop : b) {
+            if (prop.has_value()) {
+                output1 += std::to_string(prop.value());
+            }
+        }
+
+        std::string output2;
+        for (const auto& prop : comparison) {
+            if (prop.has_value()) {
+                output2 += std::to_string(prop.value());
+            }
+        }
+
+        ASSERT_STREQ(output1.c_str(), output2.c_str());
+    }
 }
