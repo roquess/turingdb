@@ -1,0 +1,42 @@
+[NbConvertApp] Converting notebook /home/luclabarriere/test.py to notebook
+Traceback (most recent call last):
+  File "/turing/pip/lib/python3.10/site-packages/nbformat/reader.py", line 20, in parse_json
+    nb_dict = json.loads(s, **kwargs)
+  File "/usr/lib/python3.10/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/lib/python3.10/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/lib/python3.10/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/turing/pip/bin/jupyter-nbconvert", line 8, in <module>
+    sys.exit(main())
+  File "/turing/pip/lib/python3.10/site-packages/jupyter_core/application.py", line 280, in launch_instance
+    super().launch_instance(argv=argv, **kwargs)
+  File "/turing/pip/lib/python3.10/site-packages/traitlets/config/application.py", line 1053, in launch_instance
+    app.start()
+  File "/turing/pip/lib/python3.10/site-packages/nbconvert/nbconvertapp.py", line 412, in start
+    self.convert_notebooks()
+  File "/turing/pip/lib/python3.10/site-packages/nbconvert/nbconvertapp.py", line 590, in convert_notebooks
+    self.convert_single_notebook(notebook_filename)
+  File "/turing/pip/lib/python3.10/site-packages/nbconvert/nbconvertapp.py", line 556, in convert_single_notebook
+    output, resources = self.export_single_notebook(
+  File "/turing/pip/lib/python3.10/site-packages/nbconvert/nbconvertapp.py", line 479, in export_single_notebook
+    output, resources = self.exporter.from_filename(
+  File "/turing/pip/lib/python3.10/site-packages/nbconvert/exporters/exporter.py", line 201, in from_filename
+    return self.from_file(f, resources=resources, **kw)
+  File "/turing/pip/lib/python3.10/site-packages/nbconvert/exporters/exporter.py", line 221, in from_file
+    nbformat.read(file_stream, as_version=4), resources=resources, **kw
+  File "/turing/pip/lib/python3.10/site-packages/nbformat/__init__.py", line 171, in read
+    return reads(buf, as_version, capture_validation_error, **kwargs)
+  File "/turing/pip/lib/python3.10/site-packages/nbformat/__init__.py", line 89, in reads
+    nb = reader.reads(s, **kwargs)
+  File "/turing/pip/lib/python3.10/site-packages/nbformat/reader.py", line 76, in reads
+    nb_dict = parse_json(s, **kwargs)
+  File "/turing/pip/lib/python3.10/site-packages/nbformat/reader.py", line 26, in parse_json
+    raise NotJSONError(message) from e
+nbformat.reader.NotJSONError: Notebook does not appear to be JSON: 'import json\n\nif __name__ == "__main__...

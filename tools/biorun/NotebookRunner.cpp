@@ -135,6 +135,10 @@ bool NotebookRunner::executeNotebook(const Path& path) {
     jupyterCmd.setWorkingDir(_outDir);
     jupyterCmd.setScriptPath(_outDir/"jupyter_exec.sh");
 
+    for (const auto& envVar : _envVars) {
+        jupyterCmd.setEnvVar(envVar.argName, envVar.argValue);
+    }
+
     const auto logFile = _outDir/"jupyter_exec.log";
     jupyterCmd.setLogFile(logFile);
 
@@ -163,6 +167,10 @@ bool NotebookRunner::exportNotebook(const Path& path, const std::string& toDest)
     jupyterCmd.setWorkingDir(_outDir);
     jupyterCmd.setScriptPath(_outDir/("jupyter_convert_"+toDest+".sh"));
     jupyterCmd.setLogFile(_outDir/("jupyter_convert_"+toDest+".log"));
+
+    for (const auto& envVar : _envVars) {
+        jupyterCmd.setEnvVar(envVar.argName, envVar.argValue);
+    }
 
     BioLog::log(msg::INFO_CONVERTING_NOTEBOOK() << path.string() << toDest);
 

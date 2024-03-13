@@ -1,0 +1,1 @@
+cd '/home/luclabarriere/6turing/src/biorun.out'; /turing/pip/bin/jupyter  'nbconvert' '--execute' '--to' 'notebook' '--inplace' '/home/luclabarriere/test.py' 2>&1 | tee '/home/luclabarriere/6turing/src/biorun.out/jupyter_exec.log'; exit ${PIPESTATUS[0]}
