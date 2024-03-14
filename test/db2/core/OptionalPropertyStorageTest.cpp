@@ -14,7 +14,7 @@ struct TestNode {
     std::optional<int64_t> _intProp;
 };
 
-template <typename T>
+template <SupportedType T>
 std::unique_ptr<OptionalGenerics<T>> buildStorage(const std::vector<TestNode>& nodes) {
     typename OptionalGenerics<T>::Builder builder;
     std::unordered_map<LabelSet, size_t> nodeCounts;
@@ -30,12 +30,18 @@ std::unique_ptr<OptionalGenerics<T>> buildStorage(const std::vector<TestNode>& n
     }
 
     for (const auto& node : nodes) {
-        if constexpr (std::is_same_v<T, PropType::String>) {
-            builder.setNextProp(node._labelset, node._stringProp);
-        } else if constexpr (std::is_same_v<T, PropType::Bool>) {
-            builder.setNextProp(node._labelset, node._boolProp);
-        } else if constexpr (std::is_same_v<T, PropType::Int64>) {
-            builder.setNextProp(node._labelset, node._intProp);
+        if constexpr (std::is_same_v<T, StringPropertyType>) {
+            if (node._stringProp.has_value()) {
+                builder.setNextProp(node._labelset, node._stringProp.value());
+            }
+        } else if constexpr (std::is_same_v<T, BoolPropertyType>) {
+            if (node._boolProp.has_value()) {
+                builder.setNextProp(node._labelset, node._boolProp.value());
+            }
+        } else if constexpr (std::is_same_v<T, Int64PropertyType>) {
+            if (node._intProp.has_value()) {
+                builder.setNextProp(node._labelset, node._intProp.value());
+            }
         }
         builder.finishNode(node._labelset);
     }
@@ -74,7 +80,7 @@ TEST(OptionalPropertyStorageTest, Create) {
         integerDefs[nodes[i]._labelset].push_back(nodes[i]._intProp);
     }
 
-    auto strings = buildStorage<PropType::String>(nodes);
+    auto strings = buildStorage<StringPropertyType>(nodes);
 
     for (const auto& [labelset, comparison] : stringDefs) {
         const auto s = strings->getSpanFromLabelSet(labelset);
@@ -96,7 +102,7 @@ TEST(OptionalPropertyStorageTest, Create) {
         ASSERT_STREQ(output1.c_str(), output2.c_str());
     }
 
-    auto bools = buildStorage<PropType::Bool>(nodes);
+    auto bools = buildStorage<BoolPropertyType>(nodes);
     for (const auto& [labelset, comparison] : boolDefs) {
         const auto b = bools->getSpanFromLabelSet(labelset);
 
@@ -117,7 +123,7 @@ TEST(OptionalPropertyStorageTest, Create) {
         ASSERT_STREQ(output1.c_str(), output2.c_str());
     }
 
-    auto integers = buildStorage<PropType::Int64>(nodes);
+    auto integers = buildStorage<Int64PropertyType>(nodes);
     for (const auto& [labelset, comparison] : integerDefs) {
         const auto b = integers->getSpanFromLabelSet(labelset);
 

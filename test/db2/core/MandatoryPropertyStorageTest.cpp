@@ -31,11 +31,11 @@ std::unique_ptr<MandatoryGenerics<T>> buildStorage(const std::vector<TestNode>& 
     }
 
     for (const auto& node : nodes) {
-        if constexpr (std::is_same_v<T, PropType::String>) {
+        if constexpr (std::is_same_v<T, StringPropertyType>) {
             builder.setNextProp(node._labelset, node._stringProp);
-        } else if constexpr (std::is_same_v<T, PropType::Bool>) {
+        } else if constexpr (std::is_same_v<T, BoolPropertyType>) {
             builder.setNextProp(node._labelset, node._boolProp);
-        } else if constexpr (std::is_same_v<T, PropType::Int64>) {
+        } else if constexpr (std::is_same_v<T, Int64PropertyType>) {
             builder.setNextProp(node._labelset, node._intProp);
         }
         builder.finishNode(node._labelset);
@@ -63,7 +63,7 @@ TEST(MandatoryPropertyStorageTest, Create) {
         integerDefs[nodes[i]._labelset].push_back(nodes[i]._intProp);
     }
 
-    auto strings = buildStorage<PropType::String>(nodes);
+    auto strings = buildStorage<StringPropertyType>(nodes);
 
     for (const auto& [labelset, comparison] : stringDefs) {
         const auto s = strings->getSpanFromLabelSet(labelset);
@@ -81,13 +81,13 @@ TEST(MandatoryPropertyStorageTest, Create) {
         ASSERT_STREQ(output1.c_str(), output2.c_str());
     }
 
-    auto bools = buildStorage<PropType::Bool>(nodes);
+    auto bools = buildStorage<BoolPropertyType>(nodes);
     for (const auto& [labelset, comparison] : boolDefs) {
         const auto b = bools->getSpanFromLabelSet(labelset);
 
         std::string output1;
         for (const auto& prop : b) {
-            output1 += std::to_string(prop.v);
+            output1 += std::to_string(prop);
         }
 
         std::string output2;
@@ -98,7 +98,7 @@ TEST(MandatoryPropertyStorageTest, Create) {
         ASSERT_STREQ(output1.c_str(), output2.c_str());
     }
 
-    auto integers = buildStorage<PropType::Int64>(nodes);
+    auto integers = buildStorage<Int64PropertyType>(nodes);
     for (const auto& [labelset, comparison] : integerDefs) {
         const auto b = integers->getSpanFromLabelSet(labelset);
 

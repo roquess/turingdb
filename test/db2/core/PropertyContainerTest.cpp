@@ -96,10 +96,10 @@ TEST(PropertyContainerTest, Create) {
     }
 
     builder.setNodeCount(nodes.size());
-    builder.addPropertyType<PropType::Bool>(isProtein, boolProps.at(isProtein).size());
-    builder.addPropertyType<PropType::Bool>(isReaction, boolProps.at(isReaction).size());
-    builder.addPropertyType<PropType::String>(name, stringProps.at(name).size());
-    builder.addPropertyType<PropType::String>(dbID, stringProps.at(dbID).size());
+    builder.addPropertyType<BoolPropertyType>(isProtein, boolProps.at(isProtein).size());
+    builder.addPropertyType<BoolPropertyType>(isReaction, boolProps.at(isReaction).size());
+    builder.addPropertyType<StringPropertyType>(name, stringProps.at(name).size());
+    builder.addPropertyType<StringPropertyType>(dbID, stringProps.at(dbID).size());
     builder.startBuilding();
 
     for (const auto& [id, node] : nodes) {
@@ -119,7 +119,7 @@ TEST(PropertyContainerTest, Create) {
             }
 
             const bool prop = it->second;
-            builder.setNextProp<PropType::Bool>(ptID, n._labelset, prop);
+            builder.setNextProp<BoolPropertyType>(ptID, n._labelset, prop);
         }
 
         for (const auto& [ptID, props] : stringProps) {
@@ -130,7 +130,7 @@ TEST(PropertyContainerTest, Create) {
             }
 
             const std::string& prop = it->second;
-            builder.setNextProp<PropType::String>(ptID, n._labelset, prop);
+            builder.setNextProp<StringPropertyType>(ptID, n._labelset, prop);
         }
         builder.finishNode(n._labelset);
     }
@@ -138,7 +138,7 @@ TEST(PropertyContainerTest, Create) {
     std::unique_ptr<PropertyContainer> container = builder.build();
 
     {
-        auto strings = container->getLabelSetMandatoryProperties<PropType::String>(name, {protein});
+        auto strings = container->getLabelSetMandatoryProperties<StringPropertyType>(name, {protein});
         std::string output = "[";
         for (const auto& str : strings) {
             output += str + ";";
@@ -150,7 +150,7 @@ TEST(PropertyContainerTest, Create) {
     }
 
     {
-        auto strings = container->getLabelSetMandatoryProperties<PropType::String>(name, {reaction});
+        auto strings = container->getLabelSetMandatoryProperties<StringPropertyType>(name, {reaction});
         std::string output = "[";
         for (const auto& str : strings) {
             output += str + ";";
@@ -162,7 +162,7 @@ TEST(PropertyContainerTest, Create) {
     }
 
     {
-        auto strings = container->getAllMandatoryProperties<PropType::String>(dbID);
+        auto strings = container->getAllMandatoryProperties<StringPropertyType>(dbID);
         std::string output = "[";
         for (const auto& str : strings) {
             output += str + ";";
