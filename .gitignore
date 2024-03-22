@@ -8,3 +8,4 @@ ui/frontend_prototype/site
 ui.new
 biorun.out
 bioinfo/notebooks/api-notebooks/spatial_transcriptomics/datasets/*/data
+bioinfo/notebooks/api-notebooks/spatial_transcriptomics/datasets/cohort_results/
