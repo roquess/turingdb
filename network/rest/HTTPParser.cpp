@@ -32,7 +32,7 @@ bool HTTPParser::analyze() {
         return false;
     }
 
-    _payload = StringSpan(_currentPtr, getSize());
+    _payload = std::string_view(_currentPtr, getSize());
 
     return true;
 }
@@ -105,7 +105,8 @@ bool HTTPParser::parseURI() {
         return false;
     }
 
-    _uri.clear();
+    auto& uri = _params._uri;
+    uri.clear();
     const char* endPtr = getEndPtr();
     for (; _currentPtr < endPtr; _currentPtr++) {
         if (*_currentPtr != ' ') {
@@ -122,10 +123,54 @@ bool HTTPParser::parseURI() {
             return false;
         }
 
-        _uri.push_back(c);
+        uri.push_back(c);
     }
 
-    return !_uri.empty();
+    if (uri.empty()) {
+        return false;
+    }
+
+    // Extract the path part of the URI
+    // up to the ? character if any
+    const char* pathBegin = uri.c_str();
+    const char* pathPtr = pathBegin;
+    const char* const uriEnd = pathPtr+uri.size();
+    for (; pathPtr < uriEnd; pathPtr++) {
+        if (*pathPtr == '?') {
+            break;
+        }
+    }
+
+    _params._path = std::string_view(pathBegin, pathPtr-pathBegin);
+    
+    // We can stop here if we are already at the end of the URI
+    if (pathPtr >= uriEnd) {
+        return true;
+    }
+
+    // URI variables
+    pathPtr++;
+    auto& parameters = _params._params;
+    std::string_view key;
+    std::string_view value;
+    const char* wordStart = pathPtr;
+    for (; pathPtr < uriEnd; pathPtr++) {
+        const char c = *pathPtr;
+        if (c == '=') {
+            key = std::string_view(wordStart, pathPtr-wordStart);
+        } else if (c == '&') {
+            value = std::string_view(wordStart, pathPtr-wordStart);
+            if (!key.empty() && !value.empty()) {
+                parameters.emplace_back(key, value);
+            }
+
+            key = std::string_view();
+            value = std::string_view();
+            wordStart = pathPtr+1;
+        }
+    }
+
+    return true;
 }
 
 bool HTTPParser::jumpToPayload() {

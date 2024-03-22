@@ -92,7 +92,7 @@ private:
 
 
     void process() {
-        _session.process(_parser.getURI(), _parser.getPayload());
+        _session.process(_parser.getParams(), _parser.getPayload());
         doShutdown();
     }
 
