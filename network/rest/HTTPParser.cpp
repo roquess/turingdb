@@ -1,5 +1,7 @@
 #include "HTTPParser.h"
 
+#include <iostream>
+
 using namespace net;
 
 static constexpr size_t MIN_METHOD_SIZE = 3;
@@ -12,7 +14,8 @@ bool isBlank(char c) {
 
 bool isURIValid(char c) {
     return (c == '/') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-        || (c >= '0' && c <= '9') || (c == '_' || c == '=' || c == '&' || c == ';');
+        || (c >= '0' && c <= '9')
+        || (c == '_' || c == '=' || c == '&' || c == ';' || c == '?');
 }
 
 }
@@ -142,6 +145,8 @@ bool HTTPParser::parseURI() {
     }
 
     _params._path = std::string_view(pathBegin, pathPtr-pathBegin);
+    std::cout << "path=" << _params._path << "\n";
+    std::cout << "uri=" << _params._uri << "\n";
     
     // We can stop here if we are already at the end of the URI
     if (pathPtr >= uriEnd) {
@@ -158,6 +163,8 @@ bool HTTPParser::parseURI() {
         const char c = *pathPtr;
         if (c == '=') {
             key = std::string_view(wordStart, pathPtr-wordStart);
+            value = std::string_view();
+            wordStart = pathPtr+1;
         } else if (c == '&') {
             value = std::string_view(wordStart, pathPtr-wordStart);
             if (!key.empty() && !value.empty()) {
@@ -168,6 +175,11 @@ bool HTTPParser::parseURI() {
             value = std::string_view();
             wordStart = pathPtr+1;
         }
+    }
+
+    if (wordStart < uriEnd && !key.empty()) {
+        value = std::string_view(wordStart, uriEnd-wordStart);
+        parameters.emplace_back(key, value);
     }
 
     return true;
