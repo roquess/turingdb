@@ -53,9 +53,13 @@ TEST_F(TemporaryDataBufferTest, CreateTest) {
         tempBuffer.addEdge(0, source, target);
     }
 
+    size_t optionalPropertyCount = 70;
+    for (size_t i = 0; i < optionalPropertyCount; i++) {
+        tempBuffer.addProperty<Int64PropertyType>(i, 0, i);
+    }
+
     const auto& nodeData = tempBuffer.getCoreNodeData();
     ASSERT_EQ(nodeData.size(), nodeIDs.size());
-
     ASSERT_EQ(nodeIDs.size(), tempBuffer.getCoreNodeCount());
     ASSERT_EQ(edgeCount, tempBuffer.getCoreEdgeCount() / 2);
 }

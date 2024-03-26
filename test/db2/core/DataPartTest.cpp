@@ -10,8 +10,7 @@ using namespace db;
 class DataPartTest : public ::testing::Test {
 protected:
     DataPartTest()
-        : _tempBuffer(0, 0)
-    {
+        : _tempBuffer(0, 0) {
     }
 
     void SetUp() override {
@@ -47,6 +46,16 @@ protected:
             EntityID target = rand() % nodeIDs.size();
             _tempBuffer.addEdge(0, source, target);
         }
+
+        size_t mandatoryPropertyCount = nodeIDs.size();
+        for (size_t i = 0; i < mandatoryPropertyCount; i++) {
+            _tempBuffer.addProperty<StringPropertyType>(i, 0, std::to_string(i));
+        }
+
+        size_t optionalPropertyCount = 70;
+        for (size_t i = 0; i < optionalPropertyCount; i++) {
+            _tempBuffer.addProperty<Int64PropertyType>(i, 1, i);
+        }
     }
 
     void TearDown() override {
@@ -63,5 +72,5 @@ TEST_F(DataPartTest, CreateTest) {
     dp.load(0, 0, _tempBuffer);
 
     ASSERT_EQ(dp.getNodeCount(), _tempBuffer.getCoreNodeCount());
-    ASSERT_EQ(dp.getCoreEdgeCount(), _tempBuffer.getCoreEdgeCount());
+    ASSERT_EQ(dp.getCoreEdgeCount(), _tempBuffer.getCoreEdgeCount() / 2);
 }
