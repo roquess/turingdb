@@ -99,6 +99,7 @@ TEST(PropertyContainerTest, Create) {
                 case ValueType::Int64: {
                     break;
                 }
+                case ValueType::Invalid:
                 case ValueType::_SIZE: {
                     throw;
                 }
