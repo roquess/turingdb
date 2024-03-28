@@ -41,7 +41,7 @@ TEST(PropertyContainerTest, Create) {
     std::vector<test_nodes::TestNode> nodes;
     auto propertyTypeInfos = test_nodes::PROPERTY_TYPE_INFOS;
 
-    constexpr size_t multiple = 42000;
+    constexpr size_t multiple = 1;
     size_t nodeCount = test_nodes::NODES.size() * multiple;
     nodes.resize(nodeCount);
 

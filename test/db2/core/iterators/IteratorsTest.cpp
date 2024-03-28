@@ -39,22 +39,18 @@ protected:
 
         _db = new DB();
         auto access = _db->uniqueAccess();
-        std::map<LabelSet, std::string> labelsetNames = {
-            {{0},    "{0}"   },
-            {{1},    "{1}"   },
-            {{0, 1}, "{0, 1}"},
-        };
-
-        Log::BioLog::echo("Labelsets:");
-        for (const auto& [labelset, labelsetName] : labelsetNames) {
-            Log::BioLog::echo(labelsetName);
-        }
 
         // First node and edge IDs: 0, 0
         TemporaryDataBuffer tempData1 = access.createTempBuffer();
         tempData1.addNode({0});     // Node 0        (temp ID: 0)
         tempData1.addNode({0});     // Node 1        (temp ID: 1)
         tempData1.addNode({1});     // Node 2        (temp ID: 2)
+        tempData1.addProperty<UInt64PropertyType>(0, 0, 0);
+        tempData1.addProperty<UInt64PropertyType>(1, 0, 1);
+        tempData1.addProperty<UInt64PropertyType>(2, 0, 2);
+        tempData1.addProperty<StringPropertyType>(0, 1, "TmpID 0");
+        tempData1.addProperty<StringPropertyType>(1, 1, "TmpID 1");
+        tempData1.addProperty<StringPropertyType>(2, 1, "TmpID 2");
         tempData1.addEdge(0, 0, 1); // Edge 0 [0->1] (temp ID: 0)
         tempData1.addEdge(0, 0, 2); // Edge 1 [0->2] (temp ID: 1)
         _finalToTmpNodeID[0] = 0;
@@ -68,6 +64,12 @@ protected:
         TemporaryDataBuffer tempData2 = access.createTempBuffer();
         tempData2.addNode({0, 1});  // Node 4        (temp ID: 3)
         tempData2.addNode({1});     // Node 3        (temp ID: 4)
+        tempData2.addProperty<UInt64PropertyType>(0, 0, 3);
+        tempData2.addProperty<UInt64PropertyType>(1, 0, 4);
+        tempData2.addProperty<StringPropertyType>(0, 1, "TmpID 3");
+
+        // PropType 1 is optional in this datapart
+        //tempData2.addProperty<StringPropertyType>(4, 1, "TmpID 4");
         tempData2.addEdge(0, 0, 1); // Edge 3 [4->3] (temp ID: 2 [3->4])
         tempData2.addEdge(0, 0, 1); // Edge 4 [4->3] (temp ID: 3 [3->4])
         tempData2.addEdge(0, 1, 0); // Edge 2 [3->4] (temp ID: 4 [4->3])
@@ -93,6 +95,14 @@ protected:
         tempData4.addNode({0});    // Node 5        (temp ID: 6)
         tempData4.addNode({1});    // Node 6        (temp ID: 7)
         tempData4.addNode({1});    // Node 7        (temp ID: 8)
+        tempData4.addProperty<UInt64PropertyType>(5, 0, 5);
+        tempData4.addProperty<UInt64PropertyType>(6, 0, 6);
+        tempData4.addProperty<UInt64PropertyType>(7, 0, 7);
+        tempData4.addProperty<UInt64PropertyType>(8, 0, 8);
+        tempData4.addProperty<StringPropertyType>(5, 1, "TmpID 5");
+        tempData4.addProperty<StringPropertyType>(6, 1, "TmpID 6");
+        tempData4.addProperty<StringPropertyType>(7, 1, "TmpID 7");
+        tempData4.addProperty<StringPropertyType>(8, 1, "TmpID 8");
         // Reference node in previous datapart
         tempData4.addEdge(0, 6, 4); // Edge 5 [5->4] (temp ID: 5 [6->4])
         tempData4.addEdge(0, 6, 8); // Edge 6 [5->7] (temp ID: 6 [6->8])
@@ -121,6 +131,8 @@ protected:
     FileUtils::Path _logPath;
     std::unordered_map<EntityID, EntityID> _finalToTmpNodeID;
     std::unordered_map<EntityID, EntityID> _finalToTmpEdgeID;
+    PropertyTypeID _tmpIdProp = 0;
+    PropertyTypeID _nameProp = 1;
 };
 
 TEST_F(IteratorsTest, ScanCoreEdgesIteratorTest) {
@@ -459,4 +471,56 @@ TEST_F(IteratorsTest, GetPatchOutEdgesIteratorTest) {
     Log::BioLog::echo(output);
 
     ASSERT_STREQ(output.c_str(), "234 828 ");
+}
+
+TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
+    auto access = _db->access();
+    auto reader = access.getReader();
+
+    std::string output;
+
+    auto propIt1 = reader.getScanNodePropertiesIterator<StringPropertyType>(1);
+    while (propIt1.isValid()) {
+        const auto& v = propIt1.get();
+        output += v + " ";
+        propIt1.next();
+    }
+    ASSERT_STREQ(output.c_str(), "TmpID 0 TmpID 1 TmpID 2 TmpID 3 TmpID 6 TmpID 7 TmpID 8 TmpID 5 ");
+
+    output.clear();
+
+    auto propIt2 = reader.getScanNodePropertiesIterator<UInt64PropertyType>(0);
+    while (propIt2.isValid()) {
+        const auto& v = propIt2.get();
+        output += std::to_string(v);
+        propIt2.next();
+    }
+    ASSERT_STREQ(output.c_str(), "012436785");
+}
+
+TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
+    auto access = _db->access();
+    auto reader = access.getReader();
+
+    std::string output;
+    ColumnNodes inputNodeIDs = {1, 3, 8};
+
+    auto propIt1 = reader.getGetNodePropertiesIterator<StringPropertyType>(1, &inputNodeIDs);
+    while (propIt1.isValid()) {
+        const auto& v = propIt1.get();
+        std::cout << v << std::endl;
+        output += v + " ";
+        propIt1.next();
+    }
+    ASSERT_STREQ(output.c_str(), "TmpID 1 TmpID 5 ");
+
+    output.clear();
+
+    auto propIt2 = reader.getGetNodePropertiesIterator<UInt64PropertyType>(0, &inputNodeIDs);
+    while (propIt2.isValid()) {
+        const auto& v = propIt2.get();
+        output += std::to_string(v);
+        propIt2.next();
+    }
+    ASSERT_STREQ(output.c_str(), "145");
 }
