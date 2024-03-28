@@ -78,8 +78,10 @@ void Explorator::run() {
 
     // Little lambda to explore the next DB node following the current one
     // during exploration
-    const auto exploreNext = [this, &queue](ExploratorTreeNode* currentTreeNode, Node* next) {
-        if (!shouldExplore(next)) {
+    const auto exploreNext = [this, &queue](ExploratorTreeNode* currentTreeNode,
+                                            Node* next,
+                                            Edge* edge) {
+        if (!shouldExplore(next, edge)) {
             return;
         }
 
@@ -112,12 +114,12 @@ void Explorator::run() {
         Node* current = currentTreeNode->getNode();
         for (Edge* edge : current->inEdges()) {
             Node* next = edge->getSource();
-            exploreNext(currentTreeNode, next); 
+            exploreNext(currentTreeNode, next, edge); 
         }
 
         for (Edge* edge : current->outEdges()) {
             Node* next = edge->getTarget();
-            exploreNext(currentTreeNode, next);
+            exploreNext(currentTreeNode, next, edge);
         }
     }
 
@@ -126,7 +128,7 @@ void Explorator::run() {
     BioLog::echo("Nodes visited: "+std::to_string(_tree->getSize()));
 }
 
-bool Explorator::shouldExplore(const Node* node) const {
+bool Explorator::shouldExplore(const Node* node, const Edge* edge) const {
     if (_maxDegree > 0) {
         const size_t edgeCount = node->inEdges().size() + node->outEdges().size();
         if (edgeCount > _maxDegree) {
@@ -215,13 +217,14 @@ void Explorator::addDefaultExcludedClasses() {
 
     addExcludedClass("LiteratureReference");
     addExcludedClass("Publication");
+
     addExcludedClass("UndirectedInteraction");
     addExcludedClass("ReferenceGeneProduct");
     addExcludedClass("SimpleEntity");
     addExcludedClass("GO_MolecularFunction");
 
-    addExcludedClass("GenomeEncodedEntity");
-
-    //addExcludedClass("CandidateSet");
-    //addExcludedClass("DefinedSet");
+    if (!_traverseSets) {
+        addExcludedClass("CandidateSet");
+        addExcludedClass("DefinedSet");
+    }
 }

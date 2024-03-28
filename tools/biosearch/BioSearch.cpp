@@ -48,6 +48,7 @@ int main(int argc, const char** argv) {
     argParser.addOption("exclude", "Exclude nodes with a given name", "name");
     argParser.addOption("target", "Add a schemaClass for target nodes (Drugs by default)", "schemaClass");
     argParser.addOption("traverse_targets", "Traverse target nodes during exploration");
+    argParser.addOption("no_sets", "Exclude sets of entities (CandidateSet, DefinedSet..etc)");
     argParser.addOption("max_dist", "Maximum distance", "distance");
     argParser.addOption("no_default_excluded", "Do not use default exclusion rules for node names");
     argParser.addOption("no_default_excluded_class", "Do not use default exclusion rules for schemaClass");
@@ -71,6 +72,7 @@ int main(int argc, const char** argv) {
     bool enableDefaultExcludedNames = true;
     bool enableDefaultExcludedClasses = true;
     bool traversePathways = true;
+    bool traverseSets = true;
 
     for (const auto& option : argParser.options()) {
         const auto& optName = option.first;
@@ -98,6 +100,8 @@ int main(int argc, const char** argv) {
             seedNames.push_back(option.second);
         } else if (optName == "max_degree") {
             maxDegree = std::stoul(option.second);
+        } else if (optName == "no_sets") {
+            traverseSets = false;
         }
     }
 
@@ -137,12 +141,12 @@ int main(int argc, const char** argv) {
             TimerStat timerStat("Search seed nodes");
             BioLog::echo("Searching seed nodes");
             NodeSearch nodeSearch(db);
-            nodeSearch.addProperty("speciesName", "Homo sapiens", true);
-            nodeSearch.addProperty("schemaClass", "EntityWithAccessionedSequence", true);
-            nodeSearch.addProperty("referenceType", "ReferenceGeneProduct", true);
+            nodeSearch.addProperty("speciesName", "Homo sapiens", NodeSearch::MatchType::EXACT);
+            nodeSearch.addProperty("schemaClass", "EntityWithAccessionedSequence", NodeSearch::MatchType::EXACT);
+            nodeSearch.addProperty("referenceType", "ReferenceGeneProduct", NodeSearch::MatchType::EXACT);
 
             for (const auto& name : seedNames) {
-                nodeSearch.addProperty("displayName", name);
+                nodeSearch.addProperty("displayName", name, NodeSearch::MatchType::PREFIX);
             }
 
             nodeSearch.run(seeds);
@@ -178,6 +182,7 @@ int main(int argc, const char** argv) {
         explorator.setMaximumDistance(maxDistance);
         explorator.setTraverseTargets(traverseTargets);
         explorator.setTraversePathways(traversePathways);
+        explorator.setTraverseSets(traverseSets);
 
         if (maxDegree > 0) {
             explorator.setMaximumDegree(maxDegree);

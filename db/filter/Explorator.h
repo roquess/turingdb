@@ -33,6 +33,7 @@ public:
     void setMaximumDegree(size_t degree) { _maxDegree = degree; }
     void setTraverseTargets(bool enabled) { _traverseTargets = enabled; }
     void setTraversePathways(bool enabled) { _traversePathways = enabled; }
+    void setTraverseSets(bool enabled) { _traverseSets = enabled; }
 
     void setNoDefaultTargets();
     void addTargetClass(const std::string& name);
@@ -54,6 +55,7 @@ private:
     size_t _maxDegree {0};
     bool _traverseTargets {true};
     bool _traversePathways {true};
+    bool _traverseSets {true};
 
     db::DB* _db {nullptr};
     db::Writeback _wb;
@@ -72,7 +74,7 @@ private:
     db::StringRef _speciesName;
     db::StringRef _schemaClassName;
 
-    bool shouldExplore(const db::Node* node) const;
+    bool shouldExplore(const db::Node* node, const db::Edge* edge) const;
     void buildNetwork();
     bool hasTargetSchemaClass(const db::Node* node) const;
     void addDefaultTargetClasses();
