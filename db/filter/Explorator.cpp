@@ -127,8 +127,11 @@ void Explorator::run() {
 }
 
 bool Explorator::shouldExplore(const Node* node) const {
-    if (SearchUtils::isPublication(node)) {
-        return false;
+    if (_maxDegree > 0) {
+        const size_t edgeCount = node->inEdges().size() + node->outEdges().size();
+        if (edgeCount > _maxDegree) {
+            return false;
+        }
     }
 
     // Check species name
@@ -204,14 +207,21 @@ void Explorator::addDefaultExcludedClasses() {
     addExcludedClass("Compartment");
     addExcludedClass("ReferenceDatabase");
     addExcludedClass("DatabaseIdentifier");
-    addExcludedClass("FunctionalStatus");
-    addExcludedClass("Pathway");
+    addExcludedClass("EntityFunctionalStatus");
+
+    if (!_traversePathways) {
+        addExcludedClass("Pathway");
+    }
+
     addExcludedClass("LiteratureReference");
     addExcludedClass("Publication");
     addExcludedClass("UndirectedInteraction");
-    addExcludedClass("CandidateSet");
-    addExcludedClass("DefinedSet");
     addExcludedClass("ReferenceGeneProduct");
     addExcludedClass("SimpleEntity");
     addExcludedClass("GO_MolecularFunction");
+
+    addExcludedClass("GenomeEncodedEntity");
+
+    //addExcludedClass("CandidateSet");
+    //addExcludedClass("DefinedSet");
 }

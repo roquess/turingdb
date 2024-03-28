@@ -21,6 +21,4 @@ public:
     static void printPath(const ExploratorTreeNode* node,
                           db::StringRef displayNameProp,
                           std::ostream& stream);
-
-    static bool isPublication(const db::Node* node);
 };

@@ -41,12 +41,6 @@ std::string SearchUtils::getProperty(const db::Node* node, db::StringRef name) {
     return std::string();
 }
 
-bool SearchUtils::isPublication(const db::Node* node) {
-    const std::string typeName = node->getType()->getName().toStdString();
-    return (typeName.find("Publication") != std::string::npos)
-        || (typeName.find("Literature") != std::string::npos);
-}
-
 void SearchUtils::printNode(const db::Node* node, std::ostream& stream) {
     stream << "========\n";
     stream << "NodeType "+node->getType()->getName().toStdString() << "\n";

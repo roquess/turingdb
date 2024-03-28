@@ -30,11 +30,16 @@ public:
     void addSeeds(const std::vector<db::Node*>& seeds);
 
     void setMaximumDistance(size_t maxDist) { _maxDist = maxDist; }
+    void setMaximumDegree(size_t degree) { _maxDegree = degree; }
     void setTraverseTargets(bool enabled) { _traverseTargets = enabled; }
-    void addExcludedName(const std::string& name);
+    void setTraversePathways(bool enabled) { _traversePathways = enabled; }
+
     void setNoDefaultTargets();
     void addTargetClass(const std::string& name);
+
+    void addExcludedName(const std::string& name);
     void addDefaultExcludedNames();
+
     void addExcludedClass(const std::string& schemaClass);
     void addDefaultExcludedClasses();
 
@@ -45,8 +50,11 @@ public:
     const TreeNodes& targets() const { return _targets; }
 
 private:
-    size_t _maxDist {2};
+    size_t _maxDist {5};
+    size_t _maxDegree {0};
     bool _traverseTargets {true};
+    bool _traversePathways {true};
+
     db::DB* _db {nullptr};
     db::Writeback _wb;
     std::vector<db::Node*> _seeds;
