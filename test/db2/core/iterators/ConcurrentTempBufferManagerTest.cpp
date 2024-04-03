@@ -123,9 +123,9 @@ TEST_F(ConcurrentTempBufferManagerTest, ScanCoreEdgesIteratorTest) {
         const auto& [source, target] = v._edgeDir == EdgeDirection::Incoming
                                          ? std::make_pair(v._otherID, v._nodeID)
                                          : std::make_pair(v._nodeID, v._otherID);
-        output += std::to_string(_finalToTmpEdgeID.at(v._edgeID).getID());
-        output += std::to_string(_finalToTmpNodeID.at(source).getID());
-        output += std::to_string(_finalToTmpNodeID.at(target).getID()) + " ";
+        output += std::to_string(_finalToTmpEdgeID.at(v._edgeID));
+        output += std::to_string(_finalToTmpNodeID.at(source));
+        output += std::to_string(_finalToTmpNodeID.at(target)) + " ";
 
         it.next();
     }
@@ -144,8 +144,8 @@ TEST_F(ConcurrentTempBufferManagerTest, ScanNodesIteratorTest) {
     std::string outputTempIDs;
     while (it.isValid()) {
         const EntityID v = it.get();
-        outputFinalIDs += std::to_string(v.getID());
-        outputTempIDs += std::to_string(_finalToTmpNodeID.at(v).getID());
+        outputFinalIDs += std::to_string(v);
+        outputTempIDs += std::to_string(_finalToTmpNodeID.at(v));
 
         it.next();
     }
@@ -163,7 +163,7 @@ TEST_F(ConcurrentTempBufferManagerTest, ScanNodesByLabelIteratorTest) {
     std::string outputFinalIDs;
     while (it.isValid()) {
         const EntityID v = it.get();
-        outputFinalIDs += std::to_string(v.getID());
+        outputFinalIDs += std::to_string(v);
 
         it.next();
     }
