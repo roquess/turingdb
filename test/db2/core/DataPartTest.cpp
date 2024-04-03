@@ -1,7 +1,7 @@
 #include "DataPart.h"
 #include "BioLog.h"
 #include "FileUtils.h"
-#include "TempBuffer.h"
+#include "DataBuffer.h"
 
 #include <gtest/gtest.h>
 
@@ -64,7 +64,7 @@ protected:
 
     std::string _outDir;
     FileUtils::Path _logPath;
-    TempBuffer _tempBuffer;
+    DataBuffer _tempBuffer;
 };
 
 TEST_F(DataPartTest, CreateTest) {
