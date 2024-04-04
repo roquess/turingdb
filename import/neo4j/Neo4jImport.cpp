@@ -237,3 +237,54 @@ bool Neo4jImport::importJsonNeo4j(const Path& jsonDir, const std::string& networ
 
     return true;
 }
+
+bool Neo4jImport::importJsonNeo4j5(const Path& jsonDir, const std::string& networkName) {
+    BioLog::log(msg::INFO_NEO4J_IMPORT_JSON_FILES() << jsonDir.string());
+    TimerStat timer {"Neo4j 5: import"};
+
+    const FileUtils::Path statsFile = jsonDir / "stats.json";
+    const FileUtils::Path nodePropertiesFile = jsonDir / "nodeProperties.json";
+    const FileUtils::Path edgePropertiesFile = jsonDir / "edgeProperties.json";
+
+    if (!FileUtils::exists(jsonDir)) {
+        BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS() << jsonDir);
+        return false;
+    }
+
+    // Initialization of the parser
+    JsonParser parser(_db, networkName);
+    parser.setReducedOutput(true);
+    const JsonParsingStats& stats = parser.getStats();
+
+    if (!parser.parseJsonDir(jsonDir, JsonParser::DirFormat::Neo4j5)) {
+        return false;
+    }
+
+    Log::BioLog::log(msg::INFO_NEO4J_NODE_COUNT() << stats.nodeCount);
+    Log::BioLog::log(msg::INFO_NEO4J_EDGE_COUNT() << stats.edgeCount);
+
+    Log::BioLog::log(msg::INFO_NEO4J_NODE_PROP_ERROR_COUNT()
+                     << stats.nodePropErrors);
+    Log::BioLog::log(msg::INFO_NEO4J_EDGE_PROP_ERROR_COUNT()
+                     << stats.edgePropErrors);
+
+    Log::BioLog::log(msg::INFO_NEO4J_NODE_PROP_WARNING_COUNT()
+                     << stats.nodePropWarnings);
+    Log::BioLog::log(msg::INFO_NEO4J_EDGE_PROP_WARNING_COUNT()
+                     << stats.edgePropWarnings);
+
+    Log::BioLog::log(msg::INFO_NEO4J_UNSUPPORTED_NODE_PROP_COUNT()
+                     << stats.unsupportedNodeProps);
+    Log::BioLog::log(msg::INFO_NEO4J_UNSUPPORTED_EDGE_PROP_COUNT()
+                     << stats.unsupportedEdgeProps);
+
+    Log::BioLog::log(msg::INFO_NEO4J_ILLFORMED_NODE_PROP_COUNT()
+                     << stats.illformedNodeProps);
+    Log::BioLog::log(msg::INFO_NEO4J_ILLFORMED_EDGE_PROP_COUNT()
+                     << stats.illformedEdgeProps);
+
+    Log::BioLog::log(msg::INFO_NEO4J_PARSED_NODE_COUNT() << stats.parsedNodes);
+    Log::BioLog::log(msg::INFO_NEO4J_PARSED_EDGE_COUNT() << stats.parsedEdges);
+
+    return true;
+}

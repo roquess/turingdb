@@ -1,7 +1,8 @@
 set(import_json_sources
     JsonExamples.cpp
     JsonParser.cpp
-    Neo4j4JsonParser.cpp)
+    Neo4j4JsonParser.cpp
+    Neo4j5JsonParser.cpp)
 
 add_library(bio_import_json_s STATIC ${import_json_sources})
 

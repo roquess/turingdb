@@ -28,6 +28,7 @@ using namespace db;
 enum class ImportType {
     NEO4J,
     JSON_NEO4J,
+    JSON_NEO4J_5,
     GML,
     CSV,
 };
@@ -63,7 +64,12 @@ int main(int argc, const char** argv) {
 
     argParser.addOption(
         "json-neo4j",
-        "Imports json files from a json/ directory (default network name: \"my_json_dir\")",
+        "Imports Neo4j v4 json files from a json/ directory (default network name: \"my_json_dir\")",
+        "my_json_dir");
+
+    argParser.addOption(
+        "json-neo4j-5",
+        "Imports Neo4j v5 json files from a json/ directory (default network name: \"my_json_dir\")",
         "my_json_dir");
 
     argParser.addOption(
@@ -124,6 +130,16 @@ int main(int argc, const char** argv) {
                 .type = ImportType::JSON_NEO4J,
                 .path = option.second,
             });
+        } else if (optName == "json-neo4j-5") {
+            if (!FileUtils::exists(option.second)) {
+                BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS()
+                            << option.second);
+                return cleanUp(EXIT_FAILURE);
+            }
+            importData.emplace_back(ImportData {
+                .type = ImportType::JSON_NEO4J_5,
+                .path = option.second,
+            });
         } else if (optName == "gml") {
             if (!FileUtils::exists(option.second)) {
                 BioLog::log(msg::ERROR_FILE_NOT_EXISTS()
@@ -145,7 +161,7 @@ int main(int argc, const char** argv) {
                 .path = option.second,
             });
         } else if (optName == "primary-key") {
-            if (importData.size() == 0) {
+            if (importData.empty()) {
                 BioLog::log(msg::ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER());
                 argParser.printHelp();
                 return cleanUp(EXIT_FAILURE);
@@ -161,7 +177,7 @@ int main(int argc, const char** argv) {
 
             previousCmd.primaryKey = option.second;
         } else if (optName == "net") {
-            if (importData.size() == 0) {
+            if (importData.empty()) {
                 BioLog::log(msg::ERROR_IMPORT_NET_APPLIED_WITH_WRONG_ORDER());
                 argParser.printHelp();
                 return cleanUp(EXIT_FAILURE);
@@ -227,6 +243,10 @@ int main(int argc, const char** argv) {
             }
             case ImportType::JSON_NEO4J: {
                 neo4jImport.importJsonNeo4j(data.path, networkName);
+                break;
+            }
+            case ImportType::JSON_NEO4J_5: {
+                neo4jImport.importJsonNeo4j5(data.path, networkName);
                 break;
             }
             case ImportType::GML: {

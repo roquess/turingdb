@@ -16,6 +16,7 @@ public:
     bool importNeo4j(const Path& filepath, const std::string& networkName);
 
     bool importJsonNeo4j(const Path& jsonDir, const std::string& networkName);
+    bool importJsonNeo4j5(const Path& jsonDir, const std::string& networkName);
 
 private:
     db::DB* _db {nullptr};
