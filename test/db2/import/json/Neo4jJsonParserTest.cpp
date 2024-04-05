@@ -1,189 +1,142 @@
-#include <iomanip>
-#include <iostream>
-#include <nlohmann/json.hpp>
-#include <sstream>
-
-#include "FileUtils.h"
 #include <gtest/gtest.h>
+#include <regex>
 
-using namespace std;
-using namespace chrono;
+#include "BioLog.h"
+#include "DB.h"
+#include "FileUtils.h"
+#include "JsonParser.h"
+#include "PerfStat.h"
 
-using json = nlohmann::json;
+using namespace db;
+using namespace std::chrono;
 
-// a simple event consumer that collects string representations of the passed
-// values; note inheriting from json::json_sax_t is not required, but can
-// help not to forget a required function
-class sax_event_consumer : public json::json_sax_t {
-public:
-    std::vector<std::string> events;
+#define MEASURE_TIME(msg, op)                       \
+    t0 = std::chrono::high_resolution_clock::now(); \
+    op;                                  \
+    t1 = std::chrono::high_resolution_clock::now(); \
+    printDuration<milliseconds>(msg, t0, t1);
 
-    bool null() override {
-        events.emplace_back("null()");
-        return true;
+class Neo4jJsonParserTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        const testing::TestInfo* const testInfo =
+            testing::UnitTest::GetInstance()->current_test_info();
+
+        _outDir = testInfo->test_suite_name();
+        _outDir += "_";
+        _outDir += testInfo->name();
+        _outDir += ".out";
+        _logPath = FileUtils::Path(_outDir) / "log";
+
+        if (FileUtils::exists(_outDir)) {
+            FileUtils::removeDirectory(_outDir);
+        }
+        FileUtils::createDirectory(_outDir);
+
+        Log::BioLog::init();
+        Log::BioLog::openFile(_logPath.string());
+
+        _db = std::make_unique<DB>();
     }
 
-    bool boolean(bool val) override {
-        events.emplace_back("boolean(val=" + std::string(val ? "true" : "false") + ")");
-        return true;
+    void TearDown() override {
+        Log::BioLog::destroy();
     }
 
-    bool number_integer(number_integer_t val) override {
-        events.emplace_back("number_integer(val=" + std::to_string(val) + ")");
-        return true;
-    }
-
-    bool number_unsigned(number_unsigned_t val) override {
-        events.emplace_back("number_unsigned(val=" + std::to_string(val) + ")");
-        return true;
-    }
-
-    bool number_float(number_float_t val, const string_t& s) override {
-        events.emplace_back("number_float(val=" + std::to_string(val) + ", s=" + s + ")");
-        return true;
-    }
-
-    bool string(string_t& val) override {
-        events.emplace_back("string(val=" + val + ")");
-        return true;
-    }
-
-    bool start_object(std::size_t elements) override {
-        events.emplace_back("start_object(elements=" + std::to_string(elements) + ")");
-        return true;
-    }
-
-    bool end_object() override {
-        events.emplace_back("end_object()");
-        return true;
-    }
-
-    bool start_array(std::size_t elements) override {
-        events.emplace_back("start_array(elements=" + std::to_string(elements) + ")");
-        return true;
-    }
-
-    bool end_array() override {
-        events.emplace_back("end_array()");
-        return true;
-    }
-
-    bool key(string_t& val) override {
-        events.push_back("key(val=" + val + ")");
-        return true;
-    }
-
-    bool binary(json::binary_t& val) override {
-        events.emplace_back("binary(val=[...])");
-        return true;
-    }
-
-    bool parse_error(std::size_t position, const std::string& last_token, const json::exception& ex) override {
-        events.emplace_back("parse_error(position=" + std::to_string(position) + ", last_token=" + last_token + ",\n            ex=" + std::string(ex.what()) + ")");
-        return false;
-    }
+    std::unique_ptr<DB> _db = nullptr;
+    std::string _outDir;
+    FileUtils::Path _logPath;
 };
 
-int main() {
-    // a JSON text
-    auto t0 = std::chrono::high_resolution_clock::now();
-
-    const std::string path = "/net/db/reactome/json/nodes_1.json";
-    std::string data;
-    FileUtils::readContent(path, data);
-
-    auto t1 = std::chrono::high_resolution_clock::now();
-
-    // create a SAX event consumer object
-    sax_event_consumer sec;
-
-    // parse JSON
-    bool result = json::sax_parse(data, &sec);
-    auto t2 = std::chrono::high_resolution_clock::now();
-
-    float readDur = duration_cast<nanoseconds>(t1 - t0).count();
-    float parseDur = duration_cast<nanoseconds>(t2 - t1).count();
-    std::cout << "Read node properties: "
-              << readDur / 1000.0f << " us" << std::endl;
-    std::cout << "Parse node properties: "
-              << parseDur / 1000.0f << " us" << std::endl;
-
-    // output the result of sax_parse
-    std::cout << "\nresult: " << std::boolalpha << result << std::endl;
+template <typename T>
+void printDuration(std::string_view msg, const auto& t0, const auto& t1) {
+    if constexpr (std::is_same_v<T, microseconds>) {
+        float dur = duration_cast<nanoseconds>(t1 - t0).count();
+        std::cout << msg << ": " << dur / 1'000.0f << " us" << std::endl;
+    } else if constexpr (std::is_same_v<T, milliseconds>) {
+        float dur = duration_cast<nanoseconds>(t1 - t0).count();
+        std::cout << msg << ": " << dur / 1'000'000.0f << " ms" << std::endl;
+    } else if constexpr (std::is_same_v<T, seconds>) {
+        float dur = duration_cast<nanoseconds>(t1 - t0).count();
+        std::cout << msg << ": " << dur / 1'000'000'000.0f << " us" << std::endl;
+    }
 }
 
-// #include "Neo4jJsonParser.h"
-// #include "BioLog.h"
-// #include "DB.h"
-//
-// #include <gtest/gtest.h>
-//
-// using namespace db;
-// using namespace std;
-// using namespace chrono;
-// using namespace Log;
-//
-// TEST(Neo4jJsonParserTest, Load) {
-//     const testing::TestInfo* const testInfo =
-//         testing::UnitTest::GetInstance()->current_test_info();
-//     std::string outDirName = testInfo->test_suite_name();
-//     outDirName += "_";
-//     outDirName += testInfo->name();
-//     outDirName += ".out";
-//     const auto outDir = FileUtils::Path(outDirName);
-//     const auto logPath = FileUtils::Path(outDir) / "log";
-//
-//     // Remove the directory from the previous run
-//     if (FileUtils::exists(outDirName)) {
-//         FileUtils::removeDirectory(outDirName);
-//     }
-//     FileUtils::createDirectory(outDirName);
-//
-//     BioLog::init();
-//     BioLog::openFile(logPath.string());
-//
-//     DB* db = new DB;
-//
-//     {
-//         auto t0 = std::chrono::high_resolution_clock::now();
-//
-//         const std::string path = "/net/db/reactome/json/nodeProperties.json";
-//         std::string data;
-//         FileUtils::readContent(path, data);
-//
-//         auto t1 = std::chrono::high_resolution_clock::now();
-//         Neo4jJsonParser parser(db);
-//         parser.parseNodeProperties(data);
-//         auto t2 = std::chrono::high_resolution_clock::now();
-//
-//         float readDur = duration_cast<nanoseconds>(t1 - t0).count();
-//         float parseDur = duration_cast<nanoseconds>(t2 - t1).count();
-//         std::cout << "Read node properties: "
-//                   << readDur / 1000.0f << " us" << std::endl;
-//         std::cout << "Parse node properties: "
-//                   << parseDur / 1000.0f << " us" << std::endl;
-//     }
-//
-//     {
-//         auto t0 = std::chrono::high_resolution_clock::now();
-//
-//         const std::string path = "/net/db/reactome/json/nodes_1.json";
-//         std::string data;
-//         FileUtils::readContent(path, data);
-//
-//         auto t1 = std::chrono::high_resolution_clock::now();
-//         Neo4jJsonParser parser(db);
-//         parser.parseNodes(data);
-//         auto t2 = std::chrono::high_resolution_clock::now();
-//
-//         float readDur = duration_cast<milliseconds>(t1 - t0).count();
-//         float parseDur = duration_cast<milliseconds>(t2 - t1).count();
-//         std::cout << "Read nodes: "
-//                   << readDur / 1000.0f << " s" << std::endl;
-//         std::cout << "Parse nodes: "
-//                   << parseDur / 1000.0f << " s" << std::endl;
-//     }
-//
-//     delete db;
-//     Log::BioLog::destroy();
-// }
+TEST_F(Neo4jJsonParserTest, General) {
+    auto t0 = std::chrono::high_resolution_clock::now();
+    auto t1 = std::chrono::high_resolution_clock::now();
+    static constexpr size_t nodeCountLimit = 1000000;
+    static constexpr size_t edgeCountLimit = 3000000;
+
+    JsonParser parser(_db.get());
+    const std::string turingHome = std::getenv("TURING_HOME");
+    const FileUtils::Path jsonDir = FileUtils::Path {turingHome} / "neo4j" / "pole-db";
+    // const FileUtils::Path jsonDir = "/home/luclabarriere/reactome.out/json";
+
+    auto statsPath = jsonDir / "stats.json";
+    const auto [nodeCount, edgeCount] = JsonParser::parseStats(statsPath);
+    // ASSERT_EQ(61521, nodeCount);
+    // ASSERT_EQ(105840, edgeCount);
+
+    auto nodePropertiesPath = jsonDir / "nodeProperties.json";
+    ASSERT_TRUE(parser.parseNodeProperties(nodePropertiesPath));
+    // ASSERT_EQ(27, _db->propTypeMap().getCount());
+
+    auto edgePropertiesPath = jsonDir / "edgeProperties.json";
+    ASSERT_TRUE(parser.parseEdgeProperties(edgePropertiesPath));
+    //ASSERT_EQ(18, _db->edgeTypeMap().getCount());
+
+    // Nodes
+    std::vector<FileUtils::Path> nodeFiles;
+    FileUtils::listFiles(jsonDir, nodeFiles);
+    std::regex nodeRegex {"nodes_([0-9]*).json"};
+    std::map<size_t, FileUtils::Path> nodeFilesOrdered;
+
+    for (const FileUtils::Path& path : nodeFiles) {
+        if (std::regex_search(path.string(), nodeRegex)) {
+            size_t index = std::stoul(std::regex_replace(
+                path.filename().string(),
+                nodeRegex, "$1"));
+            nodeFilesOrdered[index] = path;
+        }
+    }
+
+    size_t nodeCountLeft = nodeCount;
+    for (const auto& [index, path] : nodeFilesOrdered) {
+        const size_t whole = (size_t)((nodeCountLeft / nodeCountLimit) != 0);
+        const size_t modulo = nodeCountLeft % nodeCountLimit;
+        const size_t fileNodeCount = whole * nodeCountLimit + !whole * modulo;
+        nodeCountLeft -= fileNodeCount;
+
+        MEASURE_TIME("Nodes " + std::to_string(index), parser.parseNodes(path, fileNodeCount););
+    }
+
+    // Edges
+    std::vector<FileUtils::Path> edgeFiles;
+    FileUtils::listFiles(jsonDir, edgeFiles);
+    std::regex edgeRegex {"edges_([0-9]*).json"};
+    std::map<size_t, FileUtils::Path> edgeFilesOrdered;
+
+    for (const FileUtils::Path& path : edgeFiles) {
+        if (std::regex_search(path.string(), edgeRegex)) {
+            size_t index = std::stoul(std::regex_replace(
+                path.filename().string(),
+                edgeRegex, "$1"));
+            edgeFilesOrdered[index] = path;
+        }
+    }
+
+    size_t edgeCountLeft = edgeCount;
+    for (const auto& [index, path] : edgeFilesOrdered) {
+        const size_t whole = (size_t)((edgeCountLeft / edgeCountLimit) != 0);
+        const size_t modulo = edgeCountLeft % edgeCountLimit;
+        const size_t fileEdgeCount = whole * edgeCountLimit + !whole * modulo;
+        edgeCountLeft -= fileEdgeCount;
+
+        MEASURE_TIME("Edges " + std::to_string(index), parser.parseEdges(path, fileEdgeCount););
+        break;
+    }
+
+    MEASURE_TIME("Build", auto buf = parser.build());
+    MEASURE_TIME("Push", _db->uniqueAccess().pushDataPart(*buf));
+}

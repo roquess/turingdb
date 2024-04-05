@@ -7,3 +7,5 @@ function(add_db2_import_json_gtest exe_name cpp_file)
 endfunction()
 
 add_db2_import_json_gtest(db2_import_json_test Neo4jJsonParserTest.cpp)
+
+gtest_discover_tests(db2_import_json_test)
