@@ -39,13 +39,6 @@ struct ImportData {
     std::string primaryKey;
 };
 
-int cleanUp(int returnCode) {
-    BioLog::printSummary();
-    BioLog::destroy();
-    PerfStat::destroy();
-    return returnCode;
-}
-
 int main(int argc, const char** argv) {
     ToolInit toolInit(BIOIMPORT_TOOL_NAME);
 
@@ -95,8 +88,8 @@ int main(int argc, const char** argv) {
     toolInit.init(argc, argv);
 
     std::vector<ImportData> importData;
-    std::string turingdbPath = "";
-    std::string existingDbPath = "";
+    std::string turingdbPath;
+    std::string existingDbPath;
     db::DB* db = db::DB::create();
 
     for (const auto& option : argParser.options()) {
@@ -107,7 +100,7 @@ int main(int argc, const char** argv) {
             if (!FileUtils::exists(option.second)) {
                 BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS()
                             << option.second);
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
 
             importData.emplace_back(ImportData {
@@ -118,7 +111,7 @@ int main(int argc, const char** argv) {
             if (!FileUtils::exists(option.second)) {
                 BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS()
                             << option.second);
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
             importData.emplace_back(ImportData {
                 .type = ImportType::JSON_NEO4J,
@@ -128,7 +121,7 @@ int main(int argc, const char** argv) {
             if (!FileUtils::exists(option.second)) {
                 BioLog::log(msg::ERROR_FILE_NOT_EXISTS()
                             << option.second);
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
             importData.emplace_back(ImportData {
                 .type = ImportType::GML,
@@ -138,7 +131,7 @@ int main(int argc, const char** argv) {
             if (!FileUtils::exists(option.second)) {
                 BioLog::log(msg::ERROR_FILE_NOT_EXISTS()
                             << option.second);
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
             importData.emplace_back(ImportData {
                 .type = ImportType::CSV,
@@ -148,7 +141,7 @@ int main(int argc, const char** argv) {
             if (importData.size() == 0) {
                 BioLog::log(msg::ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER());
                 argParser.printHelp();
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
 
             ImportData& previousCmd = *(importData.end() - 1);
@@ -156,15 +149,15 @@ int main(int argc, const char** argv) {
             if (!previousCmd.primaryKey.empty()) {
                 BioLog::log(msg::ERROR_IMPORT_PRIMARY_KEY_APPLIED_WITH_WRONG_ORDER());
                 argParser.printHelp();
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
 
             previousCmd.primaryKey = option.second;
         } else if (optName == "net") {
-            if (importData.size() == 0) {
+            if (importData.empty()) {
                 BioLog::log(msg::ERROR_IMPORT_NET_APPLIED_WITH_WRONG_ORDER());
                 argParser.printHelp();
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
 
             ImportData& previousCmd = *(importData.end() - 1);
@@ -172,7 +165,7 @@ int main(int argc, const char** argv) {
             if (!previousCmd.networkName.empty()) {
                 BioLog::log(msg::ERROR_IMPORT_NET_APPLIED_WITH_WRONG_ORDER());
                 argParser.printHelp();
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
 
             previousCmd.networkName = option.second;
@@ -180,7 +173,7 @@ int main(int argc, const char** argv) {
             if (!FileUtils::exists(option.second)) {
                 BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS()
                             << option.second);
-                return cleanUp(EXIT_FAILURE);
+                return EXIT_FAILURE;
             }
             existingDbPath = option.second;
         }
@@ -191,14 +184,14 @@ int main(int argc, const char** argv) {
     if (noPathsGiven) {
         BioLog::log(msg::ERROR_IMPORT_NO_PATH_GIVEN());
         argParser.printHelp();
-        return cleanUp(EXIT_SUCCESS);
+        return EXIT_SUCCESS;
     }
 
     if (!existingDbPath.empty()) {
         const FileUtils::Path path(existingDbPath);
         DBLoader loader(db, path);
         if (!loader.load()) {
-            return cleanUp(EXIT_FAILURE);
+            return EXIT_FAILURE;
         }
     }
 
@@ -217,7 +210,7 @@ int main(int argc, const char** argv) {
 
         if (db->getNetwork(db->getString(networkName))) {
             Log::BioLog::log(msg::ERROR_NETWORK_ALREADY_EXISTS() << networkName);
-            return cleanUp(EXIT_FAILURE);
+            return EXIT_FAILURE;
         }
 
         switch (data.type) {
@@ -234,7 +227,7 @@ int main(int argc, const char** argv) {
                 StringBuffer* strBuffer = StringBuffer::readFromFile(path);
                 if (!strBuffer) {
                     BioLog::log(msg::ERROR_FAILED_TO_OPEN_FOR_READ() << path.string());
-                    return cleanUp(EXIT_FAILURE);
+                    return EXIT_FAILURE;
                 }
 
                 Writeback wb(db);
@@ -248,7 +241,7 @@ int main(int argc, const char** argv) {
                 StringBuffer* strBuffer = StringBuffer::readFromFile(path);
                 if (!strBuffer) {
                     BioLog::log(msg::ERROR_FAILED_TO_OPEN_FOR_READ() << path.string());
-                    return cleanUp(EXIT_FAILURE);
+                    return EXIT_FAILURE;
                 }
 
                 Writeback wb(db);
@@ -279,5 +272,5 @@ int main(int argc, const char** argv) {
         report.writeReport();
     }
 
-    return cleanUp(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }
