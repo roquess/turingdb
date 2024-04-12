@@ -26,7 +26,7 @@ struct ImportData {
     std::string primaryKey;
     std::string url;
     std::string urlSuffix;
-    uint64_t port = 0;
+    uint64_t port = 7474;
     std::string username;
     std::string password;
 };
@@ -38,8 +38,8 @@ float duration(auto& t0, auto& t1) {
     return std::chrono::duration<float, T>(t1 - t0).count();
 }
 
-static constexpr size_t edgeCountPerQuery = 100000;
-static constexpr size_t nodeCountPerQuery = 100000;
+static constexpr size_t edgeCountPerQuery = 400000;
+static constexpr size_t nodeCountPerQuery = 400000;
 
 int main(int argc, const char** argv) {
     ToolInit toolInit("bioimport2");
@@ -55,6 +55,31 @@ int main(int argc, const char** argv) {
         "json-neo4j",
         "Imports json files from a json/ directory (default network name: \"my_json_dir\")",
         "my_json_dir");
+
+    argParser.addOption(
+        "neo4j-url",
+        "Imports a neo4j database from an existing neo4j instance",
+        "localhost");
+
+    argParser.addOption(
+        "port",
+        "Port for the query. Must follow a neo4j-url option",
+        "7474");
+
+    argParser.addOption(
+        "user",
+        "Username for the query. Must follow a neo4j-url option",
+        "neo4j");
+
+    argParser.addOption(
+        "password",
+        "Password for the query. Must follow a neo4j-url option",
+        "turing");
+
+    argParser.addOption(
+        "url-suffix",
+        "Suffix for the url. Must follow a neo4j-url option",
+        "/db/data/transaction/commit");
 
     toolInit.init(argc, argv);
 
@@ -89,6 +114,43 @@ int main(int argc, const char** argv) {
                 .type = ImportType::JSON_NEO4J,
                 .path = option.second,
             });
+        } else if (optName == "neo4j-url") {
+            importData.emplace_back(ImportData {
+                .type = ImportType::NEO4J_URL,
+                .url = option.second,
+            });
+        } else if (optName == "port") {
+            if (importData.empty()) {
+                BioLog::log(msg::ERROR_URL_NOT_PROVIDED());
+                argParser.printHelp();
+                return EXIT_FAILURE;
+            }
+            auto& cmd = importData.back();
+            cmd.port = std::stoi(option.second);
+        } else if (optName == "user") {
+            if (importData.empty()) {
+                BioLog::log(msg::ERROR_URL_NOT_PROVIDED());
+                argParser.printHelp();
+                return EXIT_FAILURE;
+            }
+            auto& cmd = importData.back();
+            cmd.username = option.second;
+        } else if (optName == "password") {
+            if (importData.empty()) {
+                BioLog::log(msg::ERROR_URL_NOT_PROVIDED());
+                argParser.printHelp();
+                return EXIT_FAILURE;
+            }
+            auto& cmd = importData.back();
+            cmd.password = option.second;
+        } else if (optName == "url-suffix") {
+            if (importData.empty()) {
+                BioLog::log(msg::ERROR_URL_NOT_PROVIDED());
+                argParser.printHelp();
+                return EXIT_FAILURE;
+            }
+            auto& cmd = importData.back();
+            cmd.urlSuffix = option.second;
         }
     }
 
@@ -100,15 +162,43 @@ int main(int argc, const char** argv) {
         return EXIT_SUCCESS;
     }
 
-    for (const auto& data : importData) {
+    for (auto& data : importData) {
 
         switch (data.type) {
+            case ImportType::NEO4J: {
+                // if (!Neo4jImporter::import(jobSystem,
+                //                            db.get(),
+                //                            data.path,
+                //                            nodeCountPerQuery,
+                //                            edgeCountPerQuery)) {
+                //     BioLog::echo("Something went wrong during neo4j import");
+                //     return 1;
+                // }
+                // break;
+                break;
+            }
             case ImportType::NEO4J_URL: {
-                if (!Neo4jImporter::import(jobSystem,
-                                           db.get(),
-                                           data.path,
-                                           nodeCountPerQuery,
-                                           edgeCountPerQuery)) {
+                Neo4jImporter::ImportUrlArgs args;
+                if (!data.url.empty()) {
+                    args._url = std::move(data.url);
+                }
+                if (!data.urlSuffix.empty()) {
+                    args._urlSuffix = std::move(data.urlSuffix);
+                }
+                if (!data.username.empty()) {
+                    args._username = std::move(data.username);
+                }
+                if (!data.password.empty()) {
+                    args._password = std::move(data.password);
+                }
+                args._port = data.port;
+                args._workDir = toolInit.getOutputsDir();
+
+                if (!Neo4jImporter::importUrl(jobSystem,
+                                              db.get(),
+                                              nodeCountPerQuery,
+                                              edgeCountPerQuery,
+                                              args)) {
                     BioLog::echo("Something went wrong during neo4j import");
                     return 1;
                 }
@@ -121,6 +211,7 @@ int main(int argc, const char** argv) {
         }
     }
 
+    jobSystem.wait();
     auto t1 = Clock::now();
     float dur = duration<std::ratio<1, 1>>(t0, t1);
     BioLog::echo("Elapsed time: " + std::to_string(dur) + " s");
