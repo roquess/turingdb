@@ -28,8 +28,8 @@ bool Neo4jImport::importNeo4j(const Path& filepath, const std::string& networkNa
     const FileUtils::Path nodePropertiesFile = jsonDir / "nodeProperties.json";
     const FileUtils::Path edgePropertiesFile = jsonDir / "edgeProperties.json";
 
-    Neo4JInstance instance(_outDir);
-    if (Neo4JInstance::isRunning()) {
+    Neo4jInstance instance(_outDir);
+    if (Neo4jInstance::isRunning()) {
         instance.stop();
     }
     instance.setup();

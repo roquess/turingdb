@@ -15,9 +15,11 @@ public:
         bool silent = false;
     };
 
+    Neo4JHttpRequest& operator=(const Neo4JHttpRequest&) = delete;
+    Neo4JHttpRequest& operator=(Neo4JHttpRequest&&) = delete;
     explicit Neo4JHttpRequest(const std::string& statement);
     Neo4JHttpRequest(const Neo4JHttpRequest&) = delete;
-    Neo4JHttpRequest(Neo4JHttpRequest&&);
+    Neo4JHttpRequest(Neo4JHttpRequest&&) noexcept;
     ~Neo4JHttpRequest();
 
     void setStatement(const std::string& s) { _statement = s; }

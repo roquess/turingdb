@@ -14,17 +14,17 @@
 
 using namespace Log;
 
-Neo4JInstance::Neo4JInstance(const FileUtils::Path& baseDir)
+Neo4jInstance::Neo4jInstance(const FileUtils::Path& baseDir)
     : _neo4jDir(baseDir / "neo4j"),
       _neo4jBinary(_neo4jDir / "bin" / "neo4j"),
       _neo4jAdminBinary(_neo4jDir / "bin" / "neo4j-admin")
 {
 }
 
-Neo4JInstance::~Neo4JInstance() {
+Neo4jInstance::~Neo4jInstance() {
 }
 
-bool Neo4JInstance::setup() {
+bool Neo4jInstance::setup() {
     // Check that neo4j archive exists in installation
     std::string turingHome = std::getenv("TURING_HOME");
     if (turingHome.empty()) {
@@ -66,7 +66,7 @@ bool Neo4JInstance::setup() {
     return true;
 }
 
-bool Neo4JInstance::stop() {
+bool Neo4jInstance::stop() {
     BioLog::log(msg::INFO_NEO4J_STOPPING());
     if (FileUtils::exists(_neo4jDir)) {
         const int stopRes =
@@ -83,7 +83,7 @@ bool Neo4JInstance::stop() {
     return true;
 }
 
-void Neo4JInstance::destroy() {
+void Neo4jInstance::destroy() {
     if (FileUtils::exists(_neo4jDir)) {
         stop();
 
@@ -93,18 +93,18 @@ void Neo4JInstance::destroy() {
     }
 }
 
-bool Neo4JInstance::isRunning() {
+bool Neo4jInstance::isRunning() {
     const bool res =
         !std::system("curl --request GET --url 127.0.0.1:7474 -s > /dev/null");
 
     return res;
 }
 
-void Neo4JInstance::killJava() {
+void Neo4jInstance::killJava() {
     boost::process::system("pkill java");
 }
 
-bool Neo4JInstance::start() {
+bool Neo4jInstance::start() {
     if (isRunning()) {
         BioLog::log(msg::ERROR_NEO4J_ALREADY_RUNNING());
         return false;
@@ -138,7 +138,7 @@ bool Neo4JInstance::start() {
     return true;
 }
 
-bool Neo4JInstance::importDumpedDB(
+bool Neo4jInstance::importDumpedDB(
     const std::filesystem::path& dbFilePath) const {
     if (!FileUtils::exists(dbFilePath)) {
         BioLog::log(msg::ERROR_FILE_NOT_EXISTS() << dbFilePath.string());

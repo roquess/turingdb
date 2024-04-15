@@ -1,8 +1,10 @@
 #include "JobSystem.h"
+#include "BioAssert.h"
 #include "BioLog.h"
+#include "MsgCommon.h"
 
 void JobQueue::push(Job job) {
-    _jobs.insert(_jobs.begin(), std::move(job));
+    _jobs.emplace_back(std::move(job));
 }
 
 std::optional<Job> JobQueue::pop() {
@@ -10,22 +12,26 @@ std::optional<Job> JobQueue::pop() {
         return std::nullopt;
     }
 
-    Job job = std::move(_jobs.back());
-    _jobs.erase(_jobs.end() - 1);
+    Job job = std::move(_jobs.front());
+    _jobs.erase(_jobs.begin());
     return job;
 }
 
+size_t JobQueue::size() const {
+    return _jobs.size();
+}
+
 JobSystem::~JobSystem() {
-    terminate();
+    if (!_terminated) {
+        terminate();
+    }
 }
 
 void JobSystem::initialize(size_t numThreads) {
     if (numThreads == 0) {
         size_t numCores = std::thread::hardware_concurrency();
-        numThreads = std::max(2ul, numCores) - 1ul;
+        numThreads = std::max(1ul, numCores);
     }
-
-    Log::BioLog::echo("JobSystem initialize with " + std::to_string(numThreads) + " threads.");
 
     for (size_t i = 0; i < numThreads; i++) {
         _workers.emplace_back([&] {
@@ -52,6 +58,8 @@ void JobSystem::initialize(size_t numThreads) {
             }
         });
     }
+
+    Log::BioLog::log(msg::INFO_JOB_SYSTEM_INITIALIZED() << numThreads);
 }
 
 void JobSystem::wait() {
@@ -62,6 +70,13 @@ void JobSystem::wait() {
 }
 
 void JobSystem::terminate() {
+    msgbioassert(!_terminated, "Attempting to terminate the job system twice");
+    _queueMutex.lock();
+    Log::BioLog::log(msg::INFO_JOB_SYSTEM_TERMINATING() << _jobs.size());
+    _queueMutex.unlock();
     _stopRequested.store(true);
     _wakeCondition.notify_all();
+    wait();
+    _terminated = true;
+    Log::BioLog::log(msg::INFO_JOB_SYSTEM_TERMINATED());
 }

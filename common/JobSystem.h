@@ -7,6 +7,8 @@
 
 template <typename T>
 using Future = std::future<T>;
+template <typename T>
+using SharedFuture = std::shared_future<T>;
 
 class Promise {};
 
@@ -25,6 +27,7 @@ class JobQueue {
 public:
     void push(Job job);
     std::optional<Job> pop();
+    size_t size() const;
 
 private:
     std::vector<Job> _jobs;
@@ -56,6 +59,21 @@ public:
         return future;
     }
 
+    template <typename T>
+    SharedFuture<T> submitShared(JobOperation&& operation) {
+        std::unique_lock lock(_queueMutex);
+        _submitedCount += 1;
+        TypedPromise<T>* promise = new TypedPromise<T>;
+        SharedFuture<T> future = promise->get_future();
+
+        _jobs.push({
+            std::move(operation),
+            std::unique_ptr<Promise>(static_cast<Promise*>(promise)),
+        });
+        _wakeCondition.notify_one();
+        return future;
+    }
+
     void wait();
     void terminate();
 
@@ -73,4 +91,5 @@ private:
     std::atomic<size_t> _finishedCount = 0;
     std::atomic<size_t> _submitedCount = 0;
     std::atomic<bool> _stopRequested = false;
+    bool _terminated = false;
 };

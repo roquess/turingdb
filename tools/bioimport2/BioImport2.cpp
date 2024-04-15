@@ -6,7 +6,9 @@
 #include "MsgImport.h"
 #include "Neo4jImporter.h"
 #include "PerfStat.h"
+#include "Time.h"
 #include "ToolInit.h"
+#include <iostream>
 
 using namespace Log;
 using namespace db;
@@ -24,22 +26,15 @@ struct ImportData {
     std::string path;
     std::string networkName;
     std::string primaryKey;
-    std::string url;
-    std::string urlSuffix;
+    std::string url = "localhost";
+    std::string urlSuffix = "/db/data/transaction/commit";
     uint64_t port = 7474;
-    std::string username;
-    std::string password;
+    std::string username = "neo4j";
+    std::string password = "turing";
 };
 
-using Clock = std::chrono::high_resolution_clock;
-
-template <typename T>
-float duration(auto& t0, auto& t1) {
-    return std::chrono::duration<float, T>(t1 - t0).count();
-}
-
-static constexpr size_t edgeCountPerQuery = 400000;
 static constexpr size_t nodeCountPerQuery = 400000;
+static constexpr size_t edgeCountPerQuery = 1000000;
 
 int main(int argc, const char** argv) {
     ToolInit toolInit("bioimport2");
@@ -47,12 +42,17 @@ int main(int argc, const char** argv) {
     ArgParser& argParser = toolInit.getArgParser();
 
     argParser.addOption(
+        "j",
+        "Number or threads to use",
+        "16");
+
+    argParser.addOption(
         "neo4j",
         "Imports a .dump file (default network name: \"my_file\")",
         "my_file.dump");
 
     argParser.addOption(
-        "json-neo4j",
+        "neo4j-json",
         "Imports json files from a json/ directory (default network name: \"my_json_dir\")",
         "my_json_dir");
 
@@ -85,15 +85,23 @@ int main(int argc, const char** argv) {
 
     auto db = std::make_unique<DB>();
     JobSystem jobSystem;
-    jobSystem.initialize();
 
     auto t0 = Clock::now();
 
     std::vector<ImportData> importData;
+    uint16_t nThreads = 0;
 
     for (const auto& option : argParser.options()) {
         const auto& optName = option.first;
-        if (optName == "neo4j") {
+        if (optName == "j") {
+            try {
+                nThreads = std::stoul(option.second);
+            } catch (std::invalid_argument const& ex) {
+                BioLog::echo("Number of threads must be an unsigned integer. Got "
+                             + option.second + " instead");
+                return EXIT_FAILURE;
+            }
+        } else if (optName == "neo4j") {
             if (!FileUtils::exists(option.second)) {
                 BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS()
                             << option.second);
@@ -104,7 +112,7 @@ int main(int argc, const char** argv) {
                 .type = ImportType::NEO4J,
                 .path = option.second,
             });
-        } else if (optName == "json-neo4j") {
+        } else if (optName == "neo4j-json") {
             if (!FileUtils::exists(option.second)) {
                 BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS()
                             << option.second);
@@ -154,67 +162,73 @@ int main(int argc, const char** argv) {
         }
     }
 
-    const bool noPathsGiven = importData.empty();
-
-    if (noPathsGiven) {
+    if (importData.empty()) {
         BioLog::log(msg::ERROR_IMPORT_NO_PATH_GIVEN());
         argParser.printHelp();
         return EXIT_SUCCESS;
     }
 
-    for (auto& data : importData) {
+    jobSystem.initialize(nThreads);
 
+    for (auto& data : importData) {
         switch (data.type) {
             case ImportType::NEO4J: {
-                // if (!Neo4jImporter::import(jobSystem,
-                //                            db.get(),
-                //                            data.path,
-                //                            nodeCountPerQuery,
-                //                            edgeCountPerQuery)) {
-                //     BioLog::echo("Something went wrong during neo4j import");
-                //     return 1;
-                // }
-                // break;
+                Neo4jImporter::ImportDumpFileArgs args;
+                args._workDir = toolInit.getOutputsDir();
+                args._writeFiles = true;
+                args._dumpFilePath = std::move(data.path);
+
+                if (!Neo4jImporter::importDumpFile(jobSystem,
+                                                   db.get(),
+                                                   nodeCountPerQuery,
+                                                   edgeCountPerQuery,
+                                                   args)) {
+                    BioLog::log(msg::ERROR_NEO4J_IMPORT());
+                    return 1;
+                }
                 break;
             }
             case ImportType::NEO4J_URL: {
                 Neo4jImporter::ImportUrlArgs args;
-                if (!data.url.empty()) {
-                    args._url = std::move(data.url);
-                }
-                if (!data.urlSuffix.empty()) {
-                    args._urlSuffix = std::move(data.urlSuffix);
-                }
-                if (!data.username.empty()) {
-                    args._username = std::move(data.username);
-                }
-                if (!data.password.empty()) {
-                    args._password = std::move(data.password);
-                }
+                args._url = std::move(data.url);
+                args._urlSuffix = std::move(data.urlSuffix);
+                args._username = std::move(data.username);
+                args._password = std::move(data.password);
                 args._port = data.port;
                 args._workDir = toolInit.getOutputsDir();
+                args._writeFiles = true;
 
                 if (!Neo4jImporter::importUrl(jobSystem,
                                               db.get(),
                                               nodeCountPerQuery,
                                               edgeCountPerQuery,
                                               args)) {
-                    BioLog::echo("Something went wrong during neo4j import");
+                    BioLog::log(msg::ERROR_NEO4J_IMPORT());
                     return 1;
                 }
                 break;
             }
             case ImportType::JSON_NEO4J: {
-                // neo4jImport.importJsonNeo4j(data.path, networkName);
+                Neo4jImporter::ImportJsonDirArgs args;
+                args._jsonDir = std::move(data.path);
+                args._workDir = toolInit.getOutputsDir();
+
+                if (!Neo4jImporter::importJsonDir(jobSystem,
+                                                       db.get(),
+                                                       nodeCountPerQuery,
+                                                       edgeCountPerQuery,
+                                                       args)) {
+                    BioLog::log(msg::ERROR_NEO4J_IMPORT());
+                    return 1;
+                }
                 break;
             }
         }
     }
 
-    jobSystem.wait();
-    auto t1 = Clock::now();
-    float dur = duration<std::ratio<1, 1>>(t0, t1);
-    BioLog::echo("Elapsed time: " + std::to_string(dur) + " s");
+    jobSystem.terminate();
+    float dur = duration<Seconds>(t0, Clock::now());
+    BioLog::log(msg::INFO_ELAPSED_TIME() << dur << "s");
 
     return EXIT_SUCCESS;
 }

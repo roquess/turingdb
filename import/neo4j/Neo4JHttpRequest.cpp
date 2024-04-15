@@ -21,7 +21,7 @@ Neo4JHttpRequest::Neo4JHttpRequest(const std::string& statement)
     : _statement(statement) {
 }
 
-Neo4JHttpRequest::Neo4JHttpRequest(Neo4JHttpRequest&& other)
+Neo4JHttpRequest::Neo4JHttpRequest(Neo4JHttpRequest&& other) noexcept
     : _url(std::move(other._url)),
       _username(std::move(other._username)),
       _password(std::move(other._password)),

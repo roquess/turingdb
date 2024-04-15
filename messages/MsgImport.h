@@ -13,7 +13,7 @@ MSG_ERROR(ERROR_UNEXPECTED_TOKEN, 2002,
           "Unexpected token '$0' at line $1")
 
 MSG_ERROR(ERROR_NODE_ID_NOT_FOUND, 2003,
-          "Node id not found at line $1")
+          "Node id not found at line $0")
 
 MSG_ERROR(ERROR_NODE_TYPE_CREATE_FAILED, 2004,
           "Node type creation failed")
@@ -78,14 +78,9 @@ MSG_ERROR(ERROR_JSON_BAD_FILE, 2023,
 MSG_ERROR(ERROR_JSON_INCORRECT_TYPE, 2024,
           "During JSON parsing, value '$0' (PropertyType: '$1') could not be casted from '$2' to '$3'")
 
-
-// Warnings
 MSG_WARNING(WARNING_JSON_INCORRECT_TYPE, 2025,
             "During JSON parsing, value '$0' of type '$1' was interpreted as '$2")
 
-
-
-// Infos
 MSG_INFO(INFO_COPY_DB, 2026,
          "Copy Neo4J database from '$0' to '$1'")
 
@@ -138,7 +133,7 @@ MSG_INFO(INFO_NEO4J_ILLFORMED_EDGE_PROP_COUNT, 2042,
          "$0 illformed edge properties were found during neo4j db load")
 
 MSG_INFO(INFO_NEO4J_HTTP_REQUEST, 2043,
-         "Sending Neo4j request: '$0'")
+         "Sending Neo4j request")
 
 MSG_INFO(INFO_NEO4J_STOPPING, 2044,
          "Stopping Neo4j")
@@ -186,8 +181,8 @@ MSG_ERROR(ERROR_NETWORK_ALREADY_EXISTS, 2057,
           "A network with the same name ($0) already exists")
 
 MSG_WARNING(WARNING_COULD_NOT_DEDUCE_NETWORK_NAME, 2058,
-          "Could not deduce a name for the network from the path given ($0). Provide one with "
-          "the '-net' option. Falling back to the full path")
+            "Could not deduce a name for the network from the path given ($0). Provide one with "
+            "the '-net' option. Falling back to the full path")
 
 MSG_ERROR(ERROR_SOURCE_NETWORK_NOT_SPECIFIED, 2059,
           "Trying to link but missing infos on the source network ($0)")
@@ -224,6 +219,66 @@ MSG_ERROR(ERROR_CSV_REDEFINITION_OF_NODE, 2069,
 
 MSG_ERROR(ERROR_JSON_CONTAINS_ERROR, 2070,
           "The json file contains some errors")
+
+MSG_INFO(INFO_DB_ENTITY_COUNT, 2071,
+         "Database has $0 nodes and $1 edges")
+
+MSG_INFO(INFO_GETTING_STATS, 2072,
+         "Retrieving database info")
+
+MSG_INFO(INFO_GETTING_NODE_LABELS, 2073,
+         "Retrieving node labels")
+
+MSG_INFO(INFO_GETTING_EDGE_TYPES, 2074,
+         "Retrieving edge types")
+
+MSG_INFO(INFO_GETTING_NODE_PROP_TYPES, 2075,
+         "Retrieving node property types")
+
+MSG_INFO(INFO_GETTING_EDGE_PROP_TYPES, 2076,
+         "Retrieving edge property types")
+
+MSG_INFO(INFO_GETTING_NODES, 2077,
+         "Retrieving node range [$0-$1] / $2")
+
+MSG_INFO(INFO_GETTING_EDGES, 2078,
+         "Retrieving edge range [$0-$1] / $2")
+
+MSG_ERROR(ERROR_GETTING_STATS, 2072,
+         "Could not retrieve database info")
+
+MSG_ERROR(ERROR_GETTING_NODE_LABELS, 2073,
+         "Could not retrieve node labels")
+
+MSG_ERROR(ERROR_GETTING_EDGE_TYPES, 2074,
+         "Could not retrieve edge types")
+
+MSG_ERROR(ERROR_GETTING_NODE_PROP_TYPES, 2075,
+         "Could not retrieve node property types")
+
+MSG_ERROR(ERROR_GETTING_EDGE_PROP_TYPES, 2076,
+         "Could not retrieve edge property types")
+
+MSG_ERROR(ERROR_GETTING_NODES, 2077,
+         "Could not retrieve nodes")
+
+MSG_ERROR(ERROR_GETTING_EDGES, 2078,
+         "Could not retrieve edges")
+
+MSG_INFO(INFO_MERGING_BUFFERS, 2079,
+         "Merging data buffers")
+
+MSG_INFO(INFO_BUILDING_DATAPART, 2080,
+         "Building and pushing datapart")
+
+MSG_ERROR(ERROR_NEO4J_NOT_RESPONDING, 2081,
+          "No anwser from: $0:$1$2")
+
+MSG_INFO(INFO_WRITING_JSON_FILE, 2082,
+         "Writing json file: $0")
+
+MSG_ERROR(ERROR_NEO4J_IMPORT, 2083,
+          "Something went wrong during neo4j import")
 
 }
 
