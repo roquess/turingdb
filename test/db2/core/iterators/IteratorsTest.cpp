@@ -3,9 +3,9 @@
 
 #include "BioLog.h"
 #include "DB.h"
+#include "DataBuffer.h"
 #include "FileUtils.h"
 #include "Reader.h"
-#include "DataBuffer.h"
 #include "iterators/GetCoreInEdgesIterator.h"
 #include "iterators/GetCoreOutEdgesIterator.h"
 #include "iterators/GetPatchInEdgesIterator.h"
@@ -56,27 +56,27 @@ protected:
         {
             // NODE 0 (temp ID: 0)
             const EntityID tmpID = tempData1.addNode(LabelSet {0});
-            tempData1.addProperty<UInt64PropertyType>(
+            tempData1.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData1.addProperty<StringPropertyType>(
+            tempData1.addNodeProperty<StringPropertyType>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // NODE 1 (temp ID: 1)
             const EntityID tmpID = tempData1.addNode(LabelSet {0});
-            tempData1.addProperty<UInt64PropertyType>(
+            tempData1.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData1.addProperty<StringPropertyType>(
+            tempData1.addNodeProperty<StringPropertyType>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // NODE 2 (temp ID: 2)
             const EntityID tmpID = tempData1.addNode(LabelSet {1});
-            tempData1.addProperty<UInt64PropertyType>(
+            tempData1.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData1.addProperty<StringPropertyType>(
+            tempData1.addNodeProperty<StringPropertyType>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
@@ -94,16 +94,16 @@ protected:
         {
             // NODE 4 (temp ID: 0))
             const EntityID tmpID = tempData2.addNode(LabelSet {0, 1});
-            tempData2.addProperty<UInt64PropertyType>(
+            tempData2.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData2.addProperty<StringPropertyType>(
+            tempData2.addNodeProperty<StringPropertyType>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // NODE 3 (temp ID: 1)
             const EntityID tmpID = tempData2.addNode(LabelSet {1});
-            tempData2.addProperty<UInt64PropertyType>(
+            tempData2.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
@@ -134,36 +134,36 @@ protected:
         {
             // NODE 8 (temp ID: 5)
             const EntityID tmpID = tempData4.addNode(LabelSet {0, 1});
-            tempData4.addProperty<UInt64PropertyType>(
+            tempData4.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData4.addProperty<StringPropertyType>(
+            tempData4.addNodeProperty<StringPropertyType>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // NODE 5 (temp ID: 6)
             const EntityID tmpID = tempData4.addNode(LabelSet {0});
-            tempData4.addProperty<UInt64PropertyType>(
+            tempData4.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData4.addProperty<StringPropertyType>(
+            tempData4.addNodeProperty<StringPropertyType>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // NODE 6 (temp ID: 7)
             const EntityID tmpID = tempData4.addNode(LabelSet {1});
-            tempData4.addProperty<UInt64PropertyType>(
+            tempData4.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData4.addProperty<StringPropertyType>(
+            tempData4.addNodeProperty<StringPropertyType>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // NODE 7 (temp ID: 8)
             const EntityID tmpID = tempData4.addNode(LabelSet {1});
-            tempData4.addProperty<UInt64PropertyType>(
+            tempData4.addNodeProperty<UInt64PropertyType>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData4.addProperty<StringPropertyType>(
+            tempData4.addNodeProperty<StringPropertyType>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 

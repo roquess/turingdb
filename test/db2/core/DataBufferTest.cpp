@@ -55,7 +55,7 @@ TEST_F(DataBufferTest, CreateTest) {
 
     size_t optionalPropertyCount = 70;
     for (size_t i = 0; i < optionalPropertyCount; i++) {
-        tempBuffer.addProperty<Int64PropertyType>(i, 0, i);
+        tempBuffer.addNodeProperty<Int64PropertyType>(i, 0, i);
     }
 
     const auto& nodeData = tempBuffer.getCoreNodeData();
