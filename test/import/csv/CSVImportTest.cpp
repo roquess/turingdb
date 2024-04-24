@@ -1,5 +1,4 @@
 #include "CSVImport.h"
-#include "BioLog.h"
 #include "DB.h"
 #include "FileUtils.h"
 #include "Network.h"
@@ -9,7 +8,6 @@
 #include "gtest/gtest.h"
 
 namespace db {
-using namespace Log;
 
 class CSVImportTest : public ::testing::Test {
 protected:
@@ -29,13 +27,9 @@ protected:
             FileUtils::removeDirectory(_outDirName);
         }
         FileUtils::createDirectory(_outDirName);
-
-        Log::BioLog::init();
-        Log::BioLog::openFile(_logPath.string());
     }
 
     void TearDown() override {
-        Log::BioLog::destroy();
     }
 
     std::tuple<db::DB*, bool> run(

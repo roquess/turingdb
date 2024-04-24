@@ -1,28 +1,22 @@
 #include "ToolInit.h"
 
+#include <spdlog/spdlog.h>
+#include <argparse.hpp>
+
 #include "DBServer.h"
 #include "DBServerConfig.h"
-
-#include "BioLog.h"
-
-using namespace Log;
 
 int main(int argc, const char** argv) {
     ToolInit toolInit("bioserver");
 
-    ArgParser& argParser = toolInit.getArgParser();
-    argParser.addOption("load", "Loads the requested db at start", "db_name");
+    auto& argParser = toolInit.getArgParser();
+    argParser.add_argument("load")
+             .help("Load a database at the start")
+             .nargs(1);
 
     toolInit.init(argc, argv);
 
-    std::vector<std::string> dbNames;
-
-    for (const auto& option : argParser.options()) {
-        const auto& optName = option.first;
-        if (optName == "load") {
-            dbNames.push_back(option.second);
-        }
-    }
+    const std::vector<std::string> dbNames = argParser.get<std::vector<std::string>>("-load");
 
     // Configuration of the DB Server
     DBServerConfig dbServerConfig;
@@ -31,12 +25,9 @@ int main(int argc, const char** argv) {
     DBServer server(dbServerConfig);
 
     if (!server.run(dbNames)) {
-        BioLog::printSummary();
-        BioLog::destroy();
+        spdlog::error("Database server terminated with an error");
         return EXIT_FAILURE;
-    };
+    }
 
-    BioLog::printSummary();
-    BioLog::destroy();
     return EXIT_SUCCESS;
 }

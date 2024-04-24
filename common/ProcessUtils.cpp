@@ -7,9 +7,6 @@
 #include "StringToNumber.h"
 #include "FileUtils.h"
 
-#include "BioLog.h"
-using namespace Log;
-
 bool ProcessUtils::killAllChildren(pid_t pid, int signal) {
     std::vector<pid_t> children;
     if (!getAllChildren(pid, children)) {

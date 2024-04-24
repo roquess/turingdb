@@ -1,13 +1,10 @@
 #include "Command.h"
 
 #include <boost/process.hpp>
+#include <spdlog/spdlog.h>
 
 #include "FileUtils.h"
-#include "BioLog.h"
-#include "MsgCommon.h"
-#include "MsgDB.h"
-
-using namespace Log;
+#include "LogUtils.h"
 
 Command::Command(const std::string& cmd)
     : _cmd(cmd)
@@ -39,14 +36,16 @@ void Command::setEnvVar(const std::string& var, const std::string& value) {
 
 bool Command::run() {
     std::string bashCmd;
-    getBashCmd(bashCmd);
+    if (!getBashCmd(bashCmd)) {
+        return false;
+    }
 
     if (bashCmd.empty()) {
         return false;
     }
 
     if (_verbose) {
-        BioLog::echo("Executing command "+bashCmd);
+        spdlog::info("Executing command {}", bashCmd);
     }
     _returnCode = system(bashCmd.c_str());
     return true;
@@ -54,7 +53,9 @@ bool Command::run() {
 
 ProcessChild Command::runAsync(ProcessGroup& group) {
     std::string bashCmd;
-    getBashCmd(bashCmd, true);
+    if (!getBashCmd(bashCmd, true)) {
+        return ProcessChild();
+    }
 
     if (_stdoutEnabled) {
         return std::make_unique<boost::process::child>(
@@ -132,7 +133,7 @@ void Command::generateCmdString(std::string& cmdStr, bool async) {
     cmdStr += "; exit ${PIPESTATUS[0]}";
 }
 
-void Command::getBashCmd(std::string& bashCmd, bool async) {
+bool Command::getBashCmd(std::string& bashCmd, bool async) {
     bashCmd = "";
 
     // Working directory
@@ -141,9 +142,8 @@ void Command::getBashCmd(std::string& bashCmd, bool async) {
     }
 
     if (!FileUtils::exists(_workingDir)) {
-        BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS()
-                    << _workingDir.string());
-        return;
+        logt::DirectoryDoesNotExist(_workingDir.string());
+        return false;
     }
 
     _workingDir = FileUtils::abspath(_workingDir);
@@ -163,8 +163,8 @@ void Command::getBashCmd(std::string& bashCmd, bool async) {
         _cmd = FileUtils::abspath(_cmd);
     } else {
         if (!searchCmd()) {
-            BioLog::log(msg::ERROR_EXECUTABLE_NOT_FOUND() << _cmd);
-            return;
+            logt::ExecutableNotFound(_cmd);
+            return false;
         }
     }
 
@@ -179,13 +179,14 @@ void Command::getBashCmd(std::string& bashCmd, bool async) {
 
         cmdStr.push_back('\n');
         if (!FileUtils::writeFile(_scriptPath, cmdStr)) {
-            BioLog::log(msg::ERROR_FAILED_TO_WRITE_COMMAND_SCRIPT()
-                        << _scriptPath.string());
-            return;
+            spdlog::error("Failed to write command script {}", _scriptPath.string());
+            return false;
         }
 
         bashCmd += _scriptPath.string();
     } else {
         bashCmd += "-c '" + cmdStr + "'";
     }
+
+    return true;
 }

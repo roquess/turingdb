@@ -1,14 +1,13 @@
 #include "Neo4jImport.h"
+
+#include <spdlog/spdlog.h>
+
 #include "DBDumper.h"
 #include "JsonParser.h"
-#include "MsgCommon.h"
-#include "MsgImport.h"
 #include "Neo4JInstance.h"
 #include "ThreadHandler.h"
 #include "TimerStat.h"
-#include "BioLog.h"
-
-using namespace Log;
+#include "LogUtils.h"
 
 Neo4jImport::Neo4jImport(db::DB* db, const Path& outDir)
     : _db(db),
@@ -20,7 +19,7 @@ Neo4jImport::~Neo4jImport() {
 }
 
 bool Neo4jImport::importNeo4j(const Path& filepath, const std::string& networkName) {
-    BioLog::log(msg::INFO_NEO4J_IMPORT_DUMP_FILE() << filepath.string());
+    spdlog::info("Importing Neo4J dump file {}", filepath.string());
     TimerStat timer {"Neo4j: import"};
 
     const FileUtils::Path jsonDir = _outDir / "json";
@@ -35,7 +34,7 @@ bool Neo4jImport::importNeo4j(const Path& filepath, const std::string& networkNa
 
     if (!FileUtils::exists(jsonDir)) {
         if (!FileUtils::createDirectory(jsonDir)) {
-            BioLog::log(msg::ERROR_FAILED_TO_CREATE_DIRECTORY() << jsonDir);
+            logt::CanNotCreateDir(jsonDir.string());
             return false;
         }
     }
@@ -59,8 +58,8 @@ bool Neo4jImport::importNeo4j(const Path& filepath, const std::string& networkNa
     // Done, clearing stats data
     handler.requests.stats.clear();
 
-    Log::BioLog::log(msg::INFO_NEO4J_NODE_COUNT() << stats.nodeCount);
-    Log::BioLog::log(msg::INFO_NEO4J_EDGE_COUNT() << stats.edgeCount);
+    spdlog::info("Imported {} nodes from Neo4J", stats.nodeCount);
+    spdlog::info("Imported {} edges from Neo4J", stats.edgeCount);
 
     // Waiting for the node properties request to finish
     handler.requests.nodeProperties.waitReady();
@@ -158,28 +157,28 @@ bool Neo4jImport::importNeo4j(const Path& filepath, const std::string& networkNa
     // Done, clearing edges data
     handler.requests.edges.clear();
 
-    Log::BioLog::log(msg::INFO_NEO4J_NODE_PROP_ERROR_COUNT()
-                     << stats.nodePropErrors);
-    Log::BioLog::log(msg::INFO_NEO4J_EDGE_PROP_ERROR_COUNT()
-                     << stats.edgePropErrors);
+    spdlog::info("{} node property errors occured during Neo4J db load",
+                 stats.nodePropErrors);
+    spdlog::info("{} edge property errors occured during Neo4J db load",
+                 stats.edgePropErrors);
 
-    Log::BioLog::log(msg::INFO_NEO4J_NODE_PROP_WARNING_COUNT()
-                     << stats.nodePropWarnings);
-    Log::BioLog::log(msg::INFO_NEO4J_EDGE_PROP_WARNING_COUNT()
-                     << stats.edgePropWarnings);
+    spdlog::info("{} node property warnings occured during Neo4J db load",
+                 stats.nodePropWarnings);
+    spdlog::info("{} edge property warnings occured during Neo4J db load",
+                 stats.edgePropWarnings);
 
-    Log::BioLog::log(msg::INFO_NEO4J_UNSUPPORTED_NODE_PROP_COUNT()
-                     << stats.unsupportedNodeProps);
-    Log::BioLog::log(msg::INFO_NEO4J_UNSUPPORTED_EDGE_PROP_COUNT()
-                     << stats.unsupportedEdgeProps);
+    spdlog::info("{} unsupported node properties occured during Neo4J db load",
+                 stats.unsupportedNodeProps);
+    spdlog::info("{} unsupported edge properties occured during Neo4J db load",
+                 stats.unsupportedEdgeProps);
 
-    Log::BioLog::log(msg::INFO_NEO4J_ILLFORMED_NODE_PROP_COUNT()
-                     << stats.illformedNodeProps);
-    Log::BioLog::log(msg::INFO_NEO4J_ILLFORMED_EDGE_PROP_COUNT()
-                     << stats.illformedEdgeProps);
+    spdlog::info("{} illformed node properties occured during Neo4J db load",
+                 stats.illformedNodeProps);
+    spdlog::info("{} illformed edge properties occured during Neo4J db load",
+                 stats.illformedNodeProps);
 
-    Log::BioLog::log(msg::INFO_NEO4J_PARSED_NODE_COUNT() << stats.parsedNodes);
-    Log::BioLog::log(msg::INFO_NEO4J_PARSED_EDGE_COUNT() << stats.parsedEdges);
+    spdlog::info("Parsed {} Neo4J nodes", stats.parsedNodes);
+    spdlog::info("Parsed {} Neo4J edges", stats.parsedEdges);
 
     handler.join();
     instance.destroy();
@@ -188,7 +187,7 @@ bool Neo4jImport::importNeo4j(const Path& filepath, const std::string& networkNa
 }
 
 bool Neo4jImport::importJsonNeo4j(const Path& jsonDir, const std::string& networkName) {
-    BioLog::log(msg::INFO_NEO4J_IMPORT_JSON_FILES() << jsonDir.string());
+    spdlog::info("Import Neo4J json files in {}", jsonDir.string());
     TimerStat timer {"Neo4j: import"};
 
     const FileUtils::Path statsFile = jsonDir / "stats.json";
@@ -196,7 +195,7 @@ bool Neo4jImport::importJsonNeo4j(const Path& jsonDir, const std::string& networ
     const FileUtils::Path edgePropertiesFile = jsonDir / "edgeProperties.json";
 
     if (!FileUtils::exists(jsonDir)) {
-        BioLog::log(msg::ERROR_DIRECTORY_NOT_EXISTS() << jsonDir);
+        logt::DirectoryDoesNotExist(jsonDir.string());
         return false;
     }
 
@@ -209,31 +208,28 @@ bool Neo4jImport::importJsonNeo4j(const Path& jsonDir, const std::string& networ
         return false;
     }
 
-    Log::BioLog::log(msg::INFO_NEO4J_NODE_COUNT() << stats.nodeCount);
-    Log::BioLog::log(msg::INFO_NEO4J_EDGE_COUNT() << stats.edgeCount);
+    spdlog::info("{} node property errors occured during Neo4J db load",
+                 stats.nodePropErrors);
+    spdlog::info("{} edge property errors occured during Neo4J db load",
+                 stats.edgePropErrors);
 
-    Log::BioLog::log(msg::INFO_NEO4J_NODE_PROP_ERROR_COUNT()
-                     << stats.nodePropErrors);
-    Log::BioLog::log(msg::INFO_NEO4J_EDGE_PROP_ERROR_COUNT()
-                     << stats.edgePropErrors);
+    spdlog::info("{} node property warnings occured during Neo4J db load",
+                 stats.nodePropWarnings);
+    spdlog::info("{} edge property warnings occured during Neo4J db load",
+                 stats.edgePropWarnings);
 
-    Log::BioLog::log(msg::INFO_NEO4J_NODE_PROP_WARNING_COUNT()
-                     << stats.nodePropWarnings);
-    Log::BioLog::log(msg::INFO_NEO4J_EDGE_PROP_WARNING_COUNT()
-                     << stats.edgePropWarnings);
+    spdlog::info("{} unsupported node properties occured during Neo4J db load",
+                 stats.unsupportedNodeProps);
+    spdlog::info("{} unsupported edge properties occured during Neo4J db load",
+                 stats.unsupportedEdgeProps);
 
-    Log::BioLog::log(msg::INFO_NEO4J_UNSUPPORTED_NODE_PROP_COUNT()
-                     << stats.unsupportedNodeProps);
-    Log::BioLog::log(msg::INFO_NEO4J_UNSUPPORTED_EDGE_PROP_COUNT()
-                     << stats.unsupportedEdgeProps);
+    spdlog::info("{} illformed node properties occured during Neo4J db load",
+                 stats.illformedNodeProps);
+    spdlog::info("{} illformed edge properties occured during Neo4J db load",
+                 stats.illformedNodeProps);
 
-    Log::BioLog::log(msg::INFO_NEO4J_ILLFORMED_NODE_PROP_COUNT()
-                     << stats.illformedNodeProps);
-    Log::BioLog::log(msg::INFO_NEO4J_ILLFORMED_EDGE_PROP_COUNT()
-                     << stats.illformedEdgeProps);
-
-    Log::BioLog::log(msg::INFO_NEO4J_PARSED_NODE_COUNT() << stats.parsedNodes);
-    Log::BioLog::log(msg::INFO_NEO4J_PARSED_EDGE_COUNT() << stats.parsedEdges);
+    spdlog::info("Parsed {} Neo4J nodes", stats.parsedNodes);
+    spdlog::info("Parsed {} Neo4J edges", stats.parsedEdges);
 
     return true;
 }

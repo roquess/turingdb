@@ -2,14 +2,11 @@
 
 #include <signal.h>
 #include <boost/process.hpp>
+#include <spdlog/spdlog.h>
 
 #include "Command.h"
 #include "ProcessUtils.h"
-
-#include "BioLog.h"
-#include "MsgCommon.h"
-
-using namespace Log;
+#include "LogUtils.h"
 
 RegressJob::RegressJob(const Path& path)
     : _path(path)
@@ -22,7 +19,7 @@ RegressJob::~RegressJob() {
 bool RegressJob::start(ProcessGroup& group) {
     const auto runScriptPath = _path/"run.sh";
     if (!FileUtils::exists(runScriptPath)) {
-        BioLog::log(msg::ERROR_FILE_NOT_EXISTS() << runScriptPath.string());
+        logt::FileNotFound(runScriptPath.string());
         return false;
     }
 
@@ -31,7 +28,7 @@ bool RegressJob::start(ProcessGroup& group) {
     cmd.setLogFile(_path/"run.log");
     cmd.setGenerateScript(true);
 
-    BioLog::echo("Run: "+_path.string());
+    spdlog::info("Run: {}", _path.string());
     _process = cmd.runAsync(group);
     return true;
 }
@@ -53,7 +50,7 @@ int RegressJob::getExitCode() const {
 void RegressJob::terminate() {
     if (_process) {
         if (!ProcessUtils::killAllChildren(_process->id(), SIGKILL)) {
-            BioLog::echo("Kill failed");
+            spdlog::error("Kill failed for process id {}", _process->id());
         }
         _process->terminate();
         _process->wait();

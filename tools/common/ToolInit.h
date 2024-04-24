@@ -2,31 +2,38 @@
 #define _BIO_TOOL_INIT_
 
 #include <string>
-#include <filesystem>
+#include <memory>
 
-#include "ArgParser.h"
+namespace argparse {
+class ArgumentParser;
+}
 
 class ToolInit {
 public:
-    using Path = std::filesystem::path;
-    
     ToolInit(const std::string& toolName);
     ~ToolInit();
 
-    void setOutputDir(const Path& outDir) { _outputsDir = outDir; }
+    void setOutputDir(const std::string& outDir);
+
+    void disableOutputDir() { _outputDirEnabled = false; }
+    void createOutputDir();
 
     void init(int argc, const char** argv);
 
-    const Path& getOutputsDir() const { return _outputsDir; }
-    const Path& getReportsDir() const { return _reportsDir; }
+    const std::string& getOutputsDir() const { return _outputsDir; }
+    const std::string& getReportsDir() const { return _reportsDir; }
 
-    ArgParser& getArgParser() { return _argParser; }
+    argparse::ArgumentParser& getArgParser() { return *_argParser; }
 
 private:
     const std::string _toolName;
-    Path _outputsDir;
-    Path _reportsDir;
-    ArgParser _argParser;
+    std::string _outputsDir;
+    std::string _reportsDir;
+    std::unique_ptr<argparse::ArgumentParser> _argParser;
+    bool _outputDirEnabled {true};
+
+    void setupArgParser();
+    void parseArguments(int argc, const char** argv);
 };
 
 #endif

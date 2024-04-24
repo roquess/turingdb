@@ -47,7 +47,7 @@ private:
 
     bool searchCmd();
     void generateCmdString(std::string& cmdStr, bool async = false);
-    void getBashCmd(std::string& bashCmd, bool async = false);
+    bool getBashCmd(std::string& bashCmd, bool async = false);
 };
 
 #endif

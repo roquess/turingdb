@@ -3,9 +3,6 @@
 #include "DBServer.h"
 #include "DBServerConfig.h"
 
-#include "BioLog.h"
-
-using namespace Log;
 using namespace db;
 
 int main(int argc, const char** argv) {
@@ -19,7 +16,5 @@ int main(int argc, const char** argv) {
     DBServer server(dbServerConfig);
     server.start();
 
-    BioLog::printSummary();
-    BioLog::destroy();
     return EXIT_SUCCESS;
 }
