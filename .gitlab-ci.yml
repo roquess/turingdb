@@ -18,5 +18,6 @@ build-job:
     when: always
     paths:
       - unit_tests.xml
+      - test/regress
     reports:
       junit: unit_tests.xml
