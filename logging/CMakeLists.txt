@@ -1,5 +1,6 @@
 
 set(logging_sources
+    LogSetup.cpp
     LogUtils.cpp)
 
 add_library(turing_log_s STATIC ${logging_sources})

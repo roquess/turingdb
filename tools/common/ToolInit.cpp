@@ -5,19 +5,13 @@
 
 #include <argparse.hpp>
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/basic_file_sink.h>
-
 #include "FileUtils.h"
 #include "BannerDisplay.h"
 #include "PerfStat.h"
+#include "LogUtils.h"
+#include "LogSetup.h"
 
 namespace {
-
-void setLogPattern(std::shared_ptr<spdlog::logger> logger) {
-    logger->set_pattern("[%Y-%m-%d %T] [%l] %v");
-}
 
 void atexitHandler() {
     std::cout << "\n";
@@ -60,7 +54,7 @@ void ToolInit::createOutputDir() {
 
     if (FileUtils::exists(_outputsDir)) {
         if (!FileUtils::isDirectory(_outputsDir)) {
-            spdlog::error("The directory {} is not a directory", _outputsDir);
+            logt::NotADirectory(_outputsDir);
             exit(EXIT_FAILURE);
             return;
         }
@@ -83,20 +77,14 @@ void ToolInit::createOutputDir() {
     
     const auto reportsPath = FileUtils::Path(_reportsDir);
     const auto logFilePath = reportsPath/(_toolName + ".log");
-
-    auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string(), true);
-    spdlog::sinks_init_list sinkList = {consoleSink, fileSink};
-    auto logger = std::make_shared<spdlog::logger>("log_sink", sinkList.begin(), sinkList.end());
-    setLogPattern(logger);
-    spdlog::set_default_logger(logger);
+    LogSetup::setupLogFileBacked(logFilePath.string());
 
     // Init PerfStat
     PerfStat::init(reportsPath/(_toolName + ".perf"));
 }
 
 void ToolInit::init(int argc, const char** argv) {
-    setLogPattern(spdlog::default_logger());
+    LogSetup::setupLogConsole();
 
     setupArgParser();
 

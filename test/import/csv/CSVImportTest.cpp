@@ -6,6 +6,9 @@
 #include "StringBuffer.h"
 #include "Writeback.h"
 #include "gtest/gtest.h"
+#include "LogSetup.h"
+
+#include <spdlog/spdlog.h>
 
 namespace db {
 
@@ -27,6 +30,8 @@ protected:
             FileUtils::removeDirectory(_outDirName);
         }
         FileUtils::createDirectory(_outDirName);
+
+        LogSetup::setupLogFileBacked(_logPath.string());
     }
 
     void TearDown() override {
@@ -125,9 +130,12 @@ TEST_F(CSVImportTest, Duplicates) {
 TEST_F(CSVImportTest, DuplicateNodeType) {
     auto [db, success] = run("duplicates_in_header.csv");
     ASSERT_FALSE(success);
+
+    LogSetup::logFlush();
+
     std::string logContent;
     ASSERT_TRUE(FileUtils::readContent(_logPath, logContent));
-    ASSERT_STREQ(logContent.data(), "[2063] Error: Encountered a duplicate value in header: 'Diagnostic'\n");
+    ASSERT_TRUE(logContent.ends_with("[error] Duplicate in CSV header Diagnostic\n"));
 }
 
 TEST_F(CSVImportTest, MissingNames) {
@@ -152,18 +160,22 @@ TEST_F(CSVImportTest, MissingEntry) {
     auto [db, success] = run("missing_entry.csv");
     ASSERT_FALSE(success);
 
+    LogSetup::logFlush();
+
     std::string logContent;
     ASSERT_TRUE(FileUtils::readContent(_logPath, logContent));
-    ASSERT_STREQ(logContent.data(), "[2066] Error: Line 2 has missing cells\n");
+    ASSERT_TRUE(logContent.ends_with("[error] Missing CSV entry at line 2\n"));
 }
 
 TEST_F(CSVImportTest, TooManyEntries) {
     auto [db, success] = run("too_many_entries.csv");
     ASSERT_FALSE(success);
 
+    LogSetup::logFlush();
+
     std::string logContent;
     ASSERT_TRUE(FileUtils::readContent(_logPath, logContent));
-    ASSERT_STREQ(logContent.data(), "[2065] Error: Line 2 has too many cells\n");
+    ASSERT_TRUE(logContent.ends_with("[error] Too many entries at line 2\n"));
 }
 
 TEST_F(CSVImportTest, PrimaryColumn) {
@@ -171,9 +183,11 @@ TEST_F(CSVImportTest, PrimaryColumn) {
     auto [db1, success1] = run("only_strings.csv", "InvalidPrimary");
     ASSERT_FALSE(success1);
 
+    LogSetup::logFlush();
+
     std::string logContent;
     ASSERT_TRUE(FileUtils::readContent(_logPath, logContent));
-    ASSERT_STREQ(logContent.data(), "[2064] Error: Specified primary column is invalid: 'InvalidPrimary'\n");
+    ASSERT_TRUE(logContent.ends_with("[error] Specified primary column InvalidPrimary is invalid\n"));
 
     auto [db2, success2] = run("only_strings.csv", "Patient");
     ASSERT_TRUE(success2);
