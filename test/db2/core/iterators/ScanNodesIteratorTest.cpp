@@ -81,7 +81,7 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
             buf.addNode({0});
         } 
 
-        ASSERT_EQ(buf.getCoreNodeCount(), ChunkConfig::CHUNK_SIZE);
+        ASSERT_EQ(buf.nodeCount(), ChunkConfig::CHUNK_SIZE);
 
         access.pushDataPart(buf);
     } 
@@ -124,7 +124,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
             buf.addNode({0});
         } 
 
-        ASSERT_EQ(buf.getCoreNodeCount(), ChunkConfig::CHUNK_SIZE);
+        ASSERT_EQ(buf.nodeCount(), ChunkConfig::CHUNK_SIZE);
 
         access.pushDataPart(buf);
     } 

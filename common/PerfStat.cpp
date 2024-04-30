@@ -55,25 +55,31 @@ void PerfStat::reportTotalMem() {
         return;
     }
 
-    const size_t memAmount = getReservedMemInMegabytes();
+    const auto [reserved, physical] = getMemInMegabytes();
     _outStream << '\n' << "Total virtual memory reserved at exit: "
-               << memAmount << "MB\n";
+               << reserved << "MB (physical: " << physical << "MB)\n";
 }
 
-size_t PerfStat::getReservedMemInMegabytes() const {
+std::pair<size_t, size_t> PerfStat::getMemInMegabytes() const {
     std::ifstream statusFile("/proc/self/status");
     bioassert(statusFile.is_open());
 
     std::string str;
+    size_t reserved = 0;
     while (statusFile >> str) {
         if (str == "VmSize:") {
             statusFile >> str;
             bioassert(!str.empty());
             const size_t memKB = std::stoull(str);
-            return memKB/1024;
+            reserved = memKB/1024;
+        } else if (str == "VmRSS:") {
+            statusFile >> str;
+            bioassert(!str.empty());
+            const size_t memKB = std::stoull(str);
+            return {reserved, memKB / 1024};
         }
     }
 
     bioassert(false);
-    return 0;
+    return {0, 0};
 }

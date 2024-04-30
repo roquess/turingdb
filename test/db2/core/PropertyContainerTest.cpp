@@ -1,7 +1,6 @@
 #include "BioLog.h"
 #include "FileUtils.h"
 #include "NodeContainer.h"
-#include "NodePropertyContainer.h"
 #include "NodePropertyView.h"
 #include "PerfStat.h"
 #include "PropertyView.h"
@@ -44,7 +43,7 @@ TEST(PropertyContainerTest, NodeProperties) {
     PerfStat::init(outDir + "/perf");
 
     NodeContainer::Builder nodesBuilder;
-    NodePropertyContainer::Builder::NodeCountsPerLabelSet nodeCounts;
+    NodePropertyContainer::Builder::NodeCountsPerLabelset nodeCounts;
     NodePropertyContainer::Builder builder;
 
     std::vector<test_nodes::TestNode> nodes;

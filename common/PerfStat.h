@@ -1,7 +1,7 @@
 #pragma once
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 #include <string>
 
 class TimerStat;
@@ -25,5 +25,5 @@ private:
     void open(const Path& path);
     void close();
     void reportTotalMem();
-    size_t getReservedMemInMegabytes() const;
+    std::pair<size_t, size_t> getMemInMegabytes() const;
 };

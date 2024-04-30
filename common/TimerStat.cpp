@@ -6,14 +6,12 @@ using Clock = std::chrono::system_clock;
 using FloatDuration = std::chrono::duration<float>;
 
 TimerStat::TimerStat()
-    : _start(Clock::now())
-{
+    : _start(Clock::now()) {
 }
 
 TimerStat::TimerStat(const std::string& msg)
     : _start(Clock::now()),
-      _msg(msg)
-{
+      _msg(msg) {
 }
 
 TimerStat::~TimerStat() {
@@ -25,10 +23,11 @@ TimerStat::~TimerStat() {
     std::ofstream& file = perfStatInst->_outStream;
     if (file.is_open()) {
         const float seconds = duration<Seconds>(_start, Clock::now());
-        const size_t memUsage = perfStatInst->getReservedMemInMegabytes();
 
-        file << '[' << _msg << "] " 
-             << "[vmem " << memUsage << " MB] "
+        const auto [reserved, physical] = perfStatInst->getMemInMegabytes();
+
+        file << '[' << _msg << "] "
+             << "[vmem=" << reserved << "MB, vrss=" << physical << "MB] "
              << std::to_string(seconds) << " s\n";
     }
 }

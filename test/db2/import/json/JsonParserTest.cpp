@@ -84,7 +84,7 @@ TEST_F(JsonParserTest, General) {
     //     // std::string_view nodeCriteria = "OL11 3HA";
     //     // PropertyType criteriaType = access.getPropertyType("postcode (String)");
     //     ////PropertyType stIDType = access.getPropertyType("stId");
-    //     ////const LabelSet apoeLabelset = access.getLabelSet({"DatabaseObject",
+    //     ////const Labelset apoeLabelset = access.getLabelset({"DatabaseObject",
     //     ////                                                  "PhysicalEntity",
     //     ////                                                  "GenomeEncodedEntity",
     //     ////                                                  "EntityWithAccessionedSequence"});
@@ -122,7 +122,7 @@ TEST_F(JsonParserTest, General) {
     //     std::string_view apoe4ReactomeID = "R-HSA-9711070";
     //     PropertyType displayNameType = access.getPropertyType("displayName (String)");
     //     PropertyType stIDType = access.getPropertyType("stId (String)");
-    //     // const LabelSet apoeLabelset = access.getLabelSet({"DatabaseObject",
+    //     // const Labelset apoeLabelset = access.getLabelset({"DatabaseObject",
     //     //                                                   "PhysicalEntity",
     //     //                                                   "GenomeEncodedEntity",
     //     //                                                   "EntityWithAccessionedSequence"});

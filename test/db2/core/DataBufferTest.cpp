@@ -58,7 +58,7 @@ TEST_F(DataBufferTest, CreateTest) {
         tempBuffer.addNodeProperty<types::Int64>(i, 0, i);
     }
 
-    const auto& nodeData = tempBuffer.getCoreNodeData();
+    const auto& nodeData = tempBuffer.getNodeData();
     ASSERT_EQ(nodeData.size(), nodeIDs.size());
     ASSERT_EQ(nodeIDs.size(), tempBuffer.getCoreNodeCount());
     ASSERT_EQ(edgeCount, tempBuffer.getCoreEdgeCount() / 2);
