@@ -84,13 +84,9 @@ void ToolInit::createOutputDir() {
     
     const auto reportsPath = FileUtils::Path(_reportsDir);
     const auto logFilePath = reportsPath/(_toolName + ".log");
+    _logFilePath = logFilePath.string();
 
-    auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string(), true);
-    spdlog::sinks_init_list sinkList = {consoleSink, fileSink};
-    auto logger = std::make_shared<spdlog::logger>("log_sink", sinkList.begin(), sinkList.end());
-    setLogPattern(logger);
-    spdlog::set_default_logger(logger);
+    setupTerminalFileLogger();
 
     // Init PerfStat
     PerfStat::init(reportsPath/(_toolName + ".perf"));
@@ -118,4 +114,21 @@ void ToolInit::init(int argc, const char** argv) {
 
 void ToolInit::printHelp() const {
     std::cout << *_argParser;
+}
+
+void ToolInit::setupTerminalFileLogger() {
+    auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(_logFilePath, true);
+    spdlog::sinks_init_list sinkList = {consoleSink, fileSink};
+    auto logger = std::make_shared<spdlog::logger>("log_sink", sinkList.begin(), sinkList.end());
+    setLogPattern(logger);
+    spdlog::set_default_logger(logger);
+}
+
+void ToolInit::setupFileOnlyLogger() {
+    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(_logFilePath, true);
+    spdlog::sinks_init_list sinkList = {fileSink};
+    auto logger = std::make_shared<spdlog::logger>("log_sink", sinkList.begin(), sinkList.end());
+    setLogPattern(logger);
+    spdlog::set_default_logger(logger);
 }

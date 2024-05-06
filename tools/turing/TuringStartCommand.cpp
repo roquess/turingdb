@@ -1,7 +1,8 @@
 #include "TuringStartCommand.h"
 
 #include <spdlog/spdlog.h>
-#include <boost/process.hpp>
+#include <boost/process/group.hpp>
+#include <boost/process/child.hpp>
 
 #include "ToolInit.h"
 #include "Command.h"
@@ -32,15 +33,15 @@ void TuringStartCommand::run() {
     Command cmd("turing-app");
     cmd.setWorkingDir(_toolInit.getOutputsDir());
     cmd.setGenerateScript(false);
-    cmd.setWriteOnStdout(true);
+    cmd.setWriteOnStdout(false);
 
-    /*
-    auto child = cmd.runAsync();
+    ProcessGroup group(new boost::process::group());
+    auto child = cmd.runAsync(group);
     if (!child) {
         spdlog::error("Can not start Turing server, please look at logs of the turing-app command.");
         return;
     }
 
     child->detach();
-    */
+    group->detach();
 }

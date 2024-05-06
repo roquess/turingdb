@@ -10,6 +10,7 @@
 #include "BannerDisplay.h"
 
 #include "TuringAppServer.h"
+#include "Demonology.h"
 
 using namespace app;
 
@@ -44,6 +45,12 @@ int main(int argc, const char** argv) {
 
     toolInit.init(argc, argv);
 
+    // Demonize
+    Demonology::demonize();
+    toolInit.setupFileOnlyLogger();
+    spdlog::default_logger()->flush();
+
+    // Setup app server
     server = std::make_unique<TuringAppServer>(toolInit.getOutputsDir());
     server->setPrototypeMode(isPrototypeMode);
     server->setDevMode(isDevMode);
@@ -52,6 +59,7 @@ int main(int argc, const char** argv) {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
 
+    // Run server
     server->run();
 
     // Wait for termination

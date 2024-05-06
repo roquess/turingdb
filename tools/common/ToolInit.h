@@ -27,12 +27,16 @@ public:
 
     argparse::ArgumentParser& getArgParser() { return *_argParser; }
 
+    void setupTerminalFileLogger();
+    void setupFileOnlyLogger();
+
 private:
     const std::string _toolName;
     std::string _outputsDir;
     std::string _reportsDir;
     std::unique_ptr<argparse::ArgumentParser> _argParser;
     bool _outputDirEnabled {true};
+    std::string _logFilePath;
 
     void setupArgParser();
     void parseArguments(int argc, const char** argv);
