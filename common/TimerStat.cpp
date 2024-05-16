@@ -6,12 +6,14 @@ using Clock = std::chrono::system_clock;
 using FloatDuration = std::chrono::duration<float>;
 
 TimerStat::TimerStat()
-    : _start(Clock::now()) {
+    : _start(Clock::now())
+{
 }
 
 TimerStat::TimerStat(const std::string& msg)
     : _start(Clock::now()),
-      _msg(msg) {
+      _msg(msg)
+{
 }
 
 TimerStat::~TimerStat() {
