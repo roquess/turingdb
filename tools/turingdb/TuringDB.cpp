@@ -19,7 +19,7 @@ int main(int argc, const char** argv) {
     Demonology::demonize();
 
     // Write PID file
-    const auto pidFilePath = toolInit.getOutputsDirPath()/"pid";
+    const auto pidFilePath = toolInit.getOutputsDirPath()/ProcessUtils::getPIDFileName();
     if (!ProcessUtils::writePIDFile(pidFilePath)) {
         spdlog::error("Failed to write PID file {}", pidFilePath.string());
         exit(EXIT_FAILURE);

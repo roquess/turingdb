@@ -9,6 +9,10 @@
 
 #include "StringToNumber.h"
 
+std::string ProcessUtils::getPIDFileName() {
+    return "pid";
+}
+
 bool ProcessUtils::killAllChildren(pid_t pid, int signal) {
     std::vector<pid_t> children;
     if (!getAllChildren(pid, children)) {

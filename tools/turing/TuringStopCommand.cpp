@@ -36,6 +36,11 @@ void stopTool(const FileUtils::Path& pidFile) {
                       signum, pid);
         return;
     }
+
+    if (!FileUtils::removeFile(pidFile)) {
+        spdlog::error("Failed to remove process ID file {}", pidFile.string());
+        return;
+    }
 }
 
 }
@@ -71,9 +76,9 @@ void TuringStopCommand::run() {
     }
 
     const auto turingAppDir = outDir/TuringToolConfig::TURING_APP_DIR_NAME;
-    const auto turingAppPidFile = turingAppDir/TuringToolConfig::TURING_PID_FILE;
+    const auto turingAppPidFile = turingAppDir/ProcessUtils::getPIDFileName();
     const auto turingDBDir = outDir/TuringToolConfig::TURING_DB_DIR_NAME;
-    const auto turingDBPidFile = turingDBDir/TuringToolConfig::TURING_PID_FILE;
+    const auto turingDBPidFile = turingDBDir/ProcessUtils::getPIDFileName();
     stopTool(turingAppPidFile);
     stopTool(turingDBPidFile);
 }
