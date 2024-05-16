@@ -1,27 +1,55 @@
 #include <gtest/gtest.h>
 #include <memory>
 
-#include "ScanNodesProcessor.h"
-#include "Pipeline.h"
-#include "PipelineExecutor.h"
 #include "DebugDumpProcessor.h"
 #include "DiscardProcessor.h"
+#include "Pipeline.h"
+#include "PipelineExecutor.h"
+#include "ScanNodesProcessor.h"
+#include "FileUtils.h"
+#include "PerfStat.h"
+#include "BioLog.h"
 
+#include "ColumnNodes.h"
 #include "DB.h"
 #include "DBAccess.h"
-#include "TestUtils.h"
 #include "Stream.h"
-#include "ColumnNodes.h"
+#include "TestUtils.h"
 
 using namespace db;
 
 class ScanNodesProcessorTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        const testing::TestInfo* const testInfo =
+            testing::UnitTest::GetInstance()->current_test_info();
+
+        _outDir = testInfo->test_suite_name();
+        _outDir += "_";
+        _outDir += testInfo->name();
+        _outDir += ".out";
+        _logPath = FileUtils::Path(_outDir) / "log";
+        _perfPath = FileUtils::Path(_outDir) / "perf";
+
+        if (FileUtils::exists(_outDir)) {
+            FileUtils::removeDirectory(_outDir);
+        }
+        FileUtils::createDirectory(_outDir);
+
+        Log::BioLog::init();
+        Log::BioLog::openFile(_logPath.string());
+        PerfStat::init(_perfPath);
     }
 
     void TearDown() override {
+        Log::BioLog::destroy();
+        PerfStat::destroy();
     }
+
+private:
+    std::string _outDir;
+    FileUtils::Path _logPath;
+    FileUtils::Path _perfPath;
 };
 
 TEST_F(ScanNodesProcessorTest, emptyDB) {
@@ -30,7 +58,7 @@ TEST_F(ScanNodesProcessorTest, emptyDB) {
 
     Pipeline pipeline;
 
-    auto scanNodes = pipeline.addProcessor<ScanNodesProcessor>(db.get()); 
+    auto scanNodes = pipeline.addProcessor<ScanNodesProcessor>(db.get());
     auto scanNodesOut = scanNodes->createOut(&scanNodes->writeNodeID);
 
     auto debugDump = pipeline.addProcessor<DebugDumpProcessor>();
@@ -48,7 +76,7 @@ TEST_F(ScanNodesProcessorTest, millionNodes) {
 
     Pipeline pipeline;
 
-    auto scanNodes = pipeline.addProcessor<ScanNodesProcessor>(db.get()); 
+    auto scanNodes = pipeline.addProcessor<ScanNodesProcessor>(db.get());
     auto scanNodesOut = scanNodes->createOut(&scanNodes->writeNodeID);
 
     auto discard = pipeline.addProcessor<DiscardProcessor>();
@@ -62,7 +90,7 @@ TEST_F(ScanNodesProcessorTest, millionNodes) {
     EntityID expectedID = 0;
     while (!pipeExec.isFinished()) {
         pipeExec.executeStep();
-        
+
         for (EntityID id : nodes) {
             ASSERT_EQ(id, expectedID);
             expectedID++;

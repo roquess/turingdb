@@ -19,5 +19,6 @@ concept DurationType = std::is_same_v<T, Seconds>
 
 template <DurationType T>
 float duration(TimePoint t0, TimePoint t1) {
-    return (float)T(t1 - t0).count();
+    const T duration = t1 - t0;
+    return duration.count();
 }

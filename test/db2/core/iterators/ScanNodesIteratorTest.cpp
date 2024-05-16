@@ -3,23 +3,45 @@
 
 #include "ScanNodesIterator.h"
 
+#include "BioLog.h"
+#include "ChunkConfig.h"
+#include "ColumnNodes.h"
 #include "DB.h"
 #include "DBAccess.h"
-#include "Reader.h"
-#include "DataPart.h"
 #include "DataBuffer.h"
-#include "ColumnNodes.h"
-#include "ChunkConfig.h"
+#include "DataPart.h"
+#include "FileUtils.h"
+#include "Reader.h"
 
 using namespace db;
 
 class ScanNodesIteratorTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        const testing::TestInfo* const testInfo =
+            testing::UnitTest::GetInstance()->current_test_info();
+
+        _outDir = testInfo->test_suite_name();
+        _outDir += "_";
+        _outDir += testInfo->name();
+        _outDir += ".out";
+        _logPath = FileUtils::Path(_outDir) / "log";
+
+        if (FileUtils::exists(_outDir)) {
+            FileUtils::removeDirectory(_outDir);
+        }
+        FileUtils::createDirectory(_outDir);
+
+        Log::BioLog::init();
+        Log::BioLog::openFile(_logPath.string());
     }
 
     void TearDown() override {
+        Log::BioLog::destroy();
     }
+
+    std::string _outDir;
+    FileUtils::Path _logPath;
 };
 
 TEST_F(ScanNodesIteratorTest, emptyDB) {
@@ -27,7 +49,7 @@ TEST_F(ScanNodesIteratorTest, emptyDB) {
     auto access = db->access();
     auto reader = access.getReader();
 
-    auto it = reader.getScanNodesIterator();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
 
     ColumnNodes colNodes;
@@ -42,10 +64,10 @@ TEST_F(ScanNodesIteratorTest, oneEmptyPart) {
     {
         DataBuffer buf = access.newDataBuffer();
         access.pushDataPart(buf);
-    } 
+    }
 
     auto reader = access.getReader();
-    auto it = reader.getScanNodesIterator();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
 
     ColumnNodes colNodes;
@@ -60,10 +82,10 @@ TEST_F(ScanNodesIteratorTest, threeEmptyParts) {
     for (auto i = 0; i < 3; i++) {
         DataBuffer buf = access.newDataBuffer();
         access.pushDataPart(buf);
-    } 
+    }
 
     auto reader = access.getReader();
-    auto it = reader.getScanNodesIterator();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
 
     ColumnNodes colNodes;
@@ -75,19 +97,22 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
     auto db = std::make_unique<DB>();
     auto access = db->uniqueAccess();
 
+    Labelset labelset = Labelset::fromList({0});
+    LabelsetID labelsetID = access.getLabelsetID(labelset);
+
     {
         DataBuffer buf = access.newDataBuffer();
         for (size_t i = 0; i < ChunkConfig::CHUNK_SIZE; i++) {
-            buf.addNode({0});
-        } 
+            buf.addNode(labelsetID);
+        }
 
         ASSERT_EQ(buf.nodeCount(), ChunkConfig::CHUNK_SIZE);
 
         access.pushDataPart(buf);
-    } 
+    }
 
     auto reader = access.getReader();
-    auto it = reader.getScanNodesIterator();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(it.isValid());
 
     // Read node by node
@@ -101,7 +126,7 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
 
     // Read nodes by chunks
     ColumnNodes colNodes;
-    it = reader.getScanNodesIterator();
+    it = reader.scanNodes().begin();
     it.fill(&colNodes, ChunkConfig::CHUNK_SIZE);
     ASSERT_TRUE(!colNodes.empty());
     ASSERT_EQ(colNodes.size(), ChunkConfig::CHUNK_SIZE);
@@ -118,19 +143,22 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
     auto db = std::make_unique<DB>();
     auto access = db->uniqueAccess();
 
+    Labelset labelset = Labelset::fromList({0});
+    LabelsetID labelsetID = access.getLabelsetID(labelset);
+
     for (auto i = 0; i < 8; i++) {
         DataBuffer buf = access.newDataBuffer();
-        for (size_t i = 0; i < ChunkConfig::CHUNK_SIZE; i++) {
-            buf.addNode({0});
-        } 
+        for (size_t j = 0; j < ChunkConfig::CHUNK_SIZE; j++) {
+            buf.addNode(labelsetID);
+        }
 
         ASSERT_EQ(buf.nodeCount(), ChunkConfig::CHUNK_SIZE);
 
         access.pushDataPart(buf);
-    } 
+    }
 
     auto reader = access.getReader();
-    auto it = reader.getScanNodesIterator();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(it.isValid());
 
     // Read node by node
@@ -143,7 +171,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
 
     // Read nodes by chunks
     ColumnNodes colNodes;
-    it = reader.getScanNodesIterator();
+    it = reader.scanNodes().begin();
 
     expectedID = 0;
     while (it.isValid()) {
@@ -161,28 +189,31 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
 }
 
 TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
-    const size_t nodeCount = 1.35*ChunkConfig::CHUNK_SIZE;
+    const size_t nodeCount = 1.35 * ChunkConfig::CHUNK_SIZE;
 
     auto db = std::make_unique<DB>();
     auto access = db->uniqueAccess();
 
+    Labelset labelset = Labelset::fromList({0});
+    LabelsetID labelsetID = access.getLabelsetID(labelset);
+
     {
         DataBuffer buf = access.newDataBuffer();
         for (size_t i = 0; i < nodeCount; i++) {
-            buf.addNode({0});
-        } 
+            buf.addNode(labelsetID);
+        }
 
         access.pushDataPart(buf);
-    } 
+    }
 
     auto reader = access.getReader();
-    auto it = reader.getScanNodesIterator();
+    auto it = reader.scanNodes().begin();
 
     ColumnNodes colNodes;
     colNodes.reserve(ChunkConfig::CHUNK_SIZE);
 
     // Read nodes by chunks
-    it = reader.getScanNodesIterator();
+    it = reader.scanNodes().begin();
     EntityID expectedID = 0;
     while (it.isValid()) {
         it.fill(&colNodes, ChunkConfig::CHUNK_SIZE);

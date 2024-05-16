@@ -5,10 +5,10 @@
 #include "MsgCommon.h"
 #include "MsgImport.h"
 #include "Neo4jImporter.h"
+#include "Neo4j/ParserConfig.h"
 #include "PerfStat.h"
 #include "Time.h"
 #include "ToolInit.h"
-#include <iostream>
 
 using namespace Log;
 using namespace db;
@@ -32,9 +32,6 @@ struct ImportData {
     std::string username = "neo4j";
     std::string password = "turing";
 };
-
-static constexpr size_t nodeCountPerQuery = 400000;
-static constexpr size_t edgeCountPerQuery = 1000000;
 
 int main(int argc, const char** argv) {
     ToolInit toolInit("bioimport2");
@@ -180,8 +177,8 @@ int main(int argc, const char** argv) {
 
                 if (!Neo4jImporter::importDumpFile(jobSystem,
                                                    db.get(),
-                                                   nodeCountPerQuery,
-                                                   edgeCountPerQuery,
+                                                   nodeCountLimit,
+                                                   edgeCountLimit,
                                                    args)) {
                     BioLog::log(msg::ERROR_NEO4J_IMPORT());
                     return 1;
@@ -200,8 +197,8 @@ int main(int argc, const char** argv) {
 
                 if (!Neo4jImporter::importUrl(jobSystem,
                                               db.get(),
-                                              nodeCountPerQuery,
-                                              edgeCountPerQuery,
+                                              nodeCountLimit,
+                                              edgeCountLimit,
                                               args)) {
                     BioLog::log(msg::ERROR_NEO4J_IMPORT());
                     return 1;
@@ -215,8 +212,8 @@ int main(int argc, const char** argv) {
 
                 if (!Neo4jImporter::importJsonDir(jobSystem,
                                                        db.get(),
-                                                       nodeCountPerQuery,
-                                                       edgeCountPerQuery,
+                                                       nodeCountLimit,
+                                                       edgeCountLimit,
                                                        args)) {
                     BioLog::log(msg::ERROR_NEO4J_IMPORT());
                     return 1;

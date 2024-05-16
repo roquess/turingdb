@@ -6,14 +6,9 @@
 #include "DataBuffer.h"
 #include "FileUtils.h"
 #include "Reader.h"
-#include "iterators/GetCoreInEdgesIterator.h"
-#include "iterators/GetCoreOutEdgesIterator.h"
-#include "iterators/GetPatchInEdgesIterator.h"
-#include "iterators/GetPatchOutEdgesIterator.h"
-#include "iterators/ScanCoreEdgesIterator.h"
+#include "iterators/ScanEdgesIterator.h"
 #include "iterators/ScanNodesByLabelIterator.h"
 #include "iterators/ScanNodesIterator.h"
-#include "iterators/ScanPatchEdgesIterator.h"
 
 using namespace db;
 
@@ -52,23 +47,30 @@ protected:
         DataBuffer& tempData2 = bufferManager.newBuffer(2, 3);
         DataBuffer& tempData3 = bufferManager.newBuffer(4, 4);
 
+        const Labelset l0 = Labelset::fromList({0});
+        const Labelset l1 = Labelset::fromList({1});
+        const Labelset l01 = Labelset::fromList({0, 1});
+        const LabelsetID l0ID = access.getLabelsetID(l0);
+        const LabelsetID l1ID = access.getLabelsetID(l1);
+        const LabelsetID l01ID = access.getLabelsetID(l01);
+
         {
             // NODE 0 (temp ID: 0)
-            const EntityID tmpID = tempData1.addNode(Labelset {0});
+            const EntityID tmpID = tempData1.addNode(l0ID);
             tempData1.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
         {
             // NODE 1 (temp ID: 1)
-            const EntityID tmpID = tempData1.addNode(Labelset {0});
+            const EntityID tmpID = tempData1.addNode(l0ID);
             tempData1.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
         {
             // NODE 2 (temp ID: 2)
-            const EntityID tmpID = tempData1.addNode(Labelset {1});
+            const EntityID tmpID = tempData1.addNode(l1ID);
             tempData1.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
@@ -78,14 +80,14 @@ protected:
 
         {
             // NODE 4 (temp ID: 3))
-            const EntityID tmpID = tempData2.addNode(Labelset {0, 1});
+            const EntityID tmpID = tempData2.addNode(l01ID);
             tempData2.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
         {
             // NODE 3 (temp ID: 4)
-            const EntityID tmpID = tempData2.addNode(Labelset {1});
+            const EntityID tmpID = tempData2.addNode(l1ID);
             tempData2.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
@@ -96,28 +98,28 @@ protected:
 
         {
             // NODE 8 (temp ID: 5)
-            const EntityID tmpID = tempData3.addNode(Labelset {0, 1});
+            const EntityID tmpID = tempData3.addNode(l01ID);
             tempData3.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
         {
             // NODE 5 (temp ID: 6)
-            const EntityID tmpID = tempData3.addNode(Labelset {0});
+            const EntityID tmpID = tempData3.addNode(l0ID);
             tempData3.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
         {
             // NODE 6 (temp ID: 7)
-            const EntityID tmpID = tempData3.addNode(Labelset {1});
+            const EntityID tmpID = tempData3.addNode(l1ID);
             tempData3.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
         {
             // NODE 7 (temp ID: 8)
-            const EntityID tmpID = tempData3.addNode(Labelset {1});
+            const EntityID tmpID = tempData3.addNode(l1ID);
             tempData3.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
@@ -141,7 +143,7 @@ protected:
     FileUtils::Path _logPath;
 };
 
-TEST_F(ConcurrentWriterTest, ScanCoreEdgesIteratorTest) {
+TEST_F(ConcurrentWriterTest, ScanEdgesIteratorTest) {
     auto access = _db->access();
     auto reader = access.getReader();
     std::vector<TestEdgeRecord> compareSet {
@@ -170,8 +172,7 @@ TEST_F(ConcurrentWriterTest, ScanCoreEdgesIteratorTest) {
 TEST_F(ConcurrentWriterTest, ScanNodesIteratorTest) {
     auto access = _db->access();
     auto reader = access.getReader();
-    std::vector<EntityID> compareSet {
-        0, 1, 2, 3, 4, 5, 6, 7, 8};
+    std::vector<EntityID> compareSet {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
     auto it = compareSet.begin();
     size_t count = 0;
@@ -186,12 +187,14 @@ TEST_F(ConcurrentWriterTest, ScanNodesIteratorTest) {
 TEST_F(ConcurrentWriterTest, ScanNodesByLabelIteratorTest) {
     auto access = _db->access();
     auto reader = access.getReader();
-    std::vector<EntityID> compareSet {
-        3, 4, 5, 6, 7, 8};
+    std::vector<EntityID> compareSet {7, 8, 3, 4, 5, 6};
 
     auto it = compareSet.begin();
     size_t count = 0;
-    for (const EntityID id : reader.scanNodesByLabel({1})) {
+    const Labelset labelset = Labelset::fromList({1});
+    const LabelsetID labelsetID = access.getLabelsetID(labelset);
+
+    for (const EntityID id : reader.scanNodesByLabel(labelsetID)) {
         ASSERT_EQ(it->getValue(), id.getValue());
         count++;
         it++;

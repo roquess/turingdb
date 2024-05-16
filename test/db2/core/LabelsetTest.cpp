@@ -27,14 +27,14 @@ TEST(LabelsetTest, Labelset) {
     ASSERT_TRUE(set.hasLabel(101));
     ASSERT_FALSE(set.hasLabel(4));
     ASSERT_FALSE(set.hasLabel(51));
-    ASSERT_TRUE(set.hasAtLeastLabels({5}));
-    ASSERT_TRUE(set.hasAtLeastLabels({0, 5}));
-    ASSERT_TRUE(set.hasAtLeastLabels({0, 50}));
-    ASSERT_TRUE(set.hasAtLeastLabels({0, 5, 50}));
-    ASSERT_TRUE(set.hasAtLeastLabels({0, 101, 121}));
-    ASSERT_TRUE(set.hasAtLeastLabels({0, 2, 101, 30, 2}));
-    ASSERT_TRUE(set.hasAtLeastLabels({0, 2, 101, 30, 2, 5, 50, 121}));
-    ASSERT_FALSE(set.hasAtLeastLabels({0, 1}));
+    ASSERT_TRUE(set.hasAtLeastLabels (Labelset::fromList({5})));
+    ASSERT_TRUE(set.hasAtLeastLabels (Labelset::fromList({0, 5})));
+    ASSERT_TRUE(set.hasAtLeastLabels (Labelset::fromList({0, 50})));
+    ASSERT_TRUE(set.hasAtLeastLabels (Labelset::fromList({0, 5, 50})));
+    ASSERT_TRUE(set.hasAtLeastLabels (Labelset::fromList({0, 101, 121})));
+    ASSERT_TRUE(set.hasAtLeastLabels (Labelset::fromList({0, 2, 101, 30, 2})));
+    ASSERT_TRUE(set.hasAtLeastLabels (Labelset::fromList({0, 2, 101, 30, 2, 5, 50, 121})));
+    ASSERT_FALSE(set.hasAtLeastLabels(Labelset::fromList({0, 1})));
 
     std::vector<LabelID> labelIDs;
     set.decompose(labelIDs);
