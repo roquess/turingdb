@@ -108,5 +108,5 @@ void ToolInit::init(int argc, const char** argv) {
 }
 
 void ToolInit::printHelp() const {
-    std::cout << *_argParser;
+    std::cout << '\n' <<  *_argParser;
 }

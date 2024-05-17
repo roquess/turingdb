@@ -63,22 +63,57 @@ int main(int argc, const char** argv) {
     std::vector<ImportData> importData;
 
     auto& argParser = toolInit.getArgParser();
+    argParser.set_usage_max_line_width(80);
 
     argParser.add_argument("-db-path")
              .help("Exports the turing database to the specified folder")
              .nargs(1)
+             .metavar("dir")
              .store_into(turingdbPath);
 
     argParser.add_argument("-neo4j")
              .help("Imports a .dump file (default network name: \"my_file\")")
              .append()
              .nargs(1)
+             .metavar("db.dump")
              .action([&](const std::string& value){
                 if (!FileUtils::exists(value)) {
                     logt::DirectoryDoesNotExist(value);
                     exit(EXIT_FAILURE);
                 }
             });
+
+    argParser.add_argument("-gml")
+             .help("Imports a .gml file (default network name: \"my_file\")")
+             .nargs(1)
+             .append()
+             .metavar("net.gml")
+             .action([&](const std::string& value){
+                if (!FileUtils::exists(value)) {
+                    logt::FileNotFound(value);
+                    exit(EXIT_FAILURE);
+                }
+                importData.emplace_back(ImportData {
+                    .type = ImportType::GML,
+                    .path = value,
+                });
+             });
+
+    argParser.add_argument("-csv")
+             .help("Imports a .csv file (default network name: \"my_file\")")
+             .nargs(1)
+             .append()
+             .metavar("data.csv")
+             .action([&](const std::string& value){
+                if (!FileUtils::exists(value)) {
+                    logt::FileNotFound(value);
+                    exit(EXIT_FAILURE);
+                }
+                importData.emplace_back(ImportData {
+                    .type = ImportType::CSV,
+                    .path = value,
+                });
+             });
 
     argParser.add_argument("-neo4j-url")
              .help("Imports a neo4j database from an existing neo4j instance")
@@ -92,6 +127,7 @@ int main(int argc, const char** argv) {
 
     argParser.add_argument("-port")
              .help("Port for the query. Must follow a neo4j-url option")
+             .metavar("num")
              .action([&](const std::string& value){
                 if (importData.empty()) {
                     neo4jURLNotProvided();
@@ -103,6 +139,7 @@ int main(int argc, const char** argv) {
 
     argParser.add_argument("-user")
              .help("Username for the query. Must follow a neo4j-url option")
+             .metavar("username")
              .action([&](const std::string& value){
                 if (importData.empty()) {
                     exit(EXIT_FAILURE);
@@ -113,6 +150,7 @@ int main(int argc, const char** argv) {
 
     argParser.add_argument("-password")
              .help("Password for the query. Must follow a neo4j-url option")
+             .metavar("pass")
              .action([&](const std::string& value){
                 if (importData.empty()) {
                     neo4jURLNotProvided();
@@ -138,6 +176,7 @@ int main(int argc, const char** argv) {
              .help("Imports json files from a json/ directory (default network name: \"my_json_dir\")")
              .nargs(1)
              .append()
+             .metavar("jsondir")
              .action([&](const std::string& value){
                 if (!FileUtils::exists(value)) {
                     logt::DirectoryDoesNotExist(value);
@@ -149,40 +188,11 @@ int main(int argc, const char** argv) {
                 });
              });
 
-    argParser.add_argument("-gml")
-             .help("Imports a .gml file (default network name: \"my_file\")")
-             .nargs(1)
-             .append()
-             .action([&](const std::string& value){
-                if (!FileUtils::exists(value)) {
-                    logt::FileNotFound(value);
-                    exit(EXIT_FAILURE);
-                }
-                importData.emplace_back(ImportData {
-                    .type = ImportType::GML,
-                    .path = value,
-                });
-             });
-
-    argParser.add_argument("-csv")
-             .help("Imports a .csv file (default network name: \"my_file\")")
-             .nargs(1)
-             .append()
-             .action([&](const std::string& value){
-                if (!FileUtils::exists(value)) {
-                    logt::FileNotFound(value);
-                    exit(EXIT_FAILURE);
-                }
-                importData.emplace_back(ImportData {
-                    .type = ImportType::CSV,
-                    .path = value,
-                });
-             });
-
     argParser.add_argument("-primary-key")
              .help("Sets the primary column of a .csv. Must follow a '-csv' option")
              .nargs(1)
              .append()
+             .metavar("col")
              .action([&](const std::string& value){
                 if (importData.size() == 0) {
                     spdlog::error("Primary key can only be applied after existing options");
@@ -203,6 +213,7 @@ int main(int argc, const char** argv) {
              .help("Sets the name of network. Must follow an import option (-neo4, -gml, ...) ")
              .nargs(1)
              .append()
+             .metavar("net_name")
              .action([&](const std::string& value){
                 if (importData.size() == 0) {
                     spdlog::error("A network can only be specified after existing options");
@@ -222,13 +233,15 @@ int main(int argc, const char** argv) {
     argParser.add_argument("-db")
              .help("Appends the imported data to the existing database")
              .nargs(1)
+             .metavar("dbname")
              .store_into(existingDbPath);
 
     toolInit.init(argc, argv);
 
     const bool noPathsGiven = importData.empty();
     if (noPathsGiven) {
-        spdlog::error("No import option given");
+        spdlog::error("Please give an import option.");
+        toolInit.printHelp();
         return EXIT_FAILURE;
     }
 
