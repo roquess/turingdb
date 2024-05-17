@@ -4,22 +4,17 @@
 #include <stdlib.h>
 
 #include <argparse.hpp>
-
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/basic_file_sink.h>
 
 #include "FileUtils.h"
 #include "BannerDisplay.h"
 #include "PerfStat.h"
+#include "LogSetup.h"
 
 namespace {
 
-void setLogPattern(std::shared_ptr<spdlog::logger> logger) {
-    logger->set_pattern("[%Y-%m-%d %T] [%l] %v");
-}
-
 void atexitHandler() {
+    LogSetup::logFlush();
     std::cout << "\n";
 }
 
@@ -86,14 +81,14 @@ void ToolInit::createOutputDir() {
     const auto logFilePath = reportsPath/(_toolName + ".log");
     _logFilePath = logFilePath.string();
 
-    setupLogger();
+    LogSetup::setupLogFileBacked(_logFilePath);
 
     // Init PerfStat
     PerfStat::init(reportsPath/(_toolName + ".perf"));
 }
 
 void ToolInit::init(int argc, const char** argv) {
-    setLogPattern(spdlog::default_logger());
+    LogSetup::setupLogConsole();
 
     setupArgParser();
 
@@ -114,14 +109,4 @@ void ToolInit::init(int argc, const char** argv) {
 
 void ToolInit::printHelp() const {
     std::cout << *_argParser;
-}
-
-void ToolInit::setupLogger() {
-    auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(_logFilePath, true);
-    spdlog::sinks_init_list sinkList = {consoleSink, fileSink};
-    auto logger = std::make_shared<spdlog::logger>("log_sink", sinkList.begin(), sinkList.end());
-    setLogPattern(logger);
-    spdlog::set_default_logger(logger);
-    logger->flush_on(spdlog::level::info);
 }
