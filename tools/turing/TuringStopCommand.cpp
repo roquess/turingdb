@@ -12,6 +12,10 @@
 namespace {
 
 void stopTool(const FileUtils::Path& pidFile) {
+    if (!FileUtils::exists(pidFile)) {
+        return;
+    }
+
     std::string pidStr;
     if (!FileUtils::readContent(pidFile, pidStr)) {
         spdlog::error("Failed to read process ID file {}", pidFile.string());
@@ -41,6 +45,8 @@ void stopTool(const FileUtils::Path& pidFile) {
         spdlog::error("Failed to remove process ID file {}", pidFile.string());
         return;
     }
+
+    spdlog::info("Stopping {}", pidFile.string());
 }
 
 }
@@ -79,6 +85,10 @@ void TuringStopCommand::run() {
     const auto turingAppPidFile = turingAppDir/ProcessUtils::getPIDFileName();
     const auto turingDBDir = outDir/TuringToolConfig::TURING_DB_DIR_NAME;
     const auto turingDBPidFile = turingDBDir/ProcessUtils::getPIDFileName();
+    const auto bioServerDir = outDir/TuringToolConfig::BIOSERVER_DIR_NAME;
+    const auto bioserverPidFile = bioServerDir/ProcessUtils::getPIDFileName();
+
     stopTool(turingAppPidFile);
     stopTool(turingDBPidFile);
+    stopTool(bioserverPidFile);
 }

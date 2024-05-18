@@ -4,10 +4,10 @@
 
 #include <argparse.hpp>
 
-class TuringStartCommand : public ToolCommand {
+class TuringStart2Command : public ToolCommand {
 public:
-    TuringStartCommand(ToolInit& toolInit);
-    ~TuringStartCommand();
+    TuringStart2Command(ToolInit& toolInit);
+    ~TuringStart2Command();
 
     void setup() override;
     bool isActive() override;
@@ -15,6 +15,4 @@ public:
 
 private:
     argparse::ArgumentParser _startCommand;
-
-    std::string getDBName();
 };

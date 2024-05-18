@@ -4,6 +4,7 @@ set(turing_sources
         TuringToolConfig.cpp
         TuringStartCommand.cpp
         TuringStopCommand.cpp
+        TuringStart2Command.cpp
         Turing.cpp)
 
 add_executable(turing ${turing_sources})

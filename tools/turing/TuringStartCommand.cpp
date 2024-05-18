@@ -6,6 +6,7 @@
 #include "ToolInit.h"
 #include "Command.h"
 #include "ProcessUtils.h"
+#include "StringToNumber.h"
 
 namespace {
 
@@ -13,9 +14,17 @@ bool checkToolRunning(const std::string& toolName, const FileUtils::Path& pidFil
     if (FileUtils::exists(pidFile)) {
         std::string pidStr;
         if (FileUtils::readContent(pidFile, pidStr)) {
-            spdlog::error("{} is already running in process {}", toolName, pidStr);
+            bool convertError = false;
+            const pid_t pid = StringToNumber<pid_t>(pidStr, convertError);
+            if (convertError) {
+                return false;
+            }
+
+            if (ProcessUtils::isProcessRunning(pid)) {
+                spdlog::error("{} is already running in process {}", toolName, pidStr);
+                return true;
+            }
         }
-        return true;
     }
 
     return false;
@@ -36,7 +45,10 @@ void TuringStartCommand::setup() {
     auto& argParser = _toolInit.getArgParser();
 
     _startCommand.add_description("Start Turing platform");
-
+    _startCommand.add_argument("-db")
+                 .metavar("dbname")
+                 .default_value("reactome")
+                 .nargs(1);
     argParser.add_subparser(_startCommand);
 }
 
@@ -47,16 +59,20 @@ bool TuringStartCommand::isActive() {
 
 void TuringStartCommand::run() {
     const auto turingAppDir = _toolInit.getOutputsDirPath()/TuringToolConfig::TURING_APP_DIR_NAME;
-    const auto turingDBDir = _toolInit.getOutputsDirPath()/TuringToolConfig::TURING_DB_DIR_NAME;
+    const auto bioServerDir = _toolInit.getOutputsDirPath()/TuringToolConfig::BIOSERVER_DIR_NAME;
 
-    bool running = false;
-    running = checkToolRunning("turing-app", turingAppDir/ProcessUtils::getPIDFileName());
-    running |= checkToolRunning("turingdb", turingDBDir/ProcessUtils::getPIDFileName());
-    if (running) {
+    if (checkToolRunning("turing-app", turingAppDir/ProcessUtils::getPIDFileName())) {
+        spdlog::info("Turing application server turing-app is already running");
+        return;
+    }
+    
+    if (checkToolRunning("bioserver", bioServerDir/ProcessUtils::getPIDFileName())) {
+        spdlog::info("Turing bioserver is already running");
         return;
     }
 
     _toolInit.createOutputDir();
+    const auto dbName = getDBName();
 
     Command turingApp("turing-app");
     turingApp.addOption("-o", turingAppDir.string());
@@ -77,13 +93,14 @@ void TuringStartCommand::run() {
         return;
     }
 
-    Command db("turingdb");
-    db.addOption("-o", turingDBDir.string());
+    Command db("bioserver");
+    db.addOption("-o", bioServerDir.string());
+    db.addOption("-db", dbName);
     db.setWorkingDir(_toolInit.getOutputsDir());
     db.setGenerateScript(true);
     db.setWriteLogFile(false);
-    db.setScriptPath(_toolInit.getOutputsDirPath()/"turingdb.sh");
-    db.setLogFile(_toolInit.getOutputsDirPath()/"turingdb-launch.log");
+    db.setScriptPath(_toolInit.getOutputsDirPath()/"bioserver.sh");
+    db.setLogFile(_toolInit.getOutputsDirPath()/"bioserver-launch.log");
 
     if (!db.run()) {
         spdlog::error("Failed to start Turing database server");
@@ -92,7 +109,14 @@ void TuringStartCommand::run() {
 
     const int dbExitCode = db.getReturnCode();
     if (dbExitCode != 0) {
-        spdlog::error("Failed to start turingdb: turingdb command terminated with exit code {}", dbExitCode);
+        spdlog::error("Failed to start bioserver: bioserver command terminated with exit code {}", dbExitCode);
         return;
     }
+}
+
+std::string TuringStartCommand::getDBName() {
+    auto& argParser = _toolInit.getArgParser();
+    auto& startCommand = argParser.at<argparse::ArgumentParser>("start");
+    const std::string& dbName = startCommand.get<std::string>("-db");
+    return dbName;
 }
