@@ -7,7 +7,6 @@
 #include "DBServer.h"
 #include "DBServerConfig.h"
 #include "Demonology.h"
-#include "ProcessUtils.h"
 
 void signalHandler(int signum) {
     spdlog::info("Server received signal {}, terminating", signum);
@@ -31,13 +30,6 @@ int main(int argc, const char** argv) {
 
     // Demonize
     Demonology::demonize();
-
-    // Write PID file
-    const auto pidFilePath = toolInit.getOutputsDirPath()/ProcessUtils::getPIDFileName();
-    if (!ProcessUtils::writePIDFile(pidFilePath)) {
-        spdlog::error("Failed to write PID file {}", pidFilePath.string());
-        exit(EXIT_FAILURE);
-    }
 
     // Install signal handler to handle ctrl+C
     signal(SIGINT, signalHandler);

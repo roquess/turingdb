@@ -8,10 +8,7 @@
 #include <sys/wait.h>
 
 #include "StringToNumber.h"
-
-std::string ProcessUtils::getPIDFileName() {
-    return "pid";
-}
+#include "FileUtils.h"
 
 bool ProcessUtils::killAllChildren(pid_t pid, int signal) {
     std::vector<pid_t> children;
@@ -51,15 +48,54 @@ bool ProcessUtils::getAllChildren(pid_t pid, std::vector<pid_t>& children) {
     return true;
 }
 
-bool ProcessUtils::writePIDFile(const FileUtils::Path& file) {
-    const pid_t pid = getpid();
-    return FileUtils::writeFile(file, std::to_string(pid));
-}
-
 bool ProcessUtils::isProcessRunning(pid_t pid) {
     if (pid <= 0) {
         return false;
     }
 
     return kill(pid, 0) == 0;
+}
+
+bool ProcessUtils::searchProcess(const std::string& exe, std::vector<pid_t>& pids) {
+    const bool isAbsolute = FileUtils::isAbsolute(exe);
+
+    std::vector<FileUtils::Path> procList;
+    if (!FileUtils::listFiles("/proc", procList)) {
+        return false;
+    }
+
+    std::string procExe;
+    std::error_code error;
+    for (const auto& procFile : procList) {
+        procExe.clear();
+
+        bool convertError = false;
+        const pid_t pid = StringToNumber<pid_t>(FileUtils::getFilename(procFile).string(),
+                                                convertError);
+        if (convertError) {
+            continue;
+        }
+
+        if (!FileUtils::isDirectory(procFile)) {
+            continue;
+        }
+
+        const auto procExeFile = procFile/"exe";
+        const auto procExe = std::filesystem::canonical(procExeFile, error);
+        if (error) {
+            continue;
+        }
+
+        if (isAbsolute) {
+            if (procExe == exe) {
+                pids.push_back(pid);
+            }
+        } else {
+            if (FileUtils::getFilename(procExe) == exe) {
+                pids.push_back(pid);
+            }
+        }
+    }
+
+    return true;
 }

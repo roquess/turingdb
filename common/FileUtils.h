@@ -28,4 +28,5 @@ public:
     static bool makeExecutable(const Path& path);
     static bool isAbsolute(const Path& path);
     static bool isOpenedDescriptor(int fd);
+    static bool isFile(const Path& path);
 };

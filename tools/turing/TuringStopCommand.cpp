@@ -4,49 +4,26 @@
 #include <signal.h>
 #include <spdlog/spdlog.h>
 
-#include "TuringToolConfig.h"
 #include "ToolInit.h"
-#include "StringToNumber.h"
 #include "ProcessUtils.h"
 
 namespace {
 
-void stopTool(const FileUtils::Path& pidFile) {
-    if (!FileUtils::exists(pidFile)) {
-        return;
-    }
-
-    std::string pidStr;
-    if (!FileUtils::readContent(pidFile, pidStr)) {
-        spdlog::error("Failed to read process ID file {}", pidFile.string());
-        return;
-    }
-
-    bool convertError = false;
-    const pid_t pid = StringToNumber<pid_t>(pidStr, convertError);
-    if (convertError) {
-        spdlog::error("Failed to read a valid process ID in {}", pidFile.string());
-        return;
-    }
-
-    if (!ProcessUtils::isProcessRunning(pid)) {
-        spdlog::info("It looks like the process {} is already terminated", pid);
+void stopTool(const std::string& toolName) {
+    std::vector<pid_t> pids;
+    if (!ProcessUtils::searchProcess(toolName, pids)) {
+        spdlog::error("Can not search system processes");
         return;
     }
 
     const int signum = SIGTERM;
-    if (kill(pid, signum) < 0) {
-        spdlog::error("Failed to send signal {} to process {}. Check that you have the necessary permissions.",
-                      signum, pid);
-        return;
+    for (pid_t pid : pids) {
+        if (kill(pid, signum) < 0) {
+            spdlog::error("Failed to send signal {} to process {}. Check that you have the necessary permissions.",
+                          signum, pid);
+        }
+        spdlog::info("Stopping {}", toolName);
     }
-
-    if (!FileUtils::removeFile(pidFile)) {
-        spdlog::error("Failed to remove process ID file {}", pidFile.string());
-        return;
-    }
-
-    spdlog::info("Stopping {}", pidFile.string());
 }
 
 }
@@ -81,14 +58,7 @@ void TuringStopCommand::run() {
         return;
     }
 
-    const auto turingAppDir = outDir/TuringToolConfig::TURING_APP_DIR_NAME;
-    const auto turingAppPidFile = turingAppDir/ProcessUtils::getPIDFileName();
-    const auto turingDBDir = outDir/TuringToolConfig::TURING_DB_DIR_NAME;
-    const auto turingDBPidFile = turingDBDir/ProcessUtils::getPIDFileName();
-    const auto bioServerDir = outDir/TuringToolConfig::BIOSERVER_DIR_NAME;
-    const auto bioserverPidFile = bioServerDir/ProcessUtils::getPIDFileName();
-
-    stopTool(turingAppPidFile);
-    stopTool(turingDBPidFile);
-    stopTool(bioserverPidFile);
+    stopTool("turing-app");
+    stopTool("turingdb");
+    stopTool("bioserver");
 }

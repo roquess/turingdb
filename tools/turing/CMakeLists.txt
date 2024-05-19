@@ -1,7 +1,6 @@
 
 set(turing_sources
         TuringTool.cpp
-        TuringToolConfig.cpp
         TuringStartCommand.cpp
         TuringStopCommand.cpp
         TuringStart2Command.cpp

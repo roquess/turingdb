@@ -2,26 +2,9 @@
 
 #include <spdlog/spdlog.h>
 
-#include "TuringToolConfig.h"
 #include "ToolInit.h"
 #include "Command.h"
 #include "ProcessUtils.h"
-
-namespace {
-
-bool checkToolRunning(const std::string& toolName, const FileUtils::Path& pidFile) {
-    if (FileUtils::exists(pidFile)) {
-        std::string pidStr;
-        if (FileUtils::readContent(pidFile, pidStr)) {
-            spdlog::error("{} is already running in process {}", toolName, pidStr);
-        }
-        return true;
-    }
-
-    return false;
-}
-
-}
 
 TuringStart2Command::TuringStart2Command(ToolInit& toolInit)
     : ToolCommand(toolInit),
@@ -45,25 +28,42 @@ bool TuringStart2Command::isActive() {
 }
 
 void TuringStart2Command::run() {
-    const auto turingAppDir = _toolInit.getOutputsDirPath()/TuringToolConfig::TURING_APP_DIR_NAME;
-    const auto turingDBDir = _toolInit.getOutputsDirPath()/TuringToolConfig::TURING_DB_DIR_NAME;
+    std::vector<pid_t> turingAppProcs;
+    std::vector<pid_t> turingDBProcs;
+    if (!ProcessUtils::searchProcess("turing-app", turingAppProcs)) {
+        spdlog::error("Can not search system processes");
+        return;
+    }
 
-    bool running = false;
-    running = checkToolRunning("turing-app", turingAppDir/ProcessUtils::getPIDFileName());
-    running |= checkToolRunning("turingdb", turingDBDir/ProcessUtils::getPIDFileName());
-    if (running) {
+    if (!ProcessUtils::searchProcess("turingdb", turingDBProcs)) {
+        spdlog::error("Can not search system processes");
+        return;
+    }
+
+    if (!turingAppProcs.empty()) {
+        spdlog::error("The tool turing-app is already running with process {}",
+                      turingAppProcs[0]);
+        return;
+    }
+
+    if (!turingDBProcs.empty()) {
+        spdlog::error("The tool turingdb is already running with process {}",
+                      turingDBProcs[0]);
         return;
     }
 
     _toolInit.createOutputDir();
+    const auto& outDir = _toolInit.getOutputsDirPath();
+    const auto turingAppDir = outDir/"turing-app";
+    const auto turingDBDir = outDir/"turingdb";
 
     Command turingApp("turing-app");
-    turingApp.addOption("-o", turingAppDir.string());
-    turingApp.setWorkingDir(_toolInit.getOutputsDir());
+    turingApp.addOption("-o", turingAppDir);
+    turingApp.setWorkingDir(outDir);
     turingApp.setGenerateScript(true);
     turingApp.setWriteLogFile(false);
-    turingApp.setScriptPath(_toolInit.getOutputsDirPath()/"turing-app.sh");
-    turingApp.setLogFile(_toolInit.getOutputsDirPath()/"turing-app-launch.log");
+    turingApp.setScriptPath(outDir/"turing-app.sh");
+    turingApp.setLogFile(outDir/"turing-app-launch.log");
 
     if (!turingApp.run()) {
         spdlog::error("Failed to start Turing application server");
@@ -76,13 +76,15 @@ void TuringStart2Command::run() {
         return;
     }
 
+    spdlog::info("Starting turing-app");
+
     Command db("turingdb");
-    db.addOption("-o", turingDBDir.string());
-    db.setWorkingDir(_toolInit.getOutputsDir());
+    db.addOption("-o", turingDBDir);
+    db.setWorkingDir(outDir);
     db.setGenerateScript(true);
     db.setWriteLogFile(false);
-    db.setScriptPath(_toolInit.getOutputsDirPath()/"turingdb.sh");
-    db.setLogFile(_toolInit.getOutputsDirPath()/"turingdb-launch.log");
+    db.setScriptPath(outDir/"turingdb.sh");
+    db.setLogFile(outDir/"turingdb-launch.log");
 
     if (!db.run()) {
         spdlog::error("Failed to start Turing database server");
@@ -94,4 +96,6 @@ void TuringStart2Command::run() {
         spdlog::error("Failed to start turingdb: turingdb command terminated with exit code {}", dbExitCode);
         return;
     }
+
+    spdlog::info("Starting turingdb");
 }
