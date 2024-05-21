@@ -28,8 +28,6 @@ public:
     }
 
     virtual void finish() = 0;
-
-private:
 };
 
 template <typename T>
@@ -47,7 +45,7 @@ using JobID = uint64_t;
 
 struct Job {
     JobOperation _operation;
-    std::unique_ptr<Promise> _promise = nullptr;
+    std::unique_ptr<Promise> _promise;
 };
 
 class JobQueue {
@@ -75,7 +73,7 @@ public:
     Future<T> submit(JobOperation&& operation) {
         std::unique_lock lock(_queueMutex);
         _submitedCount += 1;
-        TypedPromise<T>* promise = new TypedPromise<T>;
+        TypedPromise<T>* promise = new TypedPromise<T>();
         Future<T> future = promise->get_future();
 
         _jobs.push({

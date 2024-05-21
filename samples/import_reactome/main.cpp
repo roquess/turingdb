@@ -6,7 +6,6 @@
 #include "Neo4jImporter.h"
 #include "Neo4j/ParserConfig.h"
 #include "NodeView.h"
-#include "PerfStat.h"
 #include "Reader.h"
 #include "Time.h"
 

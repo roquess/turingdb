@@ -14,7 +14,7 @@ public:
 
     PerfStat();
 
-    static void init(const Path& path);
+    static void init(const Path& logFile);
     static PerfStat* getInstance();
     static void destroy();
 
@@ -22,7 +22,7 @@ private:
     std::ofstream _outStream;
     static PerfStat* _instance;
 
-    void open(const Path& path);
+    void open(const Path& logFile);
     void close();
     void reportTotalMem();
     std::pair<size_t, size_t> getMemInMegabytes() const;

@@ -1,3 +1,8 @@
+set(RANGE_V3_DOCS OFF)
+set(RANGE_V3_TESTS OFF)
+set(RANGE_V3_EXAMPLES OFF)
+set(RANGE_V3_PERF OFF)
+
 add_subdirectory(tinyxml2)
 add_subdirectory(linenoise)
 add_subdirectory(nlohmann_json)

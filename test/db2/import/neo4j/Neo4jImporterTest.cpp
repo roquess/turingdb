@@ -4,9 +4,7 @@
 #include <span>
 #include <thread>
 
-#include "BioAssert.h"
 #include "BioLog.h"
-#include "ConcurrentWriter.h"
 #include "DB.h"
 #include "DataBuffer.h"
 #include "EdgeView.h"
@@ -14,7 +12,6 @@
 #include "JobSystem.h"
 #include "Neo4jImporter.h"
 #include "Neo4j/ParserConfig.h"
-#include "NodeView.h"
 #include "PerfStat.h"
 #include "Reader.h"
 #include "ScanEdgesIterator.h"

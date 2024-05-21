@@ -4,7 +4,6 @@
 
 #include "DB.h"
 #include "DBAccess.h"
-#include "Reader.h"
 #include "DataBuffer.h"
 #include "ScanNodesProcessor.h"
 #include "DiscardProcessor.h"
