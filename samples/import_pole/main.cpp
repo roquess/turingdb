@@ -1,5 +1,6 @@
 #include "DB.h"
 #include "DBAccess.h"
+#include "DBMetaData.h"
 #include "FileUtils.h"
 #include "JobSystem.h"
 #include "Neo4j/ParserConfig.h"

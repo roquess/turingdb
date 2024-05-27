@@ -2,6 +2,7 @@
 #include "DBAccess.h"
 #include "EdgeView.h"
 #include "FileUtils.h"
+#include "DBMetaData.h"
 #include "JobSystem.h"
 #include "Neo4j/ParserConfig.h"
 #include "Neo4jImporter.h"
@@ -21,8 +22,9 @@ int main() {
     auto database = std::make_unique<DB>();
     const PropertyTypeMap& propTypes = database->metaData()->propTypes();
     const LabelMap& labels = database->metaData()->labels();
+    LabelsetMap& labelsets = database->metaData()->labelsets();
 
-    const FileUtils::Path jsonDir = "/home/luclabarriere/jsonReactome";
+    const FileUtils::Path jsonDir = "/net/db/reactome/json";
 
     auto t0 = Clock::now();
     Neo4jImporter::importJsonDir(jobSystem,
@@ -42,8 +44,15 @@ int main() {
     PropertyType displayNameType = propTypes.get("displayName (String)");
     PropertyType stIDType = propTypes.get("stId (String)");
 
-    auto it = access.scanNodeProperties<types::String>(stIDType._id).begin();
     const auto findReactomeID = [&]() {
+        Labelset labelset;
+        labelset.set(labels.get("DatabaseObject"));
+        labelset.set(labels.get("PhysicalEntity"));
+        labelset.set(labels.get("GenomeEncodedEntity"));
+        labelset.set(labels.get("EntityWithAccessionedSequence"));
+        const LabelsetID labelsetID = labelsets.getOrCreate(labelset);
+
+        auto it = access.scanNodePropertiesByLabel<types::String>(stIDType._id, labelsetID).begin();
         size_t i = 0;
         for (; it.isValid(); it.next()) {
             const types::String::Primitive& stID = it.get();
@@ -70,7 +79,6 @@ int main() {
     t1 = Clock::now();
     std::cout << "Got APOE-4 view in: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
 
-    const auto& labelsets = database->metaData()->labelsets();
     LabelsetID labelsetID = apoe.labelset();
     const Labelset& labelset = labelsets.getValue(labelsetID);
 

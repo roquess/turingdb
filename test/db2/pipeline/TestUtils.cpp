@@ -1,5 +1,6 @@
 #include "TestUtils.h"
 
+#include "DBMetaData.h"
 #include "DBAccess.h"
 #include "DataBuffer.h"
 

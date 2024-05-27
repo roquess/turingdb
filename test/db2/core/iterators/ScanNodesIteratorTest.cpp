@@ -7,6 +7,7 @@
 #include "ChunkConfig.h"
 #include "ColumnNodes.h"
 #include "DB.h"
+#include "DBMetaData.h"
 #include "DBAccess.h"
 #include "DataBuffer.h"
 #include "FileUtils.h"

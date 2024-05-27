@@ -3,6 +3,7 @@
 #include "ConcurrentWriter.h"
 #include "DB.h"
 #include "DBAccess.h"
+#include "DBMetaData.h"
 #include "DataBuffer.h"
 #include "FileUtils.h"
 #include "JobSystem.h"
@@ -10,6 +11,7 @@
 #include "iterators/ScanNodesByLabelIterator.h"
 #include "iterators/ScanNodesIterator.h"
 #include "LogSetup.h"
+#include "DataPart.h"
 
 using namespace db;
 
