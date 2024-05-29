@@ -19,7 +19,7 @@ void printDuration(const char* title, std::chrono::duration<double, std::milli> 
 }
 
 bool run() {
-    const size_t nodeCount = 100ull*1000000;
+    const size_t nodeCount = 100'000'000ull;
 
     auto db = std::make_unique<DB>();
     JobSystem jobSystem;

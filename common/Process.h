@@ -47,4 +47,7 @@ private:
     pid_t _pid {-1};
     int _exitCode {-1};
     bool _waited {false};
+    bool _running {true};
+
+    void updateExitCode();
 };

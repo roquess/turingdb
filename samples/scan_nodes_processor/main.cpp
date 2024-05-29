@@ -36,7 +36,7 @@ void chunkTest(DB* db) {
 }
 
 bool run() {
-    const size_t nodeCount = 100ul * 1000000;
+    const size_t nodeCount = 100'000'000ull;
 
     auto db = std::make_unique<DB>();
     JobSystem jobSystem;
@@ -48,7 +48,7 @@ bool run() {
     {
         auto buf = db->access().newDataBuffer();
         for (size_t i = 0; i < nodeCount; i++) {
-            buf->addNode({0});
+            buf->addNode(LabelsetID{0});
         }
 
         {

@@ -48,14 +48,6 @@ bool ProcessUtils::getAllChildren(pid_t pid, std::vector<pid_t>& children) {
     return true;
 }
 
-bool ProcessUtils::isProcessRunning(pid_t pid) {
-    if (pid <= 0) {
-        return false;
-    }
-
-    return kill(pid, 0) == 0;
-}
-
 bool ProcessUtils::searchProcess(const std::string& exe, std::vector<pid_t>& pids) {
     const bool isAbsolute = FileUtils::isAbsolute(exe);
 

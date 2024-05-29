@@ -18,24 +18,24 @@ protected:
 };
 
 TEST_F(NodeContainerTest, UnsortedFail) {
-    std::vector<LabelsetID> labelsetIDs = {0, 4, 2, 4, 0, 2, 2, 4};
+    std::vector<LabelsetID> nodeLabelsets = {0, 4, 2, 4, 0, 2, 2, 4};
 
-    auto container = NodeContainer::create(0, labelsetIDs.size(), &_metaData, labelsetIDs);
+    auto container = NodeContainer::create(0, &_metaData, nodeLabelsets);
     ASSERT_TRUE(container == nullptr);
 }
 
 TEST_F(NodeContainerTest, SortedSuccess) {
-    std::vector<LabelsetID> labelsetIDs = {0, 0, 1, 1, 1, 2, 3};
+    std::vector<LabelsetID> nodeLabelsets = {0, 0, 1, 1, 1, 2, 3};
 
-    auto container = NodeContainer::create(0, labelsetIDs.size(), &_metaData, labelsetIDs);
+    auto container = NodeContainer::create(0, &_metaData, nodeLabelsets);
     ASSERT_TRUE(container != nullptr);
 }
 
 TEST_F(NodeContainerTest, IterateAll) {
-    std::vector<LabelsetID> labelsetIDs = {0, 0, 1, 1, 1, 2, 3};
+    std::vector<LabelsetID> nodeLabelsets = {0, 0, 1, 1, 1, 2, 3};
     std::vector<EntityID> theoNodeIDs= {0, 1, 2, 3, 4, 5, 6};
 
-    auto container = NodeContainer::create(0, labelsetIDs.size(), &_metaData, labelsetIDs);
+    auto container = NodeContainer::create(0, &_metaData, nodeLabelsets);
     ASSERT_TRUE(container != nullptr);
 
     auto theoIt = theoNodeIDs.cbegin();
@@ -46,13 +46,13 @@ TEST_F(NodeContainerTest, IterateAll) {
 }
 
 TEST_F(NodeContainerTest, IterateByLabels) {
-    std::vector<LabelsetID> labelsetIDs = {0, 0, 1, 1, 1, 2, 3};
+    std::vector<LabelsetID> nodeLabelsets = {0, 0, 1, 1, 1, 2, 3};
     std::vector<EntityID> theoNodeIDs0 = {0, 1};
     std::vector<EntityID> theoNodeIDs1 = {2, 3, 4};
     std::vector<EntityID> theoNodeIDs2 = {5};
     std::vector<EntityID> theoNodeIDs3 = {6};
 
-    auto container = NodeContainer::create(0, labelsetIDs.size(), &_metaData, labelsetIDs);
+    auto container = NodeContainer::create(0, &_metaData, nodeLabelsets);
     ASSERT_TRUE(container != nullptr);
 
     auto theoIt = theoNodeIDs0.cbegin();
@@ -81,9 +81,9 @@ TEST_F(NodeContainerTest, IterateByLabels) {
 }
 
 TEST_F(NodeContainerTest, GetNodeLabelset) {
-    std::vector<LabelsetID> labelsetIDs = {0, 0, 1, 1, 1, 2, 3};
+    std::vector<LabelsetID> nodeLabelsets = {0, 0, 1, 1, 1, 2, 3};
 
-    auto container = NodeContainer::create(0, labelsetIDs.size(), &_metaData, labelsetIDs);
+    auto container = NodeContainer::create(0, &_metaData, nodeLabelsets);
     ASSERT_TRUE(container != nullptr);
 
     LabelsetID id0 = container->getNodeLabelset(0);
