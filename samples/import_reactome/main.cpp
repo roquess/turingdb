@@ -24,7 +24,7 @@ int main() {
     const LabelMap& labels = database->metaData()->labels();
     LabelsetMap& labelsets = database->metaData()->labelsets();
 
-    const FileUtils::Path jsonDir = "/home/luclabarriere/jsonReactome";
+    const FileUtils::Path jsonDir = "/net/db/reactome/json";
 
     auto t0 = Clock::now();
     Neo4jImporter::importJsonDir(jobSystem,
