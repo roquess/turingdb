@@ -7,7 +7,6 @@
 #include <spdlog/spdlog.h>
 
 #include "FileUtils.h"
-#include "BannerDisplay.h"
 #include "PerfStat.h"
 #include "LogSetup.h"
 
@@ -27,6 +26,7 @@ ToolInit::ToolInit(const std::string& toolName)
 }
 
 ToolInit::~ToolInit() {
+    PerfStat::destroy();
 }
 
 void ToolInit::setOutputDir(const std::string& outDir) {

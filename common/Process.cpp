@@ -47,6 +47,27 @@ void Process::addEnvVar(const std::string& var, const std::string& value) {
     _env.emplace_back(var, value);
 }
 
+void Process::updateExitCode() {
+    if (!_running) {
+        return;
+    }
+
+    int status;
+    if (waitpid(_pid, &status, WNOHANG) == 0) {
+        return;
+    }
+
+    if (WIFEXITED(status)) {
+        _exitCode = WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+        _exitCode = WTERMSIG(status);
+    } else if (WIFSTOPPED(status)) {
+        _exitCode = WSTOPSIG(status);
+    }
+
+    _running = false;
+}
+
 bool Process::start() {
     if (!startAsync()) {
         return false;
@@ -81,7 +102,7 @@ bool Process::startAsync() {
         dup2(devNullFd, STDOUT_FILENO);
         dup2(devNullFd, STDERR_FILENO);
     }
-    
+
     // Close stdin if requested
     if (!_readStdin) {
         dup2(devNullFd, STDIN_FILENO);
@@ -149,12 +170,18 @@ bool Process::wait() {
         return false;
     }
 
-    _exitCode = siginfo.si_status;
     _waited = true;
+
+    if (_exitCode != -1) {
+        return true;
+    }
+
+    updateExitCode();
 
     return true;
 }
 
-bool Process::isRunning() const {
-    return ProcessUtils::isProcessRunning(_pid);
+bool Process::isRunning() {
+    updateExitCode();
+    return _running;
 }

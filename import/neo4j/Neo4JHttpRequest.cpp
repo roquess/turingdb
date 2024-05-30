@@ -9,8 +9,8 @@
 
 static size_t writeCallback(char* contents, size_t size, size_t nmemb,
                             std::string* userp) {
-
-    userp->append(contents, nmemb);
+    std::string content(contents, nmemb);
+    (*userp) += content;
     return size * nmemb;
 }
 
@@ -18,7 +18,7 @@ Neo4JHttpRequest::Neo4JHttpRequest(const std::string& statement)
     : _statement(statement) {
 }
 
-Neo4JHttpRequest::Neo4JHttpRequest(Neo4JHttpRequest&& other)
+Neo4JHttpRequest::Neo4JHttpRequest(Neo4JHttpRequest&& other) noexcept
     : _url(std::move(other._url)),
       _username(std::move(other._username)),
       _password(std::move(other._password)),

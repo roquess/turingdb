@@ -15,11 +15,10 @@
 #include "SchemaReport.h"
 #include "Writeback.h"
 
-#include "PerfStat.h"
-#include "ToolInit.h"
+#include "BannerDisplay.h"
 #include "FileUtils.h"
 #include "LogUtils.h"
-#include "BannerDisplay.h"
+#include "ToolInit.h"
 
 #define BIOIMPORT_TOOL_NAME "bioimport"
 
@@ -66,175 +65,179 @@ int main(int argc, const char** argv) {
     argParser.set_usage_max_line_width(80);
 
     argParser.add_argument("-db-path")
-             .help("Exports the turing database to the specified folder")
-             .nargs(1)
-             .metavar("dir")
-             .store_into(turingdbPath);
+        .help("Exports the turing database to the specified folder")
+        .nargs(1)
+        .metavar("dir")
+        .store_into(turingdbPath);
 
     argParser.add_argument("-neo4j")
-             .help("Imports a .dump file (default network name: \"my_file\")")
-             .append()
-             .nargs(1)
-             .metavar("db.dump")
-             .action([&](const std::string& value){
-                if (!FileUtils::exists(value)) {
-                    logt::DirectoryDoesNotExist(value);
-                    exit(EXIT_FAILURE);
-                }
+        .help("Imports a .dump file (default network name: \"my_file\")")
+        .append()
+        .nargs(1)
+        .metavar("db.dump")
+        .action([&](const std::string& value) {
+            if (!FileUtils::exists(value)) {
+                logt::DirectoryDoesNotExist(value);
+                exit(EXIT_FAILURE);
+            }
+            importData.emplace_back(ImportData {
+                .type = ImportType::NEO4J,
+                .path = value,
             });
+        });
 
     argParser.add_argument("-gml")
-             .help("Imports a .gml file (default network name: \"my_file\")")
-             .nargs(1)
-             .append()
-             .metavar("net.gml")
-             .action([&](const std::string& value){
-                if (!FileUtils::exists(value)) {
-                    logt::FileNotFound(value);
-                    exit(EXIT_FAILURE);
-                }
-                importData.emplace_back(ImportData {
-                    .type = ImportType::GML,
-                    .path = value,
-                });
-             });
+        .help("Imports a .gml file (default network name: \"my_file\")")
+        .nargs(1)
+        .append()
+        .metavar("net.gml")
+        .action([&](const std::string& value) {
+            if (!FileUtils::exists(value)) {
+                logt::FileNotFound(value);
+                exit(EXIT_FAILURE);
+            }
+            importData.emplace_back(ImportData {
+                .type = ImportType::GML,
+                .path = value,
+            });
+        });
 
     argParser.add_argument("-csv")
-             .help("Imports a .csv file (default network name: \"my_file\")")
-             .nargs(1)
-             .append()
-             .metavar("data.csv")
-             .action([&](const std::string& value){
-                if (!FileUtils::exists(value)) {
-                    logt::FileNotFound(value);
-                    exit(EXIT_FAILURE);
-                }
-                importData.emplace_back(ImportData {
-                    .type = ImportType::CSV,
-                    .path = value,
-                });
-             });
+        .help("Imports a .csv file (default network name: \"my_file\")")
+        .nargs(1)
+        .append()
+        .metavar("data.csv")
+        .action([&](const std::string& value) {
+            if (!FileUtils::exists(value)) {
+                logt::FileNotFound(value);
+                exit(EXIT_FAILURE);
+            }
+            importData.emplace_back(ImportData {
+                .type = ImportType::CSV,
+                .path = value,
+            });
+        });
 
     argParser.add_argument("-neo4j-url")
-             .help("Imports a neo4j database from an existing neo4j instance")
-             .metavar("localhost")
-             .action([&](const std::string& value){
-                importData.emplace_back(ImportData {
-                    .type = ImportType::NEO4J_URL,
-                    .url = value,
-                });
+        .help("Imports a neo4j database from an existing neo4j instance")
+        .metavar("localhost")
+        .action([&](const std::string& value) {
+            importData.emplace_back(ImportData {
+                .type = ImportType::NEO4J_URL,
+                .url = value,
             });
+        });
 
     argParser.add_argument("-port")
-             .help("Port for the query. Must follow a neo4j-url option")
-             .metavar("num")
-             .action([&](const std::string& value){
-                if (importData.empty()) {
-                    neo4jURLNotProvided();
-                    exit(EXIT_FAILURE);
-                }
-                auto& cmd = importData.back();
-                cmd.port = std::stoi(value);
-            });
+        .help("Port for the query. Must follow a neo4j-url option")
+        .metavar("num")
+        .action([&](const std::string& value) {
+            if (importData.empty()) {
+                neo4jURLNotProvided();
+                exit(EXIT_FAILURE);
+            }
+            auto& cmd = importData.back();
+            cmd.port = std::stoi(value);
+        });
 
     argParser.add_argument("-user")
-             .help("Username for the query. Must follow a neo4j-url option")
-             .metavar("username")
-             .action([&](const std::string& value){
-                if (importData.empty()) {
-                    exit(EXIT_FAILURE);
-                }
-                auto& cmd = importData.back();
-                cmd.username = value;
-             });
+        .help("Username for the query. Must follow a neo4j-url option")
+        .metavar("username")
+        .action([&](const std::string& value) {
+            if (importData.empty()) {
+                exit(EXIT_FAILURE);
+            }
+            auto& cmd = importData.back();
+            cmd.username = value;
+        });
 
     argParser.add_argument("-password")
-             .help("Password for the query. Must follow a neo4j-url option")
-             .metavar("pass")
-             .action([&](const std::string& value){
-                if (importData.empty()) {
-                    neo4jURLNotProvided();
-                    exit(EXIT_FAILURE);
-                }
-                auto& cmd = importData.back();
-                cmd.password = value;
-             });
+        .help("Password for the query. Must follow a neo4j-url option")
+        .metavar("pass")
+        .action([&](const std::string& value) {
+            if (importData.empty()) {
+                neo4jURLNotProvided();
+                exit(EXIT_FAILURE);
+            }
+            auto& cmd = importData.back();
+            cmd.password = value;
+        });
 
     argParser.add_argument("-url-suffix")
-             .help("Suffix for the url. Must follow a neo4j-url option")
-             .metavar("/db/data/transaction/commit")
-             .action([&](const std::string& value){
-                if (importData.empty()) {
-                    neo4jURLNotProvided();
-                    exit(EXIT_FAILURE);
-                }
-                auto& cmd = importData.back();
-                cmd.urlSuffix = value;
-             });
+        .help("Suffix for the url. Must follow a neo4j-url option")
+        .metavar("/db/data/transaction/commit")
+        .action([&](const std::string& value) {
+            if (importData.empty()) {
+                neo4jURLNotProvided();
+                exit(EXIT_FAILURE);
+            }
+            auto& cmd = importData.back();
+            cmd.urlSuffix = value;
+        });
 
     argParser.add_argument("-json-neo4j")
-             .help("Imports json files from a json/ directory (default network name: \"my_json_dir\")")
-             .nargs(1)
-             .append()
-             .metavar("jsondir")
-             .action([&](const std::string& value){
-                if (!FileUtils::exists(value)) {
-                    logt::DirectoryDoesNotExist(value);
-                    exit(EXIT_FAILURE);
-                }
-                importData.emplace_back(ImportData {
-                    .type = ImportType::JSON_NEO4J,
-                    .path = value,
-                });
-             });
+        .help("Imports json files from a json/ directory (default network name: \"my_json_dir\")")
+        .nargs(1)
+        .append()
+        .metavar("jsondir")
+        .action([&](const std::string& value) {
+            if (!FileUtils::exists(value)) {
+                logt::DirectoryDoesNotExist(value);
+                exit(EXIT_FAILURE);
+            }
+            importData.emplace_back(ImportData {
+                .type = ImportType::JSON_NEO4J,
+                .path = value,
+            });
+        });
 
     argParser.add_argument("-primary-key")
-             .help("Sets the primary column of a .csv. Must follow a '-csv' option")
-             .nargs(1)
-             .append()
-             .metavar("col")
-             .action([&](const std::string& value){
-                if (importData.size() == 0) {
-                    spdlog::error("Primary key can only be applied after existing options");
-                    exit(EXIT_FAILURE);
-                }
+        .help("Sets the primary column of a .csv. Must follow a '-csv' option")
+        .nargs(1)
+        .append()
+        .metavar("col")
+        .action([&](const std::string& value) {
+            if (importData.empty()) {
+                spdlog::error("Primary key can only be applied after existing options");
+                exit(EXIT_FAILURE);
+            }
 
-                ImportData& previousCmd = *(importData.end() - 1);
+            ImportData& previousCmd = *(importData.end() - 1);
 
-                if (!previousCmd.primaryKey.empty()) {
-                    spdlog::error("Primary key can only be applied after existing options");
-                    exit(EXIT_FAILURE);
-                }
+            if (!previousCmd.primaryKey.empty()) {
+                spdlog::error("Primary key can only be applied after existing options");
+                exit(EXIT_FAILURE);
+            }
 
-                previousCmd.primaryKey = value;
-             });
+            previousCmd.primaryKey = value;
+        });
 
     argParser.add_argument("-net")
-             .help("Sets the name of network. Must follow an import option (-neo4, -gml, ...) ")
-             .nargs(1)
-             .append()
-             .metavar("net_name")
-             .action([&](const std::string& value){
-                if (importData.size() == 0) {
-                    spdlog::error("A network can only be specified after existing options");
-                    exit(EXIT_FAILURE);
-                }
+        .help("Sets the name of network. Must follow an import option (-neo4, -gml, ...) ")
+        .nargs(1)
+        .append()
+        .metavar("net_name")
+        .action([&](const std::string& value) {
+            if (importData.empty()) {
+                spdlog::error("A network can only be specified after existing options");
+                exit(EXIT_FAILURE);
+            }
 
-                ImportData& previousCmd = *(importData.end() - 1);
+            ImportData& previousCmd = *(importData.end() - 1);
 
-                if (!previousCmd.networkName.empty()) {
-                    spdlog::error("A network can only be specified after existing options");
-                    exit(EXIT_FAILURE);
-                }
+            if (!previousCmd.networkName.empty()) {
+                spdlog::error("A network can only be specified after existing options");
+                exit(EXIT_FAILURE);
+            }
 
-                previousCmd.networkName = value;
-             });
+            previousCmd.networkName = value;
+        });
 
     argParser.add_argument("-db")
-             .help("Appends the imported data to the existing database")
-             .nargs(1)
-             .metavar("dbname")
-             .store_into(existingDbPath);
+        .help("Appends the imported data to the existing database")
+        .nargs(1)
+        .metavar("dbname")
+        .store_into(existingDbPath);
 
     toolInit.init(argc, argv);
 
@@ -326,7 +329,7 @@ int main(int argc, const char** argv) {
 
     {
         if (turingdbPath.empty()) {
-            turingdbPath = toolInit.getOutputsDir()+"/turing.db";
+            turingdbPath = toolInit.getOutputsDir() + "/turing.db";
         }
         db::DBDumper dbDumper(db, turingdbPath);
         dbDumper.dump();

@@ -2,17 +2,18 @@
 #include <set>
 
 #include "DB.h"
-#include "FileUtils.h"
-#include "Reader.h"
+#include "DBAccess.h"
+#include "DBMetadata.h"
 #include "DataBuffer.h"
-#include "iterators/GetCoreInEdgesIterator.h"
-#include "iterators/GetCoreOutEdgesIterator.h"
-#include "iterators/GetPatchInEdgesIterator.h"
-#include "iterators/GetPatchOutEdgesIterator.h"
-#include "iterators/ScanCoreEdgesIterator.h"
+#include "FileUtils.h"
+#include "JobSystem.h"
+#include "LogSetup.h"
+#include "iterators/GetInEdgesIterator.h"
+#include "iterators/GetOutEdgesIterator.h"
+#include "iterators/ScanEdgesIterator.h"
 #include "iterators/ScanNodesByLabelIterator.h"
 #include "iterators/ScanNodesIterator.h"
-#include "iterators/ScanPatchEdgesIterator.h"
+#include "spdlog/spdlog.h"
 
 using namespace db;
 
@@ -38,207 +39,259 @@ protected:
             FileUtils::removeDirectory(_outDir);
         }
         FileUtils::createDirectory(_outDir);
+        LogSetup::setupLogFileBacked(_logPath.string());
 
+        _jobSystem = std::make_unique<JobSystem>();
+        _jobSystem->initialize();
         _db = new DB();
-        auto access = _db->uniqueAccess();
 
-        //
         /* FIRST BUFFER */
-        //
-        DataBuffer tempData1 = access.newDataBuffer();
+        std::unique_ptr<DataBuffer> tempData1 = _db->access().newDataBuffer();
         PropertyTypeID uint64ID = 0;
         PropertyTypeID stringID = 1;
 
         {
-            // NODE 0 (temp ID: 0)
-            const EntityID tmpID = tempData1.addNode(LabelSet {0});
-            tempData1.addProperty<UInt64PropertyType>(
+            // Node 0
+            const EntityID tmpID = tempData1->addNode(LabelSet::fromList({0}));
+            tempData1->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData1.addProperty<StringPropertyType>(
+            tempData1->addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
-            // NODE 1 (temp ID: 1)
-            const EntityID tmpID = tempData1.addNode(LabelSet {0});
-            tempData1.addProperty<UInt64PropertyType>(
+            // Node 1
+            const EntityID tmpID = tempData1->addNode(LabelSet::fromList({0}));
+            tempData1->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData1.addProperty<StringPropertyType>(
+            tempData1->addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
-            // NODE 2 (temp ID: 2)
-            const EntityID tmpID = tempData1.addNode(LabelSet {1});
-            tempData1.addProperty<UInt64PropertyType>(
+            // Node 2
+            const EntityID tmpID = tempData1->addNode(LabelSet::fromList({1}));
+            tempData1->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData1.addProperty<StringPropertyType>(
-                tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
-        // EDGE 0 [0->1] (temp ID: 0)
-        tempData1.addEdge(_edgeTypeID, 0, 1);
+        {
+            // Edge 001
+            const EdgeRecord& edge = tempData1->addEdge(_edgeTypeID, 0, 1);
+            tempData1->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+            tempData1->addEdgeProperty<types::String>(
+                edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
+        }
 
-        // EDGE 1 [0->2] (temp ID: 1)
-        tempData1.addEdge(_edgeTypeID, 0, 2);
+        {
+            // Edge 102
+            const EdgeRecord& edge = tempData1->addEdge(_edgeTypeID, 0, 2);
+            tempData1->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+            tempData1->addEdgeProperty<types::String>(
+                edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
+        }
 
-        //
         /* SECOND BUFFER (Concurrent to the first one) */
-        //
-        DataBuffer tempData2 = access.newDataBuffer();
+        std::unique_ptr<DataBuffer> tempData2 = _db->access().newDataBuffer();
 
         {
-            // NODE 4 (temp ID: 0))
-            const EntityID tmpID = tempData2.addNode(LabelSet {0, 1});
-            tempData2.addProperty<UInt64PropertyType>(
+            // Node 4
+            const EntityID tmpID = tempData2->addNode(LabelSet::fromList({0, 1}));
+            tempData2->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData2.addProperty<StringPropertyType>(
+            tempData2->addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
-            // NODE 3 (temp ID: 1)
-            const EntityID tmpID = tempData2.addNode(LabelSet {1});
-            tempData2.addProperty<UInt64PropertyType>(
+            // Node 3
+            const EntityID tmpID = tempData2->addNode(LabelSet::fromList({1}));
+            tempData2->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
-        // EDGE 3 [4->3] (temp ID: 0 [0->1])
-        tempData2.addEdge(_edgeTypeID, 0, 1);
+        {
+            // Edge 343
+            const EdgeRecord& edge = tempData2->addEdge(_edgeTypeID, 0, 1);
+            tempData2->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+            tempData2->addEdgeProperty<types::String>(
+                edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
+        }
 
-        // EDGE 4 [4->3] (temp ID: 1 [0->1])
-        tempData2.addEdge(_edgeTypeID, 0, 1);
+        {
+            // Edge 443
+            const EdgeRecord& edge = tempData2->addEdge(_edgeTypeID, 0, 1);
+            tempData2->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+            tempData2->addEdgeProperty<types::String>(
+                edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
+        }
 
-        // EDGE 2 [3->4] (temp ID: 2 [1->0])
-        tempData2.addEdge(_edgeTypeID, 1, 0);
+        {
+            // Edge 234
+            const EdgeRecord& edge = tempData2->addEdge(_edgeTypeID, 1, 0);
+            tempData2->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+        }
 
         // PUSH DATAPARTS
-        access.pushDataPart(tempData1);
-        access.pushDataPart(tempData2);
+        {
+            auto datapart = _db->uniqueAccess().createDataPart(std::move(tempData1));
+            datapart->load(_db->access(), *_jobSystem);
+            _db->uniqueAccess().pushDataPart(std::move(datapart));
+        }
 
-        //
+        {
+            auto datapart = _db->uniqueAccess().createDataPart(std::move(tempData2));
+            datapart->load(_db->access(), *_jobSystem);
+            _db->uniqueAccess().pushDataPart(std::move(datapart));
+        }
+
         /* THIRD BUFFER (Empty) */
-        //
-        DataBuffer tempData3 = access.newDataBuffer();
-        access.pushDataPart(tempData3);
+        std::unique_ptr<DataBuffer> tempData3 = _db->access().newDataBuffer();
+        {
+            auto datapart = _db->uniqueAccess().createDataPart(std::move(tempData3));
+            datapart->load(_db->access(), *_jobSystem);
+            _db->uniqueAccess().pushDataPart(std::move(datapart));
+        }
 
-        //
         /* FOURTH BUFFER (First node and edge ids: 5, 5) */
-        //
-        DataBuffer tempData4 = access.newDataBuffer();
+        std::unique_ptr<DataBuffer> tempData4 = _db->access().newDataBuffer();
 
         {
-            // NODE 8 (temp ID: 5)
-            const EntityID tmpID = tempData4.addNode(LabelSet {0, 1});
-            tempData4.addProperty<UInt64PropertyType>(
+            // Node 8
+            const EntityID tmpID = tempData4->addNode(LabelSet::fromList({0, 1}));
+            tempData4->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData4.addProperty<StringPropertyType>(
+            tempData4->addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
-            // NODE 5 (temp ID: 6)
-            const EntityID tmpID = tempData4.addNode(LabelSet {0});
-            tempData4.addProperty<UInt64PropertyType>(
+            // Node 5
+            const EntityID tmpID = tempData4->addNode(LabelSet::fromList({0}));
+            tempData4->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData4.addProperty<StringPropertyType>(
+            tempData4->addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
-            // NODE 6 (temp ID: 7)
-            const EntityID tmpID = tempData4.addNode(LabelSet {1});
-            tempData4.addProperty<UInt64PropertyType>(
+            // Node 6
+            const EntityID tmpID = tempData4->addNode(LabelSet::fromList({1}));
+            tempData4->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData4.addProperty<StringPropertyType>(
+            tempData4->addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
-            // NODE 7 (temp ID: 8)
-            const EntityID tmpID = tempData4.addNode(LabelSet {1});
-            tempData4.addProperty<UInt64PropertyType>(
+            // Node 7
+            const EntityID tmpID = tempData4->addNode(LabelSet::fromList({1}));
+            tempData4->addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            tempData4.addProperty<StringPropertyType>(
+            tempData4->addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
-        // Edge 5 [5->4] (temp ID: 5 [6->4])
-        tempData4.addEdge(_edgeTypeID, 6, 4);
+        {
+            // Edge 654
+            const EdgeRecord& edge = tempData4->addEdge(_edgeTypeID, 6, 4);
+            tempData4->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+            tempData4->addEdgeProperty<types::String>(
+                edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
+        }
 
-        // Edge 6 [5->7] (temp ID: 6 [6->8])
-        tempData4.addEdge(_edgeTypeID, 6, 8);
+        {
+            // Edge 757
+            const EdgeRecord& edge = tempData4->addEdge(_edgeTypeID, 6, 8);
+            tempData4->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+            tempData4->addEdgeProperty<types::String>(
+                edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
+        }
 
-        // Edge 7 [6->7] (temp ID: 7 [7->8])
-        tempData4.addEdge(_edgeTypeID, 7, 8);
+        {
+            // Edge 867
+            const EdgeRecord& edge = tempData4->addEdge(_edgeTypeID, 7, 8);
+            tempData4->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+            tempData4->addEdgeProperty<types::String>(
+                edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
+        }
 
-        // Edge 8 [2->8] (temp ID: 8 [2->5])
-        tempData4.addEdge(_edgeTypeID, 2, 5);
+        {
+            // Edge 528
+            const EdgeRecord& edge = tempData4->addEdge(_edgeTypeID, 2, 5);
+            tempData4->addEdgeProperty<types::UInt64>(
+                edge, uint64ID, edge._edgeID.getValue());
+            tempData4->addEdgeProperty<types::String>(
+                edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
+        }
 
-        access.pushDataPart(tempData4);
+        tempData4->addNodeProperty<types::String>(
+            2, stringID, "TmpID2 patch");
+
+        const EdgeRecord* edgeToPatch = _db->access().getEdge(2);
+        tempData4->addEdgeProperty<types::String>(
+            *edgeToPatch, stringID, "TmpEdgeID2 patch");
+
+        {
+            auto datapart = _db->uniqueAccess().createDataPart(std::move(tempData4));
+            datapart->load(_db->access(), *_jobSystem);
+            _db->uniqueAccess().pushDataPart(std::move(datapart));
+        }
     }
 
     void TearDown() override {
+        _jobSystem->terminate();
         delete _db;
     }
 
+    std::unique_ptr<JobSystem> _jobSystem;
     DB* _db = nullptr;
     std::string _outDir;
     FileUtils::Path _logPath;
-    static inline const EntityTypeID _edgeTypeID = 0;
+    static inline const EdgeTypeID _edgeTypeID {0};
 };
 
-TEST_F(IteratorsTest, ScanCoreEdgesIteratorTest) {
+TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
     auto access = _db->access();
-    auto reader = access.getReader();
     std::vector<TestEdgeRecord> compareSet {
         {0, 0, 1},
         {1, 0, 2},
         {2, 3, 4},
         {3, 4, 3},
         {4, 4, 3},
-        {5, 5, 4},
-        {6, 5, 7},
-        {7, 6, 7},
+        {5, 2, 8},
+        {6, 5, 4},
+        {7, 5, 7},
+        {8, 6, 7},
     };
 
     auto it = compareSet.begin();
     size_t count = 0;
-    for (const EdgeRecord& v : reader.scanCoreEdges()) {
+    for (const EdgeRecord& v : access.scanOutEdges()) {
         ASSERT_EQ(it->_nodeID.getValue(), v._nodeID.getValue());
         ASSERT_EQ(it->_otherID.getValue(), v._otherID.getValue());
         count++;
         it++;
     }
-    ASSERT_EQ(count, compareSet.size());
-}
 
-TEST_F(IteratorsTest, ScanPatchEdgesIteratorTest) {
-    auto access = _db->access();
-    auto reader = access.getReader();
-    std::vector<TestEdgeRecord> compareSet {
-        {8, 2, 8},
-    };
-
-    auto it = compareSet.begin();
-    size_t count = 0;
-    for (const EdgeRecord& v : reader.scanPatchEdges()) {
-        ASSERT_EQ(it->_nodeID.getValue(), v._nodeID.getValue());
-        ASSERT_EQ(it->_otherID.getValue(), v._otherID.getValue());
-        count++;
-        it++;
-    }
     ASSERT_EQ(count, compareSet.size());
 }
 
 TEST_F(IteratorsTest, ScanNodesIteratorTest) {
     auto access = _db->access();
-    auto reader = access.getReader();
     std::vector<EntityID> compareSet {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
     auto it = compareSet.begin();
     size_t count = 0;
-    for (const EntityID id : reader.scanNodes()) {
+    for (const EntityID id : access.scanNodes()) {
         ASSERT_EQ(it->getValue(), id.getValue());
         ASSERT_EQ(it->getValue(), id.getValue());
         count++;
@@ -249,12 +302,15 @@ TEST_F(IteratorsTest, ScanNodesIteratorTest) {
 
 TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
     auto access = _db->access();
-    auto reader = access.getReader();
-    std::vector<EntityID> compareSet {2, 3, 4, 6, 7, 8};
+    std::vector<EntityID> compareSet {2, 4, 3, 8, 6, 7};
 
     auto it = compareSet.begin();
     size_t count = 0;
-    for (const EntityID id : reader.scanNodesByLabel({1})) {
+    const auto& labelsets = _db->getMetadata()->labelsets();
+    const auto labelset = LabelSet::fromList({1});
+    const LabelSetID labelsetID = labelsets.get(labelset);
+
+    for (const EntityID id : access.scanNodesByLabel(labelsetID)) {
         ASSERT_EQ(it->getValue(), id.getValue());
         ASSERT_EQ(it->getValue(), id.getValue());
         count++;
@@ -263,68 +319,57 @@ TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
     ASSERT_EQ(count, compareSet.size());
 }
 
-TEST_F(IteratorsTest, GetCoreEdgesIteratorTest) {
+TEST_F(IteratorsTest, GetEdgesIteratorTest) {
     auto access = _db->access();
-    auto reader = access.getReader();
-    ColumnNodes inputNodeIDs = {1, 3, 8};
+    ColumnNodes inputNodeIDs = {1, 2, 3, 8};
     std::vector<TestEdgeRecord> compareSet {
         {2, 3, 4},
-        {0, 1, 0},
-        {3, 3, 4},
-        {4, 3, 4},
+        {5, 2, 8},
     };
 
     auto it = compareSet.begin();
     size_t count = 0;
-    for (const EdgeRecord& v : reader.getCoreOutEdges(&inputNodeIDs)) {
+    spdlog::info("-- Out edges");
+    for (const EdgeRecord& v : access.getOutEdges(&inputNodeIDs)) {
+        spdlog::info("[{}: {}->{}]", v._edgeID, v._nodeID, v._otherID);
         ASSERT_EQ(it->_nodeID.getValue(), v._nodeID.getValue());
         ASSERT_EQ(it->_otherID.getValue(), v._otherID.getValue());
         count++;
         it++;
     }
-    for (const EdgeRecord& v : reader.getCoreInEdges(&inputNodeIDs)) {
-        ASSERT_EQ(it->_nodeID.getValue(), v._nodeID.getValue());
-        ASSERT_EQ(it->_otherID.getValue(), v._otherID.getValue());
-        count++;
-        it++;
-    }
-    ASSERT_EQ(count, compareSet.size());
-}
 
-TEST_F(IteratorsTest, GetPatchEdgesIteratorTest) {
-    auto access = _db->access();
-    auto reader = access.getReader();
-    ColumnNodes inputNodeIDs = {1, 3, 8};
-    std::vector<TestEdgeRecord> compareSet {
-        {8, 8, 2},
+    ASSERT_EQ(compareSet.size(), count);
+
+    count = 0;
+    compareSet = {
+        {0, 0, 1},
+        {1, 0, 2},
+        {3, 4, 3},
+        {4, 4, 3},
+        {5, 2, 8},
     };
+    it = compareSet.begin();
 
-    auto it = compareSet.begin();
-    size_t count = 0;
-    for (const EdgeRecord& v : reader.getPatchOutEdges(&inputNodeIDs)) {
-        ASSERT_EQ(it->_nodeID.getValue(), v._nodeID.getValue());
-        ASSERT_EQ(it->_otherID.getValue(), v._otherID.getValue());
+    spdlog::info("-- In edges");
+    for (const EdgeRecord& v : access.getInEdges(&inputNodeIDs)) {
+        spdlog::info("[{}: {}->{}]", v._edgeID, v._otherID, v._nodeID);
+        ASSERT_EQ(it->_nodeID.getValue(), v._otherID.getValue());
+        ASSERT_EQ(it->_otherID.getValue(), v._nodeID.getValue());
         count++;
         it++;
     }
-    for (const EdgeRecord& v : reader.getPatchInEdges(&inputNodeIDs)) {
-        ASSERT_EQ(it->_nodeID.getValue(), v._nodeID.getValue());
-        ASSERT_EQ(it->_otherID.getValue(), v._otherID.getValue());
-        count++;
-        it++;
-    }
+
     ASSERT_EQ(count, compareSet.size());
 }
 
 TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
     auto access = _db->access();
-    auto reader = access.getReader();
 
     {
         std::vector<uint64_t> compareSet {0, 1, 2, 1, 0, 6, 7, 8, 5};
         auto it = compareSet.begin();
         size_t count = 0;
-        for (const uint64_t v : reader.scanNodeProperties<UInt64PropertyType>(0)) {
+        for (const uint64_t v : access.scanNodeProperties<types::UInt64>(0)) {
             ASSERT_EQ(*it, v);
             count++;
             it++;
@@ -336,9 +381,9 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
         std::vector<std::string_view> compareSet {
             "TmpID0",
             "TmpID1",
-            "TmpID2",
             // "TmpID1", This property is not set for this node
             "TmpID0",
+            "TmpID2 patch",
             "TmpID6",
             "TmpID7",
             "TmpID8",
@@ -346,7 +391,84 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
         };
         auto it = compareSet.begin();
         size_t count = 0;
-        for (const std::string& v : reader.scanNodeProperties<StringPropertyType>(1)) {
+        for (const std::string& v : access.scanNodeProperties<types::String>(1)) {
+            ASSERT_STREQ(it->data(), v.c_str());
+            count++;
+            it++;
+        }
+        ASSERT_EQ(count, compareSet.size());
+    }
+}
+
+TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
+    auto access = _db->access();
+
+    {
+        std::vector<uint64_t> compareSet {0, 1, 2, 0, 1, 8, 5, 6, 7};
+        auto it = compareSet.begin();
+        size_t count = 0;
+        for (const uint64_t v : access.scanEdgeProperties<types::UInt64>(0)) {
+            ASSERT_EQ(*it, v);
+            count++;
+            it++;
+        }
+        ASSERT_EQ(count, compareSet.size());
+    }
+
+    {
+        std::vector<std::string_view> compareSet {
+            "TmpEdgeID0",
+            "TmpEdgeID1",
+            "TmpEdgeID0",
+            "TmpEdgeID1",
+            "TmpEdgeID2 patch",
+            "TmpEdgeID8",
+            "TmpEdgeID5",
+            "TmpEdgeID6",
+            "TmpEdgeID7",
+        };
+        auto it = compareSet.begin();
+        size_t count = 0;
+        for (const std::string& v : access.scanEdgeProperties<types::String>(1)) {
+            ASSERT_STREQ(it->data(), v.c_str());
+            count++;
+            it++;
+        }
+        ASSERT_EQ(count, compareSet.size());
+    }
+}
+
+TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
+    auto access = _db->access();
+
+    const auto& labelsets = _db->getMetadata()->labelsets();
+    const auto labelset = LabelSet::fromList({1});
+    const LabelSetID labelsetID = labelsets.get(labelset);
+
+    {
+        std::vector<uint64_t> compareSet {2, 0, 1, 5, 7, 8};
+        auto it = compareSet.begin();
+        size_t count = 0;
+        for (const uint64_t v : access.scanNodePropertiesByLabel<types::UInt64>(0, labelsetID)) {
+            ASSERT_EQ(*it, v);
+            count++;
+            it++;
+        }
+        ASSERT_EQ(count, compareSet.size());
+    }
+
+    {
+        std::vector<std::string_view> compareSet {
+            // "TmpID1", This property is not set for this node
+            "TmpID0",
+            "TmpID5",
+            "TmpID2 patch",
+            "TmpID7",
+            "TmpID8",
+        };
+        auto it = compareSet.begin();
+        size_t count = 0;
+        for (const std::string& v : access.scanNodePropertiesByLabel<types::String>(1, labelsetID)) {
             ASSERT_STREQ(it->data(), v.c_str());
             count++;
             it++;
@@ -357,14 +479,13 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
 
 TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
     auto access = _db->access();
-    auto reader = access.getReader();
     ColumnNodes inputNodeIDs = {1, 3, 8};
 
     {
         std::vector<uint64_t> compareSet {1, 1, 5};
         auto it = compareSet.begin();
         size_t count = 0;
-        for (const uint64_t v : reader.getNodeProperties<UInt64PropertyType>(0, &inputNodeIDs)) {
+        for (const uint64_t v : access.getNodeProperties<types::UInt64>(0, &inputNodeIDs)) {
             ASSERT_EQ(*it, v);
             count++;
             it++;
@@ -379,7 +500,7 @@ TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
         };
         auto it = compareSet.begin();
         size_t count = 0;
-        for (const std::string& v : reader.getNodeProperties<StringPropertyType>(1, &inputNodeIDs)) {
+        for (const std::string& v : access.getNodeProperties<types::String>(1, &inputNodeIDs)) {
             ASSERT_STREQ(it->data(), v.c_str());
             count++;
             it++;

@@ -7,6 +7,7 @@
 
 #include "NodeSearch.h"
 #include "Explorator.h"
+#include "PropertyType.h"
 #include "SearchUtils.h"
 #include "ExploratorTree.h"
 
@@ -15,13 +16,11 @@
 #include "Report.h"
 
 #include "ToolInit.h"
-#include "PerfStat.h"
 #include "TimerStat.h"
 
 #include "DB.h"
 #include "DBLoader.h"
 #include "Node.h"
-#include "NodeType.h"
 
 #include "BioAssert.h"
 #include "LogUtils.h"

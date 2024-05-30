@@ -18,4 +18,6 @@ void CanNotCreateDir(const std::string& path);
 void ExecutableNotFound(const std::string& cmd);
 void ImpossibleToRunCommand(const std::string& cmd);
 
+void ElapsedTime(float time, std::string_view unit);
+
 }

@@ -7,7 +7,6 @@
 #include "RegressTesting.h"
 
 #include "ToolInit.h"
-#include "StringToNumber.h"
 #include "BannerDisplay.h"
 
 // This is necessary to handle unix signals
@@ -63,3 +62,4 @@ int main(int argc, const char** argv) {
 
     return EXIT_SUCCESS;
 }
+

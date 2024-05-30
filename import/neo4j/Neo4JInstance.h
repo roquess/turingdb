@@ -2,10 +2,10 @@
 
 #include "FileUtils.h"
 
-class Neo4JInstance {
+class Neo4jInstance {
 public:
-    Neo4JInstance(const FileUtils::Path& baseDir);
-    ~Neo4JInstance();
+    explicit Neo4jInstance(const FileUtils::Path& baseDir);
+    ~Neo4jInstance();
 
     bool setup();
     bool start();

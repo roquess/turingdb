@@ -22,8 +22,8 @@ public:
 
     pid_t getPID() const { return _pid; }
 
-    bool isRunning() const;
-    bool isTerminated() const { return !isRunning(); }
+    bool isRunning();
+    bool isTerminated() { return !isRunning(); }
 
     bool start();
     bool startAsync();
@@ -47,4 +47,7 @@ private:
     pid_t _pid {-1};
     int _exitCode {-1};
     bool _waited {false};
+    bool _running {true};
+
+    void updateExitCode();
 };

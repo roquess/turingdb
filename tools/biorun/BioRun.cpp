@@ -5,7 +5,6 @@
 
 #include "NotebookRunner.h"
 
-#include "BannerDisplay.h"
 #include "FileUtils.h"
 #include "LogUtils.h"
 

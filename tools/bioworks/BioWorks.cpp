@@ -3,9 +3,6 @@
 #include "WorkflowServer.h"
 #include "WorkflowServerConfig.h"
 
-#include "BioLog.h"
-
-using namespace Log;
 using namespace workflow;
 
 int main(int argc, const char** argv) {
@@ -18,7 +15,5 @@ int main(int argc, const char** argv) {
     WorkflowServer server(serverConfig);
     server.start();
 
-    BioLog::printSummary();
-    BioLog::destroy();
     return EXIT_SUCCESS;
 }

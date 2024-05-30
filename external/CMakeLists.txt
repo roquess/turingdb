@@ -1,8 +1,14 @@
+set(RANGE_V3_DOCS OFF)
+set(RANGE_V3_TESTS OFF)
+set(RANGE_V3_EXAMPLES OFF)
+set(RANGE_V3_PERF OFF)
+
 add_subdirectory(tinyxml2)
 add_subdirectory(linenoise)
 add_subdirectory(nlohmann_json)
 add_subdirectory(incbin)
 add_subdirectory(crow)
+add_subdirectory(range-v3)
 add_subdirectory(argparse)
 add_subdirectory(spdlog)
 

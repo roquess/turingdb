@@ -1,17 +1,25 @@
 #include "TestUtils.h"
 
+#include "DBMetadata.h"
 #include "DBAccess.h"
 #include "DataBuffer.h"
 
 using namespace db;
 
-void TestUtils::generateMillionTestDB(DBAccess& acc) {
+void TestUtils::generateMillionTestDB(DB& db, JobSystem& jobSystem) {
     const size_t nodeCount = 1000000;
+    LabelSetMap& labelsets = db.getMetadata()->labelsets();
 
-    DataBuffer buf = acc.newDataBuffer();
+    std::unique_ptr<DataBuffer> buf = db.access().newDataBuffer();
+    const LabelSetID labelsetID = labelsets.getOrCreate(LabelSet::fromList({0}));
+
     for (size_t i = 0; i < nodeCount; i++) {
-        buf.addNode({0});
+        buf->addNode(labelsetID);
     }
 
-    acc.pushDataPart(buf);
+    {
+        auto datapart = db.uniqueAccess().createDataPart(std::move(buf));
+        datapart->load(db.access(), jobSystem);
+        db.uniqueAccess().pushDataPart(std::move(datapart));
+    }
 }

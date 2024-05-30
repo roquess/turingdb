@@ -44,4 +44,8 @@ void CanNotCreateDir(const std::string& path) {
     spdlog::error("Can not create directory {}", path);
 }
 
+void ElapsedTime(float time, std::string_view unit) {
+    spdlog::info("Elapsed time: {} {}", time, unit);
+}
+
 }

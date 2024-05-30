@@ -1,7 +1,6 @@
 #include "JsonExamples.h"
 
 #include <iostream>
-#include <regex>
 
 #include "DB.h"
 #include "FileUtils.h"

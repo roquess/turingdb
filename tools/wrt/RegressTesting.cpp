@@ -218,7 +218,7 @@ void RegressTesting::processTestTermination(RegressJob* job) {
             cleanDir(path, true);
         }
     } else {
-        spdlog::info("Fail: "+path.string());
+        spdlog::info("Fail: {} (exit code: {})", path.string(), exitCode);
         _testFail.emplace_back(path);
     }
 }
