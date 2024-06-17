@@ -12,6 +12,7 @@ build-job:
     - source /turing/setup.sh
     - make -j4
     - make test
+    - cd test/regress/ && wrt -j 4
     - release/check_python.sh
   artifacts:
     when: always
