@@ -12,9 +12,7 @@ build-job:
     - source /turing/setup.sh
     - make -j4
     - make test
-    - echo $HOME
-    - echo $TURING_HOME
-    - cd test/regress/ && wrt -j 1 -output-on-failure
+    - cd test/regress/ && wrt -j 4 -output-on-failure
     - release/check_python.sh
   artifacts:
     when: always
