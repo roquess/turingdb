@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 
@@ -53,7 +54,23 @@ void Process::updateExitCode() {
     }
 
     int status = 0;
-    if (waitpid(_pid, &status, WNOHANG) == 0) {
+    const auto res = waitpid(_pid, &status, WNOHANG);
+    if (res == -1) {
+        switch (errno) {
+            case ECHILD: {
+                spdlog::error("Error: child error");
+                break;
+            }
+            case EINTR: {
+                spdlog::error("Error: EINTR");
+                break;
+            }
+            case EINVAL: {
+                spdlog::error("Error: Invalid options");
+                break;
+            }
+        }
+        _exitCode = -1;
         return;
     }
 
@@ -164,19 +181,38 @@ bool Process::wait() {
         return false;
     }
 
-    siginfo_t siginfo;
-    memset(&siginfo, 0, sizeof(siginfo_t));
-    if (waitid(P_PID, _pid, &siginfo, WEXITED) < 0) {
+    int status = 0;
+    const auto res = waitpid(_pid, &status, 0);
+    if (res == -1) {
+        _waited = true;
+        _running = false;
+        switch (errno) {
+            case ECHILD: {
+                spdlog::error("Could not wait on process: child error");
+                break;
+            }
+            case EINTR: {
+                spdlog::error("Could not wait on process: EINTR");
+                break;
+            }
+            case EINVAL: {
+                spdlog::error("Could not wait on process: EINVAL");
+                break;
+            }
+        }
         return false;
     }
 
-    _waited = true;
-
-    updateExitCode();
-
-    if (_exitCode != -1) {
-        return true;
+    if (WIFEXITED(status)) {
+        _exitCode = WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+        _exitCode = WTERMSIG(status);
+    } else if (WIFSTOPPED(status)) {
+        _exitCode = WSTOPSIG(status);
     }
+
+    _waited = true;
+    _running = false;
 
     return true;
 }
