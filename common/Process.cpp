@@ -56,21 +56,6 @@ void Process::updateExitCode() {
     int status = 0;
     const auto res = waitpid(_pid, &status, WNOHANG);
     if (res == -1) {
-        switch (errno) {
-            case ECHILD: {
-                spdlog::error("Error: child error");
-                break;
-            }
-            case EINTR: {
-                spdlog::error("Error: EINTR");
-                break;
-            }
-            case EINVAL: {
-                spdlog::error("Error: Invalid options");
-                break;
-            }
-        }
-        _exitCode = -1;
         return;
     }
 
@@ -181,11 +166,16 @@ bool Process::wait() {
         return false;
     }
 
+    if (!_running) {
+        return true;
+    }
+
     int status = 0;
     const auto res = waitpid(_pid, &status, 0);
+    _running = false;
+    _waited = true;
+
     if (res == -1) {
-        _waited = true;
-        _running = false;
         switch (errno) {
             case ECHILD: {
                 spdlog::error("Could not wait on process: child error");
@@ -210,9 +200,6 @@ bool Process::wait() {
     } else if (WIFSTOPPED(status)) {
         _exitCode = WSTOPSIG(status);
     }
-
-    _waited = true;
-    _running = false;
 
     return true;
 }
