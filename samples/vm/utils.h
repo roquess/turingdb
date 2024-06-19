@@ -4,4 +4,6 @@
 
 #include "Instruction.h"
 
-std::vector<db::Instruction> getTestProgram();
+void getTestProgram(std::vector<db::Instruction>&);
+
+uint64_t getCount();

@@ -1,0 +1,16 @@
+.text:
+# Store db count in r0 to print the
+# initial db count at the end
+
+SCAN_NODES i1
+    JMP_VALID i1 i1_content i1_end
+
+    i1_step:
+    NEXT_OR_JM i1 i1_end
+
+    i1_content:
+
+    JMP i1_step
+    i1_end:
+
+EXIT
