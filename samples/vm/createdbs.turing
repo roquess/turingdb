@@ -2,7 +2,7 @@
 ALIAS %initDbCount r0
 ALIAS %dbCount r1
 ALIAS %i r1
-ALIAS %max r2
+ALIAS %max r2 # test
 
 .text:
 # Store db count in r0 to print the

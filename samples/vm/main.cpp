@@ -33,7 +33,7 @@ __attribute__((noinline)) void getSum(uint64_t* sum,
 int main() {
     LogSetup::setupLogFileBacked(SAMPLE_NAME ".log");
     PerfStat::init(SAMPLE_NAME ".perf");
-    spdlog::set_level(spdlog::level::info);
+    spdlog::set_level(spdlog::level::trace);
     const std::string turingHome = std::getenv("TURING_HOME");
     JobSystem jobSystem;
     jobSystem.initialize();
