@@ -7,6 +7,7 @@
 #include "BytecodeCompiler.h"
 #include "ASTContext.h"
 #include "QueryParser.h"
+#include "QueryAnalyzer.h"
 
 #include "ToolInit.h"
 #include "Panic.h"
@@ -36,6 +37,11 @@ QueryCommand* selectGenesAndProteins(ASTContext* ctxt) {
         panic("Syntax error in the query");
     }
 
+    QueryAnalyzer analyzer(ctxt);
+    if (!analyzer.analyze(query)) {
+        panic("Query analysis failed");
+    }
+
     return query;
 }
 
@@ -45,6 +51,11 @@ QueryCommand* parseQuery(ASTContext* ctxt, const std::string queryStr) {
     QueryCommand* query = parser.parse(queryStr);
     if (!query) {
         panic("Syntax error in the query");
+    }
+
+    QueryAnalyzer analyzer(ctxt);
+    if (!analyzer.analyze(query)) {
+        panic("Query analysis failed");
     }
 
     return query;
