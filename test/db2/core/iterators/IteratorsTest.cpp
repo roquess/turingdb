@@ -326,7 +326,7 @@ TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
 
 TEST_F(IteratorsTest, GetEdgesIteratorTest) {
     auto access = _db->access();
-    ColumnNodes inputNodeIDs = {1, 2, 3, 8};
+    ColumnIDs inputNodeIDs = {1, 2, 3, 8};
     std::vector<TestEdgeRecord> compareSet {
         {2, 3, 4},
         {5, 2, 8},
@@ -484,7 +484,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
 
 TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
     auto access = _db->access();
-    ColumnNodes inputNodeIDs = {1, 3, 8};
+    ColumnIDs inputNodeIDs = {1, 3, 8};
 
     {
         std::vector<uint64_t> compareSet {1, 1, 5};

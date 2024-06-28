@@ -7,7 +7,7 @@
 #include "Pipeline.h"
 #include "ScanNodesProcessor.h"
 #include "DiscardProcessor.h"
-#include "ColumnNodes.h"
+#include "ColumnIDs.h"
 #include "Stream.h"
 
 using namespace db;
@@ -43,7 +43,7 @@ TEST_F(PipelineTest, createSmallPipeline) {
         ASSERT_EQ(stream->getDriver(), scanNodes);
         ASSERT_EQ(stream->getReceiver(), discard);
         ASSERT_TRUE(stream->getColumn() != nullptr);
-        ASSERT_TRUE(dynamic_cast<ColumnNodes*>(stream->getColumn()));
+        ASSERT_TRUE(dynamic_cast<ColumnIDs*>(stream->getColumn()));
     }
 
     // Check discard

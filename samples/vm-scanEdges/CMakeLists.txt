@@ -1,6 +1,5 @@
-set(SAMPLE_NAME vm)
-set(SOURCES     main.cpp
-                utils.cpp)
+set(SAMPLE_NAME vm-scanEdges)
+set(SOURCES     main.cpp)
 
 turing_sample(${SAMPLE_NAME} ${SOURCES})
 
@@ -13,7 +12,5 @@ target_include_directories(${SAMPLE_NAME}
     PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 install(
-    FILES       ${CMAKE_CURRENT_LIST_DIR}/createdbs.turing
-                ${CMAKE_CURRENT_LIST_DIR}/iterators.turing
-                ${CMAKE_CURRENT_LIST_DIR}/data.turing
+    FILES       ${CMAKE_CURRENT_LIST_DIR}/program.turing
     DESTINATION samples/${SAMPLE_NAME}/)

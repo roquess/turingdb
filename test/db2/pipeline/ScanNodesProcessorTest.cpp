@@ -10,7 +10,7 @@
 #include "FileUtils.h"
 #include "PerfStat.h"
 
-#include "ColumnNodes.h"
+#include "ColumnIDs.h"
 #include "DB.h"
 #include "DBAccess.h"
 #include "Stream.h"
@@ -87,7 +87,7 @@ TEST_F(ScanNodesProcessorTest, millionNodes) {
     PipelineExecutor pipeExec(&pipeline);
     pipeExec.init();
 
-    const ColumnNodes& nodes = *static_cast<ColumnNodes*>(scanNodesOut->getColumn());
+    const ColumnIDs& nodes = *static_cast<ColumnIDs*>(scanNodesOut->getColumn());
 
     EntityID expectedID = 0;
     while (!pipeExec.isFinished()) {
