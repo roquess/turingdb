@@ -1,7 +1,3 @@
-#include <range/v3/view/drop.hpp>
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Assembler.h"
@@ -24,7 +20,7 @@ int main() {
     const std::string sampleDir = turingHome + "/samples/" SAMPLE_NAME;
 
     // Create assembler
-    auto assembler = Assembler::create();
+    Assembler assembler;
 
     // Initialize system
     auto system = std::make_unique<SystemManager>();
@@ -37,7 +33,7 @@ int main() {
     spdlog::info("== Assembly ==");
     auto t0 = Clock::now();
 
-    Program program = assembler->compileFile(sampleDir + "/program.turing");
+    Program program = assembler.compileFile(sampleDir + "/program.turing");
     if (program.size() == 0) {
         spdlog::error("Error program invalid");
         return 1;
@@ -63,8 +59,6 @@ int main() {
     vm.exec(program, env);
     spdlog::info("Sum: {}", vm.readRegister(0));
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
-
-
 
     PerfStat::destroy();
     return 0;

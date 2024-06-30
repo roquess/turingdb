@@ -26,7 +26,7 @@ int main() {
     jobSystem.initialize();
 
     // Create assembler
-    auto assembler = Assembler::create();
+    Assembler assembler;
 
     // Initialize system
     auto system = std::make_unique<SystemManager>();
@@ -49,7 +49,7 @@ int main() {
     spdlog::info("== Compilation ==");
     auto t0 = Clock::now();
 
-    Program program = assembler->compileFile(sampleDir + "/program.turing");
+    Program program = assembler.compileFile(sampleDir + "/program.turing");
     if (program.size() == 0) {
         spdlog::error("Error program invalid");
         return 1;
