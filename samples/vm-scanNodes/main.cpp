@@ -52,7 +52,7 @@ int main() {
     spdlog::info("== Compilation ==");
     auto t0 = Clock::now();
 
-    auto program = assembler.compileFile(sampleDir + "/program.turing");
+    auto program = assembler.generateFromFile(sampleDir + "/program.turing");
     if (program->size() == 0) {
         return 1;
     }
