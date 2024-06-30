@@ -33,8 +33,8 @@ int main() {
     spdlog::info("== Assembly ==");
     auto t0 = Clock::now();
 
-    Program program = assembler.compileFile(sampleDir + "/program.turing");
-    if (program.size() == 0) {
+    auto program = assembler.compileFile(sampleDir + "/program.turing");
+    if (program->size() == 0) {
         spdlog::error("Error program invalid");
         return 1;
     }
@@ -56,7 +56,7 @@ int main() {
     spdlog::info("== Execution ==");
     t0 = Clock::now();
 
-    vm.exec(program, env);
+    vm.exec(program.get(), env);
     spdlog::info("Sum: {}", vm.readRegister(0));
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
 
