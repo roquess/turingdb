@@ -14,7 +14,7 @@ build-job:
     - make test
     - release/check_python.sh
     - make regress
-    - make samples
+    - make run_samples
   artifacts:
     when: always
     paths:
