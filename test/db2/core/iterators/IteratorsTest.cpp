@@ -9,9 +9,10 @@
 #include "LogSetup.h"
 #include "iterators/GetInEdgesIterator.h"
 #include "iterators/GetOutEdgesIterator.h"
+#include "iterators/ScanOutEdgesByLabelIterator.h"
+#include "iterators/ScanInEdgesByLabelIterator.h"
 #include "iterators/ScanEdgesIterator.h"
 #include "iterators/ScanNodesByLabelIterator.h"
-#include "iterators/ScanEdgesByLabelIterator.h"
 #include "iterators/ScanNodesIterator.h"
 #include "spdlog/spdlog.h"
 
@@ -322,24 +323,80 @@ TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
     ASSERT_EQ(count, compareSet.size());
 }
 
-TEST_F(IteratorsTest, ScanEdgesByLabelIteratorTest) {
+TEST_F(IteratorsTest, ScanOutEdgesByLabelIteratorTest) {
     auto access = _db->access();
-    //std::vector<EntityID> compareSet {2, 4, 3, 8, 6, 7};
+    std::map<EntityID, const EdgeRecord*> byScanNodesRecords;
+    std::map<EntityID, const EdgeRecord*> byScanEdgesRecords;
 
-    //auto it = compareSet.begin();
-    //size_t count = 0;
-    const auto labelset = LabelSet::fromList({1});
+    const auto& labelsets = _db->getMetadata()->labelsets();
+    const size_t labelsetCount = labelsets.getCount();
 
-    spdlog::info("Output");
-    for (const EdgeRecord& edge : access.scanEdgesByLabel(&labelset)) {
-        //ASSERT_EQ(it->getValue(), id.getValue());
-        //ASSERT_EQ(it->getValue(), id.getValue());
-        //count++;
-        spdlog::info("{}->{} ({})", edge._nodeID, edge._otherID, edge._edgeID);
-        //it++;
+    // For each existing labelset compare scanOutEdgesByLabel to scanNodesByLabel -> getOutEdges
+    for (LabelSetID lid = 0; lid != labelsetCount - 1; ++lid) {
+        const LabelSet labelset = labelsets.getValue(lid);
+
+        ColumnIDs nodeIDs;
+        for (const EntityID nodeID : access.scanNodesByLabel(&labelset)) {
+            nodeIDs = {nodeID};
+            for (const EdgeRecord& edge : access.getOutEdges(&nodeIDs)) {
+                byScanNodesRecords.emplace(edge._edgeID, &edge);
+            }
+        }
+
+        for (const EdgeRecord& edge : access.scanOutEdgesByLabel(&labelset)) {
+            byScanEdgesRecords.emplace(edge._edgeID, &edge);
+        }
     }
-    //ASSERT_EQ(count, compareSet.size());
-    ASSERT_FALSE(true);
+
+    ASSERT_EQ(byScanNodesRecords.size(), byScanEdgesRecords.size());
+    const size_t count = byScanNodesRecords.size();
+    for (EntityID edgeID = 0; edgeID < count; ++edgeID) {
+        const auto& byScanNodes = *byScanNodesRecords.at(edgeID);
+        const auto& byScanEdges = *byScanEdgesRecords.at(edgeID);
+        spdlog::info("Comparing [{}:{}->{}] to [{}:{}->{}]",
+                     byScanNodes._edgeID, byScanNodes._nodeID, byScanNodes._otherID,
+                     byScanEdges._edgeID, byScanEdges._nodeID, byScanEdges._otherID);
+        ASSERT_EQ(byScanNodes._nodeID, byScanEdges._nodeID);
+        ASSERT_EQ(byScanNodes._otherID, byScanEdges._otherID);
+    }
+}
+
+TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
+    auto access = _db->access();
+    std::map<EntityID, const EdgeRecord*> byScanNodesRecords;
+    std::map<EntityID, const EdgeRecord*> byScanEdgesRecords;
+
+    const auto& labelsets = _db->getMetadata()->labelsets();
+    const size_t labelsetCount = labelsets.getCount();
+
+    // For each existing labelset compare scanInEdgesByLabel to scanNodesByLabel -> getInEdges
+    for (LabelSetID lid = 0; lid != labelsetCount - 1; ++lid) {
+        const LabelSet labelset = labelsets.getValue(lid);
+
+        ColumnIDs nodeIDs;
+        for (const EntityID nodeID : access.scanNodesByLabel(&labelset)) {
+            nodeIDs = {nodeID};
+            for (const EdgeRecord& edge : access.getInEdges(&nodeIDs)) {
+                byScanNodesRecords.emplace(edge._edgeID, &edge);
+            }
+        }
+
+        for (const EdgeRecord& edge : access.scanInEdgesByLabel(&labelset)) {
+            byScanEdgesRecords.emplace(edge._edgeID, &edge);
+        }
+    }
+
+    ASSERT_EQ(byScanNodesRecords.size(), byScanEdgesRecords.size());
+    const size_t count = byScanNodesRecords.size();
+    for (EntityID edgeID = 0; edgeID < count; ++edgeID) {
+        const auto& byScanNodes = *byScanNodesRecords.at(edgeID);
+        const auto& byScanEdges = *byScanEdgesRecords.at(edgeID);
+        spdlog::info("Comparing [{}:{}->{}] to [{}:{}->{}]",
+                     byScanNodes._edgeID, byScanNodes._nodeID, byScanNodes._otherID,
+                     byScanEdges._edgeID, byScanEdges._nodeID, byScanEdges._otherID);
+        ASSERT_EQ(byScanNodes._nodeID, byScanEdges._nodeID);
+        ASSERT_EQ(byScanNodes._otherID, byScanEdges._otherID);
+    }
 }
 
 TEST_F(IteratorsTest, GetEdgesIteratorTest) {
