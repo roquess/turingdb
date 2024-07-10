@@ -2,8 +2,9 @@
 ENTITY_IDS $input, {0, 1 ,2}
 ENTITY_IDS $tgts1, {}
 ENTITY_IDS $tgts2, {}
-
-STRING $hello, "Hello world"
+INDICES    $indices1
+INDICES    $indices2
+OUTPUT     $out
 
 .alias:
 ALIAS %out,      r0
@@ -11,13 +12,12 @@ ALIAS %indices1, r1
 ALIAS %indices2, r2
 
 .text:
-DEFINE_OUTPUT %out
-ALLOC_INDICES %indices1
-ALLOC_INDICES %indices2
-
-LOAD r3, $input
-LOAD r4, $tgts1
-LOAD r5, $tgts2
+LOAD %indices1, $indices1
+LOAD %indices2, $indices2
+LOAD %out,      $out
+LOAD r3,        $input
+LOAD r4,        $tgts1
+LOAD r5,        $tgts2
 
 ADD_COL %out, r3, _
 ADD_COL %out, r4, %indices1

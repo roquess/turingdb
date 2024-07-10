@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include <set>
 
 #include "DB.h"
 #include "DBAccess.h"
@@ -12,6 +11,7 @@
 #include "iterators/GetOutEdgesIterator.h"
 #include "iterators/ScanEdgesIterator.h"
 #include "iterators/ScanNodesByLabelIterator.h"
+#include "iterators/ScanEdgesByLabelIterator.h"
 #include "iterators/ScanNodesIterator.h"
 #include "spdlog/spdlog.h"
 
@@ -311,17 +311,35 @@ TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
 
     auto it = compareSet.begin();
     size_t count = 0;
-    const auto& labelsets = _db->getMetadata()->labelsets();
     const auto labelset = LabelSet::fromList({1});
-    const LabelSetID labelsetID = labelsets.get(labelset);
 
-    for (const EntityID id : access.scanNodesByLabel(labelsetID)) {
+    for (const EntityID id : access.scanNodesByLabel(&labelset)) {
         ASSERT_EQ(it->getValue(), id.getValue());
         ASSERT_EQ(it->getValue(), id.getValue());
         count++;
         it++;
     }
     ASSERT_EQ(count, compareSet.size());
+}
+
+TEST_F(IteratorsTest, ScanEdgesByLabelIteratorTest) {
+    auto access = _db->access();
+    //std::vector<EntityID> compareSet {2, 4, 3, 8, 6, 7};
+
+    //auto it = compareSet.begin();
+    //size_t count = 0;
+    const auto labelset = LabelSet::fromList({1});
+
+    spdlog::info("Output");
+    for (const EdgeRecord& edge : access.scanEdgesByLabel(&labelset)) {
+        //ASSERT_EQ(it->getValue(), id.getValue());
+        //ASSERT_EQ(it->getValue(), id.getValue());
+        //count++;
+        spdlog::info("{}->{} ({})", edge._nodeID, edge._otherID, edge._edgeID);
+        //it++;
+    }
+    //ASSERT_EQ(count, compareSet.size());
+    ASSERT_FALSE(true);
 }
 
 TEST_F(IteratorsTest, GetEdgesIteratorTest) {
@@ -445,16 +463,13 @@ TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
 
 TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
     auto access = _db->access();
-
-    const auto& labelsets = _db->getMetadata()->labelsets();
     const auto labelset = LabelSet::fromList({1});
-    const LabelSetID labelsetID = labelsets.get(labelset);
 
     {
         std::vector<uint64_t> compareSet {2, 0, 1, 5, 7, 8};
         auto it = compareSet.begin();
         size_t count = 0;
-        for (const uint64_t v : access.scanNodePropertiesByLabel<types::UInt64>(0, labelsetID)) {
+        for (const uint64_t v : access.scanNodePropertiesByLabel<types::UInt64>(0, &labelset)) {
             ASSERT_EQ(*it, v);
             count++;
             it++;
@@ -473,7 +488,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
         };
         auto it = compareSet.begin();
         size_t count = 0;
-        for (const std::string& v : access.scanNodePropertiesByLabel<types::String>(1, labelsetID)) {
+        for (const std::string& v : access.scanNodePropertiesByLabel<types::String>(1, &labelset)) {
             ASSERT_STREQ(it->data(), v.c_str());
             count++;
             it++;

@@ -20,6 +20,7 @@ int main() {
     spdlog::set_level(spdlog::level::info);
     const std::string turingHome = std::getenv("TURING_HOME");
     const std::string sampleDir = turingHome + "/samples/" SAMPLE_NAME;
+    Program program;
 
     JobSystem jobSystem;
     jobSystem.initialize();
@@ -43,19 +44,16 @@ int main() {
     // Initialize VM
     VM vm(system.get());
 
-
     // Compile & execute program
     spdlog::info("== Compilation ==");
     auto t0 = Clock::now();
 
-    auto program = assembler.generateFromFile(sampleDir + "/program.turing");
-    if (program->size() == 0) {
+    if (!assembler.generateFromFile(program, sampleDir + "/program.turing")) {
         spdlog::error("Error program invalid");
         return 1;
     }
 
     logt::ElapsedTime(Microseconds(Clock::now() - t0).count(), "us");
-
 
     // Initialize VM
     spdlog::info("== Init VM ==");
@@ -65,24 +63,15 @@ int main() {
 
     logt::ElapsedTime(Microseconds(Clock::now() - t0).count(), "us");
 
-
-    // Setup DataEnv (initial conditions for registers
-    // DataEnv env;
-    //env.add<ColumnIDs>({9953, 9954, 9955, 9956, 9957, 9958});
-    //env.add<ColumnVector<size_t>>({});
-    //env.add<ColumnVector<size_t>>({});
-    //env.add<ColumnIDs>({});
-    //env.add<ColumnIDs>({});
-
     // Execution
     spdlog::info("== Execution ==");
     t0 = Clock::now();
 
-    vm.exec(program.get());
+    vm.exec(&program);
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
 
     spdlog::info("Output:");
-    const auto& output = vm.readRegister<OutputWriter>(5)->getResult();
+    const auto& output = vm.readRegister<OutputWriter>(0)->getResult();
     std::string str;
     for (size_t i = 0; i < output[0].size(); i++) {
         for (size_t j = 0; j < output.size(); j++) {
@@ -95,18 +84,3 @@ int main() {
     PerfStat::destroy();
     return 0;
 }
-
-/* 
- * 3   4   8
- *     5
- * 4   6   2
- *
- *
- *     0    0
- *     0    2
- *     1
- *
- * 3   8
- * 4   2
- *
- * */

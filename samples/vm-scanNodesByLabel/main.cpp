@@ -1,6 +1,8 @@
 #include <spdlog/spdlog.h>
 
 #include "Assembler.h"
+#include "DB.h"
+#include "DBAccess.h"
 #include "DataEnv.h"
 #include "LogSetup.h"
 #include "LogUtils.h"
@@ -8,6 +10,7 @@
 #include "Neo4jImporter.h"
 #include "PerfStat.h"
 #include "Program.h"
+#include "ScanNodesIterator.h"
 #include "SystemManager.h"
 #include "Time.h"
 #include "VM.h"
@@ -56,7 +59,6 @@ int main() {
 
     logt::ElapsedTime(Microseconds(Clock::now() - t0).count(), "us");
 
-
     // Initialize VM
     spdlog::info("== Init VM ==");
     t0 = Clock::now();
@@ -74,14 +76,21 @@ int main() {
 
     spdlog::info("Output:");
     const auto& output = vm.readRegister<OutputWriter>(0)->getResult();
-    std::string str;
-    for (size_t i = 0; i < output[0].size(); i++) {
-        for (size_t j = 0; j < output.size(); j++) {
-            str += fmt::format("{:>7}", output[j][i]);
-        }
-        str += '\n';
+    const size_t nodeCount = output[0].size();
+    spdlog::info("Node count: {}", nodeCount);
+
+    auto access = system->getDefaultDB()->access();
+    const auto* nodeIDs = output.data();
+    const PropertyType phoneNoID = access.getDB()->getMetadata()->propTypes().get("phoneNo (String)");
+    if (!phoneNoID._id.isValid()) {
+        spdlog::error("'phoneNo' property type does not exist");
+        return 1;
     }
-    spdlog::info("\n{}", str);
+    std::string str;
+    for (const auto& phoneNo : access.getNodeProperties<types::String>(phoneNoID._id, nodeIDs)) {
+        str += phoneNo + " ";
+    }
+    spdlog::info(str);
 
     PerfStat::destroy();
     return 0;

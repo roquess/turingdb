@@ -1,0 +1,33 @@
+.data:
+ENTITY_IDS $nodeIDs, {}
+INDICES    $indices
+OUTPUT     $out
+STRING     $label,    "Phone"
+LABELSET   $labelset, {$label}
+
+.alias:
+ALIAS %out,      r0
+ALIAS %indices,  r1
+ALIAS %labelset, r2
+ALIAS %nodeIDs,  r3
+
+.text:
+LOAD %indices,  $indices
+LOAD %out,      $out
+LOAD %nodeIDs,  $nodeIDs
+LOAD %labelset, $labelset
+
+BUILD_LABELSET  %labelset
+ADD_COL         %out, %nodeIDs, _
+
+SCAN_NODES_BY_LABEL i0, %indices, %labelset, {%nodeIDs}
+    i0_START:
+    JEND   i0, i0_END
+    UPDATE i0
+
+    WRITE %out
+
+    GOTO i0_START
+i0_END:
+
+EXIT

@@ -1,11 +1,27 @@
+.data:
+ENTITY_IDS $nodeIDs, {}
+INDICES    $indices
+OUTPUT     $out
+
+.alias:
+ALIAS %out,     r0
+ALIAS %indices, r2
+
 .text:
-SCAN_NODES i0, {r0}
-    i0_start:
-    JEND i0, i0_end
+LOAD %indices, $indices
+LOAD %out,     $out
+LOAD r1,       $nodeIDs
+
+ADD_COL %out, r1, _
+
+SCAN_NODES i0, %indices, {r1}
+    i0_START:
+    JEND   i0, i0_END
     UPDATE i0
 
-    GOTO i0_start
+    WRITE %out
 
-i0_end:
+    GOTO i0_START
+i0_END:
 
 EXIT

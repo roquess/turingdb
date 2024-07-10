@@ -1,4 +1,3 @@
-#include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Assembler.h"
@@ -21,6 +20,7 @@ int main() {
     spdlog::set_level(spdlog::level::info);
     const std::string turingHome = std::getenv("TURING_HOME");
     const std::string sampleDir = turingHome + "/samples/" SAMPLE_NAME;
+    Program program;
 
     JobSystem jobSystem;
     jobSystem.initialize();
@@ -49,14 +49,12 @@ int main() {
     spdlog::info("== Compilation ==");
     auto t0 = Clock::now();
 
-    auto program = assembler.generateFromFile(sampleDir + "/program.turing");
-    if (program->size() == 0) {
+    if (!assembler.generateFromFile(program, sampleDir + "/program.turing")) {
         spdlog::error("Error program invalid");
         return 1;
     }
 
     logt::ElapsedTime(Microseconds(Clock::now() - t0).count(), "us");
-
 
     // Initialize VM
     spdlog::info("== Init VM ==");
@@ -66,27 +64,22 @@ int main() {
 
     logt::ElapsedTime(Microseconds(Clock::now() - t0).count(), "us");
 
-
-    // Setup DataEnv (initial conditions for registers
-    DataEnv env;
-    env.addEntityIDColumn(0, {});
-    env.addEntityIDColumn(1, {});
-    env.addEntityIDColumn(2, {});
-    env.addIndices(3, {});
-
     // Execution
     spdlog::info("== Execution ==");
     t0 = Clock::now();
 
-    vm.exec(program.get(), &env);
+    vm.exec(&program);
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
 
-    spdlog::info("First 10 edges:");
-    const auto& output = vm.readRegister<OutputWriter>(4)->getResult();
+    spdlog::info("Output:");
+    const auto& output = vm.readRegister<OutputWriter>(0)->getResult();
     std::string str;
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < output[0].size(); i++) {
         for (size_t j = 0; j < output.size(); j++) {
             str += fmt::format("{:>7}", output[j][i]);
+        }
+        if (i == 20) {
+            break;
         }
         str += '\n';
     }
