@@ -5,7 +5,6 @@
 #include <array>
 #include <type_traits>
 
-
 template <typename T>
 concept testable = std::is_integral_v<T>
                 || std::is_same_v<T, bool>
