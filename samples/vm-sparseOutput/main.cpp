@@ -85,8 +85,13 @@ int main() {
             }
         }
         str += '\n';
+        if (i == 20) {
+            str += "...\n";
+            break;
+        }
     }
     spdlog::info("\n{}", str);
+    spdlog::info("NLines: {}", output[0].size());
 
     PerfStat::destroy();
     return 0;

@@ -13,20 +13,22 @@ ALIAS %input,    r1
 # First edge
 ALIAS %indices1, r2
 ALIAS %tgts1,    r3
-ALIAS %types1,   r4
-ALIAS %edgeIDs1, r5
 
 # Second edge
-ALIAS %indices2, r6
-ALIAS %tgts2,    r7
-ALIAS %types2,   r8
-ALIAS %edgeIDs2, r9
+ALIAS %indices2, r4
+ALIAS %tgts2,    r5
 
 # Third edge
-ALIAS %indices3, r10
-ALIAS %tgts3,    r11
-ALIAS %types3,   r12
-ALIAS %edgeIDs3, r13
+ALIAS %indices3, r6
+ALIAS %tgts3,    r7
+
+# Fourth edge
+ALIAS %indices4, r8
+ALIAS %tgts4,    r9
+
+# Fifth edge
+ALIAS %indices5, r10
+ALIAS %tgts5,    r11
 
 .text:
 LOAD %out,      $out
@@ -44,10 +46,20 @@ ALLOC_ENTITY_IDS %tgts2
 ALLOC_INDICES    %indices3
 ALLOC_ENTITY_IDS %tgts3
 
+# Fourth Edge
+ALLOC_INDICES    %indices4
+ALLOC_ENTITY_IDS %tgts4
+
+# Fifth Edge
+ALLOC_INDICES    %indices5
+ALLOC_ENTITY_IDS %tgts5
+
 ADD_COL %out, %input, _
-ADD_COL %out, _     , %indices1 # Store indices for the transformation pipeline
-ADD_COL %out, _     , %indices2
-ADD_COL %out, %tgts3, %indices3
+ADD_COL %out, _,      %indices1 # Store indices for the transformation pipeline
+ADD_COL %out, _,      %indices2
+ADD_COL %out, _,      %indices3
+ADD_COL %out, _,      %indices4
+ADD_COL %out, %tgts5, %indices5
 
 GET_OUT_EDGES i0, %input, %indices1, {_, %tgts1, _}
     i0_START:
@@ -64,8 +76,24 @@ GET_OUT_EDGES i0, %input, %indices1, {_, %tgts1, _}
             JEND   i2, i2_END
             UPDATE i2
 
+            GET_OUT_EDGES i3, %tgts3, %indices4, {_, %tgts4, _}
+                i3_START:
+                JEND   i3, i3_END
+                UPDATE i3
 
-            WRITE %out
+                GET_OUT_EDGES i4, %tgts4, %indices5, {_, %tgts5, _}
+                    i4_START:
+                    JEND   i4, i4_END
+                    UPDATE i4
+
+
+                    WRITE %out
+
+                    GOTO i4_START
+                i4_END:
+
+                GOTO i3_START
+            i3_END:
 
             GOTO i2_START
         i2_END:
@@ -87,5 +115,13 @@ DEALLOC_ENTITY_IDS %tgts2
 # Third Edge
 DEALLOC_INDICES    %indices3
 DEALLOC_ENTITY_IDS %tgts3
+
+# Fourth Edge
+DEALLOC_INDICES    %indices4
+DEALLOC_ENTITY_IDS %tgts4
+
+# Fifth Edge
+DEALLOC_INDICES    %indices5
+DEALLOC_ENTITY_IDS %tgts5
 
 EXIT
