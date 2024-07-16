@@ -1,5 +1,5 @@
 .data:
-ENTITY_IDS $input,    {15396, 15395}
+ENTITY_IDS $input,    {9927}
 OUTPUT     $out
 
 .alias:
@@ -28,11 +28,11 @@ ALLOC_ENTITY_IDS %edgeIDs1
 ALLOC_ENTITY_IDS %edgeIDs2
 
 ADD_COL %out, %input,     _
-ADD_COL %out, %types1,    %indices1
 ADD_COL %out, %edgeIDs1,  %indices1
+ADD_COL %out, %types1,    %indices1
 ADD_COL %out, %srcs1,     %indices1
-ADD_COL %out, %types2,    %indices2
 ADD_COL %out, %edgeIDs2,  %indices2
+ADD_COL %out, %types2,    %indices2
 ADD_COL %out, %srcs2,     %indices2
 
 GET_IN_EDGES i0, %input, %indices1, {%edgeIDs1, %srcs1, %types1}

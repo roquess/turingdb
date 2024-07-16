@@ -24,8 +24,8 @@ LOAD %tgtIDs,  $tgtIDs
 
 ADD_COL %out, %srcIDs, _
 ADD_COL %out, %edgeIDs, _
-ADD_COL %out, %tgtIDs, _
 ADD_COL %out, %types, _
+ADD_COL %out, %tgtIDs, _
 
 SCAN_EDGES i0, %indices, {%srcIDs, %edgeIDs, %tgtIDs, %types}
     i0_START:

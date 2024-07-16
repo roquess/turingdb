@@ -3,7 +3,7 @@
 #     FROM   (src1 .id = {0, 1, 2})-e1-(tgt1)-e2-(tgt2)
 
 .data:
-ENTITY_IDS $input, {0, 1 ,2}
+ENTITY_IDS $input, {9927}
 OUTPUT     $out
 
 .alias:
@@ -39,11 +39,11 @@ ALLOC_ENTITY_IDS %tgts2
 ALLOC_ENTITY_IDS %edgeIDs2
 
 ADD_COL %out, %input,     _
-ADD_COL %out, %types1,    %indices1
 ADD_COL %out, %edgeIDs1,  %indices1
+ADD_COL %out, %types1,    %indices1
 # ADD_COL %out, %tgts1,   %indices1   # This column is not outputed
-ADD_COL %out, %types2,    %indices2
 ADD_COL %out, %edgeIDs2,  %indices2
+ADD_COL %out, %types2,    %indices2
 ADD_COL %out, %tgts2,     %indices2
 
 GET_OUT_EDGES i0, %input, %indices1, {%edgeIDs1, %tgts1, %types1}
