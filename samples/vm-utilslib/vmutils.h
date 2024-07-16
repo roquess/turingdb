@@ -23,12 +23,19 @@ public:
 
     void destroy();
     bool loadJsonDB(std::string_view jsonDir) const;
+    void createSimpleGraph() const;
     bool generateFromFile(std::string_view programPath) const;
+    bool generateFromString(const std::string& programString) const;
     void execute() const;
     void printOutput(std::initializer_list<std::string_view> colNames,
                      uint8_t outRegister = 0,
                      size_t maxLineCount = 20,
                      size_t colSize = 12) const;
+    void printOutputProperty(const std::string& propName,
+                             std::initializer_list<std::string_view> colNames,
+                             uint8_t outRegister = 0,
+                             size_t maxLineCount = 20,
+                             size_t colSize = 16) const;
 
     db::EntityID findNode(const std::string& ptName, const std::string& prop) const;
 
