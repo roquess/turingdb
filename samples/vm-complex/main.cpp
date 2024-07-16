@@ -13,16 +13,18 @@ int main() {
         return 1;
     }
 
+    const EntityID nodeID = sample.findNode("nhs_no (String)", "117-66-8129");
+    if (!nodeID.isValid()) {
+        return 1;
+    }
+
+    spdlog::info("Found node at index {}", nodeID);
+
+
+    ColumnIDs ids {nodeID};
+    sample._vm->setRegisterValue(1, &ids);
     sample.execute();
-    sample.printOutput({
-        "TgtID_1",
-        "EdgeID_1",
-        "EdgeType_1",
-        "SrcID_1",
-        "EdgeID_2",
-        "EdgeType_2",
-        "SrcID_2",
-    });
+    sample.printOutput({"InputID", "TgtID_2"});
     sample.destroy();
 
     return 0;

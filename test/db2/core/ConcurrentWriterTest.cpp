@@ -196,11 +196,9 @@ TEST_F(ConcurrentWriterTest, ScanNodesByLabelIteratorTest) {
 
     auto it = compareSet.begin();
     size_t count = 0;
-    const auto& labelsets = _db->getMetadata()->labelsets();
     const LabelSet labelset = LabelSet::fromList({1});
-    const LabelSetID labelsetID = labelsets.get(labelset);
 
-    for (const EntityID id : access.scanNodesByLabel(labelsetID)) {
+    for (const EntityID id : access.scanNodesByLabel(&labelset)) {
         ASSERT_EQ(it->getValue(), id.getValue());
         count++;
         it++;

@@ -14,15 +14,7 @@ int main() {
     }
 
     sample.execute();
-    sample.printOutput({
-        "TgtID_1",
-        "EdgeID_1",
-        "EdgeType_1",
-        "SrcID_1",
-        "EdgeID_2",
-        "EdgeType_2",
-        "SrcID_2",
-    });
+    sample.printOutput({"NodeID"});
     sample.destroy();
 
     return 0;

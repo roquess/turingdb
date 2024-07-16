@@ -1,4 +1,4 @@
-set(SAMPLE_NAME vm-scanNodes)
+set(SAMPLE_NAME vm-scanInEdgesByLabel)
 set(SOURCES     main.cpp)
 
 turing_sample(${SAMPLE_NAME} ${SOURCES})

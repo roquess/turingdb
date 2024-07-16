@@ -1,0 +1,49 @@
+.data:
+OUTPUT     $out
+
+.alias:
+ALIAS %out,      r0
+ALIAS %indices0, r10
+ALIAS %srcs0,    r11
+ALIAS %tgts0,    r12
+ALIAS %indices1, r20
+ALIAS %tgts1,    r21
+
+.text:
+LOAD %out,      $out
+
+ALLOC_INDICES    %indices0
+ALLOC_ENTITY_IDS %srcs0
+ALLOC_ENTITY_IDS %tgts0
+ALLOC_INDICES    %indices1
+ALLOC_ENTITY_IDS %tgts1
+
+ADD_COL %out, %srcs0, %indices0
+ADD_COL %out, %tgts0, %indices0
+ADD_COL %out, %tgts1, %indices1
+
+SCAN_EDGES i0, %indices0, {%srcs0, _, %tgts0, _}
+    i0_START:
+    JEND   i0, i0_END
+    UPDATE i0
+
+    GET_OUT_EDGES i1, %tgts0, %indices1, {_, %tgts1, _}
+        i1_START:
+        JEND   i1, i1_END
+        UPDATE i1
+
+        WRITE %out
+
+        GOTO i1_START
+    i1_END:
+
+    GOTO i0_START
+i0_END:
+
+DEALLOC_INDICES    %indices0
+DEALLOC_ENTITY_IDS %srcs0
+DEALLOC_ENTITY_IDS %tgts0
+DEALLOC_INDICES    %indices1
+DEALLOC_ENTITY_IDS %tgts1
+
+EXIT
