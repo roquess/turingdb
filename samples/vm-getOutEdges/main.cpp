@@ -1,97 +1,28 @@
-#include <spdlog/spdlog.h>
-
-#include "Assembler.h"
-#include "DataEnv.h"
-#include "LogSetup.h"
-#include "LogUtils.h"
-#include "Neo4j/ParserConfig.h"
-#include "Neo4jImporter.h"
-#include "PerfStat.h"
-#include "Program.h"
-#include "SystemManager.h"
-#include "Time.h"
-#include "VM.h"
+#include "vmutils.h"
 
 using namespace db;
 
 int main() {
-    LogSetup::setupLogFileBacked(SAMPLE_NAME ".log");
-    PerfStat::init(SAMPLE_NAME ".perf");
-    spdlog::set_level(spdlog::level::info);
-    const std::string turingHome = std::getenv("TURING_HOME");
-    const std::string sampleDir = turingHome + "/samples/" SAMPLE_NAME;
-    Program program;
+    auto sample = VMSample::createSample(SAMPLE_NAME);
 
-    JobSystem jobSystem;
-    jobSystem.initialize();
-
-    // Create assembler
-    Assembler assembler;
-
-    // Initialize system
-    auto system = std::make_unique<SystemManager>();
-
-    // Load db
-    Neo4jImporter::importJsonDir(
-        jobSystem,
-        system->getDefaultDB(),
-        nodeCountLimit,
-        edgeCountLimit,
-        Neo4jImporter::ImportJsonDirArgs {
-            ._jsonDir = turingHome + "/neo4j/pole-db/",
-        });
-
-    // Initialize VM
-    VM vm(system.get());
-
-    // Compile & execute program
-    spdlog::info("== Code Generation ==");
-    auto t0 = Clock::now();
-
-    if (!assembler.generateFromFile(program, sampleDir + "/program.turing")) {
-        spdlog::error("Error program invalid");
+    if (!sample.loadJsonDB(sample._turingHome + "/neo4j/pole-db/")) {
         return 1;
     }
 
-    logt::ElapsedTime(Microseconds(Clock::now() - t0).count(), "us");
-
-    // Initialize VM
-    spdlog::info("== Init VM ==");
-    t0 = Clock::now();
-
-    vm.initialize();
-
-    logt::ElapsedTime(Microseconds(Clock::now() - t0).count(), "us");
-
-    // Execution
-    spdlog::info("== Execution ==");
-    t0 = Clock::now();
-
-    vm.exec(&program);
-    logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
-
-    spdlog::info("Output:");
-    const auto& output = vm.readRegister<OutputWriter>(0)->getResult();
-    std::string str;
-    str += fmt::format("{:>12}", "SrcID_1");
-    str += fmt::format("{:>12}", "EdgeType_1");
-    str += fmt::format("{:>12}", "EdgeID_1");
-    str += fmt::format("{:>12}", "EdgeType_2");
-    str += fmt::format("{:>12}", "EdgeID_2");
-    str += fmt::format("{:>12}", "TgtID_2");
-    str += "\n";
-    for (size_t i = 0; i < output[0].size(); i++) {
-        for (size_t j = 0; j < output.size(); j++) {
-            if (output[j][i] > 5000000) {
-                str += fmt::format("{:>12}", "...");
-            } else {
-                str += fmt::format("{:>12}", output[j][i]);
-            }
-        }
-        str += '\n';
+    if (!sample.generateFromFile(sample._sampleDir + "/program.turing")) {
+        return 1;
     }
-    spdlog::info("\n{}", str);
 
-    PerfStat::destroy();
+    sample.execute();
+    sample.printOutput({
+        "SrcID_1",
+        "EdgeID_1",
+        "EdgeType_1",
+        "EdgeID_2",
+        "EdgeType_2",
+        "TgtID_2",
+    });
+    sample.destroy();
+
     return 0;
 }

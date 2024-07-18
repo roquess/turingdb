@@ -29,8 +29,8 @@ ALLOC_EDGE_TYPES %types
 BUILD_LABELSET  %labelset
 ADD_COL         %out, %srcIDs, _
 ADD_COL         %out, %edgeIDs, _
-ADD_COL         %out, %tgtIDs, _
 ADD_COL         %out, %types, _
+ADD_COL         %out, %tgtIDs, _
 
 SCAN_IN_EDGES_BY_LABEL i0, %indices, %labelset, {%srcIDs, %edgeIDs, %tgtIDs, %types}
     i0_START:
