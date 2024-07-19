@@ -1,7 +1,6 @@
 .data:
 INDICES    $indices
 STRING     $etName,  "KNOWS"
-EDGE_TYPE  $et
 OUTPUT     $out
 
 .alias:
@@ -21,7 +20,6 @@ LOAD %out,     $out
 #LOAD %etName,  $etName
 #LOAD %et,      $et
 
-
 ALLOC_ENTITY_IDS %srcs
 ALLOC_ENTITY_IDS %edges
 ALLOC_ENTITY_IDS %tgts
@@ -40,7 +38,7 @@ ADD_COL %out, %types,  _
 #ADD_COL         %filter, %tgts
 #ADD_COL         %filter, %types
 
-#ADD_FILTER_EXPR %filter, 0, {EQUAL, %types, %et}
+##ADD_FILTER_EXPR %filter, 0, {EQUAL, %types, %et}
 
 SCAN_EDGES i0, %indices, {%srcs, %edges, %tgts, %types}
     i0_START:

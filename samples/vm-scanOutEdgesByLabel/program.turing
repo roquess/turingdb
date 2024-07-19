@@ -1,11 +1,11 @@
 .data:
-ENTITY_IDS $srcIDs,   {}
-ENTITY_IDS $edgeIDs,  {}
-ENTITY_IDS $tgtIDs,   {}
+ENTITY_IDS $srcIDs,  {}
+ENTITY_IDS $edgeIDs, {}
+ENTITY_IDS $tgtIDs,  {}
+STRING     $person,  "Person"
 INDICES    $indices
 OUTPUT     $out
-STRING     $label,    "Person"
-LABELSET   $labelset, {$label}
+LABELSET   $labelset
 
 .alias:
 ALIAS %out,      r0
@@ -15,6 +15,7 @@ ALIAS %srcIDs,   r3
 ALIAS %edgeIDs,  r4
 ALIAS %tgtIDs,   r5
 ALIAS %types,    r6
+ALIAS %label1,   r7
 
 .text:
 LOAD %indices,  $indices
@@ -26,11 +27,13 @@ LOAD %tgtIDs,   $tgtIDs
 
 ALLOC_EDGE_TYPES %types
 
-BUILD_LABELSET  %labelset
-ADD_COL         %out, %srcIDs, _
-ADD_COL         %out, %edgeIDs, _
-ADD_COL         %out, %types, _
-ADD_COL         %out, %tgtIDs, _
+GET_LABEL %label1,   $person
+ADD_LABEL %labelset, %label1
+
+ADD_COL %out, %srcIDs,  _
+ADD_COL %out, %edgeIDs, _
+ADD_COL %out, %types,   _
+ADD_COL %out, %tgtIDs,  _
 
 SCAN_OUT_EDGES_BY_LABEL i0, %indices, %labelset, {%srcIDs, %edgeIDs, %tgtIDs, %types}
     i0_START:

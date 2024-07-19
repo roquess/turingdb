@@ -51,9 +51,7 @@ GET_OUT_EDGES i0, %input, %indices1, {%edgeIDs1, %tgts1, %types1}
     JEND   i0, i0_END
     UPDATE i0
 
-    FILTER_EXEC %filter, {tgts1, something1, something2}, {%tgts2}
-
-    GET_OUT_EDGES i1, {%tgtsFiltered, %other}, %indices2, {%edgeIDs2, %tgts2, %types2}
+    GET_OUT_EDGES i1, %tgts1, %indices2, {%edgeIDs2, %tgts2, %types2}
         i1_START:
         JEND   i1, i1_END
         UPDATE i1

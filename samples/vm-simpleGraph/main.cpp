@@ -12,7 +12,7 @@ int main() {
     }
 
     sample.execute();
-    sample.printOutputProperty("name", {"Src", "Tgt1", "Tgt2"});
+    sample.printOutputProperty("name", {"Src", "Tgt1", "Tgt2", "Tgt3"});
 
     const auto output = sample.getOutput();
 
