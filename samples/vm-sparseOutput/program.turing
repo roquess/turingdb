@@ -60,7 +60,6 @@ SCAN_EDGES i0, %indices0, {%srcs0, _, %tgts0, _}
             JEND   i2, i2_END
             UPDATE i2
 
-
             WRITE %out
 
             GOTO i2_START

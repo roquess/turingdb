@@ -1,15 +1,16 @@
 .data:
 ENTITY_IDS $nodeIDs, {}
+STRING     $person,  "Person"
 INDICES    $indices
 OUTPUT     $out
-STRING     $label,    "Phone"
-LABELSET   $labelset, {$label}
+LABELSET   $labelset
 
 .alias:
 ALIAS %out,      r0
 ALIAS %indices,  r1
 ALIAS %labelset, r2
 ALIAS %nodeIDs,  r3
+ALIAS %label1,   r4
 
 .text:
 LOAD %indices,  $indices
@@ -17,8 +18,10 @@ LOAD %out,      $out
 LOAD %nodeIDs,  $nodeIDs
 LOAD %labelset, $labelset
 
-BUILD_LABELSET  %labelset
-ADD_COL         %out, %nodeIDs, _
+GET_LABEL %label1,   $person
+ADD_LABEL %labelset, %label1
+
+ADD_COL %out, %nodeIDs, _
 
 SCAN_NODES_BY_LABEL i0, %indices, %labelset, {%nodeIDs}
     i0_START:
