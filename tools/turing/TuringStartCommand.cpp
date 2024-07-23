@@ -26,6 +26,11 @@ void TuringStartCommand::setup() {
     _startCommand.add_argument("-prototype")
                  .implicit_value(true)
                  .default_value(false);
+#ifdef TURING_DEV
+    _startCommand.add_argument("-dev")
+                 .implicit_value(true)
+                 .default_value(false);
+#endif
 
     argParser.add_subparser(_startCommand);
 }
@@ -71,6 +76,11 @@ void TuringStartCommand::run() {
     if (isPrototypeRequested()) {
         turingApp.addArg("-prototype");
     }
+#ifdef TURING_DEV
+    if (isDevRequested()) {
+        turingApp.addArg("-dev");
+    }
+#endif
 
     turingApp.setWorkingDir(outDir);
     turingApp.setGenerateScript(true);
@@ -125,4 +135,10 @@ bool TuringStartCommand::isPrototypeRequested() {
     auto& argParser = _toolInit.getArgParser();
     auto& startCommand = argParser.at<argparse::ArgumentParser>("start");
     return startCommand.get<bool>("-prototype");
+}
+
+bool TuringStartCommand::isDevRequested() {
+    auto& argParser = _toolInit.getArgParser();
+    auto& startCommand = argParser.at<argparse::ArgumentParser>("start");
+    return startCommand.get<bool>("-dev");
 }
