@@ -19,4 +19,6 @@ private:
     std::string getDBName();
     bool isPrototypeRequested();
     bool isDevRequested();
+    bool isBuildRequested();
+    bool noDemonRequested();
 };
