@@ -153,7 +153,7 @@ bool VMSample::generateFromFile(std::string_view programPath) const {
 
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
     if (!res) {
-        spdlog::error("Could generate byte code");
+        spdlog::error("Could not generate byte code");
     }
 
     return res;
@@ -168,7 +168,7 @@ bool VMSample::generateFromString(const std::string& programString) const {
 
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
     if (!res) {
-        spdlog::error("Could generate byte code");
+        spdlog::error("Could not generate byte code");
     }
 
     return res;

@@ -1,33 +1,36 @@
 .data:
-ENTITY_IDS $edgeIDs, {}
-ENTITY_IDS $srcIDs,  {}
-ENTITY_IDS $tgtIDs,  {}
-INDICES    $indices
-OUTPUT     $out
+STRING  $edgetype, "KNOWS"
+OUTPUT  $out
 
 .alias:
 ALIAS %out,      r0
 ALIAS %indices,  r1
-ALIAS %srcIDs,   r2
-ALIAS %edgeIDs,  r3
-ALIAS %tgtIDs,   r4
+ALIAS %srcs,     r2
+ALIAS %edges,    r3
+ALIAS %tgts,     r4
 ALIAS %types,    r5
+ALIAS %filter,   r6
+ALIAS %edgetype, r7
 
 .text:
+ALLOC_INDICES    %indices
+ALLOC_ENTITY_IDS %srcs
+ALLOC_ENTITY_IDS %edges
+ALLOC_ENTITY_IDS %tgts
 ALLOC_EDGE_TYPES %types
 
-LOAD %indices, $indices
+GET_EDGE_TYPE  %edgetype, $edgetype
 LOAD %out,     $out
-LOAD %srcIDs,  $srcIDs
-LOAD %edgeIDs, $edgeIDs
-LOAD %tgtIDs,  $tgtIDs
 
-ADD_COL %out, %srcIDs,  _
-ADD_COL %out, %edgeIDs, _
-ADD_COL %out, %types,   _
-ADD_COL %out, %tgtIDs,  _
+ADD_COL %out, %srcs,  _
+ADD_COL %out, %edges, _
+ADD_COL %out, %types, _
+ADD_COL %out, %tgts,  _
 
-SCAN_EDGES i0, %indices, {%srcIDs, %edgeIDs, %tgtIDs, %types}
+ALLOC_FILTER    %filter
+#ADD_FILTER_EXPR %filter, %filter, t0, {EQUAL, %types, %edgetype}
+
+SCAN_EDGES i0, %indices, {%srcs, %edges, %tgts, %types}
     i0_START:
     JEND   i0, i0_END
     UPDATE i0
@@ -37,6 +40,11 @@ SCAN_EDGES i0, %indices, {%srcIDs, %edgeIDs, %tgtIDs, %types}
     GOTO i0_START
 i0_END:
 
+DEALLOC_INDICES    %indices
+DEALLOC_ENTITY_IDS %srcs
+DEALLOC_ENTITY_IDS %edges
+DEALLOC_ENTITY_IDS %tgts
 DEALLOC_EDGE_TYPES %types
+DEALLOC_FILTER     %filter
 
 EXIT
