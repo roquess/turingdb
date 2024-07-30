@@ -81,6 +81,12 @@ include_directories(${BIO_SOURCE_DIR})
 
 enable_testing()
 
+# ======== Git Info =================
+# Get hash of current HEAD commit
+execute_process(COMMAND git rev-parse HEAD
+                OUTPUT_VARIABLE HEAD_COMMIT_HASH
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_subdirectory(app)
 add_subdirectory(external)
 add_subdirectory(build)
