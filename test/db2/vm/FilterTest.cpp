@@ -19,6 +19,8 @@ TEST(FilterTest, MultipleConditions) {
     auto mask1 = ColumnMask(ids1.size());
     auto mask2 = ColumnMask(ids1.size());
     auto mask3 = ColumnMask(ids1.size());
+    ColumnVector<size_t> indices;
+    filter.setIndices(&indices);
 
     // ids1 == ids2 OR ids1 == 3
     filter.addExpression({db::OP_EQUAL, &mask1, &ids1, &ids2});
@@ -50,6 +52,10 @@ TEST(FilterTest, EQUAL) {
     ColumnVector<EdgeTypeID> ids1 {0, 4, 3, 1, 3, 2, 9, 6, 5};
     ColumnVector<EdgeTypeID> ids2 {3, 3, 0, 3, 0, 2, 9, 6, 1};
     ColumnConst<EdgeTypeID> id(3);
+    ColumnVector<size_t> indices1;
+    filter1.setIndices(&indices1);
+    ColumnVector<size_t> indices2;
+    filter2.setIndices(&indices2);
 
     auto mask1 = ColumnMask(ids1.size());
     auto mask2 = ColumnMask(ids1.size());
@@ -78,6 +84,8 @@ TEST(FilterTest, AND) {
     ColumnMask mask2 {0, 0, 1, 0, 1, 0, 1, 1, 1};
 
     auto mask = ColumnMask(mask1.size());
+    ColumnVector<size_t> indices;
+    filter.setIndices(&indices);
 
     filter.addExpression({db::OP_AND, &mask, &mask1, &mask2});
     filter.exec();
@@ -94,6 +102,8 @@ TEST(FilterTest, OR) {
 
     ColumnMask mask1 {0, 1, 1, 0, 1, 1, 0, 0, 0};
     ColumnMask mask2 {0, 0, 1, 0, 1, 0, 1, 1, 1};
+    ColumnVector<size_t> indices;
+    filter.setIndices(&indices);
 
     auto mask = ColumnMask(mask1.size());
 
