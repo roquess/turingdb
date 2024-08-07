@@ -9,6 +9,7 @@
 #include "LogUtils.h"
 #include "Neo4j/ParserConfig.h"
 #include "Neo4jImporter.h"
+#include "Panic.h"
 #include "PerfStat.h"
 #include "Time.h"
 
@@ -182,10 +183,29 @@ void VMSample::execute() const {
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
 }
 
+#define PRINT_CASE(TType)                                                    \
+    case TType::staticKind(): {                                              \
+        const auto& c = *static_cast<const TType*>(col);                     \
+        lineCount = std::min(c.size(), maxLineCount);                                                \
+        if (lines.empty()) {                                                 \
+            for (size_t i = 0; i < lineCount; i++) { \
+                lines.emplace_back();                                        \
+            }                                                                \
+        } else {                                                             \
+            msgbioassert(lines.size() == lineCount,                          \
+                         "Output is ill formed");                            \
+        }                                                                    \
+        for (size_t i = 0; i < lineCount; i++) {     \
+            lines[i] += fmt::format("{1:^{0}}", colSize, c[i]);              \
+        }                                                                    \
+        break;                                                               \
+    }
+
 void VMSample::printOutput(std::initializer_list<std::string_view> colNames,
                            uint8_t outRegister,
                            size_t maxLineCount,
                            size_t colSize) const {
+    using namespace db;
 
     const auto& out = getOutput(outRegister);
 
@@ -194,73 +214,36 @@ void VMSample::printOutput(std::initializer_list<std::string_view> colNames,
         return;
     }
 
-    std::string str;
+    std::string header;
     for (const auto& name : colNames) {
-        str += fmt::format("{1:^{0}}", colSize, name);
+        header += fmt::format("{1:^{0}}", colSize, name);
     }
 
-    str += "\n";
-    for (size_t i = 0; i < out[0].size(); i++) {
-        for (size_t j = 0; j < out.size(); j++) {
-            if (out[j][i] > 5000000) {
-                str += fmt::format("{1:^{0}}", colSize, "...");
-            } else {
-                str += fmt::format("{1:^{0}}", colSize, out[j][i]);
+    spdlog::info(header);
+    spdlog::info(std::string(colSize * colNames.size(), '-'));
+
+    const auto& cols = out.columns();
+    std::vector<std::string> lines;
+    size_t lineCount = 0;
+    for (const auto* col : cols) {
+        switch (col->getKind()) {
+            PRINT_CASE(ColumnVector<EntityID>)
+            PRINT_CASE(ColumnVector<types::UInt64::Primitive>)
+            PRINT_CASE(ColumnVector<types::Int64::Primitive>)
+            PRINT_CASE(ColumnVector<types::Double::Primitive>)
+            PRINT_CASE(ColumnVector<types::String::Primitive>)
+            PRINT_CASE(ColumnVector<types::Bool::Primitive>)
+            default: {
+                panic("Printing column of type {} is not supported", col->getKind());
             }
         }
-        str += '\n';
-        if (i == maxLineCount) {
-            str += "...\n";
-            break;
-        }
-    }
-    spdlog::info("\n{}", str);
-    spdlog::info("NLines in output: {}", out[0].size());
-}
-
-void VMSample::printOutputProperty(const std::string& propName,
-                                   std::initializer_list<std::string_view> colNames,
-                                   uint8_t outRegister,
-                                   size_t maxLineCount,
-                                   size_t colSize) const {
-
-    const auto& idOutput = getOutput(outRegister);
-
-    if (idOutput.empty()) { spdlog::error("Output is empty");
-        return;
     }
 
-    std::string str;
-    for (const auto& name : colNames) {
-        str += fmt::format("{1:^{0}}", colSize, name);
+    for (const auto& line : lines) {
+        spdlog::info(line);
     }
-
-    str += "\n";
-    auto* db = _system->getDefaultDB();
-    const auto* metadata = db->getMetadata();
-    const auto ptype = metadata->propTypes().get(propName);
-    auto access = db->access();
-    db::ColumnVector<db::ColumnVector<std::string>> out;
-    out.resize(idOutput.size());
-    for (const auto& [ids, col] : ranges::views::zip(idOutput, out)) {
-        col.reserve(ids.size());
-        for (const auto& v : access.getNodeProperties<db::types::String>(ptype._id, &ids)) {
-            col.push_back(v);
-        }
-    }
-
-    for (size_t i = 0; i < out[0].size(); i++) {
-        for (size_t j = 0; j < out.size(); j++) {
-            str += fmt::format("{1:^{0}}", colSize, out[j][i]);
-        }
-        str += '\n';
-        if (i == maxLineCount) {
-            str += "...\n";
-            break;
-        }
-    }
-    spdlog::info("\n{}", str);
-    spdlog::info("NLines in output: {}", out[0].size());
+    spdlog::info(std::string(colSize * colNames.size(), '-'));
+    spdlog::info("NLines in output: {}", lineCount);
 }
 
 db::DBAccess VMSample::readDB() const {
@@ -297,6 +280,6 @@ db::EntityID VMSample::findNode(const std::string& ptName, const std::string& pr
     return {};
 }
 
-const db::OutputWriter::Output& VMSample::getOutput(uint8_t reg) const {
+const db::Block& VMSample::getOutput(uint8_t reg) const {
     return _vm->readRegister<db::OutputWriter>(reg)->getResult();
 }
