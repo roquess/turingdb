@@ -112,20 +112,20 @@ void VMSample::createSimpleGraph() const {
     const PropertyType name = proptypes.getOrCreate("name", types::String::_valueType);
 
     // Edges
-    buf->addEdge(knowsWellID, remy, adam);
-    buf->addEdge(knowsWellID, adam, remy);
-    buf->addEdge(interestedInID, remy, ghosts);
-    buf->addEdge(interestedInID, remy, computers);
-    buf->addEdge(interestedInID, remy, eighties);
-    buf->addEdge(interestedInID, adam, bio);
-    buf->addEdge(interestedInID, adam, cooking);
-    buf->addEdge(interestedInID, luc, animals);
-    buf->addEdge(interestedInID, luc, computers);
-    buf->addEdge(interestedInID, maxime, bio);
-    buf->addEdge(interestedInID, maxime, paddle);
-    buf->addEdge(interestedInID, martina, cooking);
+    const EdgeRecord e01 = buf->addEdge(knowsWellID, remy, adam);
+    const EdgeRecord e02 = buf->addEdge(knowsWellID, adam, remy);
+    const EdgeRecord e03 = buf->addEdge(interestedInID, remy, ghosts);
+    const EdgeRecord e04 = buf->addEdge(interestedInID, remy, computers);
+    const EdgeRecord e05 = buf->addEdge(interestedInID, remy, eighties);
+    const EdgeRecord e06 = buf->addEdge(interestedInID, adam, bio);
+    const EdgeRecord e07 = buf->addEdge(interestedInID, adam, cooking);
+    const EdgeRecord e08 = buf->addEdge(interestedInID, luc, animals);
+    const EdgeRecord e09 = buf->addEdge(interestedInID, luc, computers);
+    const EdgeRecord e10 = buf->addEdge(interestedInID, maxime, bio);
+    const EdgeRecord e11 = buf->addEdge(interestedInID, maxime, paddle);
+    const EdgeRecord e12 = buf->addEdge(interestedInID, martina, cooking);
 
-    // Properties
+    // Node Properties
     buf->addNodeProperty<types::String>(remy, name._id, "Remy");
     buf->addNodeProperty<types::String>(adam, name._id, "Adam");
     buf->addNodeProperty<types::String>(luc, name._id, "Luc");
@@ -138,6 +138,20 @@ void VMSample::createSimpleGraph() const {
     buf->addNodeProperty<types::String>(animals, name._id, "Animals");
     buf->addNodeProperty<types::String>(computers, name._id, "Computers");
     buf->addNodeProperty<types::String>(eighties, name._id, "Eighties");
+
+    // Edge Properties
+    buf->addEdgeProperty<types::String>(e01, name._id, "Remy -> Adam");
+    buf->addEdgeProperty<types::String>(e02, name._id, "Adam -> Remy");
+    buf->addEdgeProperty<types::String>(e03, name._id, "Remy -> Ghosts");
+    buf->addEdgeProperty<types::String>(e04, name._id, "Remy -> Computers");
+    buf->addEdgeProperty<types::String>(e05, name._id, "Remy -> Eighties");
+    buf->addEdgeProperty<types::String>(e06, name._id, "Adam -> Bio");
+    buf->addEdgeProperty<types::String>(e07, name._id, "Adam -> Cooking");
+    buf->addEdgeProperty<types::String>(e08, name._id, "Luc -> Animals");
+    buf->addEdgeProperty<types::String>(e09, name._id, "Luc -> Computers");
+    buf->addEdgeProperty<types::String>(e10, name._id, "Maxime -> Bio");
+    buf->addEdgeProperty<types::String>(e11, name._id, "Maxime -> Paddle");
+    buf->addEdgeProperty<types::String>(e12, name._id, "Martina -> Cooking");
 
     auto part = db->uniqueAccess().createDataPart(std::move(buf));
     part->load(db->access(), *_jobSystem);
@@ -183,22 +197,26 @@ void VMSample::execute() const {
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
 }
 
-#define PRINT_CASE(TType)                                                    \
-    case TType::staticKind(): {                                              \
-        const auto& c = *static_cast<const TType*>(col);                     \
-        lineCount = std::min(c.size(), maxLineCount);                                                \
-        if (lines.empty()) {                                                 \
-            for (size_t i = 0; i < lineCount; i++) { \
-                lines.emplace_back();                                        \
-            }                                                                \
-        } else {                                                             \
-            msgbioassert(lines.size() == lineCount,                          \
-                         "Output is ill formed");                            \
-        }                                                                    \
-        for (size_t i = 0; i < lineCount; i++) {     \
-            lines[i] += fmt::format("{1:^{0}}", colSize, c[i]);              \
-        }                                                                    \
-        break;                                                               \
+#define PRINT_CASE(TType)                                               \
+    case TType::staticKind(): {                                         \
+        const auto& c = *static_cast<const TType*>(col);                \
+        lineCount = std::min(c.size(), maxLineCount);                   \
+        if (lines.empty()) {                                            \
+            for (size_t i = 0; i < lineCount; i++) {                    \
+                lines.emplace_back();                                   \
+            }                                                           \
+            totalLineCount = c.size();                                  \
+        } else {                                                        \
+            msgbioassert(totalLineCount == c.size(),                    \
+                         fmt::format("Output is ill formed: {} vs. {}", \
+                                     totalLineCount,                    \
+                                     c.size())                          \
+                             .c_str());                                 \
+        }                                                               \
+        for (size_t i = 0; i < lineCount; i++) {                        \
+            lines[i] += fmt::format("{1:^{0}}", colSize, c[i]);         \
+        }                                                               \
+        break;                                                          \
     }
 
 void VMSample::printOutput(std::initializer_list<std::string_view> colNames,
@@ -225,6 +243,7 @@ void VMSample::printOutput(std::initializer_list<std::string_view> colNames,
     const auto& cols = out.columns();
     std::vector<std::string> lines;
     size_t lineCount = 0;
+    size_t totalLineCount = 0;
     for (const auto* col : cols) {
         switch (col->getKind()) {
             PRINT_CASE(ColumnVector<EntityID>)
@@ -243,7 +262,7 @@ void VMSample::printOutput(std::initializer_list<std::string_view> colNames,
         spdlog::info(line);
     }
     spdlog::info(std::string(colSize * colNames.size(), '-'));
-    spdlog::info("NLines in output: {}", lineCount);
+    spdlog::info("NLines in output: {}", totalLineCount);
 }
 
 db::DBAccess VMSample::readDB() const {
