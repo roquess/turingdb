@@ -1,6 +1,6 @@
 .data:
 OUTPUT     $out
-STRING     $propTypeName, "name"
+STRING     $propTypeName, "surname (String)"
 
 .alias:
 ALIAS %out,      r0

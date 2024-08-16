@@ -13,7 +13,7 @@ int main() {
     if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
         return 1;
     }
-    sample.printOutput({"Name"});
+    sample.printOutput({"Name"}, 0, 20, 30);
 
     sample.destroy();
 
