@@ -12,7 +12,7 @@ int main() {
     }
 
     sample.execute();
-    sample.printOutput({"Name"});
+    sample.printOutput({"Name"}, 0, 50);
 
     sample.destroy();
 

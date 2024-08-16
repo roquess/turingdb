@@ -14,7 +14,7 @@ int main() {
     }
 
     sample.execute();
-    sample.printOutput({"Name"});
+    sample.printOutput({"Name"}, 0, 30);
 
     sample.destroy();
 

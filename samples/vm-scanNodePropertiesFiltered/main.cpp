@@ -6,7 +6,6 @@ int main() {
     auto sample = VMSample::createSample(SAMPLE_NAME);
 
     if (!sample.loadJsonDB(sample._turingHome + "/neo4j/pole-db/")) {
-    //if (!sample.loadJsonDB("/home/dev/json-dbs/reactome-json/")) {
         return 1;
     }
 
@@ -15,7 +14,7 @@ int main() {
     }
 
     sample.execute();
-    sample.printOutput({"Name", "NodeID"});
+    sample.printOutput({"Name", "NodeID"}, 0, 30);
 
     sample.destroy();
 

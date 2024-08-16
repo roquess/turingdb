@@ -1,6 +1,6 @@
 .data:
-STRING  $edgetype1, "KNOWS_WELL"
-STRING  $edgetype2, "INTERESTED_IN"
+STRING  $edgetype1, "KNOWS"
+STRING  $edgetype2, "FAMILY_REL"
 OUTPUT  $out
 
 .alias:
@@ -77,7 +77,7 @@ ADD_COL %out, %tgts0,  0
 ADD_COL %out, %tgts2,  2
 
 ## Filter setup
-ADD_FILTER_EXPR %filter1, %mask1, {EQUAL, %types0, %edgetype1}
+ADD_FILTER_EXPR %filter1, %mask1,   {EQUAL, %types0, %edgetype1}
 ADD_FILTER_EXPR %filter3, %mask3_1, {EQUAL, %types2, %edgetype2}
 
 SCAN_EDGES r100, {%srcs0, %edges0, %tgts0, %types0}
