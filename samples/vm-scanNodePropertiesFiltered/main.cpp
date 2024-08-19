@@ -1,3 +1,4 @@
+#include "ChunkConfig.h"
 #include "LogUtils.h"
 #include "vmutils.h"
 
@@ -22,15 +23,32 @@ int main() {
     sample.printOutput({"Name", "NodeID"}, 0, 20, 25);
 
     auto access = sample.readDB();
+    ColumnVector<std::string_view> namesRaw;
+    ColumnVector<EntityID> nodeIDsRaw;
+    namesRaw.reserve(1369);
+    nodeIDsRaw.reserve(1369);
+    ColumnVector<std::string_view> names;
+    ColumnVector<EntityID> nodeIDs;
+
     auto t0 = Clock::now();
-    std::vector<std::string_view> names;
     const auto displayNameType = access.getDB()->getMetadata()->propTypes().get("surname (String)");
-    for (const auto& displayName : access.scanNodeProperties<types::String>(displayNameType._id)) {
+    ScanNodePropertiesChunkWriter<types::String> chunkWriter(access.getDB(), displayNameType._id);
+    chunkWriter.setPropertiesColumn(&namesRaw);
+    chunkWriter.setNodeIDsColumn(&nodeIDsRaw);
+
+    while (chunkWriter.isValid()) {
+        chunkWriter.fill(ChunkConfig::CHUNK_SIZE);
+    }
+
+    for (size_t i = 0 ; i < names.size(); i++) {
+        const auto& displayName = names[i];
         if (displayName == "Hamilton" || displayName == "Smith") {
             names.push_back(displayName);
+            nodeIDs.push_back(nodeIDsRaw[i]);
         }
     }
-    spdlog::info(names.size());
+
+    spdlog::info("Raw c++ performances with ChunkWriter:");
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
 
     sample.destroy();
