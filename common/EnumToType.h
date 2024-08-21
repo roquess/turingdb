@@ -16,7 +16,7 @@ concept EnumTypePairTrait = requires { T::EnumValue; typename T::Type; };
 template <typename TEnum>
 struct EnumToType {
     template <EnumTypePairTrait... TPairs>
-    struct Details {
+    struct Create{
         static constexpr std::array<TEnum, sizeof...(TPairs)> EnumValues {TPairs::EnumValue...};
         using EnumArrayType = decltype(EnumValues);
         using InternalTypes = std::tuple<typename TPairs::Type...>;
@@ -34,15 +34,12 @@ struct EnumToType {
             return (it == seq.end());
         }
 
-        static_assert(containsOnlyUnique(EnumValues)
-                      && "Definition cannot have duplicate enum entries");
-        static_assert(EnumCount == (std::size_t)TEnum::_SIZE && ""
-                      && "All enums must be provided a type");
+        static_assert(containsOnlyUnique(EnumValues),
+                      "Definition cannot have duplicate enum entries");
+        static_assert(EnumCount == (std::size_t)TEnum::_SIZE,
+                      "All enums must be provided a type");
 
         template <TEnum e>
         using Type = std::tuple_element<(std::size_t)e, InternalTypes>::type;
     };
-
-    template <EnumTypePairTrait... TPairs>
-    using Create = Details<TPairs...>;
 };

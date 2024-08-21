@@ -25,7 +25,7 @@ concept EnumStringPairTrait = requires { T::EnumValue; T::StringValue; };
 template <typename TEnum>
 struct EnumToString {
     template <EnumStringPairTrait... TPairs>
-    struct Details {
+    struct Create {
         static constexpr std::array<TEnum, sizeof...(TPairs)> EnumValues {TPairs::EnumValue...};
         using EnumArrayType = decltype(EnumValues);
         static constexpr std::array<std::string_view, sizeof...(TPairs)> Strings {TPairs::StringValue.value...};
@@ -44,12 +44,9 @@ struct EnumToString {
             return Strings[(std::size_t)e];
         }
 
-        static_assert(containsOnlyUnique(EnumValues)
-                      && "Definition cannot have duplicate enum entries");
-        static_assert(EnumCount == (std::size_t)TEnum::_SIZE
-                      && "All enums must be provided a name");
+        static_assert(containsOnlyUnique(EnumValues),
+                      "Definition cannot have duplicate enum entries");
+        static_assert(EnumCount == (std::size_t)TEnum::_SIZE,
+                      "All enums must be provided a name");
     };
-
-    template <EnumStringPairTrait... TPairs>
-    using Create = Details<TPairs...>;
 };
