@@ -4,6 +4,11 @@
 #include <array>
 #include <string_view>
 
+/**
+ * @brief Constexpr version of a string literal
+ *
+ * Can be used as a template argument (as opposed to const char*)
+ */
 template <std::size_t N>
 struct StringLiteral {
     constexpr StringLiteral(const char (&str)[N]) {
