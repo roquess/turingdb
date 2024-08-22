@@ -55,12 +55,4 @@ SCAN_NODE_PROPS r100, %propType, { %props, %nodeIDs }
     GOTO r100_START
 r100_END:
 
-DEALLOC_INDICES    %indices
-DEALLOC_STRINGS    %props
-DEALLOC_ENTITY_IDS %nodeIDs
-DEALLOC_PROP_TYPE  %propType
-DEALLOC_MASK       %mask0
-DEALLOC_MASK       %mask1
-DEALLOC_MASK       %mask2
-
 EXIT

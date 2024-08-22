@@ -7,12 +7,13 @@ int main() {
 
     sample.createSimpleGraph();
 
-    if (!sample.generateFromFile(sample._sampleDir + "/program.turing")) {
+    if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
         return 1;
     }
-
-    sample.execute();
-    sample.printOutput({"Name"}, 0, 50);
+    if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
+        return 1;
+    }
+    sample.printOutput({"Name"}, 0, 20, 30);
 
     sample.destroy();
 

@@ -28,6 +28,8 @@ public:
     bool generateFromFile(std::string_view programPath) const;
     bool generateFromString(const std::string& programString) const;
     void execute() const;
+    bool executeFile(std::string_view programPath) const;
+    bool executeString(const std::string& programString) const;
     void printOutput(std::initializer_list<std::string_view> colNames,
                      uint8_t outRegister = 0,
                      size_t maxLineCount = 20,

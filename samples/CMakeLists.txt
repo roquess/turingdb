@@ -47,6 +47,7 @@ add_subdirectory(vm-scanNodePropertiesByLabel)
 add_subdirectory(vm-scanEdgeProperties)
 add_subdirectory(vm-scanNodePropertiesFiltered)
 add_subdirectory(vm-filters)
+add_subdirectory(vm-all)
 
 set (SCRIPT_LIST_CONTENT "")
 list (LENGTH SAMPLE_LIST SAMPLE_COUNT)

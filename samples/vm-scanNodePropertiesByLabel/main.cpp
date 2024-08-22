@@ -9,12 +9,14 @@ int main() {
         return 1;
     }
 
-    if (!sample.generateFromFile(sample._sampleDir + "/program.turing")) {
+    if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
+        return 1;
+    }
+    if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
         return 1;
     }
 
-    sample.execute();
-    sample.printOutput({"Name"}, 0, 30);
+    sample.printOutput({"Name"}, 0, 20, 25);
 
     sample.destroy();
 

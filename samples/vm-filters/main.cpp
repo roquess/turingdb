@@ -9,15 +9,16 @@ int main() {
         return 1;
     }
 
-    if (!sample.generateFromFile(sample._sampleDir + "/program.turing")) {
+    if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
         return 1;
     }
-
-    sample.execute();
+    if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
+        return 1;
+    }
     sample.printOutput({"  (n1)  ",
                         "->(n2)  ",
                         "->(n3)  "},
-                       0, 20);
+                       0, 20, 10);
     sample.destroy();
 
     return 0;

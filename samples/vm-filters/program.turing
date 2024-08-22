@@ -105,30 +105,4 @@ SCAN_EDGES r100, {%srcs0, %edges0, %tgts0, %types0}
     GOTO r100_START
 r100_END:
 
-## Deallocations
-DEALLOC_INDICES    %indices1
-DEALLOC_INDICES    %indices2
-DEALLOC_INDICES    %indices3
-
-DEALLOC_EDGE_TYPE  %edgetype1
-DEALLOC_EDGE_TYPE  %edgetype2
-    # Scan edges
-DEALLOC_ENTITY_IDS %srcs0
-DEALLOC_ENTITY_IDS %edges0
-DEALLOC_ENTITY_IDS %tgts0
-DEALLOC_EDGE_TYPES %types0
-    # Filter
-DEALLOC_FILTER     %filter1
-DEALLOC_ENTITY_IDS %tgts1
-DEALLOC_MASK       %mask1
-    # Get out edges
-DEALLOC_ENTITY_IDS %edges2
-DEALLOC_ENTITY_IDS %tgts2
-DEALLOC_EDGE_TYPES %types2
-    # Filter
-DEALLOC_FILTER     %filter3
-DEALLOC_MASK       %mask3_0
-DEALLOC_MASK       %mask3_1
-DEALLOC_MASK       %mask3_2
-
 EXIT

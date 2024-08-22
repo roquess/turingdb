@@ -35,7 +35,4 @@ SCAN_NODE_PROPS_BY_LABEL r100, %propType, %labelset, { %props, _ }
     GOTO r100_START
 r100_END:
 
-DEALLOC_STRINGS   %props
-DEALLOC_PROP_TYPE %propType
-
 EXIT

@@ -29,7 +29,4 @@ SCAN_EDGE_PROPS r100, %propType, { %props, _ }
     GOTO r100_START
 r100_END:
 
-DEALLOC_STRINGS   %props
-DEALLOC_PROP_TYPE %propType
-
 EXIT

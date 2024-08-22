@@ -42,6 +42,4 @@ SCAN_OUT_EDGES_BY_LABEL r100, %labelset, {%srcIDs, %edgeIDs, %tgtIDs, %types}
     GOTO r100_START
 r100_END:
 
-DEALLOC_EDGE_TYPES %types
-
 EXIT

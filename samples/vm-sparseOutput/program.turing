@@ -64,16 +64,4 @@ SCAN_EDGES r100, {%srcs0, _, %tgts0, _}
     GOTO r100_START
 r100_END:
 
-# First Edge
-DEALLOC_ENTITY_IDS %srcs0
-DEALLOC_ENTITY_IDS %tgts0
-
-# Second Edge
-DEALLOC_INDICES    %indices1
-DEALLOC_ENTITY_IDS %tgts1
-
-# Third Edge
-DEALLOC_INDICES    %indices2
-DEALLOC_ENTITY_IDS %tgts2
-
 EXIT

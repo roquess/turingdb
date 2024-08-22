@@ -9,11 +9,13 @@ int main() {
         return 1;
     }
 
-    if (!sample.generateFromFile(sample._sampleDir + "/program.turing")) {
+    if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
+        return 1;
+    }
+    if (!sample.executeFile(sample._sampleDir + "/program.turing")) {
         return 1;
     }
 
-    sample.execute();
     sample.printOutput({
         "TgtID_1",
         "EdgeID_1",
@@ -22,7 +24,7 @@ int main() {
         "EdgeID_2",
         "EdgeType_2",
         "SrcID_2",
-    }, 0, 10);
+    }, 0, 30, 10);
     sample.destroy();
 
     return 0;

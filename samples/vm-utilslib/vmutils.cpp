@@ -197,6 +197,26 @@ void VMSample::execute() const {
     logt::ElapsedTime(Milliseconds(Clock::now() - t0).count(), "ms");
 }
 
+bool VMSample::executeFile(std::string_view programPath) const {
+    if (!generateFromFile(programPath)) {
+        return false;
+    }
+
+    execute();
+
+    return true;
+}
+
+bool VMSample::executeString(const std::string& programString) const {
+    if (!generateFromString(programString)) {
+        return false;
+    }
+
+    execute();
+
+    return true;
+}
+
 #define PRINT_CASE(TType)                                               \
     case TType::staticKind(): {                                         \
         const auto& c = *static_cast<const TType*>(col);                \
@@ -251,6 +271,7 @@ void VMSample::printOutput(std::initializer_list<std::string_view> colNames,
             PRINT_CASE(ColumnVector<types::Int64::Primitive>)
             PRINT_CASE(ColumnVector<types::Double::Primitive>)
             PRINT_CASE(ColumnVector<types::String::Primitive>)
+            PRINT_CASE(ColumnVector<types::String::PrimitiveView>)
             PRINT_CASE(ColumnVector<types::Bool::Primitive>)
             default: {
                 panic("Printing column of type {} is not supported", col->getKind());

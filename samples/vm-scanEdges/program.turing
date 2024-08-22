@@ -1,8 +1,4 @@
 .data:
-ENTITY_IDS $edgeIDs, {}
-ENTITY_IDS $srcIDs,  {}
-ENTITY_IDS $tgtIDs,  {}
-INDICES    $indices
 OUTPUT     $out
 
 .alias:
@@ -14,13 +10,13 @@ ALIAS %tgtIDs,   r4
 ALIAS %types,    r5
 
 .text:
+ALLOC_INDICES    %indices
+ALLOC_ENTITY_IDS %srcIDs
+ALLOC_ENTITY_IDS %edgeIDs
+ALLOC_ENTITY_IDS %tgtIDs
 ALLOC_EDGE_TYPES %types
 
-LOAD %indices, $indices
 LOAD %out,     $out
-LOAD %srcIDs,  $srcIDs
-LOAD %edgeIDs, $edgeIDs
-LOAD %tgtIDs,  $tgtIDs
 
 ADD_COL %out, %srcIDs,  0
 ADD_COL %out, %edgeIDs, 0
@@ -36,7 +32,5 @@ SCAN_EDGES r100, {%srcIDs, %edgeIDs, %tgtIDs, %types}
 
     GOTO r100_START
 r100_END:
-
-DEALLOC_EDGE_TYPES %types
 
 EXIT
