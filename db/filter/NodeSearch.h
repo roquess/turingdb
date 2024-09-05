@@ -53,5 +53,5 @@ private:
     std::unordered_set<const db::NodeType*> _types;
     std::unordered_set<db::DBIndex> _ids;
     std::map<PropertyName, std::pair<Values, MatchType>> _properties;
-    bool _trace {true};
+    bool _trace {false};
 };
