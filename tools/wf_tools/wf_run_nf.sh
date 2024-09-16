@@ -72,13 +72,18 @@ if [ ${nfcore_run} = "true" ]; then
             # Here we read the params file. we accept both a blank space or no space between key and value
             awk -v pre=${prepend_var} -v param=${param} \
                 ' { if ($1~param ":") { 
-                    if (NF==1) { split($1,a,":"); print pre "/" a[2] } 
-                    else {print pre "/" $2} }
-                } ' ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod.yaml > ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod_tmp.yaml \
+                    if (NF==1) { split($1,a,":"); $1= a[1] ":" pre "/" a[2] } 
+                    else {$2= pre "/" $2} }
+                    print $0 
+                } ' ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod.yaml >> ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod_tmp.yaml \
                 && mv ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod_tmp.yaml ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod.yaml
 
             # EDIT PATHS OF PARAMS FILES # there always has to be a header..
-            file_toedit=$( awk -v param=${param} ' { if($1==param ":") print $2}' ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod.yaml )
+            file_toedit=$( awk -v param=${param} \
+                ' { if ($1~param ":") { 
+                    if (NF==1) { split($1,a,":"); print a[2] } 
+                    else {print $2} }
+                } ' ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod.yaml )
 	        IFS="," read -r -a column_paths <<< ${columns}
 
             head -1 ${file_toedit}  > "${file_toedit}_tmp"
@@ -103,7 +108,7 @@ if [ ${nfcore_run} = "true" ]; then
         for path in `jq -c ".requirements[]" ${pod_basedir}/${project_name}/${dataset}/analysis/.nfpipelines/.${nfcore_name}.json | sed 's/"//g' `; do
             bname=$( basename $path)
             echo -e "Fetching: ${path}"
-            aws s3 cp ${path} ${pod_basedir}/${project_name}/${dataset}/analysis/.nfpipelines/${bname} # assuming it's all file or tar.gz archives.. make it more general to include directories
+            aws s3 cp ${path} ${pod_basedir}/${project_name}/${dataset}/analysis/.nfpipelines/${bname} 
         done
         echo -e "[DONE].\n"
     fi 
@@ -132,7 +137,7 @@ if [ ${nfcore_run} = "true" ]; then
     echo ${err_status} > ${NXF_LAUNCH}/${latest_nfrun}_STATUS.txt
 
     if [[ ${err_status} == "COMPLETED" ]]; then 
-        aws s3 sync ${NXF_OUT} ${s3bucket}/${project_name}/${dataset}/results/${dataset}_processing
+        aws s3 sync ${NXF_OUT}/ ${s3bucket}/${project_name}/${dataset}/results/${dataset}_processing/
     elif [[ ${err_status} == "ERR" ]]; then
         echo -e "[ERR]: pipeline run ${latest_nfrun} completed with errors."
         dt=$( date +"%Y_%m_%d_%H_%M_%S" )

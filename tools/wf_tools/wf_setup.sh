@@ -20,11 +20,9 @@ if [[ "$NF" != "null" ]]; then
     
     IFS=',' read -r -a NF_list <<< ${NF}
     for nf_pipeline in "${NF_list[@]}"; do
-
-        req_path=$(aws s3 ls "s3://turing/nfcore_requirements/.${nf_pipeline}.json" )
-        if [ ! -z "$req_path" ]; then # if path not empty
+        if [[ $(ast exist ${file_path}) == "True" ]]; then 
             echo -e "Fetching requirements file for ${nf_pipeline} pipeline.."
-            aws s3 cp s3://turing/nfcore_requirements/.${nf_pipeline}.json ${OTP}/${PROJECT}/${DATASET}/analysis/.nfpipelines/.${nf_pipeline}.json
+            ast s3 cp s3://turing/nfcore_requirements/.${nf_pipeline}.json ${OTP}/${PROJECT}/${DATASET}/analysis/.nfpipelines/.${nf_pipeline}.json
         fi
     done
     echo -e "[DONE].\n"
@@ -46,5 +44,5 @@ if [[ "$MODULES" != "null" ]]; then
     echo -e "[DONE].\n"
 fi
 
-aws s3 sync ${OTP}/${PROJECT}/${DATASET}/ ${S3}/${PROJECT}/${DATASET}
+aws s3 sync ${OTP}/${PROJECT}/${DATASET}/ ${S3}/${PROJECT}/${DATASET}/
 echo -e "[The end].\n"

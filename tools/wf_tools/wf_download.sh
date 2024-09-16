@@ -46,7 +46,7 @@ if [[ -f "${OTP}/${PROJECT}/${DATASET}/analysis/notebooks/.modules.txt" ]]; then
 
                     if [[ ! -e ${requirement_dir}/${file_name} ]]; then # if file does not exist locally, copy it from s3 bucket
                         echo -e "${file_name} not found in ${requirement_dir}. Fetching it from s3 bucket.."
-                        if [[ $(bash /home/dev/turing/src/bioinfo/ast/ast exist ${file_path}) == "True" ]]; then
+                        if [[ $(ast exist ${file_path}) == "True" ]]; then
                             if [[ ${file_type} == "dir" ]]; then
                                 aws s3 cp ${file_path} ${requirement_dir}/${file_name} --recursive && echo -e "[DONE].\n"
                             elif [[ ${file_type} == "file" ]]; then

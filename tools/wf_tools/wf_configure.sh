@@ -4,8 +4,8 @@ gigaConfig=$1
 wd=$(dirname $0)
 
 basedir=$(jq -r '.submission.basedir' "${gigaConfig}") && basedir=${basedir%/}
-project_name=$(jq -r '.submission.project_name' "${gigaConfig}")
-dataset=$(jq -r '.submission.dataset' "${gigaConfig}")
+project_name=$(jq -r '.submission.project_name' "${gigaConfig}") 
+dataset=$(jq -r '.submission.dataset' "${gigaConfig}") 
 requirement_dir="${basedir}/${project_name}/requirements"
 
 bash ${wd}/wfconfig/split_config.sh ${gigaConfig}
