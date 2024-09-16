@@ -19,14 +19,13 @@ if [[ $source_path ==  s3://* ]]; then
             aws s3 sync "$source_path/" "$destination_path" # "/" here is important! if you remove it breaks
         else
             # it's a file
-            flname=$( basename ${source_path} )
             # if destination file already exists locally, copy only if:
             # - timestamp is older
             # OR
             # - if timestamps are equal, but file size differs (= file has changed)
-            if [ -f "${destination_path}/${flname}" ]; then
-                timestamp_destination=$(stat -c %Y "${destination_path}/${flname}")
-                size_destination=$(stat -c %s "${destination_path}/${flname}")
+            if [ -f "${destination_path}" ]; then
+                timestamp_destination=$(stat -c %Y "${destination_path}")
+                size_destination=$(stat -c %s "${destination_path}")
 
                 timestamp_source=$( aws s3 ls ${source_path} | awk '{print $1,$2}')
                 # convert timestamp in epoch time
@@ -40,13 +39,13 @@ if [[ $source_path ==  s3://* ]]; then
                     if [ ${diff} -lt 10 ]; then
                         echo -e "[Warning]: timestamp difference is less than 10 seconds. Are you sure that destination file is outdated?"
                     fi
-                    aws s3 cp "$source_path" "$destination_path/"
+                    aws s3 cp "$source_path" "$destination_path"
                 # if timestamp is the same, but size differs, then copy
                 elif [[ "${timestamp_destination}" -eq "${timestamp_source}" ]] && [[ "${size_destination}" != "${size_source}" ]]; then
-                    aws s3 cp "$source_path" "$destination_path/"
+                    aws s3 cp "$source_path" "$destination_path"
                 fi
             else
-                aws s3 cp "$source_path" "$destination_path/"
+                aws s3 cp "$source_path" "$destination_path"
             fi
         fi
     else
@@ -54,15 +53,14 @@ if [[ $source_path ==  s3://* ]]; then
     fi
 else # source is local object
     if [ -d "$source_path" ]; then
-        aws s3 sync "$source_path" "$destination_path/"
+        aws s3 sync "$source_path" "$destination_path"
     elif [ -f "$source_path" ]; then
-        flname=$( basename ${source_path})
         # if destination file already exists in s3 bucket
-        if [ "$(bash ${wd}/ast_exist.sh "${destination_path}/${flname}")" == "True"  ]; then
-            timestamp_destination=$(aws s3 ls "${destination_path}/${flname}" | awk '{print $1,$2}')
+        if [ "$(bash ${wd}/ast_exist.sh "${destination_path}")" == "True"  ]; then
+            timestamp_destination=$(aws s3 ls "${destination_path}" | awk '{print $1,$2}')
             # convert timestamp in epoch time
             timestamp_destination=$(date -d "${timestamp_destination}" +%s)
-            size_destination=$(aws s3 ls "${destination_path}/${flname}" | awk '{print $3}')
+            size_destination=$(aws s3 ls "${destination_path}" | awk '{print $3}')
 
             timestamp_source=$( stat -c %Y  "${source_path}" )
             size_source=$( stat -c %s "${source_path}" )
@@ -73,13 +71,13 @@ else # source is local object
                 if [ ${diff} -lt 10 ]; then
                     echo -e "[Warning]: timestamp difference is less than 10 seconds. Are you sure that destination file is outdated?"
                 fi
-                aws s3 cp "$source_path" "$destination_path/"
+                aws s3 cp "$source_path" "$destination_path"
             # if timestamp is the same, but size differs, then copy
             elif [[ "${timestamp_destination}" -eq "${timestamp_source}" ]] && [[ "${size_destination}" != "${size_source}" ]]; then
-                    aws s3 cp "$source_path" "$destination_path/"
+                    aws s3 cp "$source_path" "$destination_path"
             fi
         else
-            aws s3 cp "$source_path" "$destination_path/"
+            aws s3 cp "$source_path" "$destination_path"
         fi
         
     else
