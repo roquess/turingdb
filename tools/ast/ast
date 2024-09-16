@@ -26,7 +26,7 @@ case $STEP in
 
         bash ${wd}/ast_exist.sh $1
         ;;
-    sync)
+    syncup)
         if [ $# -ne 2 ]; then
             echo -e "ERROR: you need to provide at least 2 arguments: [<LocalPath> and  <S3Uri>] or  [<S3Uri> and <LocalPath>]"
             usage
@@ -42,7 +42,7 @@ case $STEP in
             usage
         fi
 
-        bash ${wd}/ast_sync.sh ${source_path} ${destination_path}
+        bash ${wd}/ast_syncup.sh ${source_path} ${destination_path}
         ;;
     *)
         aws s3 $STEP $@
