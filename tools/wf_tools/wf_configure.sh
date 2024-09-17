@@ -44,5 +44,5 @@ if [[ ${s3sync} == "true" ]]; then
     echo -e "\nNow sync'ing up project folder"
     s3bucket=${s3bucket%/}
     #aws s3 rm ${s3bucket}/${dataset}/ --recursive --quiet
-    aws s3 sync ${basedir}/${project_name}/${dataset} ${s3bucket}/${project_name}/${dataset}/ && echo "[DONE]."
+    ast syncup ${basedir}/${project_name}/${dataset} ${s3bucket}/${project_name}/${dataset} && echo "[DONE]."
 fi

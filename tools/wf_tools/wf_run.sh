@@ -15,7 +15,7 @@ s3bucket=${s3bucket%/}
 ## NEXTFLOW ROUTINES ##
 if [ ${libraryprep_run} = "true" ] || [ ${nfcore_run} = "true" ] ; then
     echo -e "Sync'ing up the project in the s3 bucket"
-    aws s3 sync ${basedir}/${project_name}/${dataset}/ ${s3bucket}/${project_name}/${dataset}/
+    ast syncup ${basedir}/${project_name}/${dataset}/ ${s3bucket}/${project_name}/${dataset}/
     echo -e "[DONE].\n"
 
     echo -e "Nextflow flags are set to true. Submitter pod is engaged.\n"
@@ -77,7 +77,7 @@ if [ ${biorun} = "true" ]; then
     done 
 
     if [[ ${s3sync} == "true" ]]  && [[ ${final_exitcode} -eq 0 ]]; then # not robust to earlier errors than when final_exitcode is actually updated
-        aws s3 sync ${basedir}/${project_name}/${dataset}/ ${s3bucket}/${project_name}/${dataset}}/
+        ast syncup ${basedir}/${project_name}/${dataset} ${s3bucket}/${project_name}/${dataset}
     fi
 
 fi

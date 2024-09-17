@@ -6,7 +6,7 @@ S3=$3
 OTP=$4
 
 # Sync project to bucket
-aws s3 sync ${S3}/${PROJECT}/${DATASET} ${OTP}/${PROJECT}/${DATASET}
+ast sync ${S3}/${PROJECT}/${DATASET} ${OTP}/${PROJECT}/${DATASET}
 echo -e "\n"
 
 ## TO ADD: -> check if it is a folder or a file in s3bucket and use either sync or cp. it could also be a local file, not in the bucket
@@ -14,7 +14,7 @@ if [[ -f ${OTP}/${PROJECT}/${DATASET}/data/.getdata.txt ]]; then
     echo -e "Fetching data from:"
     for path in `cat ${OTP}/${PROJECT}/${DATASET}/data/.getdata.txt`; do
         echo -e "$path"
-        aws s3 sync ${path} ${OTP}/${PROJECT}/${DATASET}/data/01.Data
+        ast sync ${path} ${OTP}/${PROJECT}/${DATASET}/data/01.Data
     done
 fi
 
@@ -22,7 +22,7 @@ if [[ -f ${OTP}/${PROJECT}/${DATASET}/metadata/.getmetadata.txt ]]; then
     echo -e "Fetching data from:"
     for path in `cat ${OTP}/${PROJECT}/${DATASET}/metadata/.getmetadata.txt`; do
         echo -e "$path"
-        aws s3 sync ${path} ${OTP}/${PROJECT}/${DATASET}/metadata/
+        ast sync ${path} ${OTP}/${PROJECT}/${DATASET}/metadata/
     done
 fi
 

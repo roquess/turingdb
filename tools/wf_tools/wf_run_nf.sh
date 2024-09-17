@@ -8,7 +8,7 @@ pod_basedir=$4
 
 # sync project locally
 echo -e "Fetching project from S3 bucket into submitter pod at: ${pod_basedir}/${project_name}/${dataset}.."
-aws s3 sync ${s3bucket}/${project_name}/${dataset}/ ${pod_basedir}/${project_name}/${dataset}/
+ast syncup ${s3bucket}/${project_name}/${dataset} ${pod_basedir}/${project_name}/${dataset}
 echo -e "[DONE].\n"
 
 source ${pod_basedir}/${project_name}/${dataset}/config/${project_name}_${dataset}_workflow.config
@@ -55,7 +55,7 @@ if [ ${libraryprep_run} = "true" ]; then
     echo "    [DONE]."
 
     mv  ${pod_basedir}/${project_name}/${dataset}/data/02.CleanData/*r2r.csv ${pod_basedir}/${project_name}/${dataset}/data
-    aws s3 sync ${pod_basedir}/${project_name}/${dataset} ${s3bucket}/${dataset}
+    ast syncup ${pod_basedir}/${project_name}/${dataset} ${s3bucket}/${dataset}
 fi
 
 if [ ${nfcore_run} = "true" ]; then
@@ -75,7 +75,7 @@ if [ ${nfcore_run} = "true" ]; then
                     if (NF==1) { split($1,a,":"); $1= a[1] ":" pre "/" a[2] } 
                     else {$2= pre "/" $2} }
                     print $0 
-                } ' ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod.yaml >> ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod_tmp.yaml \
+                } ' ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod.yaml > ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod_tmp.yaml \
                 && mv ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod_tmp.yaml ${pod_basedir}/${project_name}/${dataset}/config/${dataset}_${nfcore_name}_params_pod.yaml
 
             # EDIT PATHS OF PARAMS FILES # there always has to be a header..
@@ -108,7 +108,7 @@ if [ ${nfcore_run} = "true" ]; then
         for path in `jq -c ".requirements[]" ${pod_basedir}/${project_name}/${dataset}/analysis/.nfpipelines/.${nfcore_name}.json | sed 's/"//g' `; do
             bname=$( basename $path)
             echo -e "Fetching: ${path}"
-            aws s3 cp ${path} ${pod_basedir}/${project_name}/${dataset}/analysis/.nfpipelines/${bname} 
+            ast syncup ${path} ${pod_basedir}/${project_name}/${dataset}/analysis/.nfpipelines/${bname} 
         done
         echo -e "[DONE].\n"
     fi 
@@ -137,7 +137,7 @@ if [ ${nfcore_run} = "true" ]; then
     echo ${err_status} > ${NXF_LAUNCH}/${latest_nfrun}_STATUS.txt
 
     if [[ ${err_status} == "COMPLETED" ]]; then 
-        aws s3 sync ${NXF_OUT}/ ${s3bucket}/${project_name}/${dataset}/results/${dataset}_processing/
+        ast sync ${NXF_OUT}/ ${s3bucket}/${project_name}/${dataset}/results/${dataset}_processing/
     elif [[ ${err_status} == "ERR" ]]; then
         echo -e "[ERR]: pipeline run ${latest_nfrun} completed with errors."
         dt=$( date +"%Y_%m_%d_%H_%M_%S" )

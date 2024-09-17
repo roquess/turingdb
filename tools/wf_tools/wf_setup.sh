@@ -44,5 +44,5 @@ if [[ "$MODULES" != "null" ]]; then
     echo -e "[DONE].\n"
 fi
 
-aws s3 sync ${OTP}/${PROJECT}/${DATASET}/ ${S3}/${PROJECT}/${DATASET}/
+ast sync ${OTP}/${PROJECT}/${DATASET}/ ${S3}/${PROJECT}/${DATASET}/
 echo -e "[The end].\n"
