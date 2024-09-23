@@ -4,6 +4,7 @@ set -eou pipefail
 usage() {
     echo "Usage:"
     echo "ast exist <S3Uri>"
+    echo "ast typecheck <S3Uri>"
     echo "ast syncup <LocalPath> <S3Uri> or ast syncup <S3Uri> <LocalPath>"
     exit 1
 }
