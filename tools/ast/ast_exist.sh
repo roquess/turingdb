@@ -14,8 +14,9 @@ output=$(aws s3 ls "$s3uri" 2>/dev/null)
 if [ -z "$output" ]; then
     echo "False"
 else
+    basename_s3uri=$(basename "$s3uri" )
     # Check for exact match
-    if echo "$output" | grep -q -E "^ *PRE *$(basename "$s3uri")\/|\s\S* ${basename}$"; then
+    if echo "$output" | grep -q -E "^ *PRE *${basename_s3uri}\/|\s\S* ${basename_s3uri}$"; then
         echo "True"
     else
         echo "False"

@@ -15,10 +15,10 @@ output=$(aws s3 ls "$s3uri" 2>/dev/null)
 if [ -z "$output" ]; then
     echo "[ERROR]: S3Uri does not exist"
 else
-    basename=$(basename "$s3uri")
-    if echo "$output" | grep -q "^ *PRE *$(basename "$s3uri")\/$"; then
+    basename_s3uri=$(basename "$s3uri")
+    if echo "$output" | grep -q "^ *PRE *${basename_s3uri}\/$"; then
         echo "${s3uri} is a folder"
-    elif echo "$output" | grep -q "\s\S* ${basename}$"; then
+    elif echo "$output" | grep -q "\s\S* ${basename_s3uri}$"; then
         echo "${s3uri} is a file"
     else
         echo -e "[ERROR]: ambiguous paths provided"
