@@ -10,37 +10,29 @@ OTP=$4
 ast sync ${S3}/${PROJECT}/${DATASET} ${OTP}/${PROJECT}/${DATASET}
 echo -e "\n"
 
-if [[ -f ${OTP}/${PROJECT}/${DATASET}/data/.getdata.txt ]]; then 
-    echo -e "Fetching data from:"
-    for path in `cat ${OTP}/${PROJECT}/${DATASET}/data/.getdata.txt`; do
-        echo -e "$path"
-        if [[ $( ast typecheck ${path} | awk '{print $4}' ) == "file" ]]; then
-            fl_name=$(basename ${path})
-            ast syncup ${path} ${OTP}/${PROJECT}/${DATASET}/data/01.Data/${fl_name}
-        elif [[ $( ast typecheck ${path} | awk '{print $4}' ) == "folder" ]]; then
-            ast syncup ${path} ${OTP}/${PROJECT}/${DATASET}/data/01.Data/
-        else
-            echo -e "[S3Uri error]: check provided path in .getdata.txt file."
-            exit 1
-        fi
-    done
-fi
+hidden_fetchers=( ${OTP}/${PROJECT}/${DATASET}/data/.getdata.txt \
+                  ${OTP}/${PROJECT}/${DATASET}/metadata/.getmetadata.txt
+                )
 
-if [[ -f ${OTP}/${PROJECT}/${DATASET}/metadata/.getmetadata.txt ]]; then 
-    echo -e "Fetching data from:"
-    for path in `cat ${OTP}/${PROJECT}/${DATASET}/metadata/.getmetadata.txt`; do
-        echo -e "$path"
-        if [[ $( ast typecheck ${path} | awk '{print $3}' ) == "file" ]]; then
-            fl_name=$(basename ${path})
-            ast syncup ${path} ${OTP}/${PROJECT}/${DATASET}/data/01.Data/${fl_name}
-        elif [[ $( ast typecheck ${path} | awk '{print $3}' ) == "folder" ]]; then
-            ast syncup ${path} ${OTP}/${PROJECT}/${DATASET}/data/01.Data/
-        else
-            echo -e "[S3Uri error]: check provided path in .getdata.txt file."
-            exit 1
-        fi
-    done
-fi
+# Fetching data and metadata from hidden fetcher files
+for fetcher in ${hidden_fetchers[@]}; do 
+    if [[ -f ${fetcher} ]]; then 
+        echo -e "File ${fetcher} found! Fetching data from s3 buckets.."
+        echo -e "Fetching data from:"
+        for path in `cat ${fetcher}`; do
+            echo -e "$path"
+            if [[ $( ast typecheck ${path} | awk '{print $4}' ) == "file" ]]; then
+                fl_name=$(basename ${path})
+                ast syncup ${path} ${OTP}/${PROJECT}/${DATASET}/data/01.Data/${fl_name}
+            elif [[ $( ast typecheck ${path} | awk '{print $4}' ) == "folder" ]]; then
+                ast syncup ${path} ${OTP}/${PROJECT}/${DATASET}/data/01.Data/
+            else
+                echo -e "[S3Uri error]: check provided path in .getdata.txt file."
+                exit 1
+            fi
+        done
+    fi
+done
 
 
 # copy requirements from bucket if needed
