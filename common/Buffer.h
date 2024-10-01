@@ -28,10 +28,13 @@ public:
             setWrittenBytes(1);
         }
 
-        void writeString(const std::string& str) {
+        void writeString(const char* str, size_t size) {
             char* buffer = getBuffer();
-            strcpy(buffer, str.c_str());
-            setWrittenBytes(str.size());
+            memcpy(buffer, str, size);
+            if(str[size-1] != '\0') {
+                writeChar('\0');
+            }
+            setWrittenBytes(size);
         }
 
         void setWrittenBytes(size_t bytesWritten) { _buffer->_bytes += bytesWritten; }

@@ -11,7 +11,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    if (!sample.executeQuery("SELECT * FROM n:")) {
+    if (!sample.executeQuery("SELECT n FROM n:")) {
         spdlog::error("Failed to execute query");
         return EXIT_FAILURE;
     }
