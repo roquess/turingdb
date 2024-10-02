@@ -12,9 +12,10 @@ int main() {
         return EXIT_FAILURE;
     }
 */
+
     sample.createSimpleGraph();
 
-    if (!sample.executeQuery("SELECT * FROM n:")) {
+    if (!sample.executeQuery("SELECT * FROM n:--p:")) {
         spdlog::error("Failed to execute query");
         return EXIT_FAILURE;
     }

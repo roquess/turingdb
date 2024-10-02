@@ -17,6 +17,8 @@ public:
     std::string getTuringHome() const;
 
     bool loadJsonDB(const std::string& jsonDir);
+    void createSimpleGraph();
+
     bool executeQuery(const std::string& queryStr);
 
 private:
