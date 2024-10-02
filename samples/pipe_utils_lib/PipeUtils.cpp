@@ -1,5 +1,7 @@
 #include "PipeUtils.h"
 
+#include <iostream>
+
 #include <stdlib.h>
 #include <spdlog/spdlog.h>
 
@@ -12,6 +14,7 @@
 #include "QueryInterpreter.h"
 #include "InterpreterContext.h"
 #include "QueryParams.h"
+#include "QueryPlannerParams.h"
 
 #include "Time.h"
 #include "LogUtils.h"
@@ -71,7 +74,11 @@ bool PipeSample::loadJsonDB(const std::string& jsonDir) {
 
 bool PipeSample::executeQuery(const std::string& queryStr) {
     InterpreterContext interpCtxt(_system.get());
+
+    EncodingParams encodingParams(EncodingParams::EncodingType::DEBUG_DUMP, std::cout);
+
     QueryInterpreter interp(&interpCtxt);
+    interp.setEncodingParams(&encodingParams);
 
     const QueryParams queryParams(queryStr, _system->getDefaultDB()->getName());
     const auto res = interp.execute(queryParams);
