@@ -51,6 +51,7 @@ add_subdirectory(scan_nodes_iterator)
 add_subdirectory(pipe_utils_lib)
 add_subdirectory(pipe_scan_nodes)
 add_subdirectory(pipe_getOutEdges)
+add_subdirectory(pipe_scanNodesByLabel)
 
 set (SCRIPT_LIST_CONTENT "")
 list (LENGTH SAMPLE_LIST SAMPLE_COUNT)
