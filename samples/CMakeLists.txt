@@ -25,6 +25,7 @@ macro(turing_sample SAMPLE_NAME SOURCES)
 endmacro()
 
 #add_subdirectory(vm-utilslib)
+#add_subdirectory(aws-s3-list)
 #add_subdirectory(aws-s3-read)
 #add_subdirectory(aws-s3-stream)
 #add_subdirectory(aws-s3-write)

@@ -10,24 +10,20 @@
 using namespace db;
 
 int main(int argc, const char** argv) {
-    const std::string remoteObject = "db/reactome/db/data";
+    const std::string remotePath = "db";
     const std::string bucket = "turing";
     const std::string endpointUrl = "s3.fr-par.scw.cloud";
 
     TuringS3ClientConfig turingConfig {endpointUrl};
     TuringS3Client turingClient {turingConfig};
-    std::vector<std::byte> data;
+    std::vector<std::string> files;
 
-    if (!turingClient.readObject(bucket, remoteObject, data)) {
+    if (!turingClient.listFiles(bucket, remotePath, files)) {
         spdlog::info("[{}] The operation failed.", SAMPLE_NAME);
         return EXIT_FAILURE;
     }
 
-    if (data.size() == 0) {
-        spdlog::info("[{}] No data retrieved.", SAMPLE_NAME);
-        return EXIT_FAILURE;
-    }
-
-    spdlog::info("[{}] Successfully read {} MB of data.", SAMPLE_NAME, (float)data.size() / 1024.f / 1024.f);
+    spdlog::info("[{}] {} objects found in the path '{}'.", SAMPLE_NAME, files.size(), remotePath);
+    spdlog::info("[{}] {} ... {}.", SAMPLE_NAME, files.at(0), files.at(files.size() - 1));
     return EXIT_SUCCESS;
 }

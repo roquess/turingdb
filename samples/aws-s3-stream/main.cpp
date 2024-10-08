@@ -3,7 +3,6 @@
 #include <fstream>
 #include <string>
 
-#include <argparse.hpp>
 #include <spdlog/spdlog.h>
 
 #include "TuringS3Client.h"
