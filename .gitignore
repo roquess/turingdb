@@ -4,12 +4,8 @@ __pycache__/
 .cache
 wrt.out
 node_modules
-ui/frontend/site
-ui/frontend_prototype/site
-ui/frontend_prototype/package-lock.json
-ui/frontend_prototype/package.json
-ui.new
 biorun.out
 bioinfo/notebooks/api-notebooks/spatial_transcriptomics/datasets/*/data
 bioinfo/notebooks/api-notebooks/spatial_transcriptomics/datasets/cohort_analysis/
 bioinfo/notebooks/api-notebooks/spatial_transcriptomics/datasets/10X_Visium*
+compile_commands.json
