@@ -41,6 +41,14 @@ set(CMAKE_CXX_FLAGS "-std=${CPP_STANDARD} ${CPP_FEATURES} ${CPP_WARNINGS} ${OPTI
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+# Create compilation database and symlink in the src folder
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_BINARY_DIR}/compile_commands.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+)
+
 # Boost
 set(BOOST_VERSION boost-1.74)
 set(Boost_USE_STATIC_LIBS ON)
