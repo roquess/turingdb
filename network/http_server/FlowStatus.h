@@ -4,6 +4,7 @@ namespace net {
 
 enum class FlowStatus {
     OK = 0,
+    ALREADY_INITIALIZED,
     CREATE_ERROR,
     BIND_ERROR,
     LISTEN_ERROR,

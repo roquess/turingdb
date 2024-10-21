@@ -19,9 +19,9 @@
 #include "DataBuffer.h"
 
 #include "DBServerConfig.h"
-#include "Server.h"
 #include "DBServerContext.h"
-#include "DBServerSession.h"
+#include "DBServerProcessor.h"
+#include "Server.h"
 
 #include "Time.h"
 #include "LogUtils.h"
@@ -190,7 +190,12 @@ void PipeSample::startHttpServer() {
     DBServerConfig config;
     InterpreterContext interpCtxt(_system.get());
     DBServerContext serverContext(&interpCtxt);
-    Server<DBServerContext, DBServerSession> server(&serverContext,
-                                                    config.getServerConfig());
+    Server server;
+
+    server.setProcessor([&](TCPConnection& connection) {
+        DBServerProcessor processor(serverContext, connection);
+        processor.process();
+    });
+
     server.start();
 }

@@ -1,6 +1,6 @@
 #include "Utils.h"
-#include "spdlog/spdlog.h"
 
+#include <spdlog/spdlog.h>
 #include <arpa/inet.h>
 #include <cstring>
 #include <fcntl.h>
@@ -9,6 +9,8 @@
 #include <sys/epoll.h>
 
 namespace net::utils {
+
+static_assert(INET_ADDRSTRLEN == ADDR_LEN);
 
 bool setNoDelay(Socket s, bool enable) {
     int opt = enable;
@@ -73,20 +75,26 @@ bool listen(ServerSocket s) {
     return ::listen(s, 32) != -1;
 }
 
-bool epollAdd(EpollInstance instance, EpollEvent& event) {
-    return epoll_ctl(instance, EPOLL_CTL_ADD, event.data.fd, &event) != -1;
+bool epollAdd(EpollInstance instance, Socket fd, EpollEvent& event) {
+    return epoll_ctl(instance, EPOLL_CTL_ADD, fd, &event) != -1;
 }
 
-bool epollMod(EpollInstance instance, EpollEvent& event) {
-    return epoll_ctl(instance, EPOLL_CTL_MOD, event.data.fd, &event) != -1;
+bool epollMod(EpollInstance instance, Socket fd, EpollEvent& event) {
+    return epoll_ctl(instance, EPOLL_CTL_MOD, fd, &event) != -1;
 }
 
-bool epollDel(EpollInstance instance, EpollEvent& event) {
-    return epoll_ctl(instance, EPOLL_CTL_DEL, event.data.fd, &event) != -1;
+bool epollDel(EpollInstance instance, Socket fd, EpollEvent& event) {
+    return epoll_ctl(instance, EPOLL_CTL_DEL, fd, &event) != -1;
 }
 
-void reportError(const char* title) {
+void logError(const char* title) {
     spdlog::error("[{}]: {}", title, strerror(errno));
+}
+
+StringAddress getStringAddress(uint32_t intAddr) {
+    StringAddress addr {};
+    inet_ntop(AF_INET, &intAddr, addr.data(), INET_ADDRSTRLEN);
+    return addr;
 }
 
 }

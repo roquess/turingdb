@@ -1,18 +1,27 @@
 #pragma once
 
 #include <array>
-#include <stddef.h>
-#include <string.h>
-#include <string>
+#include <cstddef>
+#include <cstring>
+#include <string_view>
 
-class Buffer {
+template <size_t ChunkSize = 1024 * 8, size_t ChunkCount = 10>
+
+class FixedSizeBuffer {
 public:
-    Buffer();
-    ~Buffer();
+    static constexpr size_t BufferSize = ChunkCount * ChunkSize;
+
+    FixedSizeBuffer() = default;
+    ~FixedSizeBuffer() = default;
+
+    FixedSizeBuffer(const FixedSizeBuffer&) = delete;
+    FixedSizeBuffer(FixedSizeBuffer&&) = delete;
+    FixedSizeBuffer& operator=(const FixedSizeBuffer&) = delete;
+    FixedSizeBuffer& operator=(FixedSizeBuffer&&) = delete;
 
     class Writer {
     public:
-        explicit Writer(Buffer* buffer)
+        explicit Writer(FixedSizeBuffer* buffer)
             : _buffer(buffer)
         {
         }
@@ -28,27 +37,34 @@ public:
             setWrittenBytes(1);
         }
 
-        void writeString(const char* str, size_t size) {
+        void writeString(std::string_view str) {
             char* buffer = getBuffer();
-            memcpy(buffer, str, size);
-            setWrittenBytes(size);
+            memcpy(buffer, str.data(), str.size());
+            setWrittenBytes(str.size());
         }
 
-        void setWrittenBytes(size_t bytesWritten) { _buffer->_bytes += bytesWritten; }
+        void setWrittenBytes(size_t bytesWritten) {
+            _buffer->_bytes += bytesWritten;
+        }
+
+        size_t getBufferSize() const { return BufferSize - _buffer->_bytes; }
+        size_t getChunkSize() const {
+            const size_t avail = BufferSize - _buffer->_bytes;
+            return std::min(ChunkSize, avail);
+        }
 
         char* getBuffer() { return &_buffer->_data[_buffer->_bytes]; }
-        size_t getBufferSize() const { return Buffer::BUFFER_SIZE-_buffer->_bytes; }
 
         bool isFull() const { return getBufferSize() == 0; }
 
     private:
-        Buffer* _buffer {nullptr};
+        FixedSizeBuffer* _buffer {nullptr};
     };
 
     class Reader {
     public:
-        explicit Reader(Buffer* buffer)
-            : _buffer(buffer)
+        explicit Reader(FixedSizeBuffer* buffer)
+            : _buffer(buffer) 
         {
         }
 
@@ -59,15 +75,17 @@ public:
         void dump() const;
 
     private:
-        Buffer* _buffer {nullptr};
+        FixedSizeBuffer* _buffer {nullptr};
     };
 
     Writer getWriter() { return Writer(this); }
     Reader getReader() { return Reader(this); }
 
 private:
-    static constexpr size_t BUFFER_SIZE = 10*1024*1024;
     static constexpr size_t SAFETY_MARGIN = 256;
-    std::array<char, BUFFER_SIZE+SAFETY_MARGIN> _data;
+    std::array<char, BufferSize + SAFETY_MARGIN> _data {};
     size_t _bytes {0};
 };
+
+using Buffer = FixedSizeBuffer<>;
+

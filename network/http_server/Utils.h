@@ -1,16 +1,23 @@
 #pragma once
 
-#include <string_view>
+#include <array>
+#include <cstdint>
 
 struct epoll_event;
 
 namespace net::utils {
+
+inline constexpr std::size_t ADDR_LEN = 16;
 
 using Socket = int;
 using ServerSocket = int;
 using DataSocket = int;
 using EpollInstance = int;
 using EpollEvent = ::epoll_event;
+using EpollSignal = int;
+using StringAddress = std::array<char, ADDR_LEN>;
+using UserData = void*;
+
 
 // @brief sets TCP_NODELAY on a socket
 //
@@ -92,10 +99,10 @@ using EpollEvent = ::epoll_event;
 
 [[nodiscard]] bool bind(ServerSocket, const char* address, uint32_t port);
 [[nodiscard]] bool listen(ServerSocket);
-[[nodiscard]] bool epollAdd(EpollInstance, EpollEvent&);
-[[nodiscard]] bool epollMod(EpollInstance, EpollEvent&);
-[[nodiscard]] bool epollDel(EpollInstance, EpollEvent&);
+[[nodiscard]] bool epollAdd(EpollInstance, Socket fd, EpollEvent&);
+[[nodiscard]] bool epollMod(EpollInstance, Socket fd, EpollEvent&);
+[[nodiscard]] bool epollDel(EpollInstance, Socket fd, EpollEvent&);
+[[nodiscard]] StringAddress getStringAddress(uint32_t intAddr);
 
-void reportError(const char* title);
-
+void logError(const char* title);
 }
