@@ -19,12 +19,6 @@ Server::Server() = default;
 Server::~Server() = default;
 
 FlowStatus Server::initialize() {
-    if (_globalInstance) {
-        logt::error("Cannot initialize server: an instance already exists.");
-        return FlowStatus::ALREADY_INITIALIZED;
-    }
-    _globalInstance = this;
-
     _serverSocket = ::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
 
     if (_serverSocket == -1) {

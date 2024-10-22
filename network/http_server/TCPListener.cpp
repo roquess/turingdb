@@ -6,11 +6,12 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
+#include <string_view>
 
 using namespace net;
 
 inline constexpr std::string_view busyResponse = "HTTP/1.1 503 Service Unavailable\r\n"
-                                                 "context-type:text/plain\r\n"
+                                                 "Context-Type: text/plain\r\n"
                                                  "Connection: close\r\n\r\n";
 
 TCPListener::TCPListener(ServerContext& context)

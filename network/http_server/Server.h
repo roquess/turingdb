@@ -36,8 +36,6 @@ public:
     uint32_t getPort() const { return _port; };
 
 private:
-    static inline Server* _globalInstance = nullptr;
-
     const char* _address = "127.0.0.1";
     uint32_t _port = 6666;
     uint32_t _workerCount = 8;

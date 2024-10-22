@@ -13,7 +13,8 @@ namespace net {
 class NetWriter {
 public:
     explicit NetWriter(utils::DataSocket socket)
-        : _socket(socket) {
+        : _socket(socket)
+    {
         // - First 8 bytes are saved to store the chunk size
         // - We need to send \r\n after the size of the chunk
         memcpy(_chunk._content.data() + 8, "\r\n", 2);
@@ -78,7 +79,6 @@ public:
             return;
         }
 
-        // Delimit ending of chunk chunk
         //_header.endLine();
         send(_header._content.data(), _header._size);
 
