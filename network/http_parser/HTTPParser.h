@@ -1,8 +1,8 @@
 #pragma once
 
-#include "BasicResult.h"
-#include "Buffer.h"
 #include "HTTPParsingInfo.h"
+#include "Buffer.h"
+#include "BasicResult.h"
 
 namespace net {
 
@@ -59,7 +59,6 @@ public:
 
         _info._payload = std::string_view {_payloadBegin, getSize()};
         const bool finished = _info._payload.size() == _payloadSize;
-
 
         if (!finished && _reader.getSize() == Buffer::BUFFER_SIZE) {
             return BadResult(Error::REQUEST_TOO_BIG);
@@ -226,7 +225,7 @@ private:
 
     [[nodiscard]] Result<void> parseContentLengthAndJump() {
         const char* endPtr = getEndPtr();
-        std::string_view key = "content-length:";
+        const std::string_view key = "content-length:";
         std::string_view window;
 
         for (; _currentPtr != endPtr; _currentPtr++) {
@@ -249,21 +248,21 @@ private:
                                       && _currentPtr[2] == '\r'
                                       && _currentPtr[3] == '\n');
             if (isEmptyLine) {
-                continue;
+                return jumpToPayload();
             }
         }
 
         _currentPtr += key.size();
-        const char* _lengthBegin = _currentPtr;
+        const char* lengthBegin = _currentPtr;
 
         for (; _currentPtr != endPtr; _currentPtr++) {
             if (!isdigit(*_currentPtr)) {
-                _lengthBegin = _currentPtr;
+                lengthBegin = _currentPtr;
                 break;
             }
         }
 
-        _payloadSize = std::strtoull(_lengthBegin, &_currentPtr, 10);
+        _payloadSize = std::strtoull(lengthBegin, &_currentPtr, 10);
         return jumpToPayload();
     }
 

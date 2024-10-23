@@ -4,6 +4,13 @@
 
 namespace net {
 
+TCPConnection::TCPConnection()
+{
+}
+
+TCPConnection::~TCPConnection() {
+}
+
 void TCPConnection::close() {
     ::shutdown(_socket, SHUT_RDWR);
     ::close(_socket);

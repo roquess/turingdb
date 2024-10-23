@@ -24,9 +24,7 @@ int main(int argc, const char** argv) {
         return 0;
     }
 
-    net::Server server;
-
-    server.setProcessor([&](net::TCPConnection& con) {
+    net::Server server([&](net::TCPConnection& con) {
         const auto& httpInfo = con.getParser().getHttpInfo();
 
         if (httpInfo._path == "/say-hello") {

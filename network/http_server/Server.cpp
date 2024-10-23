@@ -14,7 +14,10 @@
 
 using namespace net;
 
-Server::Server() = default;
+Server::Server(ServerProcessor&& processor)
+    : _processor(std::move(processor))
+{
+}
 
 Server::~Server() = default;
 

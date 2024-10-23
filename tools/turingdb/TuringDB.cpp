@@ -21,7 +21,7 @@ int main(int argc, const char** argv) {
         .nargs(0)
         .help("Do not spawn as a background process");
 
-    argParser.add_argument("-port")
+    argParser.add_argument("-p")
         .default_value((uint32_t)6666)
         .store_into(config._port)
         .nargs(1)

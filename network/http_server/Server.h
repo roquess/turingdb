@@ -1,11 +1,11 @@
 #pragma once
 
+#include <atomic>
+#include <memory>
+
 #include "FlowStatus.h"
 #include "ServerContext.h"
 #include "Utils.h"
-
-#include <atomic>
-#include <memory>
 
 namespace net {
 
@@ -14,13 +14,13 @@ class TCPConnection;
 
 class Server {
 public:
+    explicit Server(ServerProcessor&&);
+    ~Server();
+
     Server(const Server&) = delete;
     Server(Server&&) = delete;
     Server& operator=(const Server&) = delete;
     Server& operator=(Server&&) = delete;
-
-    Server();
-    ~Server();
 
     FlowStatus initialize();
     FlowStatus start();

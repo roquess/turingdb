@@ -1,13 +1,13 @@
 #pragma once
 
-#include "HTTPParser.h"
-#include "NetWriter.h"
-#include "Utils.h"
-
 #include <cstddef>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "HTTPParser.h"
+#include "NetWriter.h"
+#include "Utils.h"
 
 namespace net {
 
@@ -15,7 +15,13 @@ class TCPConnectionStorage;
 
 class TCPConnection {
 public:
-    TCPConnection() = default;
+    TCPConnection();
+    ~TCPConnection();
+
+    TCPConnection(const TCPConnection&) = delete;
+    TCPConnection(TCPConnection&&) = delete;
+    TCPConnection& operator=(const TCPConnection&) = delete;
+    TCPConnection& operator=(TCPConnection&&) = delete;
 
     void close();
     void dealloc();

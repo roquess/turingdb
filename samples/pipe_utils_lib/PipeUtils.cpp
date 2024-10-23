@@ -194,9 +194,8 @@ void PipeSample::startHttpServer() {
     DBServerConfig config;
     InterpreterContext interpCtxt(_system.get());
     DBServerContext serverContext(&interpCtxt);
-    Server server;
 
-    server.setProcessor([&](TCPConnection& connection) {
+    Server server([&](TCPConnection& connection) {
         DBServerProcessor processor(serverContext, connection);
         processor.process();
     });
