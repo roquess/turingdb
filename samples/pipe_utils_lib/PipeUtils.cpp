@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <spdlog/spdlog.h>
 
+#include "DBServer.h"
 #include "MemoryManagerStorage.h"
 #include "SystemManager.h"
 #include "JobSystem.h"
@@ -39,7 +40,7 @@ PipeSample::PipeSample(const std::string& sampleName)
     LogSetup::setupLogFileBacked(sampleName + ".log");
     PerfStat::init(sampleName + ".perf");
     spdlog::set_level(spdlog::level::info);
-    _system = std::make_unique<db::SystemManager>(4);
+    _system = std::make_unique<db::SystemManager>();
     _jobSystem = std::make_unique<JobSystem>();
     _jobSystem->initialize();
 }
@@ -83,7 +84,8 @@ bool PipeSample::loadJsonDB(const std::string& jsonDir) {
 
 bool PipeSample::executeQuery(const std::string& queryStr) {
     InterpreterContext interpCtxt(_system.get());
-    auto& memStorage = interpCtxt.getSystemManager()->getMemoryManagerStorage();
+    MemoryManagerStorage memStorage(1);
+    memStorage.initialize();
 
     EncodingParams encodingParams(EncodingParams::EncodingType::DEBUG_DUMP, std::cout);
 
@@ -99,7 +101,7 @@ bool PipeSample::executeQuery(const std::string& queryStr) {
         spdlog::error("QueryInterpreter status={}", (size_t)res);
         return false;
     }
-    
+
     return true;
 }
 
@@ -192,13 +194,7 @@ void PipeSample::createSimpleGraph() {
 
 void PipeSample::startHttpServer() {
     DBServerConfig config;
-    InterpreterContext interpCtxt(_system.get());
-    DBServerContext serverContext(&interpCtxt);
-
-    Server server([&](TCPConnection& connection) {
-        DBServerProcessor processor(serverContext, connection);
-        processor.process();
-    });
+    DBServer server(config);
 
     server.start();
 }

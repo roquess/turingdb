@@ -14,7 +14,7 @@ class TCPConnection;
 
 class Server {
 public:
-    explicit Server(ServerProcessor&&);
+    Server(ServerProcessor&&, CreateThreadContext&&);
     ~Server();
 
     Server(const Server&) = delete;
@@ -26,7 +26,6 @@ public:
     FlowStatus start();
     void terminate();
 
-    void setProcessor(ServerProcessor&& processor) { _processor = std::move(processor); };
     void setAddress(const char* address) { _address = address; };
     void setPort(uint32_t port) { _port = port; };
     void setWorkerCount(uint32_t count) { _workerCount = count; };
@@ -50,8 +49,9 @@ private:
     std::atomic<FlowStatus> _status;
     std::atomic<bool> _running = false;
     ServerProcessor _processor;
+    CreateThreadContext _createThreadContext;
 
-    static void runThread(ServerContext& ctxt);
+    static void runThread(size_t threadID, ServerContext& ctxt);
 };
 
 }

@@ -11,7 +11,7 @@ class SystemManagerTest : public ::testing::Test {
 };
 
 TEST_F(SystemManagerTest, createDB) {
-    SystemManager sysMan(12);
+    SystemManager sysMan;
 
     // The default db exists
     DB* defaultDB = sysMan.getDefaultDB();

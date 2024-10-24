@@ -7,6 +7,7 @@
 #include "BioAssert.h"
 #include "HTTP.h"
 #include "Utils.h"
+#include "ConnectionHeader.h"
 
 namespace net {
 
@@ -59,38 +60,18 @@ public:
         _header.endLine();
     }
 
-    void addKeepAlive(bool enable) {
-        static constexpr std::string_view keepAlive = "Connection: Keep-Alive\r\n";
-        static constexpr std::string_view close = "Connection: close\r\n";
-
-        if (enable) {
-            msgbioassert(keepAlive.size() <= _header._remaining, "Header does not fit in buffer");
-            memcpy(_header._content.data() + _header._position, keepAlive.data(), keepAlive.size());
-            _header.increment(keepAlive.size());
-        } else {
-            msgbioassert(close.size() <= _header._remaining, "Header does not fit in buffer");
-            memcpy(_header._content.data() + _header._position, close.data(), close.size());
-            _header.increment(close.size());
-        }
-    }
-
-    enum class ConnectionHeader {
-        KeepAlive = 0,
-        Close
-    };
-
     void addConnection(ConnectionHeader connection) {
         static constexpr std::string_view keepAlive = "Connection: Keep-Alive\r\n";
         static constexpr std::string_view close = "Connection: close\r\n";
 
         switch (connection) {
-            case ConnectionHeader::KeepAlive: {
+            case ConnectionHeader::KEEP_ALIVE: {
                 msgbioassert(keepAlive.size() <= _header._remaining, "Header does not fit in buffer");
                 memcpy(_header._content.data() + _header._position, keepAlive.data(), keepAlive.size());
                 _header.increment(keepAlive.size());
                 return;
             }
-            case ConnectionHeader::Close: {
+            case ConnectionHeader::CLOSE: {
                 msgbioassert(close.size() <= _header._remaining, "Header does not fit in buffer");
                 memcpy(_header._content.data() + _header._position, close.data(), close.size());
                 _header.increment(close.size());

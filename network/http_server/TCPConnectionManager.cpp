@@ -15,7 +15,8 @@ TCPConnectionManager::TCPConnectionManager(ServerContext& ctxt)
 {
 }
 
-void TCPConnectionManager::process(utils::EpollEvent& ev) {
+void TCPConnectionManager::process(AbstractThreadContext* threadContext,
+                                   utils::EpollEvent& ev) {
     uint32_t eventType = ev.events;
     auto& connection = *static_cast<TCPConnection*>(ev.data.ptr);
     utils::Socket s = connection.getSocket();
@@ -50,7 +51,7 @@ void TCPConnectionManager::process(utils::EpollEvent& ev) {
 
         if (finished) {
             // Process with stored callback
-            _ctxt._process(connection);
+            _ctxt._process(threadContext, connection);
 
             auto& writer = connection.getWriter();
             if (writer.getBytesWritten() != 0) {

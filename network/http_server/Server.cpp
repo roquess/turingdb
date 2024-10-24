@@ -6,6 +6,7 @@
 #include <sys/epoll.h>
 #include <sys/signalfd.h>
 
+#include "AbstractThreadContext.h"
 #include "LogUtils.h"
 #include "TCPConnection.h"
 #include "TCPConnectionManager.h"
@@ -14,8 +15,9 @@
 
 using namespace net;
 
-Server::Server(ServerProcessor&& processor)
-    : _processor(std::move(processor))
+Server::Server(ServerProcessor&& processor, CreateThreadContext&& createThreadContext)
+    : _processor(std::move(processor)),
+      _createThreadContext(std::move(createThreadContext))
 {
 }
 
@@ -105,13 +107,14 @@ FlowStatus Server::start() {
         ._status = _status,
         ._running = _running,
         ._process = _processor,
+        ._createThreadContext = _createThreadContext,
     };
 
     threads.reserve(_workerCount);
 
     for (size_t i = 0; i < _workerCount; i++) {
-        threads.emplace_back([&ctxt] {
-            runThread(ctxt);
+        threads.emplace_back([&ctxt, i] {
+            runThread(i + 1, ctxt);
         });
     }
 
@@ -129,7 +132,7 @@ void Server::terminate() {
     _running.store(false);
 }
 
-void Server::runThread(ServerContext& ctxt) {
+void Server::runThread(size_t threadID, ServerContext& ctxt) {
     constexpr size_t eventCount = 5;
     std::vector<utils::EpollEvent> events(eventCount);
 
@@ -138,6 +141,10 @@ void Server::runThread(ServerContext& ctxt) {
 
     TCPListener listener(ctxt);
     TCPConnectionManager connectionManager(ctxt);
+
+    auto threadContext = ctxt._createThreadContext();
+    msgbioassert(threadContext, "createThreadContext function was not set");
+    threadContext->setThreadID(threadID);
 
     for (;;) {
         const int nfds = epoll_wait(instance, events.data(), eventCount, -1);
@@ -171,7 +178,7 @@ void Server::runThread(ServerContext& ctxt) {
                 continue;
             }
 
-            connectionManager.process(ev);
+            connectionManager.process(threadContext.get(), ev);
         }
     }
 }
