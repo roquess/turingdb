@@ -3,6 +3,7 @@
 #include <atomic>
 #include <memory>
 
+#include "AbstractHTTPParser.h"
 #include "FlowStatus.h"
 #include "ServerContext.h"
 #include "Utils.h"
@@ -14,7 +15,12 @@ class TCPConnection;
 
 class Server {
 public:
-    Server(ServerProcessor&&, CreateThreadContext&&);
+    struct Functions {
+        ServerProcessor _processor;
+        CreateThreadContext _createThreadContext;
+        CreateAbstractHTTPParserFunc _createHttpParser;
+    };
+    explicit Server(Functions&&);
     ~Server();
 
     Server(const Server&) = delete;
@@ -48,8 +54,7 @@ private:
     TCPConnection* _serverConnection {nullptr};
     std::atomic<FlowStatus> _status;
     std::atomic<bool> _running = false;
-    ServerProcessor _processor;
-    CreateThreadContext _createThreadContext;
+    Functions _functions;
 
     static void runThread(size_t threadID, ServerContext& ctxt);
 };

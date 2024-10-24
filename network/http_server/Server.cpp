@@ -15,9 +15,8 @@
 
 using namespace net;
 
-Server::Server(ServerProcessor&& processor, CreateThreadContext&& createThreadContext)
-    : _processor(std::move(processor)),
-      _createThreadContext(std::move(createThreadContext))
+Server::Server(Functions&& functions)
+    : _functions(std::move(functions))
 {
 }
 
@@ -48,7 +47,7 @@ FlowStatus Server::initialize() {
 
     _epollInstance = ::epoll_create1(0);
     _connections = std::make_unique<TCPConnectionStorage>(_maxConnections);
-    _connections->initialize();
+    _connections->initialize(std::move(_functions._createHttpParser));
     _serverConnection = _connections->alloc(_serverSocket);
 
     // Registering server socket in epoll list
@@ -106,8 +105,8 @@ FlowStatus Server::start() {
         ._serverConnection = *_serverConnection,
         ._status = _status,
         ._running = _running,
-        ._process = _processor,
-        ._createThreadContext = _createThreadContext,
+        ._process = _functions._processor,
+        ._createThreadContext = _functions._createThreadContext,
     };
 
     threads.reserve(_workerCount);

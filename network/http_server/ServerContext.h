@@ -23,8 +23,8 @@ struct ServerContext {
     TCPConnection& _serverConnection;
     std::atomic<FlowStatus>& _status;
     std::atomic<bool>& _running;
-    ServerProcessor _process;
-    CreateThreadContext _createThreadContext;
+    const ServerProcessor& _process;
+    const CreateThreadContext& _createThreadContext;
 
     void encounteredError(FlowStatus err) {
         _status.store(err);

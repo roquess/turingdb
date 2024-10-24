@@ -19,16 +19,6 @@ TCPConnectionStorage::~TCPConnectionStorage() {
     }
 }
 
-void TCPConnectionStorage::initialize() {
-    _free.resize(_maxConnections);
-    for (size_t i = 0; i < _maxConnections; i++) {
-        _free[i] = i;
-        _connections[i].setStorageIndex(i);
-        _connections[i].setStorage(this);
-    }
-    _initialized = true;
-}
-
 TCPConnection* TCPConnectionStorage::alloc(utils::DataSocket socket) {
     bioassert(_initialized);
     std::unique_lock lock(_mutex);

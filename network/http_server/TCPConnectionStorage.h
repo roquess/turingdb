@@ -3,11 +3,11 @@
 #include <mutex>
 #include <vector>
 
+#include "AbstractHTTPParser.h"
+#include "TCPConnection.h"
 #include "Utils.h"
 
 namespace net {
-
-class TCPConnection;
 
 class TCPConnectionStorage {
 public:
@@ -19,7 +19,19 @@ public:
     TCPConnectionStorage& operator=(const TCPConnectionStorage&) = delete;
     TCPConnectionStorage& operator=(TCPConnectionStorage&&) = delete;
 
-    void initialize();
+    void initialize(CreateAbstractHTTPParserFunc&& createParser) {
+        _free.resize(_maxConnections);
+        for (size_t i = 0; i < _maxConnections; i++) {
+            _free[i] = i;
+
+            auto& inputBuffer = _connections[i].getInputBuffer();
+            _connections[i].setHTTPParser(createParser(&inputBuffer));
+            _connections[i].setStorageIndex(i);
+            _connections[i].setStorage(this);
+        }
+        _initialized = true;
+    }
+
     TCPConnection* alloc(utils::DataSocket socket);
     void dealloc(TCPConnection* connection);
 

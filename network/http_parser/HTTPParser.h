@@ -1,38 +1,28 @@
 #pragma once
 
 #include "HTTPParsingInfo.h"
+#include "AbstractHTTPParser.h"
 #include "Buffer.h"
-#include "BasicResult.h"
+#include "UriParser.h"
 
 namespace net {
 
-class HTTPParser {
+template <std::derived_from<URIParser> URIParserT>
+class HTTPParser : public AbstractHTTPParser {
 public:
-    using Finished = bool;
-
-    enum class Error {
-        UNKNOWN = 0,
-        HEADER_INCOMPLETE,
-        REQUEST_TOO_BIG,
-        NO_METHOD,
-        NO_URI,
-        INVALID_METHOD,
-        INVALID_URI,
-
-        _SIZE,
-    };
-
-    template <class TValue>
-    using Result = BasicResult<TValue, Error>;
-
-    explicit HTTPParser(Buffer* inputBuffer);
+    explicit HTTPParser(Buffer* inputBuffer)
+        : AbstractHTTPParser(inputBuffer),
+          _reader(inputBuffer->getReader()),
+          _currentPtr(_reader.getData())
+    {
+    }
 
     /* @brief Analyze the incoming data.
      *
      * The HTTP header must be received in one chunk.
      * Only the payload is allowed to be received in multiple chunks
      * */
-    [[nodiscard]] Result<Finished> analyze() {
+    [[nodiscard]] HTTP::Result<Finished> analyze() override {
         if (getSize() == 0) {
             return true;
         }
@@ -61,15 +51,19 @@ public:
         const bool finished = _info._payload.size() == _payloadSize;
 
         if (!finished && _reader.getSize() == Buffer::BUFFER_SIZE) {
-            return BadResult(Error::REQUEST_TOO_BIG);
+            return BadResult(HTTP::Error::REQUEST_TOO_BIG);
         }
 
         return finished;
     }
 
-    void reset();
-
-    const HTTP::Info& getHttpInfo() const { return _info; }
+    void reset() override {
+        AbstractHTTPParser::reset();
+        _currentPtr = _reader.getData();
+        _payloadSize = 0;
+        _payloadBegin = nullptr;
+        _parsedHeader = false;
+    }
 
 private:
     Buffer::Reader _reader;
@@ -77,14 +71,13 @@ private:
     char* _payloadBegin {nullptr};
     uint64_t _payloadSize {};
     bool _parsedHeader = false;
-    HTTP::Info _info;
 
     size_t getSize() { return getEndPtr() - _currentPtr; }
     char* getEndPtr() { return _reader.getData() + _reader.getSize(); }
 
-    [[nodiscard]] Result<void> parseMethod() {
+    [[nodiscard]] HTTP::Result<void> parseMethod() {
         if (getSize() < 5) {
-            return BadResult(Error::NO_METHOD);
+            return BadResult(HTTP::Error::NO_METHOD);
         }
 
         const char c = *_currentPtr;
@@ -96,16 +89,16 @@ private:
             return parseGET();
         }
 
-        return BadResult(Error::INVALID_METHOD);
+        return BadResult(HTTP::Error::INVALID_METHOD);
     }
 
-    [[nodiscard]] Result<void> parsePOST() {
+    [[nodiscard]] HTTP::Result<void> parsePOST() {
         const bool isPOST = (_currentPtr[1] == 'O' || _currentPtr[1] == 'o')
                          && (_currentPtr[2] == 'S' || _currentPtr[2] == 's')
                          && (_currentPtr[3] == 'T' || _currentPtr[3] == 't');
 
         if (!isPOST) {
-            return BadResult(Error::INVALID_METHOD);
+            return BadResult(HTTP::Error::INVALID_METHOD);
         }
 
         _info._method = HTTP::Method::POST;
@@ -114,12 +107,12 @@ private:
         return {};
     }
 
-    [[nodiscard]] Result<void> parseGET() {
+    [[nodiscard]] HTTP::Result<void> parseGET() {
         const bool isGET = (_currentPtr[1] == 'E' || _currentPtr[1] == 'e')
                         && (_currentPtr[2] == 'T' || _currentPtr[2] == 't');
 
         if (!isGET) {
-            return BadResult(Error::INVALID_METHOD);
+            return BadResult(HTTP::Error::INVALID_METHOD);
         }
 
         _info._method = HTTP::Method::GET;
@@ -128,7 +121,7 @@ private:
         return {};
     }
 
-    [[nodiscard]] Result<void> parseURI() {
+    [[nodiscard]] HTTP::Result<void> parseURI() {
         auto& uri = _info._uri;
 
         bool foundBegin = false;
@@ -141,7 +134,7 @@ private:
         }
 
         if (!foundBegin) {
-            return BadResult(Error::NO_URI);
+            return BadResult(HTTP::Error::NO_URI);
         }
 
         const char* beginPtr = _currentPtr;
@@ -155,18 +148,18 @@ private:
             }
 
             if (!isURIValid(c)) {
-                return BadResult(Error::INVALID_URI);
+                return BadResult(HTTP::Error::INVALID_URI);
             }
         }
 
         if (!foundEnd) {
-            return BadResult(Error::HEADER_INCOMPLETE);
+            return BadResult(HTTP::Error::HEADER_INCOMPLETE);
         }
 
         uri = std::string_view(beginPtr, _currentPtr);
 
         if (uri.empty()) {
-            return BadResult(Error::INVALID_URI);
+            return BadResult(HTTP::Error::INVALID_URI);
         }
 
         // Extract the path part of the URI
@@ -182,16 +175,26 @@ private:
 
         _info._path = std::string_view(pathBegin, pathPtr - pathBegin);
 
+
         // We can stop here if we are already at the end of the URI
         if (pathPtr >= uriEnd) {
             return {};
         }
+
+        URIParserT::parseURI(_info, uri);
 
         // URI variables
         pathPtr++;
         auto& parameters = _info._params;
         std::string_view key;
         std::string_view value;
+
+        const auto parseHttpParam = [](HTTP::Params& params, std::string_view k, std::string_view v) {
+            if (k == "db") {
+                params[0] = v;
+            }
+        };
+
         const char* wordStart = pathPtr;
         for (; pathPtr < uriEnd; pathPtr++) {
             const char c = *pathPtr;
@@ -202,9 +205,7 @@ private:
             } else if (c == '&') {
                 value = std::string_view(wordStart, pathPtr - wordStart);
                 if (!key.empty() && !value.empty()) {
-                    if (key == "db") {
-                        parameters[(size_t)HTTP::Param::db] = value;
-                    }
+                    parseHttpParam(parameters, key, value);
                 }
 
                 key = std::string_view();
@@ -215,15 +216,13 @@ private:
 
         if (wordStart < uriEnd && !key.empty()) {
             value = std::string_view(wordStart, uriEnd - wordStart);
-            if (key == "db") {
-                parameters[(size_t)HTTP::Param::db] = value;
-            }
+            parseHttpParam(parameters, key, value);
         }
 
         return {};
     }
 
-    [[nodiscard]] Result<void> parseContentLengthAndJump() {
+    [[nodiscard]] HTTP::Result<void> parseContentLengthAndJump() {
         const char* endPtr = getEndPtr();
         const std::string_view key = "content-length:";
         std::string_view window;
@@ -266,7 +265,7 @@ private:
         return jumpToPayload();
     }
 
-    [[nodiscard]] Result<void> jumpToPayload() {
+    [[nodiscard]] HTTP::Result<void> jumpToPayload() {
         const char* endPtr = getEndPtr();
 
         while (endPtr - _currentPtr >= 4) {
@@ -282,7 +281,7 @@ private:
             _currentPtr++;
         }
 
-        return BadResult(Error::HEADER_INCOMPLETE);
+        return BadResult(HTTP::Error::HEADER_INCOMPLETE);
     }
 
 
@@ -296,5 +295,4 @@ private:
             || (c == '_' || c == '=' || c == '&' || c == ';' || c == '?' || c == '-');
     }
 };
-
 }

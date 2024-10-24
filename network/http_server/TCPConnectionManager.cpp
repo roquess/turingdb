@@ -36,12 +36,12 @@ void TCPConnectionManager::process(AbstractThreadContext* threadContext,
         }
         inputWriter.setWrittenBytes(bytesRead);
 
-        auto& parser = connection.getParser();
-        auto analyzeRes = parser.analyze();
+        auto* parser = connection.getParser();
+        auto analyzeRes = parser->analyze();
 
         if (!analyzeRes) {
             // Analyze HTTP Request failed
-            parser.reset();
+            parser->reset();
             inputWriter.reset();
             connection.close();
             return;
@@ -60,7 +60,7 @@ void TCPConnectionManager::process(AbstractThreadContext* threadContext,
 
             if (writer.errorOccured()) {
                 writer.reset();
-                parser.reset();
+                parser->reset();
                 inputWriter.reset();
                 connection.close();
                 return;
@@ -72,7 +72,7 @@ void TCPConnectionManager::process(AbstractThreadContext* threadContext,
             }
 
             // Reset for next query
-            parser.reset();
+            parser->reset();
             inputWriter.reset();
 
             if (connection.isCloseRequired()) {

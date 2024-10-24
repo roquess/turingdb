@@ -1,4 +1,5 @@
 #include "AbstractThreadContext.h"
+#include "HTTPParser.h"
 #include "Server.h"
 
 #include <spdlog/spdlog.h>
@@ -26,45 +27,57 @@ int main(int argc, const char** argv) {
         return 0;
     }
 
-    net::Server server(
-        [&](net::AbstractThreadContext*, net::TCPConnection& con) {
-            const auto& httpInfo = con.getParser().getHttpInfo();
+    using Parser = net::HTTPParser<net::URIParser>;
 
-            if (httpInfo._path == "/say-hello") {
+    net::Server::Functions functions {
+        ._processor =
+            [&](net::AbstractThreadContext*, net::TCPConnection& con) {
+                const auto& httpInfo = con.getParser()->getHttpInfo();
+
+                if (httpInfo._path == "/say-hello") {
+                    auto& writer = con.getWriter();
+                    writer.setFirstLine(net::HTTP::Status::OK);
+                    writer.addConnection(net::getConnectionHeader(con.isCloseRequired()));
+                    writer.addChunkedTransferEncoding();
+                    writer.flushHeader();
+
+                    writer.write("Hello!");
+                    writer.flush();
+                    writer.flush(); // Flush empty to end response
+                    return;
+                }
+
+                if (httpInfo._path == "/say-goodbye") {
+                    auto& writer = con.getWriter();
+                    writer.setFirstLine(net::HTTP::Status::OK);
+                    writer.addConnection(net::getConnectionHeader(con.isCloseRequired()));
+                    writer.addChunkedTransferEncoding();
+                    writer.flushHeader();
+
+                    writer.write("Goodbye!");
+                    writer.flush();
+                    writer.flush(); // Flush empty to end response
+                    return;
+                }
+
                 auto& writer = con.getWriter();
-                writer.setFirstLine(net::HTTP::Status::OK);
+                writer.setFirstLine(net::HTTP::Status::NOT_FOUND);
                 writer.addConnection(net::getConnectionHeader(con.isCloseRequired()));
                 writer.addChunkedTransferEncoding();
                 writer.flushHeader();
 
-                writer.write("Hello!");
                 writer.flush();
-                writer.flush(); // Flush empty to end response
-                return;
-            }
+            },
+        ._createThreadContext =[] {
+                return std::unique_ptr<net::AbstractThreadContext>(new EmptyContext);
+            },
+        ._createHttpParser =
+            [](Buffer* buf) {
+                return std::unique_ptr<net::AbstractHTTPParser>(new Parser(buf));
+            },
+    };
 
-            if (httpInfo._path == "/say-goodbye") {
-                auto& writer = con.getWriter();
-                writer.setFirstLine(net::HTTP::Status::OK);
-                writer.addConnection(net::getConnectionHeader(con.isCloseRequired()));
-                writer.addChunkedTransferEncoding();
-                writer.flushHeader();
-
-                writer.write("Goodbye!");
-                writer.flush();
-                writer.flush(); // Flush empty to end response
-                return;
-            }
-
-            auto& writer = con.getWriter();
-            writer.setFirstLine(net::HTTP::Status::NOT_FOUND);
-            writer.addConnection(net::getConnectionHeader(con.isCloseRequired()));
-            writer.addChunkedTransferEncoding();
-            writer.flushHeader();
-
-            writer.flush();
-        },
-        [] { return std::unique_ptr<net::AbstractThreadContext>(new EmptyContext); });
+    net::Server server(std::move(functions));
 
     server.setAddress("127.0.0.1");
     server.setPort(6665);

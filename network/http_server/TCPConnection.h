@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "HTTPParser.h"
+#include "AbstractHTTPParser.h"
 #include "NetWriter.h"
 #include "Utils.h"
 
@@ -31,17 +31,21 @@ public:
         _writer.setSocket(socket);
     }
 
+    void setHTTPParser(std::unique_ptr<AbstractHTTPParser> parser) { _parser = std::move(parser); }
     void setStorage(TCPConnectionStorage* storage) { _storage = storage; }
     void setStorageIndex(size_t index) { _storageIndex = index; }
     void setCloseRequired(bool v) { _closeRequired = v; }
 
-    HTTPParser& getParser() { return _parser; }
     utils::DataSocket getSocket() const { return _socket; }
     bool isOpen() const;
     bool isCloseRequired() const { return _closeRequired; }
     size_t getStorageIndex() const { return _storageIndex; }
     Buffer& getInputBuffer() { return _inputBuffer; }
     NetWriter& getWriter() { return _writer; }
+    AbstractHTTPParser* getParser() { return _parser.get(); }
+
+    template <std::derived_from<AbstractHTTPParser> ParserT>
+    ParserT& getParser() { return *static_cast<ParserT*>(_parser.get()); }
 
 private:
     utils::DataSocket _socket {};
@@ -49,8 +53,8 @@ private:
     size_t _storageIndex {};
     Buffer _inputBuffer;
     NetWriter _writer {_socket};
-    HTTPParser _parser {&_inputBuffer};
-    bool _closeRequired = false;
+    std::unique_ptr<AbstractHTTPParser> _parser {nullptr};
+    bool _closeRequired {false};
 };
 
 }

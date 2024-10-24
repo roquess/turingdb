@@ -15,7 +15,7 @@ void TCPConnection::close() {
     ::shutdown(_socket, SHUT_RDWR);
     ::close(_socket);
     _socket = 0;
-    _parser.reset();
+    _parser->reset();
     dealloc();
 }
 
