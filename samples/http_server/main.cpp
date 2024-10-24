@@ -4,7 +4,6 @@
 #include <spdlog/spdlog.h>
 #include <argparse.hpp>
 
-#include "LogUtils.h"
 #include "TCPConnection.h"
 #include "ToolInit.h"
 
@@ -73,15 +72,15 @@ int main(int argc, const char** argv) {
     server.setMaxConnections(1024);
 
     if (auto res = server.initialize(); res != net::FlowStatus::OK) {
-        logt::error("Could not initialize server: {}", (uint32_t)res);
+        spdlog::error("Could not initialize server: {}", (uint32_t)res);
         server.terminate();
         return 1;
     }
 
-    logt::info("Server listening on address: {}:{}", server.getAddress(), server.getPort());
+    spdlog::info("Server listening on address: {}:{}", server.getAddress(), server.getPort());
 
     if (auto res = server.start(); res != net::FlowStatus::OK) {
-        logt::error("Could not start server: {}", (uint32_t)res);
+        spdlog::error("Could not start server: {}", (uint32_t)res);
         server.terminate();
         return 1;
     };

@@ -5,9 +5,9 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 #include <sys/signalfd.h>
+#include <spdlog/spdlog.h>
 
 #include "AbstractThreadContext.h"
-#include "LogUtils.h"
 #include "TCPConnection.h"
 #include "TCPConnectionManager.h"
 #include "TCPConnectionStorage.h"
@@ -128,7 +128,7 @@ FlowStatus Server::start() {
 }
 
 void Server::terminate() {
-    logt::info("Terminating server");
+    spdlog::info("Terminating server");
     _running.store(false);
 }
 
