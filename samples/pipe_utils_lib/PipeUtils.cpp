@@ -16,7 +16,7 @@
 #include "QueryParams.h"
 #include "QueryPlannerParams.h"
 #include "DBAccess.h"
-#include "DataBuffer.h"
+#include "DataPartBuilder.h"
 
 #include "DBServerConfig.h"
 #include "Server.h"
@@ -101,7 +101,7 @@ bool PipeSample::executeQuery(const std::string& queryStr) {
 
 void PipeSample::createSimpleGraph() {
     DB* db = _system->getDefaultDB();
-    auto buf = db->uniqueAccess().newDataBuffer();
+    auto builder = db->access().createDataPart();
     auto* metadata = db->getMetadata();
     auto& labels = metadata->labels();
     auto& labelsets = metadata->labelsets();
@@ -121,69 +121,67 @@ void PipeSample::createSimpleGraph() {
     const EdgeTypeID interestedInID = edgetypes.getOrCreate("INTERESTED_IN");
 
     // Persons
-    const EntityID remy = buf->addNode(getLabelSet({"Person", "SoftwareEngineering", "Founder"}));
-    const EntityID adam = buf->addNode(getLabelSet({"Person", "Bioinformatics", "Founder"}));
-    const EntityID luc = buf->addNode(getLabelSet({"Person", "SoftwareEngineering"}));
-    const EntityID maxime = buf->addNode(getLabelSet({"Person", "Bioinformatics"}));
-    const EntityID martina = buf->addNode(getLabelSet({"Person", "Bioinformatics"}));
+    const EntityID remy = builder->addNode(getLabelSet({"Person", "SoftwareEngineering", "Founder"}));
+    const EntityID adam = builder->addNode(getLabelSet({"Person", "Bioinformatics", "Founder"}));
+    const EntityID luc = builder->addNode(getLabelSet({"Person", "SoftwareEngineering"}));
+    const EntityID maxime = builder->addNode(getLabelSet({"Person", "Bioinformatics"}));
+    const EntityID martina = builder->addNode(getLabelSet({"Person", "Bioinformatics"}));
 
     // Interests
-    const EntityID ghosts = buf->addNode(getLabelSet({"Interest"}));
-    const EntityID bio = buf->addNode(getLabelSet({"Interest"}));
-    const EntityID cooking = buf->addNode(getLabelSet({"Interest"}));
-    const EntityID paddle = buf->addNode(getLabelSet({"Interest"}));
-    const EntityID animals = buf->addNode(getLabelSet({"Interest"}));
-    const EntityID computers = buf->addNode(getLabelSet({"Interest"}));
-    const EntityID eighties = buf->addNode(getLabelSet({"Interest"}));
+    const EntityID ghosts = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID bio = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID cooking = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID paddle = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID animals = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID computers = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID eighties = builder->addNode(getLabelSet({"Interest"}));
 
     // Property types
     const PropertyType name = proptypes.getOrCreate("name", types::String::_valueType);
 
     // Edges
-    const EdgeRecord e01 = buf->addEdge(knowsWellID, remy, adam);
-    const EdgeRecord e02 = buf->addEdge(knowsWellID, adam, remy);
-    const EdgeRecord e03 = buf->addEdge(interestedInID, remy, ghosts);
-    const EdgeRecord e04 = buf->addEdge(interestedInID, remy, computers);
-    const EdgeRecord e05 = buf->addEdge(interestedInID, remy, eighties);
-    const EdgeRecord e06 = buf->addEdge(interestedInID, adam, bio);
-    const EdgeRecord e07 = buf->addEdge(interestedInID, adam, cooking);
-    const EdgeRecord e08 = buf->addEdge(interestedInID, luc, animals);
-    const EdgeRecord e09 = buf->addEdge(interestedInID, luc, computers);
-    const EdgeRecord e10 = buf->addEdge(interestedInID, maxime, bio);
-    const EdgeRecord e11 = buf->addEdge(interestedInID, maxime, paddle);
-    const EdgeRecord e12 = buf->addEdge(interestedInID, martina, cooking);
+    const EdgeRecord e01 = builder->addEdge(knowsWellID, remy, adam);
+    const EdgeRecord e02 = builder->addEdge(knowsWellID, adam, remy);
+    const EdgeRecord e03 = builder->addEdge(interestedInID, remy, ghosts);
+    const EdgeRecord e04 = builder->addEdge(interestedInID, remy, computers);
+    const EdgeRecord e05 = builder->addEdge(interestedInID, remy, eighties);
+    const EdgeRecord e06 = builder->addEdge(interestedInID, adam, bio);
+    const EdgeRecord e07 = builder->addEdge(interestedInID, adam, cooking);
+    const EdgeRecord e08 = builder->addEdge(interestedInID, luc, animals);
+    const EdgeRecord e09 = builder->addEdge(interestedInID, luc, computers);
+    const EdgeRecord e10 = builder->addEdge(interestedInID, maxime, bio);
+    const EdgeRecord e11 = builder->addEdge(interestedInID, maxime, paddle);
+    const EdgeRecord e12 = builder->addEdge(interestedInID, martina, cooking);
 
     // Node Properties
-    buf->addNodeProperty<types::String>(remy, name._id, "Remy");
-    buf->addNodeProperty<types::String>(adam, name._id, "Adam");
-    buf->addNodeProperty<types::String>(luc, name._id, "Luc");
-    buf->addNodeProperty<types::String>(maxime, name._id, "Maxime");
-    buf->addNodeProperty<types::String>(martina, name._id, "Martina");
-    buf->addNodeProperty<types::String>(ghosts, name._id, "Ghosts");
-    buf->addNodeProperty<types::String>(bio, name._id, "Bio");
-    buf->addNodeProperty<types::String>(cooking, name._id, "Cooking");
-    buf->addNodeProperty<types::String>(paddle, name._id, "Paddle");
-    buf->addNodeProperty<types::String>(animals, name._id, "Animals");
-    buf->addNodeProperty<types::String>(computers, name._id, "Computers");
-    buf->addNodeProperty<types::String>(eighties, name._id, "Eighties");
+    builder->addNodeProperty<types::String>(remy, name._id, "Remy");
+    builder->addNodeProperty<types::String>(adam, name._id, "Adam");
+    builder->addNodeProperty<types::String>(luc, name._id, "Luc");
+    builder->addNodeProperty<types::String>(maxime, name._id, "Maxime");
+    builder->addNodeProperty<types::String>(martina, name._id, "Martina");
+    builder->addNodeProperty<types::String>(ghosts, name._id, "Ghosts");
+    builder->addNodeProperty<types::String>(bio, name._id, "Bio");
+    builder->addNodeProperty<types::String>(cooking, name._id, "Cooking");
+    builder->addNodeProperty<types::String>(paddle, name._id, "Paddle");
+    builder->addNodeProperty<types::String>(animals, name._id, "Animals");
+    builder->addNodeProperty<types::String>(computers, name._id, "Computers");
+    builder->addNodeProperty<types::String>(eighties, name._id, "Eighties");
 
     // Edge Properties
-    buf->addEdgeProperty<types::String>(e01, name._id, "Remy -> Adam");
-    buf->addEdgeProperty<types::String>(e02, name._id, "Adam -> Remy");
-    buf->addEdgeProperty<types::String>(e03, name._id, "Remy -> Ghosts");
-    buf->addEdgeProperty<types::String>(e04, name._id, "Remy -> Computers");
-    buf->addEdgeProperty<types::String>(e05, name._id, "Remy -> Eighties");
-    buf->addEdgeProperty<types::String>(e06, name._id, "Adam -> Bio");
-    buf->addEdgeProperty<types::String>(e07, name._id, "Adam -> Cooking");
-    buf->addEdgeProperty<types::String>(e08, name._id, "Luc -> Animals");
-    buf->addEdgeProperty<types::String>(e09, name._id, "Luc -> Computers");
-    buf->addEdgeProperty<types::String>(e10, name._id, "Maxime -> Bio");
-    buf->addEdgeProperty<types::String>(e11, name._id, "Maxime -> Paddle");
-    buf->addEdgeProperty<types::String>(e12, name._id, "Martina -> Cooking");
+    builder->addEdgeProperty<types::String>(e01, name._id, "Remy -> Adam");
+    builder->addEdgeProperty<types::String>(e02, name._id, "Adam -> Remy");
+    builder->addEdgeProperty<types::String>(e03, name._id, "Remy -> Ghosts");
+    builder->addEdgeProperty<types::String>(e04, name._id, "Remy -> Computers");
+    builder->addEdgeProperty<types::String>(e05, name._id, "Remy -> Eighties");
+    builder->addEdgeProperty<types::String>(e06, name._id, "Adam -> Bio");
+    builder->addEdgeProperty<types::String>(e07, name._id, "Adam -> Cooking");
+    builder->addEdgeProperty<types::String>(e08, name._id, "Luc -> Animals");
+    builder->addEdgeProperty<types::String>(e09, name._id, "Luc -> Computers");
+    builder->addEdgeProperty<types::String>(e10, name._id, "Maxime -> Bio");
+    builder->addEdgeProperty<types::String>(e11, name._id, "Maxime -> Paddle");
+    builder->addEdgeProperty<types::String>(e12, name._id, "Martina -> Cooking");
 
-    auto part = db->uniqueAccess().createDataPart(std::move(buf));
-    part->load(db->access(), *_jobSystem);
-    db->uniqueAccess().pushDataPart(std::move(part));
+    builder->commit(*_jobSystem);
 }
 
 void PipeSample::startHttpServer() {

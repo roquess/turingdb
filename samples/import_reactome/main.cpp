@@ -1,5 +1,6 @@
 #include "DB.h"
 #include "DBAccess.h"
+#include "DBReader.h"
 #include "EdgeView.h"
 #include "FileUtils.h"
 #include "DBMetadata.h"
@@ -38,7 +39,8 @@ int main() {
 
     std::cout << "Parsing: " << duration<Seconds>(t0, t1) << " s" << std::endl;
 
-    auto access = database->access();
+    const auto access = database->access();
+    const auto reader = access.read();
 
     std::string_view apoe4ReactomeID = "R-HSA-9711070";
     PropertyType displayNameType = propTypes.get("displayName (String)");
@@ -50,9 +52,8 @@ int main() {
         labelset.set(labels.get("PhysicalEntity"));
         labelset.set(labels.get("GenomeEncodedEntity"));
         labelset.set(labels.get("EntityWithAccessionedSequence"));
-        const LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
-        auto it = access.scanNodePropertiesByLabel<types::String>(stIDType._id, labelsetID).begin();
+        auto it = reader.scanNodePropertiesByLabel<types::String>(stIDType._id, &labelset).begin();
         size_t i = 0;
         for (; it.isValid(); it.next()) {
             const types::String::Primitive& stID = it.get();
@@ -75,7 +76,7 @@ int main() {
     std::cout << "Found APOE-4 in: " << duration<Milliseconds>(t0, t1) << " ms" << std::endl;
 
     t0 = Clock::now();
-    NodeView apoe = access.getNodeView(apoeID);
+    NodeView apoe = reader.getNodeView(apoeID);
     t1 = Clock::now();
     std::cout << "Got APOE-4 view in: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
 
@@ -90,74 +91,28 @@ int main() {
     }
 
     const auto& apoeEdges = apoe.edges();
-    const auto& apoeProperties = apoe.properties();
-    const auto printProperties = [&propTypes](const EntityPropertyView& view) {
-        if (!view.uint64s().empty()) {
-            std::cout << "  #  UInt64 properties" << std::endl;
-            for (const auto& prop : view.uint64s()) {
-                const std::string_view ptName = propTypes.getName(prop._id);
-                std::cout << "    - " << ptName << ": " << prop.get<types::UInt64>() << std::endl;
-            }
-        }
-
-        if (!view.int64s().empty()) {
-            std::cout << "  #  Int64 properties" << std::endl;
-            for (const auto& prop : view.int64s()) {
-                const std::string_view ptName = propTypes.getName(prop._id);
-                std::cout << "    - " << ptName << ": " << prop.get<types::Int64>() << std::endl;
-            }
-        }
-
-        if (!view.doubles().empty()) {
-            std::cout << "  #  Double properties" << std::endl;
-            for (const auto& prop : view.doubles()) {
-                const std::string_view ptName = propTypes.getName(prop._id);
-                std::cout << "    - " << ptName << ": " << prop.get<types::Double>() << std::endl;
-            }
-        }
-
-        if (!view.strings().empty()) {
-            std::cout << "  #  String properties" << std::endl;
-            for (const auto& prop : view.strings()) {
-                const std::string_view ptName = propTypes.getName(prop._id);
-                std::cout << "    - " << ptName << ": " << prop.get<types::String>() << std::endl;
-            }
-        }
-
-        if (!view.bools().empty()) {
-            std::cout << "  #  Bool properties" << std::endl;
-            for (const auto& prop : view.bools()) {
-                const std::string_view ptName = propTypes.getName(prop._id);
-                std::cout << "    - " << ptName << ": " << prop.get<types::Bool>() << std::endl;
-            }
-        }
-    };
-
-    printProperties(apoeProperties);
 
     std::cout << "APOE has " << apoeEdges.getOutEdgeCount() << " out edges" << std::endl;
     for (const auto& edge : apoe.edges().outEdges()) {
-        const EdgeView edgeView = access.getEdgeView(edge._edgeID);
-        const NodeView target = access.getNodeView(edge._otherID);
+        const EdgeView edgeView = reader.getEdgeView(edge._edgeID);
+        const NodeView target = reader.getNodeView(edge._otherID);
         const types::String::Primitive& displayName =
             target.properties().getProperty<types::String>(displayNameType._id);
         std::cout << "  -> " << edge._otherID.getValue()
                   << " with " << edgeView.properties().getCount() << " properties"
                   << std::endl;
-        printProperties(edgeView.properties());
         std::cout << "       * " << displayName << std::endl;
     }
 
     std::cout << "APOE has " << apoeEdges.getInEdgeCount() << " in edges" << std::endl;
     for (const auto& edge : apoe.edges().inEdges()) {
-        const EdgeView edgeView = access.getEdgeView(edge._edgeID);
-        const NodeView source = access.getNodeView(edge._otherID);
+        const EdgeView edgeView = reader.getEdgeView(edge._edgeID);
+        const NodeView source = reader.getNodeView(edge._otherID);
         const types::String::Primitive& displayName =
             source.properties().getProperty<types::String>(displayNameType._id);
         std::cout << "  <- " << edge._otherID.getValue()
                   << " with " << edgeView.properties().getCount() << " properties"
                   << std::endl;
-        printProperties(edgeView.properties());
         std::cout << "       * " << displayName << std::endl;
     }
 

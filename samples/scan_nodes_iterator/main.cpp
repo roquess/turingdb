@@ -4,9 +4,10 @@
 
 #include "DB.h"
 #include "DBAccess.h"
+#include "DBReader.h"
 #include "JobSystem.h"
 #include "ScanNodesIterator.h"
-#include "DataBuffer.h"
+#include "DataPartBuilder.h"
 #include "ChunkConfig.h"
 
 using namespace db;
@@ -28,22 +29,18 @@ bool run() {
     const auto timeStart = Clock::now();
 
     {
-        auto buf = db->access().newDataBuffer();
+        auto builder = db->access().createDataPart();
         for (size_t i = 0; i < nodeCount; i++) {
-            buf->addNode({0});
-        } 
-
-        {
-            auto datapart = db->uniqueAccess().createDataPart(std::move(buf));
-            datapart->load(db->access(), jobSystem);
-            db->uniqueAccess().pushDataPart(std::move(datapart));
+            builder->addNode({0});
         }
+        builder->commit(jobSystem);
     } 
 
     const auto partCreation = Clock::now();
 
-    auto access = db->access();
-    auto it = access.scanNodes().begin();
+    const auto access = db->access();
+    const auto reader = access.read();
+    auto it = reader.scanNodes().begin();
 
     // Read node by node
     size_t count = 0;
@@ -63,7 +60,7 @@ bool run() {
     const auto chunkReadStart = Clock::now();
 
     // Read nodes by chunks
-    it = access.scanNodes().begin();
+    it = reader.scanNodes().begin();
     count = 0;
     size_t iterations = 0;
     while (it.isValid()) {

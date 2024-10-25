@@ -6,7 +6,7 @@
 #include "ColumnIDs.h"
 #include "DB.h"
 #include "DBAccess.h"
-#include "DataBuffer.h"
+#include "DataPartBuilder.h"
 #include "DiscardProcessor.h"
 #include "JobSystem.h"
 #include "Pipeline.h"
@@ -46,7 +46,7 @@ bool run() {
     const auto timeStart = Clock::now();
 
     {
-        auto buf = db->access().newDataBuffer();
+        auto buf = db->access().createDataPart();
         for (size_t i = 0; i < nodeCount; i++) {
             buf->addNode(LabelSetID{0});
         }

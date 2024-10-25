@@ -8,8 +8,9 @@
 #include "ColumnIDs.h"
 #include "DB.h"
 #include "DBAccess.h"
+#include "DBReader.h"
 #include "DBMetadata.h"
-#include "DataBuffer.h"
+#include "DataPartBuilder.h"
 #include "FileUtils.h"
 #include "LogSetup.h"
 
@@ -48,9 +49,10 @@ protected:
 
 TEST_F(ScanNodesIteratorTest, emptyDB) {
     auto db = std::make_unique<DB>();
-    auto access = db->access();
+    const auto access = db->access();
+    const auto reader = access.read();
 
-    auto it = access.scanNodes().begin();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
 
     ColumnIDs colNodes;
@@ -60,18 +62,12 @@ TEST_F(ScanNodesIteratorTest, emptyDB) {
 
 TEST_F(ScanNodesIteratorTest, oneEmptyPart) {
     auto db = std::make_unique<DB>();
+    auto builder = db->access().createDataPart();
+    builder->commit(*_jobSystem);
 
-    {
-        auto buf = db->access().newDataBuffer();
-        {
-            auto datapart = db->uniqueAccess().createDataPart(std::move(buf));
-            datapart->load(db->access(), *_jobSystem);
-            db->uniqueAccess().pushDataPart(std::move(datapart));
-        }
-    }
-
-    auto access = db->access();
-    auto it = access.scanNodes().begin();
+    const auto access = db->access();
+    const auto reader = access.read();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
 
     ColumnIDs colNodes;
@@ -83,16 +79,13 @@ TEST_F(ScanNodesIteratorTest, threeEmptyParts) {
     auto db = std::make_unique<DB>();
 
     for (auto i = 0; i < 3; i++) {
-        auto buf = db->access().newDataBuffer();
-        {
-            auto datapart = db->uniqueAccess().createDataPart(std::move(buf));
-            datapart->load(db->access(), *_jobSystem);
-            db->uniqueAccess().pushDataPart(std::move(datapart));
-        }
+        auto builder = db->access().createDataPart();
+        builder->commit(*_jobSystem);
     }
 
-    auto access = db->access();
-    auto it = access.scanNodes().begin();
+    const auto access = db->access();
+    const auto reader = access.read();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
 
     ColumnIDs colNodes;
@@ -108,22 +101,18 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
     {
-        auto buf = db->access().newDataBuffer();
+        auto builder = db->access().createDataPart();
         for (size_t i = 0; i < ChunkConfig::CHUNK_SIZE; i++) {
-            buf->addNode(labelsetID);
+            builder->addNode(labelsetID);
         }
 
-        ASSERT_EQ(buf->nodeCount(), ChunkConfig::CHUNK_SIZE);
-
-        {
-            auto datapart = db->uniqueAccess().createDataPart(std::move(buf));
-            datapart->load(db->access(), *_jobSystem);
-            db->uniqueAccess().pushDataPart(std::move(datapart));
-        }
+        ASSERT_EQ(builder->nodeCount(), ChunkConfig::CHUNK_SIZE);
+        builder->commit(*_jobSystem);
     }
 
-    auto access = db->access();
-    auto it = access.scanNodes().begin();
+    const auto access = db->access();
+    const auto reader = access.read();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(it.isValid());
 
     // Read node by node
@@ -137,7 +126,7 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
 
     // Read nodes by chunks
     ColumnIDs colNodes;
-    it = access.scanNodes().begin();
+    it = reader.scanNodes().begin();
     it.fill(&colNodes, ChunkConfig::CHUNK_SIZE);
     ASSERT_TRUE(!colNodes.empty());
     ASSERT_EQ(colNodes.size(), ChunkConfig::CHUNK_SIZE);
@@ -158,22 +147,18 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
     for (auto i = 0; i < 8; i++) {
-        auto buf = db->access().newDataBuffer();
+        auto builder = db->access().createDataPart();
         for (size_t j = 0; j < ChunkConfig::CHUNK_SIZE; j++) {
-            buf->addNode(labelsetID);
+            builder->addNode(labelsetID);
         }
 
-        ASSERT_EQ(buf->nodeCount(), ChunkConfig::CHUNK_SIZE);
-
-        {
-            auto datapart = db->uniqueAccess().createDataPart(std::move(buf));
-            datapart->load(db->access(), *_jobSystem);
-            db->uniqueAccess().pushDataPart(std::move(datapart));
-        }
+        ASSERT_EQ(builder->nodeCount(), ChunkConfig::CHUNK_SIZE);
+        builder->commit(*_jobSystem);
     }
 
-    auto access = db->access();
-    auto it = access.scanNodes().begin();
+    const auto access = db->access();
+    const auto reader = access.read();
+    auto it = reader.scanNodes().begin();
     ASSERT_TRUE(it.isValid());
 
     // Read node by node
@@ -186,7 +171,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
 
     // Read nodes by chunks
     ColumnIDs colNodes;
-    it = access.scanNodes().begin();
+    it = reader.scanNodes().begin();
 
     expectedID = 0;
     while (it.isValid()) {
@@ -213,26 +198,22 @@ TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
     {
-        auto buf = db->access().newDataBuffer();
+        auto builder = db->access().createDataPart();
         for (size_t i = 0; i < nodeCount; i++) {
-            buf->addNode(labelsetID);
+            builder->addNode(labelsetID);
         }
-
-        {
-            auto datapart = db->uniqueAccess().createDataPart(std::move(buf));
-            datapart->load(db->access(), *_jobSystem);
-            db->uniqueAccess().pushDataPart(std::move(datapart));
-        }
+        builder->commit(*_jobSystem);
     }
 
-    auto access = db->access();
-    auto it = access.scanNodes().begin();
+    const auto access = db->access();
+    const auto reader = access.read();
+    auto it = reader.scanNodes().begin();
 
     ColumnIDs colNodes;
     colNodes.reserve(ChunkConfig::CHUNK_SIZE);
 
     // Read nodes by chunks
-    it = access.scanNodes().begin();
+    it = reader.scanNodes().begin();
     EntityID expectedID = 0;
     while (it.isValid()) {
         it.fill(&colNodes, ChunkConfig::CHUNK_SIZE);

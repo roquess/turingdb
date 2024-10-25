@@ -1,5 +1,6 @@
 #include "DB.h"
 #include "DBAccess.h"
+#include "DBReader.h"
 #include "DBMetadata.h"
 #include "DBReport.h"
 #include "FileUtils.h"
@@ -40,11 +41,12 @@ int main() {
 
     std::cout << "Parsing: " << duration<Seconds>(t0, t1) << " s" << std::endl;
 
-    auto access = database->access();
+    const auto access = database->access();
+    const auto reader = access.read();
 
     std::string_view address = "33 Plover Drive";
     PropertyType addressType = propTypes.get("address (String)");
-    auto it = access.scanNodeProperties<types::String>(addressType._id).begin();
+    auto it = reader.scanNodeProperties<types::String>(addressType._id).begin();
 
     const auto findNodeID = [&]() {
         for (; it.isValid(); it.next()) {
@@ -65,56 +67,21 @@ int main() {
     std::cout << "Found Location in: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
 
     t0 = Clock::now();
-    NodeView node = access.getNodeView(nodeID);
+    NodeView node = reader.getNodeView(nodeID);
     t1 = Clock::now();
     std::cout << "Got node view in: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
 
-    const auto& nodeEdges = node.edges();
     const auto& nodeProperties = node.properties();
     const types::String::Primitive& addressValue =
         nodeProperties.getProperty<types::String>(addressType._id);
 
     std::cout << "Location has address: " << addressValue << std::endl;
-    std::cout << "And other string props: " << std::endl;
-
-    const auto& strings = nodeProperties.strings();
-    for (const auto& prop : strings) {
-        const auto& v = prop.get<types::String>();
-        std::cout << "  - " << prop._id.getValue() << ": " << v << std::endl;
-    }
-
-    std::cout << "Location has " << nodeEdges.getOutEdgeCount() << " out edges" << std::endl;
-    for (const auto& edge : nodeEdges.outEdges()) {
-        NodeView target = access.getNodeView(edge._otherID);
-        const auto& targetProps = target.properties();
-
-        std::cout << "  -> " << edge._otherID.getValue() << std::endl;
-
-        for (const auto& propView : targetProps.strings()) {
-            const auto& propName = propTypes.getName(propView._id);
-            std::cout << "    - " << propName << ": " << propView.get<types::String>()
-                      << std::endl;
-        }
-    }
-
-    std::cout << "Location has " << nodeEdges.getInEdgeCount() << " in edges" << std::endl;
-    for (const auto& edge : node.edges().inEdges()) {
-        NodeView source = access.getNodeView(edge._otherID);
-        const auto& sourceProps = source.properties();
-
-        std::cout << "  <- " << edge._otherID.getValue() << std::endl;
-
-        for (const auto& propView : sourceProps.strings()) {
-            const auto& propName = propTypes.getName(propView._id);
-            std::cout << "    - " << propName << ": " << propView.get<types::String>()
-                      << std::endl;
-        }
-    }
 
     std::stringstream report;
-    DBReport::getReport(database->access(), report);
+    DBReport::getReport(reader, report);
     std::cout << report.view() << std::endl;
 
     PerfStat::destroy();
     return 0;
 }
+

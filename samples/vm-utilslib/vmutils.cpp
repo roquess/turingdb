@@ -4,7 +4,7 @@
 
 #include "DB.h"
 #include "DBAccess.h"
-#include "DataBuffer.h"
+#include "DataPartBuilder.h"
 #include "LogSetup.h"
 #include "LogUtils.h"
 #include "Neo4j/ParserConfig.h"
