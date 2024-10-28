@@ -1,11 +1,7 @@
 #include <gtest/gtest.h>
-#include <numeric>
-#include <regex>
-#include <span>
-#include <thread>
 
 #include "DB.h"
-#include "DBAccess.h"
+#include "DBView.h"
 #include "DBReader.h"
 #include "DBReport.h"
 #include "DataPartBuilder.h"
@@ -16,7 +12,6 @@
 #include "Neo4j/ParserConfig.h"
 #include "Neo4jImporter.h"
 #include "PerfStat.h"
-#include "ScanEdgesIterator.h"
 #include "Time.h"
 
 using namespace db;
@@ -61,7 +56,7 @@ protected:
 
 TEST_F(Neo4jImporterTest, Simple) {
     {
-        auto builder1 = _db->access().createDataPart();
+        auto builder1 = _db->newPartWriter();
         builder1->addNode(LabelSet::fromList({1})); // 0
         builder1->addNode(LabelSet::fromList({0})); // 1
         builder1->addNode(LabelSet::fromList({1})); // 2
@@ -69,7 +64,7 @@ TEST_F(Neo4jImporterTest, Simple) {
         builder1->addEdge(0, 0, 1);
         builder1->commit(*_jobSystem);
 
-        auto builder2 = _db->access().createDataPart();
+        auto builder2 = _db->newPartWriter();
         builder2->addEdge(2, 1, 2);
         EntityID id1 = builder2->addNode(LabelSet::fromList({0}));
         builder2->addNodeProperty<types::String>(id1, 0, "test1");

@@ -27,7 +27,7 @@ TEST_F(EdgeIndexerTest, General) {
     DBMetadata _metadata;
     std::vector<LabelSetID> nodeLabelSets = {0, 0, 1, 1, 1, 2, 3, 3, 3, 4, 4, 5};
     auto nodes = NodeContainer::create(0,
-                                       &_metadata,
+                                       _metadata,
                                        nodeLabelSets);
 
     std::map<EntityID, LabelSetID> patchNodeLabelSets;

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "DB.h"
-#include "DBAccess.h"
+#include "DBView.h"
 #include "DBReader.h"
 #include "DBMetadata.h"
 #include "DataPartBuilder.h"
@@ -42,7 +42,7 @@ protected:
         _db = new DB();
 
         /* FIRST BUFFER */
-        std::unique_ptr<DataPartBuilder> builder1 = _db->access().createDataPart();
+        std::unique_ptr<DataPartBuilder> builder1 = _db->newPartWriter();
         PropertyTypeID uint64ID = 0;
         PropertyTypeID stringID = 1;
 
@@ -90,7 +90,7 @@ protected:
         }
 
         /* SECOND BUFFER (Concurrent to the first one) */
-        std::unique_ptr<DataPartBuilder> builder2 = _db->access().createDataPart();
+        std::unique_ptr<DataPartBuilder> builder2 = _db->newPartWriter();
 
         {
             // Node 4
@@ -141,12 +141,12 @@ protected:
         builder2->commit(*_jobSystem);
 
         /* THIRD BUFFER (Empty) */
-        std::unique_ptr<DataPartBuilder> builder3 = _db->access().createDataPart();
+        std::unique_ptr<DataPartBuilder> builder3 = _db->newPartWriter();
         spdlog::info("Pushing 3");
         builder3->commit(*_jobSystem);
 
         /* FOURTH BUFFER (First node and edge ids: 5, 5) */
-        std::unique_ptr<DataPartBuilder> builder4 = _db->access().createDataPart();
+        std::unique_ptr<DataPartBuilder> builder4 = _db->newPartWriter();
 
         {
             // Node 8

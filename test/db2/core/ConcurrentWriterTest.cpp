@@ -4,7 +4,7 @@
 
 #include "ConcurrentWriter.h"
 #include "DB.h"
-#include "DBAccess.h"
+#include "DBView.h"
 #include "DBReader.h"
 #include "DBMetadata.h"
 #include "DataPartBuilder.h"
@@ -44,10 +44,10 @@ protected:
         _db = new DB();
         PropertyTypeID uint64ID = 0;
 
-        auto writer = _db->access().newConcurrentWriter();
-        DataPartBuilder& builder1 = writer.newBuilder(3, 2);
-        DataPartBuilder& builder2 = writer.newBuilder(2, 3);
-        DataPartBuilder& builder3 = writer.newBuilder(4, 4);
+        auto writer = _db->newConcurrentPartWriter();
+        DataPartBuilder& builder1 = writer->newBuilder(3, 2);
+        DataPartBuilder& builder2 = writer->newBuilder(2, 3);
+        DataPartBuilder& builder3 = writer->newBuilder(4, 4);
 
         auto& labelsets = _db->getMetadata()->labelsets();
         const LabelSet l0 = LabelSet::fromList({0});
@@ -132,7 +132,7 @@ protected:
         builder3.addEdge(0, 7, 8); // EDGE 7
         builder3.addEdge(0, 2, 5); // EDGE 8
 
-        writer.commitAll(*_jobSystem);
+        writer->commitAll(*_jobSystem);
     }
 
     void TearDown() override {

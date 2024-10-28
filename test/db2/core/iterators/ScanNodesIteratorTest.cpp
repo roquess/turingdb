@@ -7,7 +7,7 @@
 #include "ChunkConfig.h"
 #include "ColumnIDs.h"
 #include "DB.h"
-#include "DBAccess.h"
+#include "DBView.h"
 #include "DBReader.h"
 #include "DBMetadata.h"
 #include "DataPartBuilder.h"
@@ -62,7 +62,7 @@ TEST_F(ScanNodesIteratorTest, emptyDB) {
 
 TEST_F(ScanNodesIteratorTest, oneEmptyPart) {
     auto db = std::make_unique<DB>();
-    auto builder = db->access().createDataPart();
+    auto builder = db->newPartWriter();
     builder->commit(*_jobSystem);
 
     const auto access = db->access();
@@ -79,7 +79,7 @@ TEST_F(ScanNodesIteratorTest, threeEmptyParts) {
     auto db = std::make_unique<DB>();
 
     for (auto i = 0; i < 3; i++) {
-        auto builder = db->access().createDataPart();
+        auto builder = db->newPartWriter();
         builder->commit(*_jobSystem);
     }
 
@@ -101,7 +101,7 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
     {
-        auto builder = db->access().createDataPart();
+        auto builder = db->newPartWriter();
         for (size_t i = 0; i < ChunkConfig::CHUNK_SIZE; i++) {
             builder->addNode(labelsetID);
         }
@@ -147,7 +147,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
     for (auto i = 0; i < 8; i++) {
-        auto builder = db->access().createDataPart();
+        auto builder = db->newPartWriter();
         for (size_t j = 0; j < ChunkConfig::CHUNK_SIZE; j++) {
             builder->addNode(labelsetID);
         }
@@ -198,7 +198,7 @@ TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
     {
-        auto builder = db->access().createDataPart();
+        auto builder = db->newPartWriter();
         for (size_t i = 0; i < nodeCount; i++) {
             builder->addNode(labelsetID);
         }

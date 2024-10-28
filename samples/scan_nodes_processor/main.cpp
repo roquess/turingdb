@@ -5,7 +5,7 @@
 #include "ChunkConfig.h"
 #include "ColumnIDs.h"
 #include "DB.h"
-#include "DBAccess.h"
+#include "DBView.h"
 #include "DataPartBuilder.h"
 #include "DiscardProcessor.h"
 #include "JobSystem.h"

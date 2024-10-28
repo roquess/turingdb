@@ -15,7 +15,7 @@
 #include "InterpreterContext.h"
 #include "QueryParams.h"
 #include "QueryPlannerParams.h"
-#include "DBAccess.h"
+#include "DBView.h"
 #include "DataPartBuilder.h"
 
 #include "DBServerConfig.h"
@@ -101,7 +101,7 @@ bool PipeSample::executeQuery(const std::string& queryStr) {
 
 void PipeSample::createSimpleGraph() {
     DB* db = _system->getDefaultDB();
-    auto builder = db->access().createDataPart();
+    auto builder = db->newPartWriter();
     auto* metadata = db->getMetadata();
     auto& labels = metadata->labels();
     auto& labelsets = metadata->labelsets();

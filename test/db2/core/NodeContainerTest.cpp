@@ -20,14 +20,14 @@ protected:
 TEST_F(NodeContainerTest, UnsortedFail) {
     std::vector<LabelSetID> nodeLabelSets = {0, 4, 2, 4, 0, 2, 2, 4};
 
-    auto container = NodeContainer::create(0, &_metadata, nodeLabelSets);
+    auto container = NodeContainer::create(0, _metadata, nodeLabelSets);
     ASSERT_TRUE(container == nullptr);
 }
 
 TEST_F(NodeContainerTest, SortedSuccess) {
     std::vector<LabelSetID> nodeLabelSets = {0, 0, 1, 1, 1, 2, 3};
 
-    auto container = NodeContainer::create(0, &_metadata, nodeLabelSets);
+    auto container = NodeContainer::create(0, _metadata, nodeLabelSets);
     ASSERT_TRUE(container != nullptr);
 }
 
@@ -35,7 +35,7 @@ TEST_F(NodeContainerTest, IterateAll) {
     std::vector<LabelSetID> nodeLabelSets = {0, 0, 1, 1, 1, 2, 3};
     std::vector<EntityID> theoNodeIDs= {0, 1, 2, 3, 4, 5, 6};
 
-    auto container = NodeContainer::create(0, &_metadata, nodeLabelSets);
+    auto container = NodeContainer::create(0, _metadata, nodeLabelSets);
     ASSERT_TRUE(container != nullptr);
 
     auto theoIt = theoNodeIDs.cbegin();
@@ -52,7 +52,7 @@ TEST_F(NodeContainerTest, IterateByLabels) {
     std::vector<EntityID> theoNodeIDs2 = {5};
     std::vector<EntityID> theoNodeIDs3 = {6};
 
-    auto container = NodeContainer::create(0, &_metadata, nodeLabelSets);
+    auto container = NodeContainer::create(0, _metadata, nodeLabelSets);
     ASSERT_TRUE(container != nullptr);
 
     auto theoIt = theoNodeIDs0.cbegin();
@@ -83,7 +83,7 @@ TEST_F(NodeContainerTest, IterateByLabels) {
 TEST_F(NodeContainerTest, GetNodeLabelSet) {
     std::vector<LabelSetID> nodeLabelSets = {0, 0, 1, 1, 1, 2, 3};
 
-    auto container = NodeContainer::create(0, &_metadata, nodeLabelSets);
+    auto container = NodeContainer::create(0, _metadata, nodeLabelSets);
     ASSERT_TRUE(container != nullptr);
 
     LabelSetID id0 = container->getNodeLabelSet(0);

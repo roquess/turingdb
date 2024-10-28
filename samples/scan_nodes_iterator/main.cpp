@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "DB.h"
-#include "DBAccess.h"
+#include "DBView.h"
 #include "DBReader.h"
 #include "JobSystem.h"
 #include "ScanNodesIterator.h"
@@ -29,7 +29,7 @@ bool run() {
     const auto timeStart = Clock::now();
 
     {
-        auto builder = db->access().createDataPart();
+        auto builder = db->newPartWriter();
         for (size_t i = 0; i < nodeCount; i++) {
             builder->addNode({0});
         }
