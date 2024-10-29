@@ -1,8 +1,9 @@
 #pragma once
 
-#include "BasicResult.h"
 #include <string_view>
 #include <array>
+
+#include "BasicResult.h"
 
 namespace net::HTTP {
 
@@ -12,7 +13,7 @@ using Uri = std::string_view;
 using Path = std::string_view;
 using Payload = std::string_view;
 using Params = std::array<std::string_view, (size_t)MAX_PARAM_COUNT>;
-using EndpointIndex = size_t;
+using EndpointIndex = int64_t;
 
 enum class Error {
     UNKNOWN = 0,
@@ -43,7 +44,7 @@ struct Info {
     Uri _uri;
     Path _path;
     Payload _payload;
-    EndpointIndex _endpoint;
+    EndpointIndex _endpoint = -1;
     Params _params;
 
     void reset() {
