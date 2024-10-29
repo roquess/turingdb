@@ -43,7 +43,7 @@ struct Info {
     Uri _uri;
     Path _path;
     Payload _payload;
-    EndpointIndex _endpoint;
+    EndpointIndex _endpoint = -1;
     Params _params;
 
     void reset() {
