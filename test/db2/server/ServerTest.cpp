@@ -32,6 +32,7 @@ class ServerTest : public ::testing::Test {
 };
 
 constexpr auto HttpServerStartSleepDelay = std::chrono::milliseconds(50);
+constexpr auto MaxWaitIterations = 100000/HttpServerStartSleepDelay.count();
 
 TEST_F(ServerTest, queryEndpointOK) {
     DBServerConfig serverConfig;
@@ -43,11 +44,14 @@ TEST_F(ServerTest, queryEndpointOK) {
 
     std::thread clientThread([serverConfig]() {
         // Wait for the http server to accept connections on /query
-        for (;;) {
+        for (size_t i = 0;; i++) {
             std::this_thread::sleep_for(HttpServerStartSleepDelay);
             if (checkEndpointOK(serverConfig, "/query")) {
                 break;
             }
+
+            // Test fails if more than MaxWaitIterations
+            ASSERT_TRUE(i < MaxWaitIterations);
         }
     });
 
