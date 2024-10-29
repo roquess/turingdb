@@ -12,7 +12,15 @@ namespace net::HTTP {
 
 class HTTPClient {
 public:
-    using ResponseBuffer = std::vector<uint8_t>;
+    struct ResponseBuffer {
+        std::vector<uint8_t> _data;
+
+        void clear() { _data.clear(); }
+
+        std::string_view getString() const {
+            return std::string_view((const char*)_data.data(), _data.size());
+        }
+    };
 
     HTTPClient();
     ~HTTPClient();

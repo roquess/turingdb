@@ -10,7 +10,8 @@ size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     HTTPClient::ResponseBuffer* readBuffer = (HTTPClient::ResponseBuffer*)userp;
     const uint8_t* byteContents = (uint8_t*)contents;
 
-    readBuffer->insert(readBuffer->end(), byteContents, byteContents+size*nmemb);
+    auto& data = readBuffer->_data;
+    data.insert(data.end(), byteContents, byteContents+size*nmemb);
 
     return size*nmemb;
 }
