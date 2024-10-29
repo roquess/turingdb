@@ -162,64 +162,7 @@ private:
             return BadResult(HTTP::Error::INVALID_URI);
         }
 
-        // Extract the path part of the URI
-        // up to the ? character if any
-        const char* pathBegin = uri.data();
-        const char* pathPtr = pathBegin;
-        const char* const uriEnd = pathPtr + uri.size();
-        for (; pathPtr < uriEnd; pathPtr++) {
-            if (*pathPtr == '?') {
-                break;
-            }
-        }
-
-        _info._path = std::string_view(pathBegin, pathPtr - pathBegin);
-
-
-        // We can stop here if we are already at the end of the URI
-        if (pathPtr >= uriEnd) {
-            return {};
-        }
-
-        URIParserT::parseURI(_info, uri);
-
-        // URI variables
-        pathPtr++;
-        auto& parameters = _info._params;
-        std::string_view key;
-        std::string_view value;
-
-        const auto parseHttpParam = [](HTTP::Params& params, std::string_view k, std::string_view v) {
-            if (k == "db") {
-                params[0] = v;
-            }
-        };
-
-        const char* wordStart = pathPtr;
-        for (; pathPtr < uriEnd; pathPtr++) {
-            const char c = *pathPtr;
-            if (c == '=') {
-                key = std::string_view(wordStart, pathPtr - wordStart);
-                value = std::string_view();
-                wordStart = pathPtr + 1;
-            } else if (c == '&') {
-                value = std::string_view(wordStart, pathPtr - wordStart);
-                if (!key.empty() && !value.empty()) {
-                    parseHttpParam(parameters, key, value);
-                }
-
-                key = std::string_view();
-                value = std::string_view();
-                wordStart = pathPtr + 1;
-            }
-        }
-
-        if (wordStart < uriEnd && !key.empty()) {
-            value = std::string_view(wordStart, uriEnd - wordStart);
-            parseHttpParam(parameters, key, value);
-        }
-
-        return {};
+        return URIParserT::parseURI(_info, uri);
     }
 
     [[nodiscard]] HTTP::Result<void> parseContentLengthAndJump() {
