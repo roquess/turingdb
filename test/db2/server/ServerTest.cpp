@@ -31,7 +31,7 @@ bool checkEndpointOK(const DBServerConfig& serverConfig,
 class ServerTest : public ::testing::Test {
 };
 
-constexpr auto HttpServerStartSleepDelay = std::chrono::milliseconds(1000);
+constexpr auto HttpServerStartSleepDelay = std::chrono::milliseconds(50);
 
 TEST_F(ServerTest, queryEndpointOK) {
     DBServerConfig serverConfig;
