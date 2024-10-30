@@ -128,6 +128,7 @@ std::string composePrompt(const TuringClient& turing) {
 
 int main(int argc, const char** argv) {
     ToolInit toolInit("tsh");
+    toolInit.disableOutputDir();
 
     std::string dbName;
     auto& argParser = toolInit.getArgParser();
