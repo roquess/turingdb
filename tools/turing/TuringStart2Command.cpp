@@ -15,7 +15,8 @@ inline void signalHandler(int signum) {
 
 TuringStart2Command::TuringStart2Command(ToolInit& toolInit)
     : ToolCommand(toolInit),
-      _startCommand("start2") {
+      _startCommand("start2")
+{
 }
 
 TuringStart2Command::~TuringStart2Command() {

@@ -7,7 +7,8 @@
 using namespace app;
 
 TuringApp2Server::TuringApp2Server(const FileUtils::Path& outDir)
-    : _outDir(outDir) {
+    : _outDir(outDir)
+{
 }
 
 TuringApp2Server::~TuringApp2Server() {
