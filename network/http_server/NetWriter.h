@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 
 #include "BioAssert.h"
+#include "ContentType.h"
 #include "HTTP.h"
 #include "Utils.h"
 #include "ConnectionHeader.h"
@@ -57,6 +58,26 @@ public:
         msgbioassert(encoding.size() <= _header._remaining, "Header does not fit in buffer");
         memcpy(_header._content.data() + _header._position, encoding.data(), encoding.size());
         _header.increment(encoding.size());
+    }
+
+    void addContentType(ContentType contentType) {
+        static constexpr std::string_view text = "Content-type: text/plain\r\n";
+        static constexpr std::string_view json = "Content-type: application/json\r\n";
+
+        switch (contentType) {
+            case net::ContentType::TEXT: {
+                msgbioassert(text.size() <= _header._remaining, "Header does not fit in buffer");
+                memcpy(_header._content.data() + _header._position, text.data(), text.size());
+                _header.increment(text.size());
+                return;
+            }
+            case ContentType::JSON: {
+                msgbioassert(json.size() <= _header._remaining, "Header does not fit in buffer");
+                memcpy(_header._content.data() + _header._position, json.data(), json.size());
+                _header.increment(json.size());
+                return;
+            }
+        }
     }
 
     void addConnection(ConnectionHeader connection) {
