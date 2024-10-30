@@ -22,7 +22,7 @@ protected:
 };
 
 constexpr auto HttpServerStartSleepDelay = std::chrono::milliseconds(60);
-constexpr auto MaxWaitIterations = 60000/HttpServerStartSleepDelay.count();
+constexpr auto MaxWaitIterations = 4000/HttpServerStartSleepDelay.count();
 
 TEST_F(ServerTest, queryEndpointOK) {
     PipeSample sample("server_test");
