@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "DBServerConfig.h"
@@ -76,7 +77,6 @@ TEST_F(ServerTest, queryEndpointOK) {
         return true;
     };
 
-    /*
     const auto checkNotFound = [&](const DBServerConfig& serverConfig,
                                                    const std::string& endpoint) {
         HTTPClient client;
@@ -84,10 +84,15 @@ TEST_F(ServerTest, queryEndpointOK) {
         const std::string url = serverConfig.getURL()+endpoint;
 
         const auto res = client.fetch(url, "hello", _buffer);
+        if (res != Status::NOT_FOUND) {
+            spdlog::error("Endpoint {} status={}",
+                          endpoint,
+                          net::HTTP::StatusDescription::value(res));
+            return false;
+        }
 
-        return res == Status::NOT_FOUND;
+        return true;
     };
-    */
 
     std::thread serverThread([&]() {
         sample.startHttpServer();
@@ -104,6 +109,10 @@ TEST_F(ServerTest, queryEndpointOK) {
             // Test fails if more than MaxWaitIterations
             ASSERT_TRUE(i < MaxWaitIterations);
         }
+
+        //ASSERT_TRUE(checkNotFound(sample.getServerConfig(), "/"));
+        //ASSERT_TRUE(checkNotFound(sample.getServerConfig(), ""));
+        ASSERT_TRUE(checkNotFound(sample.getServerConfig(), "/mynotfoundendpoint"));
     });
 
     // Wait for client thread to terminate
