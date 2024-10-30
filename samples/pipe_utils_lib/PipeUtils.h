@@ -31,8 +31,8 @@ public:
 
 private:
     std::string _sampleName;
-    std::unique_ptr<JobSystem> _jobSystem;
-    std::unique_ptr<db::SystemManager> _system;
     db::DBServerConfig _serverConfig;
+    std::unique_ptr<JobSystem> _jobSystem;
     std::unique_ptr<db::DBServer> _server;
+    db::SystemManager* _system {nullptr};
 };
