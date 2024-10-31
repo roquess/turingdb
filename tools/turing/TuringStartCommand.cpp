@@ -1,6 +1,6 @@
 #include "TuringStartCommand.h"
 
-#include <csignal>
+#include <signal.h>
 #include <spdlog/spdlog.h>
 
 #include "ToolInit.h"

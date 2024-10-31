@@ -1,6 +1,6 @@
 #include "TuringStart2Command.h"
 
-#include <csignal>
+#include <signal.h>
 #include <spdlog/spdlog.h>
 
 #include "ToolInit.h"
@@ -13,9 +13,14 @@ inline void signalHandler(int signum) {
     exit(EXIT_SUCCESS);
 }
 
+inline void noDemonSignalHandler(int signum) {
+    ProcessUtils::stopTool("turingdb");
+    exit(EXIT_SUCCESS);
+}
+
 TuringStart2Command::TuringStart2Command(ToolInit& toolInit)
     : ToolCommand(toolInit),
-      _startCommand("start2")
+    _startCommand("start2")
 {
 }
 
@@ -25,7 +30,7 @@ TuringStart2Command::~TuringStart2Command() {
 void TuringStart2Command::setup() {
     auto& argParser = _toolInit.getArgParser();
 
-    _startCommand.add_description("Start Turing platform with engine2");
+    _startCommand.add_description("Start Turing platform with TuringDB v2");
     _startCommand.add_argument("-nodemon")
         .implicit_value(true)
         .default_value(false);
@@ -69,6 +74,9 @@ void TuringStart2Command::run() {
     }
 
     if (noDemonRequested()) {
+        signal(SIGINT, noDemonSignalHandler);
+        signal(SIGTERM, noDemonSignalHandler);
+    } else {
         signal(SIGINT, signalHandler);
         signal(SIGTERM, signalHandler);
     }
