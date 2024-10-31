@@ -7,6 +7,7 @@
 #include <tabulate/table.hpp>
 #include <argparse.hpp>
 #include <spdlog/spdlog.h>
+#include <termcolor/termcolor.hpp>
 
 #include "TimerStat.h"
 
@@ -53,8 +54,33 @@ void extractWords(std::vector<std::string>& words, const std::string& line) {
 }
 
 // Commands
+void helpCommand(const TuringShell::Command::Words& args, TuringShell& shell) {
+    shell.printHelp();
+}
+
 void quitCommand(const TuringShell::Command::Words& args, TuringShell& shell) {
     exit(EXIT_SUCCESS);
+}
+
+void changeDBCommand(const TuringShell::Command::Words& args, TuringShell& shell) {
+    std::string dbName;
+    argparse::ArgumentParser argParser("cd",
+                               "",
+                              argparse::default_arguments::help,
+             false);
+    argParser.add_description("Print Turing Shell help");
+    argParser.add_argument("db_name")
+             .nargs(1)
+             .metavar("db_name")
+             .store_into(dbName);
+    argParser.parse_args(args);
+
+    if (dbName.empty()) {
+        spdlog::error("Database name can not be empty");
+        return;
+    }
+
+    shell.setDBName(dbName);
 }
 
 void printJsonCommand(const TuringShell::Command::Words& args, TuringShell& shell) {
@@ -85,6 +111,8 @@ TuringShell::TuringShell()
     _localCommands.emplace("quit", Command{quitCommand});
     _localCommands.emplace("exit", Command{quitCommand});
     _localCommands.emplace("print_json", Command{printJsonCommand});
+    _localCommands.emplace("help", Command{helpCommand});
+    _localCommands.emplace("cd", Command{changeDBCommand});
 }
 
 TuringShell::~TuringShell() {
@@ -110,7 +138,14 @@ void TuringShell::startLoop() {
 std::string TuringShell::composePrompt() {
     const std::string basePrompt = "turing";
     const char* separator = ":";
-    return basePrompt + separator + _turing.getDBName() + "> ";
+
+    std::string prompt = basePrompt;
+    prompt += separator;
+    prompt += "\033[0;35m";
+    prompt += _turing.getDBName();
+    prompt += "\033[0m";
+    prompt += "> ";
+    return prompt;
 }
 
 void TuringShell::processLine(std::string& line) {
@@ -174,4 +209,12 @@ void TuringShell::displayTable() {
     }
 
     std::cout << table << "\n";
+}
+
+void TuringShell::printHelp() const {
+    for (const auto& entry : _localCommands) {
+        std::cout << entry.first << "\n";
+    }
+
+    std::cout << "\n";
 }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <unordered_map>
 #include <string>
 #include <string_view>
@@ -25,6 +24,8 @@ public:
     void setDebugDumpJSON(bool enabled) { _turing.setDebugDumpJSON(enabled); }
 
     void startLoop();
+
+    void printHelp() const;
 
 private:
     turing::TuringClient _turing;

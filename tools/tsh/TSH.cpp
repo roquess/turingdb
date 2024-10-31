@@ -19,7 +19,10 @@ int main(int argc, const char** argv) {
     toolInit.init(argc, argv);
 
     TuringShell shell;
-    shell.setDBName(dbName);
+
+    if (!dbName.empty()) {
+        shell.setDBName(dbName);
+    }
     
     shell.startLoop();
 

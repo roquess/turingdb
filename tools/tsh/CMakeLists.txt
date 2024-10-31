@@ -10,6 +10,7 @@ target_link_libraries(tsh PRIVATE
     common_s
     tools_common_s
     tabulate::tabulate
+    termcolor
     linenoise_s)
 
 install(TARGETS tsh DESTINATION bin)

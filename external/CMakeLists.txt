@@ -13,6 +13,7 @@ add_subdirectory(argparse)
 add_subdirectory(spdlog)
 add_subdirectory(expected)
 add_subdirectory(tabulate)
+add_subdirectory(termcolor)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/neo4j/neo4j-4.3.23.tar.gz DESTINATION neo4j)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/neo4j/cyber-security-db DESTINATION neo4j)
