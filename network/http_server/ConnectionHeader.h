@@ -1,6 +1,7 @@
 #pragma once
 
 namespace net {
+
 enum class ConnectionHeader {
     KEEP_ALIVE = 0,
     CLOSE
@@ -12,4 +13,5 @@ inline constexpr ConnectionHeader getConnectionHeader(bool closeConnection) {
 
     return static_cast<ConnectionHeader>(closeConnection);
 }
+
 }
