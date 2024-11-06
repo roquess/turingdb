@@ -174,17 +174,16 @@ void TuringShell::processLine(std::string& line) {
         // Query execution time
         const auto timeExecEnd = Clock::now();
         const std::chrono::duration<double, std::milli> duration = timeExecEnd - timeExecStart;
-        std::cout << "Request received in " << duration.count() << " ms.\n";
-    }
 
-    {
-        const auto rowCount = _df.rowCount();
-        std::cout << "Received " << rowCount << " record";
-        if (rowCount == 0 || rowCount > 1) {
-            std::cout << "s";
+        {
+            const auto rowCount = _df.rowCount();
+            std::cout << "Received " << rowCount << " record";
+            if (rowCount == 0 || rowCount > 1) {
+                std::cout << "s";
+            }
+
+            std::cout << " in " << duration.count() << "ms.\n";
         }
-
-        std::cout << "\n\n";
     }
 
     // Format result table
