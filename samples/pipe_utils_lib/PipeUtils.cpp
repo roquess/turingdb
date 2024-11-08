@@ -45,6 +45,8 @@ PipeSample::PipeSample(const std::string& sampleName)
     
     _server = std::make_unique<DBServer>(_serverConfig);
     _system = _server->getSystemManager();
+
+    QueryInterpreter::init();
 }
 
 PipeSample::~PipeSample() {
