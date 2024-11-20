@@ -101,8 +101,9 @@ bool PipeSample::executeQuery(const std::string& queryStr) {
     const auto res = interp.execute(mem, queryParams);
     memStorage.dealloc(mem);
 
-    if (res != QueryStatus::OK) {
-        spdlog::error("QueryInterpreter status={}", (size_t)res);
+    if (!res.isOk()) {
+        spdlog::error("QueryInterpreter status={}",
+                      QueryStatusDescription::value(res.getStatus()));
         return false;
     }
 
