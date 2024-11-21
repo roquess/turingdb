@@ -1,63 +1,188 @@
 #include "TuringTest.h"
 #include "GMLParser.h"
-#include "DB.h"
-#include "JobSystem.h"
 
 using namespace db;
+
+class GMLSax {
+public:
+    void onNodeProperty(std::string_view k, std::string_view v) { spdlog::info("NODEPROP[{}, {}]", k, v); }
+    void onNodeProperty(std::string_view k, uint64_t v) { spdlog::info("NODEPROP[{}, {}]", k, v); }
+    void onNodeProperty(std::string_view k, int64_t v) { spdlog::info("NODEPROP[{}, {}]", k, v); }
+    void onNodeProperty(std::string_view k, double v) { spdlog::info("NODEPROP[{}, {}]", k, v); }
+    void onNodeID(uint64_t id) { spdlog::info("NODEID[{}]", id); }
+    void onEdgeProperty(std::string_view k, std::string_view v) { spdlog::info("EDGEPROP[{}, {}]", k, v); }
+    void onEdgeProperty(std::string_view k, uint64_t v) { spdlog::info("EDGEPROP[{}, {}]", k, v); }
+    void onEdgeProperty(std::string_view k, int64_t v) { spdlog::info("EDGEPROP[{}, {}]", k, v); }
+    void onEdgeProperty(std::string_view k, double v) { spdlog::info("EDGEPROP[{}, {}]", k, v); }
+    void onEdgeSource(uint64_t id) { spdlog::info("EDGESOURCE[{}]", id); }
+    void onEdgeTarget(uint64_t id) { spdlog::info("EDGETARGET[{}]", id); }
+    void onNodeBegin() { spdlog::info("NodeBegin >>>"); }
+    void onNodeEnd() { spdlog::info("<<< NodeEnd"); }
+    void onEdgeBegin() { spdlog::info("EdgeBegin >>>"); }
+    void onEdgeEnd() { spdlog::info("<<< EdgeEnd"); }
+};
 
 class GMLParserTest : public TuringTest {
 protected:
     void initialize() override {
-        _jobSystem = std::make_unique<JobSystem>();
-        _jobSystem->initialize();
     }
 
     void terminate() override {
-        _jobSystem->terminate();
     }
-
-    std::unique_ptr<JobSystem> _jobSystem;
 };
 
-GMLParser::Result importDB(std::string_view data) {
-    auto db = std::make_unique<DB>();
-    GMLParser parser(db.get());
-    return parser.parse(data);
-}
+#define EXPECT_ERROR(data, errMsg)                             \
+    {                                                          \
+        using namespace std::literals;                         \
+        spdlog::info("Parsing...");                            \
+        GMLSax sax;                                            \
+        GMLParser<GMLSax> parser(sax);                         \
+        auto res = parser.parse(data##sv);                     \
+        ASSERT_FALSE(res);                                     \
+        const auto& err = res.error();                         \
+        ASSERT_EQ(err.getMessage(), errMsg##sv);               \
+        spdlog::info("[Expected error] {}", err.getMessage()); \
+    }
 
-void expectError(const GMLParser::Result& res) {
-    ASSERT_FALSE(res);
-    const auto& err = res.error();
-    spdlog::info("[Expected error] {}", err.getMessage());
-}
+#define EXPECT_SUCCESS(data)                                                 \
+    {                                                                        \
+        using namespace std::literals;                                       \
+        GMLSax sax;                                                          \
+        GMLParser<GMLSax> parser(sax);                                       \
+        auto res = parser.parse(data##sv);                                   \
+        if (!res)                                                            \
+            spdlog::info("[UNEXPECTED ERROR] {}", res.error().getMessage()); \
+        ASSERT_TRUE(res);                                                    \
+    }
 
 TEST_F(GMLParserTest, Empty) {
-    ASSERT_TRUE(importDB("graph []"));
-    ASSERT_TRUE(importDB(" graph []"));
-    ASSERT_TRUE(importDB(" graph [] "));
-    ASSERT_TRUE(importDB("\tgraph [] "));
-    ASSERT_TRUE(importDB("\tgraph [] \n"));
-    ASSERT_TRUE(importDB("\ngraph [] \n"));
-    ASSERT_TRUE(importDB("\n\n\r graph [] \n"));
-    ASSERT_FALSE(importDB("\n\n\r graph [] dsqd\n"));
+    EXPECT_SUCCESS("graph []");
+    EXPECT_SUCCESS("graph[]");
+    EXPECT_SUCCESS(" graph []");
+    EXPECT_SUCCESS(" graph [] ");
+    EXPECT_SUCCESS("\tgraph [] ");
+    EXPECT_SUCCESS("\tgraph [] \n");
+    EXPECT_SUCCESS("\ngraph [] \n");
+    EXPECT_SUCCESS("\n\n\r graph [] \n");
 
-    expectError(importDB("\tdsqd [] \n"));
+    EXPECT_ERROR("\n\n\r graph [] dsqd\n",
+                 "GML Error at line 3: Unexpected token 'd'. Expected: end of file");
+
+    EXPECT_ERROR("\tdsqd [] \n",
+                 "GML Error at line 1: Unexpected token 'dsqd ', Expected: 'graph'");
 
     {
-        auto res = importDB("\n\ndsqd [] \n");
-        expectError(res);
-        ASSERT_EQ(res.error().getLine(), 2);
+        GMLSax sax;
+        GMLParser<GMLSax> parser(sax);
+        auto res = parser.parse("\n\ndsqd [] \n");
+        ASSERT_FALSE(res);
+        const auto& err = res.error();
+        spdlog::info("[Expected error] {}", err.getMessage());
+        ASSERT_EQ(err.getLine(), 3);
     }
 }
 
 TEST_F(GMLParserTest, Nodes) {
-    {
-        expectError(importDB(
-            "graph [\n"
-            "  node [\n"
-            "]"));
-        ASSERT_TRUE(importDB("graph [\n"
-                             "  node []\n"
-                             "]"));
-    }
+    // Missing node ID + Missing closing bracket
+    EXPECT_ERROR(
+        "graph [\n"
+        "  node [\n"
+        "]",
+        "GML Error at line 3: Unexpected token ']'. Missing node ID");
+
+    // Missing node ID
+    EXPECT_ERROR(
+        "graph [\n"
+        "  node []\n"
+        "]",
+        "GML Error at line 3: Unexpected token ']'. Missing node ID");
+
+    // Missing closing bracket
+    EXPECT_ERROR(
+        "graph [\n"
+        "  node [ id 0 \n"
+        "]",
+        "GML Error at line 3: Unexpected end of file. Expected: ']'");
+
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [ id 0 ]\n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [\n"
+        "    id 0\n"
+        "  ]\n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [id 1]\n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [id 1 label test]\n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [id 1 label test ]\n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [id 1 label \"quoted prop\"]\n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [id 1 label \"quoted prop\" ]\n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [id 0 label \"quoted prop\"] \"n"
+        "  node [id 1 label test]\n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph[node[id 0 label node1]node[id 1 label node2]]");
+
+    // Missing property value
+    EXPECT_ERROR(
+        "graph [\n"
+        "  node [ id 0 label ]\n"
+        "]",
+        "GML Error at line 2: Unexpected token ']'. Expected: 'property value'");
+}
+
+TEST_F(GMLParserTest, Edges) {
+    // Missing source ID
+    EXPECT_ERROR(
+        "graph [\n"
+        "  edge []\n"
+        "]",
+        "GML Error at line 3: Unexpected token ']'. Missing edge source ID");
+
+    // Missing closing bracket
+    EXPECT_ERROR(
+        "graph [\n"
+        "  edge [ \n"
+        "]",
+        "GML Error at line 3: Unexpected token ']'. Missing edge source ID");
+
+    // Missing source ID
+    EXPECT_ERROR(
+        "graph [\n"
+        "  edge [ target 1 ]\n"
+        "]",
+        "GML Error at line 3: Unexpected token ']'. Missing edge source ID");
+
+    // Missing source ID
+    EXPECT_ERROR(
+        "graph [\n"
+        "  edge [ source 1 ]\n"
+        "]",
+        "GML Error at line 3: Unexpected token ']'. Missing edge target ID");
+
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  node [ id 0 ] node [id 1] edge [ source 0 target 1 label edgeName] \n"
+        "]");
+    EXPECT_SUCCESS(
+        "graph[node[id 0]node[id 1]edge[source 0 target 1]edge[source 1 target 0]]");
 }
