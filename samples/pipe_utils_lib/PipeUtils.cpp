@@ -97,9 +97,8 @@ bool PipeSample::executeQuery(const std::string& queryStr) {
     interp.setEncodingParams(&encodingParams);
 
     const QueryParams queryParams(queryStr, _system->getDefaultDB()->getName());
-    MemoryManager* mem = memStorage.alloc();
-    const auto res = interp.execute(mem, queryParams);
-    memStorage.dealloc(mem);
+    MemoryManagerHandle mem = memStorage.alloc();
+    const auto res = interp.execute(mem.get(), queryParams);
 
     if (!res.isOk()) {
         spdlog::error("QueryInterpreter status={}",
