@@ -3,11 +3,10 @@
 #include <array>
 #include <stddef.h>
 #include <string.h>
-#include <string>
 
 class Buffer {
 public:
-    static constexpr size_t BUFFER_SIZE = 10ul*1024;
+    static constexpr size_t BUFFER_SIZE = 40ul*1024;
 
     Buffer();
     ~Buffer();
