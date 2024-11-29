@@ -11,8 +11,7 @@
 using namespace net;
 
 TCPConnectionManager::TCPConnectionManager(ServerContext& ctxt)
-    : _ctxt(ctxt)
-{
+    : _ctxt(ctxt) {
 }
 
 void TCPConnectionManager::process(AbstractThreadContext* threadContext,
@@ -38,9 +37,47 @@ void TCPConnectionManager::process(AbstractThreadContext* threadContext,
 
         auto* parser = connection.getParser();
         auto analyzeRes = parser->analyze();
+        auto& writer = connection.getWriter();
 
         if (!analyzeRes) {
             // Analyze HTTP Request failed
+            switch (analyzeRes.error()) {
+                case net::HTTP::Error::REQUEST_TOO_BIG: {
+                    writer.setFirstLine(net::HTTP::Status::CONTENT_TOO_LARGE);
+                    break;
+                }
+                case net::HTTP::Error::HEADER_INCOMPLETE: {
+                    writer.setFirstLine(net::HTTP::Status::BAD_REQUEST);
+                    break;
+                }
+                case net::HTTP::Error::TOO_MANY_PARAMS: {
+                    writer.setFirstLine(net::HTTP::Status::CONTENT_TOO_LARGE);
+                    break;
+                }
+                case net::HTTP::Error::UNKNOWN_ENDPOINT: {
+                    writer.setFirstLine(net::HTTP::Status::NOT_FOUND);
+                    break;
+                }
+                case net::HTTP::Error::INVALID_METHOD: {
+                    writer.setFirstLine(net::HTTP::Status::METHOD_NOT_ALLOWED);
+                    break;
+                }
+                case net::HTTP::Error::NO_METHOD:
+                case net::HTTP::Error::NO_URI:
+                case net::HTTP::Error::UNKNOWN:
+                case net::HTTP::Error::INVALID_URI:
+                case net::HTTP::Error::_SIZE: {
+                    writer.setFirstLine(net::HTTP::Status::BAD_REQUEST);
+                    break;
+                }
+            }
+            writer.addConnection(net::getConnectionHeader(true));
+            writer.addChunkedTransferEncoding();
+            writer.addContentType(net::ContentType::JSON);
+            writer.endHeader();
+            writer.flushHeader();
+            writer.flush();
+            writer.reset();
             parser->reset();
             inputWriter.reset();
             connection.close();
@@ -53,7 +90,6 @@ void TCPConnectionManager::process(AbstractThreadContext* threadContext,
             // Process with stored callback
             _ctxt._process(threadContext, connection);
 
-            auto& writer = connection.getWriter();
             if (writer.getBytesWritten() != 0) {
                 writer.flush(); // Make sure we sent everything
             }
