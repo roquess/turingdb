@@ -6,7 +6,8 @@
 namespace fs {
 
 Path::Path(std::string path)
-    : _path(std::move(path)) {
+    : _path(std::move(path))
+{
 }
 
 FileResult<FileInfo> Path::getFileInfo() const {

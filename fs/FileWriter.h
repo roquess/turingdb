@@ -5,7 +5,6 @@
 #include <span>
 #include <vector>
 
-#include "BioAssert.h"
 #include "ByteBuffer.h"
 #include "FileResult.h"
 #include "File.h"

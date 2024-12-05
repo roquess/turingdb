@@ -10,7 +10,8 @@ namespace fs {
 class ByteBufferIterator {
 public:
     explicit ByteBufferIterator(const ByteBuffer& buf)
-        : _buf(buf) {
+        : _buf(buf)
+    {
     }
 
     void reset() {
