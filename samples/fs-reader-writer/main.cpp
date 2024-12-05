@@ -46,6 +46,10 @@ int main() {
     std::vector<uint16_t> integers(5);
     std::iota(integers.begin(), integers.end(), 0);
     writer.write(std::span {integers});
+
+    // Write Hello world
+    std::string str = "Hello world!";
+    writer.write(str);
     writer.flush();
 
     // Reopen file (start back at the beginning + resets info);
@@ -66,12 +70,11 @@ int main() {
     fmt::print("- FirstValue: {}\n", it.get<int>());
     fmt::print("- SecondValue: {}\n", it.get<int>());
     fmt::print("- Integers:");
-
-    for (auto v : it.getSpan<uint16_t>(5)) {
+    for (auto v : it.get<uint16_t>(5)) {
         fmt::print(" {}", v);
     }
-
     fmt::print("\n");
+    fmt::print("- String: {}\n", it.get<char>(str.size()));
 
     return 0;
 }

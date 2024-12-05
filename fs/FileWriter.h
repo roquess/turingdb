@@ -27,8 +27,8 @@ public:
     }
 
     void write(TrivialPrimitive auto v) {
-        bioassert(!errorOccured());
         static constexpr size_t size = sizeof(v);
+
         if (_buffer.size() + size > BUFFER_SIZE) {
             flush();
         }
@@ -51,17 +51,66 @@ public:
             return;
         }
 
-        _file->write((void*)span.data(), span.size() * sizeof(T));
+        auto res = _file->write((void*)span.data(), span.size() * sizeof(T));
+        if (!res) {
+            _error = res.error();
+        }
+    }
+
+    template <CharPrimitive T>
+    void write(std::basic_string_view<T> str) {
+        static constexpr size_t charSize = sizeof(T);
+
+        if (_error.has_value()) {
+            return;
+        }
+
+        const size_t stride = charSize * str.size();
+
+        if (stride > BUFFER_SIZE) {
+            // Does not fit in buffer
+            flush();
+
+            if (_error.has_value()) {
+                return;
+            }
+
+            auto res = _file->write((void*)str.data(), str.size() * sizeof(T));
+            if (!res) {
+                _error = res.error();
+            }
+            return;
+        }
+
+        if (_buffer.size() + stride > BUFFER_SIZE) {
+            flush();
+
+            if (_error.has_value()) {
+                return;
+            }
+        }
+
+        const size_t prevSize = _buffer.size();
+        _buffer.resize(_buffer.size() + stride);
+        Byte* ptr = _buffer.data();
+        std::memcpy(ptr + prevSize, str.data(), stride);
+    }
+
+    template <CharPrimitive T>
+    void write(const std::basic_string<T>& str) {
+        write(std::basic_string_view<T> {str});
     }
 
     void flush() {
-        bioassert(!errorOccured());
+        if (_error.has_value()) {
+            return;
+        }
+
         if (_buffer.empty()) {
             return;
         }
 
         auto res = _file->write(_buffer.data(), _buffer.size());
-
         if (!res) {
             _error = res.error();
         }
