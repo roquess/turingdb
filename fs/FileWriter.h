@@ -29,7 +29,6 @@ public:
     void write(TrivialPrimitive auto v) {
         bioassert(!errorOccured());
         static constexpr size_t size = sizeof(v);
-        fmt::print("Write primitive\n");
         if (_buffer.size() + size > BUFFER_SIZE) {
             flush();
         }
@@ -51,11 +50,6 @@ public:
         if (_error.has_value()) {
             return;
         }
-        fmt::print("Writing vars:");
-        for (T v : span) {
-            fmt::print(" {}", v);
-        }
-        fmt::print("\n");
 
         _file->write((void*)span.data(), span.size() * sizeof(T));
     }

@@ -22,6 +22,7 @@ public:
     [[nodiscard]] FileResult<FileInfo> getFileInfo() const;
     [[nodiscard]] const std::string& get() const { return _path; }
     [[nodiscard]] const char* c_str() const { return _path.c_str(); }
+    [[nodiscard]] Path copy() const { return Path(_path); }
 
 private:
     std::string _path;

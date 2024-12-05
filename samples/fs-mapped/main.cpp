@@ -29,51 +29,27 @@ int main() {
             return 1;
         }
 
-        auto region = file->map(info->_size);
-        if (!region) {
-            fmt::print("{}\n", region.error().fmtMessage());
-            return 1;
-        }
-
-        fmt::print("- File content: {:?}\n", region->view());
         fmt::print("\n");
     }
-
-    // Read mapped file
-    {
-        fs::Path p {SAMPLE_DIR "/test"};
-        fmt::print("## Read mapped file\n");
-
-        {
-            fmt::print("- Opening file for input: {}\n", p.get());
-            auto file = fs::File::open(std::move(p));
-            if (!file) {
-                fmt::print("{}\n", file.error().fmtMessage());
-                return 1;
-            }
-
-            auto region = file->map(file->getInfo()._size);
-            if (!region) {
-                fmt::print("{}\n", region.error().fmtMessage());
-                return 1;
-            }
-
-            fmt::print("- File content before: {:?}\n", region->view());
-            fmt::print("- Closing file\n");
-
-            CHECK_RES(file->close());
-        }
-        fmt::print("\n");
-    }
-
 
     {
         fs::Path p {SAMPLE_DIR "/testbinary"};
         fmt::print("## Read/Write binary values to file\n");
 
         {
+            // Create testbinary file
+            auto file = fs::File::open(p.copy());
+            if (!file) {
+                fmt::print("{}\n", file.error().fmtMessage());
+                return 1;
+            }
+            const uint64_t v = 0;
+            file->write((void*)&v, sizeof(uint64_t));
+        }
+
+        {
             fmt::print("- Opening to write binary: {}\n", p.get());
-            auto file = fs::File::open(fs::Path(p));
+            auto file = fs::File::open(p.copy());
             if (!file) {
                 fmt::print("{}\n", file.error().fmtMessage());
                 return 1;
