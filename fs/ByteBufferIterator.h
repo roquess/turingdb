@@ -10,38 +10,39 @@ namespace fs {
 class ByteBufferIterator {
 public:
     explicit ByteBufferIterator(const ByteBuffer& buf)
-        : _buf(buf)
+        : _buf(buf),
+          _data(buf.data())
     {
     }
 
     void reset() {
-        _pos = 0;
+        _data = _buf.data();
     }
 
     template <TrivialPrimitive T>
     const T& get() {
-        const auto* ptr = reinterpret_cast<const T*>(_buf.data() + _pos);
-        _pos += sizeof(T);
+        const auto* ptr = reinterpret_cast<const T*>(_data);
+        _data += sizeof(T);
         return *ptr;
     }
 
     template <TrivialPrimitive T>
     std::span<const T> get(size_t count) {
-        const auto* ptr = reinterpret_cast<const T*>(_buf.data() + _pos);
-        _pos += sizeof(T) * count;
+        const auto* ptr = reinterpret_cast<const T*>(_data);
+        _data += sizeof(T) * count;
         return std::span<const T> {ptr, count};
     }
 
     template <CharPrimitive T>
     std::basic_string_view<T> get(size_t charCount) {
-        const auto* ptr = reinterpret_cast<const T*>(_buf.data() + _pos);
-        _pos += sizeof(T) * charCount;
+        const auto* ptr = reinterpret_cast<const T*>(_data);
+        _data += sizeof(T) * charCount;
         return std::basic_string_view<T> {ptr, charCount};
     }
 
 private:
     const ByteBuffer& _buf;
-    size_t _pos {};
+    const Byte* _data {nullptr};
 };
 
 }
