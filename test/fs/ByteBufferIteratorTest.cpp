@@ -1,5 +1,3 @@
-#include <numeric>
-
 #include "TuringTest.h"
 #include "ByteBuffer.h"
 #include "ByteBufferIterator.h"
@@ -37,7 +35,7 @@ void appendBytes(fs::ByteBuffer& buf, std::basic_string_view<T> data) {
     std::memcpy(buf.data() + prevSize, data.data(), size);
 }
 
-TEST_F(ByteBufferIteratorTest, Empty) {
+TEST_F(ByteBufferIteratorTest, General) {
     using namespace std::literals;
 
     fs::ByteBuffer buf;
