@@ -33,6 +33,8 @@ public:
         return Path(std::move(p));
     };
 
+    [[nodiscard]] FileResult<void> mkdir();
+
 private:
     std::string _path;
 };

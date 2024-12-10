@@ -99,3 +99,15 @@ std::string_view Path::filename() const {
 
     return std::string_view {_path}.substr(pos + 1);
 }
+
+FileResult<void> Path::mkdir() {
+    if (exists()) {
+        return FileError::result(_path.c_str(), "Cannot mkdir, already exists");
+    }
+
+    if (::mkdir(_path.c_str(), 0700) == -1) {
+        return FileError::result(_path.c_str(), "Cannot mkdir: {}", strerror(errno));
+    }
+
+    return {};
+}
