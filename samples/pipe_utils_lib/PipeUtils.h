@@ -27,7 +27,7 @@ public:
 
     bool executeQuery(const std::string& queryStr);
 
-    void startHttpServer();
+    bool startHttpServer();
 
 private:
     std::string _sampleName;

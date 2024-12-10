@@ -196,6 +196,6 @@ void PipeSample::createSimpleGraph() {
     builder->commit(*_jobSystem);
 }
 
-void PipeSample::startHttpServer() {
-    _server->start();
+bool PipeSample::startHttpServer() {
+    return _server->start();
 }
