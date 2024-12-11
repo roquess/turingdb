@@ -129,6 +129,12 @@ execute_process(COMMAND git rev-parse HEAD
                 OUTPUT_VARIABLE HEAD_COMMIT_HASH
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/build/findnoeol
+                RESULT_VARIABLE NOEOLATEOF)
+if (${NOEOLATEOF} EQUAL 1)
+    message(FATAL_ERROR "Found files without EOL at EOF")
+endif ()
+
 add_subdirectory(app)
 add_subdirectory(app2)
 add_subdirectory(external)

@@ -1,0 +1,19 @@
+#!/usr/bin/bash
+files=$(find . -type f -regex '.*\.\(cpp\|h\)' ! -path "./external/*" ! -path "./test/googletest/*")
+
+found=false
+for f in $files;
+do
+    if [ "$(tail -c 1 "$f")" ]
+    then
+        found=true
+        echo "No new line at end of $f";
+    fi
+done
+
+if $found
+then
+    exit 1
+fi
+
+exit 0
