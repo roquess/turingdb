@@ -3,6 +3,17 @@ cmake_minimum_required(VERSION 3.6)
 
 project(biodesigner)
 
+
+# Check of newlines at EOF
+message(STATUS "Checking for newlines at EOF")
+execute_process(
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/build/findnoeol ${CMAKE_CURRENT_SOURCE_DIR}
+    RESULT_VARIABLE NOEOLATEOF)
+
+if (${NOEOLATEOF} EQUAL 1)
+    message(FATAL_ERROR "Found files without EOL at EOF")
+endif ()
+
 # C++ compiler
 set(CLANG_NEEDED_VERSION "9.4.0")
 
@@ -128,12 +139,6 @@ enable_testing()
 execute_process(COMMAND git rev-parse HEAD
                 OUTPUT_VARIABLE HEAD_COMMIT_HASH
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/build/findnoeol
-                RESULT_VARIABLE NOEOLATEOF)
-if (${NOEOLATEOF} EQUAL 1)
-    message(FATAL_ERROR "Found files without EOL at EOF")
-endif ()
 
 add_subdirectory(app)
 add_subdirectory(app2)
