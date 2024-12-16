@@ -32,7 +32,7 @@ public:
     }
 
 
-    std::string_view getView(size_t index) const {
+    const std::string_view& getView(size_t index) const {
         msgbioassert(index < _views.size(), "String index invalid");
         return _views[index];
     }

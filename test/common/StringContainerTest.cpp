@@ -9,8 +9,8 @@ TEST(StringContainerTest, General) {
     container.alloc("Hello people");
 
     std::array<size_t, 3> sorting = {2, 1, 0};
-    container.sort(sorting);
     container.build();
+    container.sort(sorting);
 
     const std::string_view v1 = container.getView(0);
     const std::string_view v2 = container.getView(1);
