@@ -26,26 +26,26 @@ public:
     void alloc(std::string_view content) {
         if (_remainingSize < content.size()) {
             if (content.size() > BUCKET_SIZE) {
-                auto& chars = _buckets.emplace_back();
-                chars.resize(content.size());
-                std::memcpy(chars.data(), content.data(), content.size());
-                _views.push_back({chars.data(), content.size()});
+                auto& oneValueBucket = _buckets.emplace_back();
+                oneValueBucket.resize(content.size());
+                std::memcpy(oneValueBucket.data(), content.data(), content.size());
+                _views.push_back({oneValueBucket.data(), content.size()});
 
                 _remainingSize = 0;
                 return;
             } else {
                 _remainingSize = BUCKET_SIZE;
-                auto& chars = _buckets.emplace_back();
-                chars.resize(BUCKET_SIZE);
+                auto& bucket = _buckets.emplace_back();
+                bucket.resize(BUCKET_SIZE);
             }
         }
 
-        auto& chars = _buckets.back();
-        const size_t offset = chars.size() - _remainingSize;
+        auto& bucket = _buckets.back();
+        const size_t offset = bucket.size() - _remainingSize;
         _remainingSize -= content.size();
 
-        std::memcpy(chars.data() + offset, content.data(), content.size());
-        _views.push_back({chars.data() + offset, content.size()});
+        std::memcpy(bucket.data() + offset, content.data(), content.size());
+        _views.push_back({bucket.data() + offset, content.size()});
     }
 
 
@@ -57,14 +57,6 @@ public:
     size_t size() const { return _views.size(); }
 
     const ViewVector& get() const { return _views; }
-
-    size_t byteCount() const {
-        size_t count = 0;
-        for (const auto& bucket : _buckets) {
-            count += bucket.size();
-        }
-        return count;
-    }
 
     ViewVector::const_iterator begin() const { return _views.begin(); }
     ViewVector::const_iterator end() const { return _views.end(); }
