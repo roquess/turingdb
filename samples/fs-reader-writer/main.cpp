@@ -38,10 +38,10 @@ int main() {
 
     // Write 4085 4086
     // [f5 f 0 0 ] [f6 f 0 0]
-    writer.write((int)4085);
-    writer.write((int)4086);
+    writer.write(4085);
+    writer.write(4086);
 
-    // Write 0 1 2 3 4 (as uint8_t)
+    // Write 0 1 2 3 4 (as uint16_t)
     // [0 0] [1 0] [2 0] [3 0] [4 0]
     std::vector<uint16_t> integers(5);
     std::iota(integers.begin(), integers.end(), 0);

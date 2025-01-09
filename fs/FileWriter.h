@@ -7,6 +7,7 @@
 
 #include "ByteBuffer.h"
 #include "FileResult.h"
+#include "Primitives.h"
 #include "File.h"
 
 namespace fs {

@@ -129,7 +129,7 @@ FileResult<void> File::clearContent() {
 
     if (fd == -1) {
         return FileError::result(_path.c_str(),
-                                 "Could clear file content",
+                                 "Could not clear file content",
                                  ::strerror(errno));
     }
 
