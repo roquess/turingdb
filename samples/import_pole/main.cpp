@@ -1,4 +1,4 @@
-#include "DB.h"
+#include "Graph.h"
 #include "DBView.h"
 #include "DBReader.h"
 #include "DBMetadata.h"
@@ -24,14 +24,14 @@ int main() {
     jobSystem.initialize();
     PerfStat::init("import_pole.perf");
 
-    auto database = std::make_unique<DB>();
-    const PropertyTypeMap& propTypes = database->getMetadata()->propTypes();
+    auto graph = std::make_unique<Graph>();
+    const PropertyTypeMap& propTypes = graph->getMetadata()->propTypes();
     const std::string turingHome = std::getenv("TURING_HOME");
     const FileUtils::Path jsonDir = FileUtils::Path {turingHome} / "neo4j" / "pole-db";
 
     auto t0 = Clock::now();
     Neo4jImporter::importJsonDir(jobSystem,
-                                 database.get(),
+                                 graph.get(),
                                  db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                  db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                  {
@@ -41,7 +41,7 @@ int main() {
 
     std::cout << "Parsing: " << duration<Seconds>(t0, t1) << " s" << std::endl;
 
-    const auto view = database->view();
+    const auto view = graph->view();
     const auto reader = view.read();
 
     std::string_view address = "33 Plover Drive";
