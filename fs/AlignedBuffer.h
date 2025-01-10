@@ -2,10 +2,12 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <cstring>
 #include <stdexcept>
 #include <span>
 #include <string_view>
 
+#include "BioAssert.h"
 #include "Primitives.h"
 
 namespace fs {
@@ -61,6 +63,12 @@ public:
         return *this;
     }
 
+    void write(const Byte* data, size_t size) {
+        bioassert(avail() > size);
+        std::memcpy(_buffer, data, size);
+        _size += size;
+    }
+
     ~AlignedBuffer() noexcept {
         free(_buffer);
     }
@@ -74,8 +82,9 @@ public:
     }
 
     [[nodiscard]] const Byte* data() const { return _buffer; }
-    [[nodiscard]] void* data() { return _buffer; }
+    [[nodiscard]] Byte* data() { return _buffer; }
     [[nodiscard]] size_t size() const { return _size; }
+    [[nodiscard]] size_t avail() const { return Capacity - _size; }
 
     [[nodiscard]] AlignedBufferIterator<CapacityT> begin() const;
     [[nodiscard]] AlignedBufferIterator<CapacityT> end() const;
