@@ -33,7 +33,7 @@ public:
     File(const File&) = delete;
     File& operator=(const File&) = delete;
 
-    [[nodiscard]] static FileResult<File> open(Path&& path);
+    [[nodiscard]] static FileResult<File> open(Path path);
     [[nodiscard]] FileResult<FileRegion> map(size_t size, size_t offset = 0);
     FileResult<void> reopen();
     FileResult<void> read(void* buf, size_t size) const;

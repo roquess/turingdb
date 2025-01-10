@@ -30,7 +30,6 @@ int main() {
             fmt::print("{}\n", writer.error().fmtMessage());
             return 1;
         }
-        writer->setFinishStrategy(fs::FilePageWriter::FinishStrategy::Truncate);
 
         std::vector<Integer> ones;
         ones.resize(INTEGER_COUNT, 1);

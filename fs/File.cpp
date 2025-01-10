@@ -13,7 +13,7 @@ File::~File() {
     }
 }
 
-FileResult<File> File::open(Path&& path) {
+FileResult<File> File::open(Path path) {
     const int access = O_RDWR | O_CREAT | O_APPEND;
     const int permissions = S_IRUSR | S_IWUSR;
 

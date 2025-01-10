@@ -16,8 +16,8 @@ public:
 
     FilePageReader() = default;
 
-    [[nodiscard]] static FileResult<FilePageReader> open(Path&& path);
-    [[nodiscard]] static FileResult<FilePageReader> openNoDirect(Path&& path);
+    [[nodiscard]] static FileResult<FilePageReader> open(Path path);
+    [[nodiscard]] static FileResult<FilePageReader> openNoDirect(Path path);
 
     FileResult<void> nextPage();
 

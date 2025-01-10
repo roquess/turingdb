@@ -14,12 +14,6 @@ public:
     using InternalBuffer = AlignedBuffer<PAGE_SIZE>;
     using InternalBufferIterator = AlignedBufferIterator<PAGE_SIZE>;
 
-    enum class FinishStrategy : uint8_t {
-        DontCare = 0,
-        FillZeros,
-        Truncate
-    };
-
     FilePageWriter() = default;
 
     ~FilePageWriter() {
@@ -31,8 +25,8 @@ public:
     FilePageWriter& operator=(const FilePageWriter&) = delete;
     FilePageWriter& operator=(FilePageWriter&&) noexcept = default;
 
-    [[nodiscard]] static FileResult<FilePageWriter> open(Path&& path);
-    [[nodiscard]] static FileResult<FilePageWriter> openNoDirect(Path&& path);
+    [[nodiscard]] static FileResult<FilePageWriter> open(Path path);
+    [[nodiscard]] static FileResult<FilePageWriter> openNoDirect(Path path);
 
     void write(const Byte* data, size_t size);
     void sync();
@@ -57,10 +51,6 @@ public:
         write(std::basic_string_view<T> {str});
     }
 
-    void setFinishStrategy(FinishStrategy strategy) {
-        _finishStrategy = strategy;
-    }
-
     size_t getBytesWritten() const { return _written; };
     bool errorOccured() const { return _error.has_value(); }
     bool reachedEnd() const { return _reachedEnd; }
@@ -71,7 +61,6 @@ private:
     std::optional<FileError> _error;
     InternalBuffer _buffer;
     int _fd {};
-    FinishStrategy _finishStrategy = FinishStrategy::DontCare;
     size_t _written {};
     bool _reachedEnd = false;
 

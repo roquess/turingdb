@@ -4,7 +4,7 @@
 
 using namespace fs;
 
-FileResult<FilePageReader> FilePageReader::open(Path&& path) {
+FileResult<FilePageReader> FilePageReader::open(Path path) {
     const int access = O_RDONLY | O_DIRECT;
     const int permissions = S_IRUSR | S_IWUSR;
 
@@ -22,7 +22,7 @@ FileResult<FilePageReader> FilePageReader::open(Path&& path) {
     return reader;
 }
 
-FileResult<FilePageReader> FilePageReader::openNoDirect(Path&& path) {
+FileResult<FilePageReader> FilePageReader::openNoDirect(Path path) {
     const int access = O_RDONLY;
     const int permissions = S_IRUSR | S_IWUSR;
 
@@ -42,7 +42,6 @@ FileResult<FilePageReader> FilePageReader::openNoDirect(Path&& path) {
 
 FileResult<void> FilePageReader::nextPage() {
     size_t bytesRead = 0;
-    _buffer.resize(PAGE_SIZE);
 
     while (bytesRead != PAGE_SIZE) {
         ssize_t nbytes = ::read(_fd, _buffer.data(), PAGE_SIZE);

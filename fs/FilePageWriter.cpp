@@ -4,7 +4,7 @@
 
 using namespace fs;
 
-FileResult<FilePageWriter> FilePageWriter::open(Path&& path) {
+FileResult<FilePageWriter> FilePageWriter::open(Path path) {
     const int access = O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT;
     const int permissions = S_IRUSR | S_IWUSR;
 
@@ -17,7 +17,7 @@ FileResult<FilePageWriter> FilePageWriter::open(Path&& path) {
     return FilePageWriter {std::move(path), fd};
 }
 
-FileResult<FilePageWriter> FilePageWriter::openNoDirect(Path&& path) {
+FileResult<FilePageWriter> FilePageWriter::openNoDirect(Path path) {
     const int access = O_WRONLY | O_TRUNC | O_CREAT;
     const int permissions = S_IRUSR | S_IWUSR;
 
@@ -59,29 +59,7 @@ void FilePageWriter::finish() {
     }
 
     if (_buffer.size() != InternalBuffer::Capacity) {
-        switch (_finishStrategy) {
-            case FinishStrategy::Truncate: {
-                flush();
-                if (_error) {
-                    return;
-                }
-
-                if (auto res = ::ftruncate(_fd, _written); res != 0) {
-                    _error = FileError(_path.c_str(), "Could not truncate file", ::strerror(errno));
-                }
-
-                sync();
-                return;
-            }
-            case FinishStrategy::DontCare: {
-                break;
-            }
-            case FinishStrategy::FillZeros: {
-                // Set remaining bytes to 0
-                std::memset(_buffer.data() + _buffer.size(), 0, _buffer.avail());
-                break;
-            }
-        }
+        std::memset(_buffer.data() + _buffer.size(), 0, _buffer.avail());
     }
 
     flush();
