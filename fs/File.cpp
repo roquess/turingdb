@@ -20,9 +20,7 @@ FileResult<File> File::open(Path path) {
     const int fd = ::open(path.c_str(), access, permissions);
 
     if (fd == -1) {
-        return FileError::result(path.c_str(),
-                                 "Could not open file",
-                                 ::strerror(errno));
+        return FileError::result((std::string&&)path, ErrorType::OPEN_FILE, errno);
     }
 
     const auto info = path.getFileInfo();
@@ -49,9 +47,7 @@ FileResult<FileRegion> File::map(size_t size, size_t offset) {
 
     if (map == MAP_FAILED) {
         ::close(_fd);
-        return FileError::result(_path.c_str(),
-                                 "Could not map file",
-                                 ::strerror(errno));
+        return FileError::result(_path.get(), ErrorType::MAP, errno);
     }
 
     return FileRegion {map, size, alignmentOffset};
@@ -68,9 +64,7 @@ FileResult<void> File::reopen() {
     _fd = ::open(_path.c_str(), access, permissions);
 
     if (_fd == -1) {
-        return FileError::result(_path.c_str(),
-                                 "Could not re-open file",
-                                 ::strerror(errno));
+        return FileError::result(_path.get(), ErrorType::REOPEN_FILE, errno);
     }
 
     return refreshInfo();
@@ -83,9 +77,7 @@ FileResult<void> File::read(void* buf, size_t size) const {
         const ssize_t nbytes = ::read(_fd, buf, size);
 
         if (nbytes < 0) {
-            return FileError::result(_path.c_str(),
-                                     "Could not read file",
-                                     ::strerror(errno));
+            return FileError::result(_path.get(), ErrorType::READ_FILE, errno);
         }
 
         if (nbytes == 0) {
@@ -106,9 +98,7 @@ FileResult<void> File::write(void* data, size_t size) {
         const ssize_t nbytes = ::write(_fd, data, size);
 
         if (nbytes < 0) {
-            return FileError::result(_path.c_str(),
-                                     "Could not write file",
-                                     ::strerror(errno));
+            return FileError::result(_path.get(), ErrorType::WRITE_FILE, errno);
         }
 
         size -= nbytes;
@@ -128,9 +118,7 @@ FileResult<void> File::clearContent() {
     const int fd = ::open(_path.c_str(), access, permissions);
 
     if (fd == -1) {
-        return FileError::result(_path.c_str(),
-                                 "Could not clear file content",
-                                 ::strerror(errno));
+        return FileError::result(_path.get(), ErrorType::CLEAR_FILE, errno);
     }
 
     _fd = fd;
@@ -153,9 +141,7 @@ FileResult<void> File::refreshInfo() {
 
 FileResult<void> File::close() {
     if (::close(_fd) != 0) {
-        return FileError::result(_path.c_str(),
-                                 "Could not close file",
-                                 ::strerror(errno));
+        return FileError::result(_path.get(), ErrorType::CLOSE_FILE, errno);
     }
 
     _fd = -1;

@@ -11,7 +11,7 @@ FileResult<FilePageWriter> FilePageWriter::open(Path path) {
     const int fd = ::open(path.c_str(), access, permissions);
 
     if (fd == -1) {
-        return FileError::result(path.c_str(), "Could not open file", ::strerror(errno));
+        return FileError::result((std::string&&)path, ErrorType::OPEN_FILE, errno);
     }
 
     return FilePageWriter {std::move(path), fd};
@@ -24,7 +24,7 @@ FileResult<FilePageWriter> FilePageWriter::openNoDirect(Path path) {
     const int fd = ::open(path.c_str(), access, permissions);
 
     if (fd == -1) {
-        return FileError::result(path.c_str(), "Could not open file", ::strerror(errno));
+        return FileError::result((std::string&&)path, ErrorType::OPEN_FILE, errno);
     }
 
     return FilePageWriter {std::move(path), fd};
@@ -49,7 +49,7 @@ void FilePageWriter::write(const Byte* data, size_t size) {
 
 void FilePageWriter::sync() {
     if (auto res = ::fsync(_fd); res != 0) {
-        _error = FileError(_path.c_str(), "Could not sync file", ::strerror(errno));
+        _error = FileError(_path.get(), ErrorType::SYNC_FILE, errno);
     }
 }
 
@@ -77,7 +77,7 @@ void FilePageWriter::flush() {
                 continue;
             }
 
-            _error = FileError(_path.c_str(), "Could not write page", ::strerror(errno));
+            _error = FileError(_path.get(), ErrorType::WRITE_PAGE, errno);
             _buffer.resize(0);
             return;
         }

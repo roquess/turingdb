@@ -41,6 +41,10 @@ public:
         return *this;
     }
 
+    explicit operator std::string&&() {
+        return std::move(_path);
+    }
+
     [[nodiscard]] FileResult<void> mkdir();
 
 private:

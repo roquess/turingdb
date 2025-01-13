@@ -10,16 +10,11 @@ FileResult<FilePageReader> FilePageReader::open(Path path) {
 
     const int fd = ::open(path.c_str(), access, permissions);
 
-    FilePageReader reader = {std::move(path), -1};
     if (fd == -1) {
-        return FileError::result(path.c_str(),
-                                 "Could not open file",
-                                 ::strerror(errno));
+        return FileError::result((std::string&&)path, ErrorType::OPEN_FILE, errno);
     }
 
-    reader._fd = fd;
-
-    return reader;
+    return FilePageReader {std::move(path), fd};
 }
 
 FileResult<FilePageReader> FilePageReader::openNoDirect(Path path) {
@@ -28,16 +23,11 @@ FileResult<FilePageReader> FilePageReader::openNoDirect(Path path) {
 
     const int fd = ::open(path.c_str(), access, permissions);
 
-    FilePageReader reader = {std::move(path), -1};
     if (fd == -1) {
-        return FileError::result(path.c_str(),
-                                 "Could not open file",
-                                 ::strerror(errno));
+        return FileError::result((std::string&&)path, ErrorType::OPEN_FILE, errno);
     }
 
-    reader._fd = fd;
-
-    return reader;
+    return FilePageReader {std::move(path), fd};
 }
 
 FileResult<void> FilePageReader::nextPage() {
@@ -51,9 +41,7 @@ FileResult<void> FilePageReader::nextPage() {
                 continue;
             }
 
-            return FileError::result(_path.c_str(),
-                                     "Could not read page",
-                                     ::strerror(errno));
+            return FileError::result(_path.get(), ErrorType::READ_PAGE, errno);
         }
 
         if (nbytes == 0) {
@@ -65,5 +53,6 @@ FileResult<void> FilePageReader::nextPage() {
     }
 
     _buffer.resize(bytesRead);
+
     return {};
 }
