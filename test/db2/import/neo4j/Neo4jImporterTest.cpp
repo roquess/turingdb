@@ -3,7 +3,7 @@
 #include "Graph.h"
 #include "GraphView.h"
 #include "GraphReader.h"
-#include "DBReport.h"
+#include "GraphReport.h"
 #include "DataPartBuilder.h"
 #include "EdgeView.h"
 #include "FileUtils.h"
@@ -129,6 +129,6 @@ TEST_F(Neo4jImporterTest, General) {
     const auto view = _graph->view();
     const auto reader = view.read();
     std::stringstream report;
-    DBReport::getReport(reader, report);
+    GraphReport::getReport(reader, report);
     std::cout << report.view() << std::endl;
 }

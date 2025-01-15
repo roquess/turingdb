@@ -2,7 +2,7 @@
 #include "GraphView.h"
 #include "GraphReader.h"
 #include "GraphMetadata.h"
-#include "DBReport.h"
+#include "GraphReport.h"
 #include "FileUtils.h"
 #include "JobSystem.h"
 #include "Neo4j/Neo4JParserConfig.h"
@@ -78,7 +78,7 @@ int main() {
     std::cout << "Location has address: " << addressValue << std::endl;
 
     std::stringstream report;
-    DBReport::getReport(reader, report);
+    GraphReport::getReport(reader, report);
     std::cout << report.view() << std::endl;
 
     PerfStat::destroy();
