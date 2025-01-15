@@ -4,7 +4,7 @@
 
 #include "ConcurrentWriter.h"
 #include "Graph.h"
-#include "DBView.h"
+#include "GraphView.h"
 #include "GraphReader.h"
 #include "GraphMetadata.h"
 #include "DataPartBuilder.h"

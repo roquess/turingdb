@@ -17,7 +17,7 @@
 #include "InterpreterContext.h"
 #include "QueryParams.h"
 #include "QueryPlannerParams.h"
-#include "DBView.h"
+#include "GraphView.h"
 #include "DataPartBuilder.h"
 
 #include "DBServerContext.h"

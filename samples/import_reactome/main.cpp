@@ -1,5 +1,5 @@
 #include "Graph.h"
-#include "DBView.h"
+#include "GraphView.h"
 #include "GraphReader.h"
 #include "EdgeView.h"
 #include "FileUtils.h"

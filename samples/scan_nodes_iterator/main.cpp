@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "Graph.h"
-#include "DBView.h"
+#include "GraphView.h"
 #include "GraphReader.h"
 #include "JobSystem.h"
 #include "ScanNodesIterator.h"
