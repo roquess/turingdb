@@ -55,12 +55,12 @@ public:
         return ByteBufferIterator {_buf, _buf.size()};
     }
 
-    void increment(size_t offset) {
+    void advance(size_t offset) {
         _data += offset;
     }
 
     template <TrivialPrimitive T>
-    void increment() {
+    void advance() {
         _data += sizeof(T);
     }
 
@@ -89,7 +89,7 @@ public:
 
 private:
     const ByteBuffer& _buf;
-    const Byte* _data {nullptr};
+    const uint8_t* _data {nullptr};
 };
 
 }

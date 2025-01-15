@@ -25,7 +25,7 @@ int main() {
 
     {
         fmt::print("- Opening file for write\n");
-        auto writer = fs::FilePageWriter::open(fs::Path {p});
+        auto writer = fs::FilePageWriter::open(p);
         if (!writer) {
             fmt::print("{}\n", writer.error().fmtMessage());
             return 1;
@@ -57,7 +57,7 @@ int main() {
     }
 
     fmt::print("- Opening file for read\n");
-    auto reader = fs::FilePageReader::open(fs::Path {p});
+    auto reader = fs::FilePageReader::open(p);
     if (!reader) {
         fmt::print("{}\n", reader.error().fmtMessage());
         return 1;

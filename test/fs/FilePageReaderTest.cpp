@@ -14,7 +14,7 @@ protected:
 
     void writeOnes(size_t count) {
         std::vector<uint64_t> ones(count, 1);
-        auto f = fs::File::open(fs::Path {_testfilePath});
+        auto f = fs::File::createAndOpen(_testfilePath);
         ASSERT_TRUE(f.has_value());
         f->clearContent();
         f->write(ones.data(), ones.size() * sizeof(uint64_t));

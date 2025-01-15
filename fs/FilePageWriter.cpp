@@ -10,7 +10,7 @@ Result<FilePageWriter> FilePageWriter::open(const Path& path) {
 
     const int fd = ::open(path.c_str(), access, permissions);
 
-    if (fd == -1) {
+    if (fd < 0) {
         return Error::result(ErrorType::OPEN_FILE, errno);
     }
 
@@ -23,16 +23,16 @@ Result<FilePageWriter> FilePageWriter::openNoDirect(const Path& path) {
 
     const int fd = ::open(path.c_str(), access, permissions);
 
-    if (fd == -1) {
+    if (fd < 0) {
         return Error::result(ErrorType::OPEN_FILE, errno);
     }
 
     return FilePageWriter {fd};
 }
 
-void FilePageWriter::write(const Byte* data, size_t size) {
+void FilePageWriter::write(const uint8_t* data, size_t size) {
     size_t toWrite = size;
-    const Byte* curr = data;
+    const uint8_t* curr = data;
 
     while (toWrite != 0) {
         if (_buffer.avail() == 0) {
@@ -67,10 +67,10 @@ void FilePageWriter::finish() {
 }
 
 void FilePageWriter::flush() {
-    size_t bytesWrote = 0;
+    ssize_t remainingBytes = PAGE_SIZE;
 
-    while (bytesWrote != PAGE_SIZE) {
-        ssize_t nbytes = ::write(_fd, _buffer.data(), PAGE_SIZE);
+    while (remainingBytes > 0) {
+        const ssize_t nbytes = ::write(_fd, _buffer.data(), remainingBytes);
 
         if (nbytes == -1) {
             if (errno == EAGAIN) {
@@ -82,7 +82,7 @@ void FilePageWriter::flush() {
             return;
         }
 
-        bytesWrote += nbytes;
+        remainingBytes -= nbytes;
     }
 
     _buffer.resize(0);

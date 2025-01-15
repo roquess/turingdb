@@ -30,7 +30,7 @@ public:
     [[nodiscard]] InternalBufferIterator end() const { return _buffer.end(); }
 
 private:
-    int _fd {};
+    int _fd {-1};
     InternalBuffer _buffer;
     std::optional<Error> _error;
     bool _reachedEnd = false;

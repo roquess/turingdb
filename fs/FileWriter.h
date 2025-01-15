@@ -14,7 +14,6 @@ namespace fs {
 template <size_t BufferSizeT = 1024ul * 1024>
 class FileWriter {
 public:
-    using Byte = uint8_t;
     static constexpr size_t BUFFER_SIZE = BufferSizeT;
 
     FileWriter() = default;
@@ -38,7 +37,7 @@ public:
 
         const size_t prevSize = _buffer.size();
         _buffer.resize(_buffer.size() + size);
-        Byte* ptr = _buffer.data();
+        uint8_t* ptr = _buffer.data();
         std::memcpy(ptr + prevSize, &v, size);
     }
 
@@ -91,7 +90,7 @@ public:
 
         const size_t prevSize = _buffer.size();
         _buffer.resize(_buffer.size() + stride);
-        Byte* ptr = _buffer.data();
+        uint8_t* ptr = _buffer.data();
         std::memcpy(ptr + prevSize, str.data(), stride);
     }
 
@@ -125,7 +124,7 @@ public:
 
 private:
     File* _file {nullptr};
-    std::vector<Byte> _buffer;
+    std::vector<uint8_t> _buffer;
     std::optional<Error> _error;
 };
 

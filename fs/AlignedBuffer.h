@@ -12,8 +12,6 @@
 
 namespace fs {
 
-using Byte = uint8_t;
-
 template <size_t Capacity>
 class AlignedBufferIterator;
 
@@ -32,7 +30,7 @@ public:
             throw std::runtime_error("AlignedBuffer error: Failed to allocate aligned memory");
         }
 
-        _buffer = static_cast<Byte*>(ptr);
+        _buffer = static_cast<uint8_t*>(ptr);
     }
 
     AlignedBuffer(const AlignedBuffer&) = delete;
@@ -63,7 +61,7 @@ public:
         return *this;
     }
 
-    void write(const Byte* data, size_t size) {
+    void write(const uint8_t* data, size_t size) {
         bioassert(avail() > size);
         std::memcpy(_buffer, data, size);
         _size += size;
@@ -81,8 +79,8 @@ public:
         _size = size;
     }
 
-    [[nodiscard]] const Byte* data() const { return _buffer; }
-    [[nodiscard]] Byte* data() { return _buffer; }
+    [[nodiscard]] const uint8_t* data() const { return _buffer; }
+    [[nodiscard]] uint8_t* data() { return _buffer; }
     [[nodiscard]] size_t size() const { return _size; }
     [[nodiscard]] size_t avail() const { return Capacity - _size; }
 
@@ -90,8 +88,8 @@ public:
     [[nodiscard]] AlignedBufferIterator<CapacityT> end() const;
 
 private:
-    Byte* _buffer {nullptr};
-    size_t _size {};
+    uint8_t* _buffer {nullptr};
+    size_t _size {0};
 };
 
 template <size_t CapacityT = DEFAULT_BUFFER_CAPACITY>
@@ -184,12 +182,12 @@ public:
         return AlignedBufferIterator {*_buf, _buf->size()};
     }
 
-    void increment(size_t offset) {
+    void advance(size_t offset) {
         _data += offset;
     }
 
     template <TrivialPrimitive T>
-    void increment() {
+    void advance() {
         _data += sizeof(T);
     }
 
@@ -216,11 +214,11 @@ public:
         return _data != other._data;
     }
 
-    const Byte* data() const { return _data; }
+    const uint8_t* data() const { return _data; }
 
 private:
     const AlignedBuffer<CapacityT>* _buf;
-    const Byte* _data {nullptr};
+    const uint8_t* _data {nullptr};
 };
 
 template <size_t CapacityT>

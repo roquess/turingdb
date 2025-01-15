@@ -32,6 +32,7 @@ public:
     File(const File&) = default;
     File& operator=(const File&) = default;
 
+    [[nodiscard]] static Result<File> createAndOpen(const Path& path);
     [[nodiscard]] static Result<File> open(const Path& path);
     [[nodiscard]] Result<FileRegion> map(size_t size, size_t offset = 0);
     Result<void> read(void* buf, size_t size) const;

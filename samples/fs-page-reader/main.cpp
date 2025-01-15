@@ -20,7 +20,7 @@ inline constexpr size_t SUM = INTEGER_COUNT * (INTEGER_COUNT + 1) / 2 - INTEGER_
 
 int writeFileContent(const fs::Path& path) {
     // Open file
-    auto file = fs::File::open(fs::Path {path});
+    auto file = fs::File::createAndOpen(path);
     if (!file) {
         fmt::print("{}\n", file.error().fmtMessage());
         return 1;
@@ -58,7 +58,7 @@ int main() {
     }
 
     fmt::print("- Opening file for read\n");
-    auto reader = fs::FilePageReader::open(fs::Path {p});
+    auto reader = fs::FilePageReader::open(p);
     if (!reader) {
         fmt::print("{}\n", reader.error().fmtMessage());
         return 1;

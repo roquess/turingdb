@@ -10,7 +10,7 @@ Result<FilePageReader> FilePageReader::open(const Path& path) {
 
     const int fd = ::open(path.c_str(), access, permissions);
 
-    if (fd == -1) {
+    if (fd < 0) {
         return Error::result(ErrorType::OPEN_FILE, errno);
     }
 
@@ -23,7 +23,7 @@ Result<FilePageReader> FilePageReader::openNoDirect(const Path& path) {
 
     const int fd = ::open(path.c_str(), access, permissions);
 
-    if (fd == -1) {
+    if (fd < 0) {
         return Error::result(ErrorType::OPEN_FILE, errno);
     }
 
@@ -31,10 +31,10 @@ Result<FilePageReader> FilePageReader::openNoDirect(const Path& path) {
 }
 
 Result<void> FilePageReader::nextPage() {
-    size_t bytesRead = 0;
+    ssize_t remainingBytes = PAGE_SIZE;
 
-    while (bytesRead != PAGE_SIZE) {
-        ssize_t nbytes = ::read(_fd, _buffer.data(), PAGE_SIZE);
+    while (remainingBytes > 0) {
+        const ssize_t nbytes = ::read(_fd, _buffer.data(), remainingBytes);
 
         if (nbytes == -1) {
             if (errno == EAGAIN) {
@@ -49,10 +49,11 @@ Result<void> FilePageReader::nextPage() {
             break; // Finished reading file
         }
 
-        bytesRead += nbytes;
+        remainingBytes -= nbytes;
     }
 
-    _buffer.resize(bytesRead);
+    bioassert(remainingBytes >= 0);
+    _buffer.resize(PAGE_SIZE - remainingBytes);
 
     return {};
 }

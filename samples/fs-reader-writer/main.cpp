@@ -19,7 +19,7 @@ int main() {
     fmt::print("- File: {}\n", p.get());
 
     // Open file
-    auto fileRes = fs::File::open(p);
+    auto fileRes = fs::File::createAndOpen(p);
     if (!fileRes) {
         fmt::print("{}\n", fileRes.error().fmtMessage());
         return 1;
@@ -66,7 +66,7 @@ int main() {
     reader.read();
 
     // Printing whole buffer
-    fmt::print("Buffer content:");
+    fmt::print("- Buffer content:");
     for (auto byte : reader.getBuffer()) {
         fmt::print(" {:x}", byte);
     }

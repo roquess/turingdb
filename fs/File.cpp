@@ -14,13 +14,36 @@ File::~File() {
     }
 }
 
-Result<File> File::open(const Path& path) {
+Result<File> File::createAndOpen(const Path& path) {
     const int access = O_RDWR | O_CREAT | O_APPEND;
     const int permissions = S_IRUSR | S_IWUSR;
 
     const int fd = ::open(path.c_str(), access, permissions);
 
-    if (fd == -1) {
+    if (fd < 0) {
+        return Error::result(ErrorType::OPEN_FILE, errno);
+    }
+
+    const auto info = path.getFileInfo();
+
+    if (!info) {
+        return info.get_unexpected();
+    }
+
+    File file;
+    file._fd = fd;
+    file._info = info.value();
+
+    return std::move(file);
+}
+
+Result<File> File::open(const Path& path) {
+    const int access = O_RDWR | O_APPEND;
+    const int permissions = S_IRUSR | S_IWUSR;
+
+    const int fd = ::open(path.c_str(), access, permissions);
+
+    if (fd < 0) {
         return Error::result(ErrorType::OPEN_FILE, errno);
     }
 
@@ -57,8 +80,9 @@ Result<FileRegion> File::map(size_t size, size_t offset) {
 Result<void> File::read(void* buf, size_t size) const {
     bioassert(size <= std::numeric_limits<ssize_t>::max());
 
-    while (size != 0) {
-        const ssize_t nbytes = ::read(_fd, buf, size);
+    ssize_t remainingBytes = size;
+    while (remainingBytes > 0) {
+        const ssize_t nbytes = ::read(_fd, buf, remainingBytes);
 
         if (nbytes < 0) {
             return Error::result(ErrorType::READ_FILE, errno);
@@ -69,7 +93,7 @@ Result<void> File::read(void* buf, size_t size) const {
             break;
         }
 
-        size -= nbytes;
+        remainingBytes -= nbytes;
     }
 
     return {};
@@ -94,7 +118,7 @@ Result<void> File::write(void* data, size_t size) {
 Result<void> File::clearContent() {
     int res = ::ftruncate(_fd, 0);
 
-    if (res == -1) {
+    if (res < 0) {
         return Error::result(ErrorType::CLEAR_FILE, errno);
     }
 
