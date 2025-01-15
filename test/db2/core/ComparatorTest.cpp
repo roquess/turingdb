@@ -2,7 +2,7 @@
 
 #include <range/v3/view/zip.hpp>
 
-#include "DBReader.h"
+#include "GraphReader.h"
 #include "Graph.h"
 #include "DataPartBuilder.h"
 #include "comparators/DataPartComparator.h"
@@ -125,8 +125,8 @@ TEST_F(ComparatorTest, Equal) {
     auto db1 = createDB1();
     auto db2 = createDB1();
 
-    DBReader reader1 = db1->read();
-    DBReader reader2 = db2->read();
+    GraphReader reader1 = db1->read();
+    GraphReader reader2 = db2->read();
 
     auto parts1 = reader1.dataparts();
     auto parts2 = reader2.dataparts();
@@ -141,8 +141,8 @@ TEST_F(ComparatorTest, NotEqual) {
     auto db1 = createDB1();
     auto db2 = createDB2();
 
-    DBReader reader1 = db1->read();
-    DBReader reader2 = db2->read();
+    GraphReader reader1 = db1->read();
+    GraphReader reader2 = db2->read();
 
     auto parts1 = reader1.dataparts();
     auto parts2 = reader2.dataparts();

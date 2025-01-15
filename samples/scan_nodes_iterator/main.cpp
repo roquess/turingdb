@@ -4,7 +4,7 @@
 
 #include "Graph.h"
 #include "DBView.h"
-#include "DBReader.h"
+#include "GraphReader.h"
 #include "JobSystem.h"
 #include "ScanNodesIterator.h"
 #include "DataPartBuilder.h"

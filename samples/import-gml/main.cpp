@@ -1,7 +1,7 @@
 #include <spdlog/fmt/bundled/core.h>
 
 #include "Graph.h"
-#include "DBReader.h"
+#include "GraphReader.h"
 #include "GMLImporter.h"
 #include "JobSystem.h"
 #include "LogSetup.h"

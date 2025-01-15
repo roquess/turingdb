@@ -2,7 +2,7 @@
 
 #include "Graph.h"
 #include "DBView.h"
-#include "DBReader.h"
+#include "GraphReader.h"
 #include "DBReport.h"
 #include "DataPartBuilder.h"
 #include "EdgeView.h"
