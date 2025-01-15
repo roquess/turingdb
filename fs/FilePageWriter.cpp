@@ -66,6 +66,14 @@ void FilePageWriter::finish() {
     sync();
 }
 
+void FilePageWriter::nextPage() {
+    if (_buffer.size() != InternalBuffer::Capacity) {
+        std::memset(_buffer.data() + _buffer.size(), 0, _buffer.avail());
+    }
+
+    flush();
+}
+
 void FilePageWriter::flush() {
     ssize_t remainingBytes = PAGE_SIZE;
 

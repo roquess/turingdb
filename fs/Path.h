@@ -36,7 +36,7 @@ public:
         return Path(std::move(p));
     }
 
-    Path& operator/=(const std::string_view rhs) {
+    Path& operator/=(std::string_view rhs) {
         _path += "/";
         _path += rhs;
         return *this;

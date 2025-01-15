@@ -28,9 +28,15 @@ public:
     [[nodiscard]] static Result<FilePageWriter> open(const Path& path);
     [[nodiscard]] static Result<FilePageWriter> openNoDirect(const Path& path);
 
+    [[nodiscard]] static constexpr size_t getPageCountForStride(size_t stride) {
+        return stride / fs::FilePageWriter::PAGE_SIZE
+             + ((stride % fs::FilePageWriter::PAGE_SIZE) != 0);
+    }
+
     void write(const uint8_t* data, size_t size);
     void sync();
     void finish();
+    void nextPage();
 
     void write(fs::TrivialPrimitive auto v) {
         write(reinterpret_cast<const uint8_t*>(&v), sizeof(decltype(v)));
