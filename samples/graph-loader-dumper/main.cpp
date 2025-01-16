@@ -1,11 +1,12 @@
 #include "DB.h"
 #include "DataPartBuilder.h"
 #include "DBMetadata.h"
+#include "GraphDumper.h"
 #include "JobSystem.h"
 
 using namespace db;
 
-std::unique_ptr<DB> createSimpleGraph() {
+static std::unique_ptr<DB> createSimpleGraph() {
     auto graph = std::make_unique<DB>();
     auto builder = graph->newPartWriter();
     auto* metadata = graph->getMetadata();
@@ -94,6 +95,22 @@ std::unique_ptr<DB> createSimpleGraph() {
 }
 
 int main() {
+    const fs::Path path {SAMPLE_DIR "/simple-graph"};
+
     auto graph = createSimpleGraph();
+
+    if (path.exists()) {
+        // Removing existing dir
+        if (auto res = path.rm(); !res) {
+            fmt::print("{}\n", res.error().fmtMessage());
+            return 1;
+        }
+    }
+
+    if (auto res = GraphDumper::dump(*graph, path); !res) {
+        fmt::print("{}\n", res.error().fmtMessage());
+        return 1;
+    }
+
     return 0;
 }
