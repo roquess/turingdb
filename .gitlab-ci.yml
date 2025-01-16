@@ -9,12 +9,19 @@ build-job:
     - docker
   stage: build
   script:
+    - date
     - source /turing/setup.sh
+    - date
     - make -j4
+    - date
     - make test
+    - date
     - release/check_python.sh
+    - date
     - make regress
+    - date
     - make run_samples
+    - date
   artifacts:
     when: always
     paths:
