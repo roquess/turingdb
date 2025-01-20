@@ -47,6 +47,15 @@ void FilePageWriter::write(const uint8_t* data, size_t size) {
     }
 }
 
+void FilePageWriter::writeToCurrentPage(std::span<const uint8_t> data) {
+    bioassert(_buffer.avail() >= data.size());
+
+    const size_t size = data.size();
+
+    _buffer.write(data.data(), size);
+    _written += size;
+}
+
 void FilePageWriter::sync() {
     if (auto res = ::fsync(_fd); res != 0) {
         _error = Error(ErrorType::SYNC_FILE, errno);
@@ -72,6 +81,20 @@ void FilePageWriter::nextPage() {
     }
 
     flush();
+}
+
+void FilePageWriter::seek(size_t offset) {
+    flush();
+
+    if (int res = ::lseek(_fd, offset, SEEK_SET); res < 0) {
+        _error = Error(ErrorType::COULD_NOT_SEEK, errno);
+    }
+
+    _written = 0;
+}
+
+void FilePageWriter::reserveSpace(size_t byteCount) {
+    _buffer.reserveSpace(byteCount);
 }
 
 void FilePageWriter::flush() {

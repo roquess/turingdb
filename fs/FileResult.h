@@ -27,6 +27,7 @@ enum class ErrorType {
     CLEAR_FILE,
     CLOSE_FILE,
     SYNC_FILE,
+    COULD_NOT_SEEK,
 
     _SIZE,
 };
@@ -48,7 +49,8 @@ using ErrorTypeDescription = EnumToString<ErrorType>::Create<
     EnumStringPair<ErrorType::WRITE_PAGE, "Could not write page">,
     EnumStringPair<ErrorType::CLEAR_FILE, "Could not clear file">,
     EnumStringPair<ErrorType::CLOSE_FILE, "Could not close file">,
-    EnumStringPair<ErrorType::SYNC_FILE, "Could not sync file">>;
+    EnumStringPair<ErrorType::SYNC_FILE, "Could not sync file">,
+    EnumStringPair<ErrorType::COULD_NOT_SEEK, "Could not seek">>;
 
 class Error {
 public:

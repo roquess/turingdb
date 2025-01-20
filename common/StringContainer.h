@@ -9,7 +9,7 @@
 
 class StringContainer {
 public:
-    static constexpr size_t BUCKET_SIZE = 2ul * 1024;
+    static constexpr size_t BUCKET_SIZE = 16ul * 1024;
     using ViewVector = std::vector<std::string_view>;
 
     StringContainer()
@@ -62,6 +62,7 @@ public:
     size_t size() const { return _views.size(); }
 
     const ViewVector& get() const { return _views; }
+    const std::vector<size_t>& getCountsPerBucket() const { return _countsPerBucket; }
     size_t bucketCount() const { return _buckets.size(); }
     size_t countInBucket(size_t bucketI) const { return _countsPerBucket[bucketI]; }
     size_t remainingSpaceInBucket() const { return _remainingSize; }
@@ -79,4 +80,3 @@ private:
     size_t _remainingSize = BUCKET_SIZE;
     ViewVector _views;
 };
-
