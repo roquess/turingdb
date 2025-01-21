@@ -3,6 +3,8 @@
 #include "FileReader.h"
 #include "File.h"
 
+using namespace turing::test;
+
 class FileResultTest : public TuringTest {
 protected:
     void initialize() override {
@@ -12,7 +14,7 @@ protected:
     }
 };
 
-TEST_F(FileResultTest, NotExists) {
+TURING_TEST(FileResultTest, NotExists) {
     fs::Path p {"/path/to/non/existing"};
     auto fmtMessage = fmt::format("Filesystem error: "
                                   "Does not exist (No such file or directory)");
@@ -36,7 +38,7 @@ TEST_F(FileResultTest, NotExists) {
     }
 }
 
-TEST_F(FileResultTest, OpenFile) {
+TURING_TEST(FileResultTest, OpenFile) {
     fs::Path p {"/path/to/non/existing"};
     auto fmtMessage = fmt::format("Filesystem error: "
                                   "Could not open file (No such file or directory)");
@@ -51,7 +53,7 @@ TEST_F(FileResultTest, OpenFile) {
     }
 }
 
-TEST_F(FileResultTest, NotDirectory) {
+TURING_TEST(FileResultTest, NotDirectory) {
     fs::Path p {"/dev/null"};
     auto fmtMessage = fmt::format("Filesystem error: "
                                   "Not a directory");
@@ -66,7 +68,7 @@ TEST_F(FileResultTest, NotDirectory) {
     }
 }
 
-TEST_F(FileResultTest, AlreadyExists) {
+TURING_TEST(FileResultTest, AlreadyExists) {
     fs::Path p {_outDir};
     auto fmtMessage = fmt::format("Filesystem error: "
                                   "Already exists",
@@ -82,8 +84,7 @@ TEST_F(FileResultTest, AlreadyExists) {
     }
 }
 
-
-TEST_F(FileResultTest, CannotMkdir) {
+TURING_TEST(FileResultTest, CannotMkdir) {
     fs::Path p {"/path/to/non/existing"};
     auto fmtMessage = fmt::format("Filesystem error: "
                                   "Could not make directory (No such file or directory)");

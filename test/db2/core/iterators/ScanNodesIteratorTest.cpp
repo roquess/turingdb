@@ -12,33 +12,19 @@
 #include "GraphMetadata.h"
 #include "DataPartBuilder.h"
 #include "FileUtils.h"
-#include "LogSetup.h"
+#include "TuringTest.h"
 
 using namespace db;
+using namespace turing::test;
 
-class ScanNodesIteratorTest : public ::testing::Test {
+class ScanNodesIteratorTest : public TuringTest {
 protected:
-    void SetUp() override {
-        const testing::TestInfo* const testInfo =
-            testing::UnitTest::GetInstance()->current_test_info();
-
-        _outDir = testInfo->test_suite_name();
-        _outDir += "_";
-        _outDir += testInfo->name();
-        _outDir += ".out";
-        _logPath = FileUtils::Path(_outDir) / "log";
-
-        if (FileUtils::exists(_outDir)) {
-            FileUtils::removeDirectory(_outDir);
-        }
-        FileUtils::createDirectory(_outDir);
-
-        LogSetup::setupLogFileBacked(_logPath.string());
+    void initialize() override {
         _jobSystem = std::make_unique<JobSystem>();
         _jobSystem->initialize();
     }
 
-    void TearDown() override {
+    void terminate() override {
         _jobSystem->terminate();
     }
 
@@ -47,7 +33,7 @@ protected:
     FileUtils::Path _logPath;
 };
 
-TEST_F(ScanNodesIteratorTest, emptyDB) {
+TURING_TEST(ScanNodesIteratorTest, emptyDB) {
     auto graph = std::make_unique<Graph>();
     const auto view = graph->view();
     const auto reader = view.read();
@@ -60,7 +46,7 @@ TEST_F(ScanNodesIteratorTest, emptyDB) {
     ASSERT_TRUE(colNodes.empty());
 }
 
-TEST_F(ScanNodesIteratorTest, oneEmptyPart) {
+TURING_TEST(ScanNodesIteratorTest, oneEmptyPart) {
     auto graph = std::make_unique<Graph>();
     auto builder = graph->newPartWriter();
     builder->commit(*_jobSystem);
@@ -75,7 +61,7 @@ TEST_F(ScanNodesIteratorTest, oneEmptyPart) {
     ASSERT_TRUE(colNodes.empty());
 }
 
-TEST_F(ScanNodesIteratorTest, threeEmptyParts) {
+TURING_TEST(ScanNodesIteratorTest, threeEmptyParts) {
     auto graph = std::make_unique<Graph>();
 
     for (auto i = 0; i < 3; i++) {
@@ -93,7 +79,7 @@ TEST_F(ScanNodesIteratorTest, threeEmptyParts) {
     ASSERT_TRUE(colNodes.empty());
 }
 
-TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
+TURING_TEST(ScanNodesIteratorTest, oneChunkSizePart) {
     auto graph = std::make_unique<Graph>();
 
     auto& labelsets = graph->getMetadata()->labelsets();
@@ -139,7 +125,7 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
     ASSERT_TRUE(!it.isValid());
 }
 
-TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
+TURING_TEST(ScanNodesIteratorTest, manyChunkSizePart) {
     auto graph = std::make_unique<Graph>();
 
     auto& labelsets = graph->getMetadata()->labelsets();
@@ -188,7 +174,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
     }
 }
 
-TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
+TURING_TEST(ScanNodesIteratorTest, chunkAndALeftover) {
     const size_t nodeCount = 1.35 * ChunkConfig::CHUNK_SIZE;
 
     auto graph = std::make_unique<Graph>();
@@ -223,4 +209,10 @@ TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
         ASSERT_EQ(id, expectedID);
         expectedID++;
     }
+}
+
+int main(int argc, char** argv) {
+    return turing::test::TuringMain(argc, argv, [] {
+        testing::GTEST_FLAG(repeat) = 1;
+    });
 }

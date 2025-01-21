@@ -4,6 +4,9 @@
 #include "FileUtils.h"
 #include "LogSetup.h"
 #include "PerfStat.h"
+#include "TuringTestMain.h"
+
+namespace turing::test {
 
 class TuringTest : public ::testing::Test {
 public:
@@ -50,3 +53,7 @@ protected:
     FileUtils::Path _logPath;
     FileUtils::Path _perfPath;
 };
+
+#define TURING_TEST(TestSuite, TestName) TEST_F(TestSuite, TestName)
+
+}

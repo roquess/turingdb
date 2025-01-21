@@ -8,6 +8,8 @@
 #include "comparators/DataPartComparator.h"
 #include "JobSystem.h"
 
+using namespace turing::test;
+
 using namespace db;
 namespace rv = ranges::views;
 
