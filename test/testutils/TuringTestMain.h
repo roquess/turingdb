@@ -52,7 +52,7 @@ private:
 };
 
 
-inline int TuringMain(int argc, char** argv, TuringMainConfig config = nullptr) {
+inline int turingTestMain(int argc, char** argv, TuringMainConfig config = nullptr) {
     testing::GTEST_FLAG(print_time) = true;
     testing::GTEST_FLAG(repeat) = 500;
     testing::GTEST_FLAG(shuffle) = true;
