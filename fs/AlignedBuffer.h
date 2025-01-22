@@ -66,7 +66,7 @@ public:
     }
 
     void patch(const uint8_t* data, size_t size, size_t offset) {
-        bioassert(_size <= offset + size);
+        bioassert(_size >= offset + size);
         std::memcpy(_buffer + offset, data, size);
     }
 

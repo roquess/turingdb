@@ -3,6 +3,7 @@
 #include "DataPartBuilder.h"
 #include "GraphMetadata.h"
 #include "GraphDumper.h"
+#include "GraphLoader.h"
 #include "GraphReader.h"
 #include "LogUtils.h"
 #include "Time.h"
