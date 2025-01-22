@@ -21,7 +21,11 @@ size_t JobQueue::size() const {
     return _jobs.size();
 }
 
-JobSystem::JobSystem() 
+bool JobQueue::empty() const {
+    return _jobs.empty();
+}
+
+JobSystem::JobSystem()
     : _mainThreadID(std::this_thread::get_id())
 {
 }
@@ -46,25 +50,27 @@ void JobSystem::initialize() {
 
     for (size_t i = 0; i < _nThreads; i++) {
         _workers.emplace_back([&] {
-            while (true) {
-                _queueMutex.lock();
-                auto j = _jobs.pop();
-                _queueMutex.unlock();
 
-                if (_stopRequested.load()) {
+            while (true) {
+                std::unique_lock queueLock {_queueMutex};
+
+                // Wait until new job is pushed or stop is requested
+                _wakeCondition.wait(queueLock, [&] { return !_jobs.empty() || _stopRequested.load(); });
+
+                // The job queue is locked
+                auto j = _jobs.pop();
+
+                if (!j && _stopRequested.load()) {
                     return;
                 }
 
-                if (j.has_value()) {
-                    auto& jobValue = j.value();
-                    jobValue._operation(jobValue._promise.get());
-                    jobValue._promise->finish();
-                    _finishedCount.fetch_add(1);
-                } else {
-                    // no job, put thread to sleep
-                    std::unique_lock<std::mutex> lock(_wakeMutex);
-                    _wakeCondition.wait(lock);
-                }
+                // Unlock job queue before execution
+                queueLock.unlock();
+                auto& job = j.value();
+
+                job._operation(job._promise.get());
+                job._promise->finish();
+                _finishedCount.fetch_add(1);
             }
         });
     }

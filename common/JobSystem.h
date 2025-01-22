@@ -120,6 +120,7 @@ public:
     Job& push(Job job);
     std::optional<Job> pop();
     size_t size() const;
+    bool empty() const;
 
 private:
     std::queue<Job> _jobs;
@@ -147,16 +148,16 @@ public:
      * */
     template <typename T>
     Future<T> submit(JobOperation&& operation) {
-        std::unique_lock lock(_queueMutex);
         _submitedCount += 1;
         TypedPromise<T>* promise = new TypedPromise<T>();
         Future<T> future {promise->get_future()};
 
-        Job job{
+        Job job {
             std::move(operation),
             std::unique_ptr<Promise>(static_cast<Promise*>(promise)),
         };
 
+        std::unique_lock lock(_queueMutex);
         if (std::this_thread::get_id() == _mainThreadID) {
             // Submitted from main
             _jobs.push(std::move(job));
@@ -194,7 +195,7 @@ public:
         TypedPromise<T>* promise = new TypedPromise<T>;
         SharedFuture<T> future {promise->get_future().share()};
 
-        Job job{
+        Job job {
             std::move(operation),
             std::unique_ptr<Promise>(static_cast<Promise*>(promise)),
         };
