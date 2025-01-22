@@ -116,7 +116,7 @@ int main() {
             }
         }
 
-        fmt::print("Dumping graph to: {}\n", path.c_str());
+        fmt::print("- Dumping graph to: {}\n", path.c_str());
 
         const auto t0 = Clock::now();
         if (auto res = GraphDumper::dump(*graph, path); !res) {
@@ -154,7 +154,7 @@ int main() {
             }
         }
 
-        fmt::print("Dumping graph to: {}\n", path.c_str());
+        fmt::print("- Dumping graph to: {}\n", path.c_str());
 
         const auto t0 = Clock::now();
         if (auto res = GraphDumper::dump(*graph, path); !res) {
@@ -192,7 +192,7 @@ int main() {
     //         }
     //     }
 
-    //     fmt::print("Dumping graph to: {}\n", path.c_str());
+    //     fmt::print("- Dumping graph to: {}\n", path.c_str());
 
     //     const auto t0 = Clock::now();
     //     if (auto res = GraphDumper::dump(*graph, path); !res) {
@@ -251,7 +251,7 @@ int main() {
     //         }
     //     }
 
-    //     fmt::print("Dumping graph to: {}\n", path.c_str());
+    //     fmt::print("- Dumping graph to: {}\n", path.c_str());
 
     //     const auto t0 = Clock::now();
     //     if (auto res = GraphDumper::dump(*graph, path); !res) {
