@@ -15,6 +15,7 @@
 #include "TuringTest.h"
 
 using namespace db;
+using namespace js;
 using namespace turing::test;
 
 class ScanNodesIteratorTest : public TuringTest {
