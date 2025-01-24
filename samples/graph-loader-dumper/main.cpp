@@ -1,11 +1,9 @@
-#include "FileWriter.h"
 #include "Graph.h"
 #include "DataPartBuilder.h"
 #include "GraphMetadata.h"
 #include "GraphDumper.h"
-#include "comparators/GraphMetadataComparator.h"
+#include "comparators/GraphComparator.h"
 #include "GraphLoader.h"
-#include "GraphReader.h"
 #include "LogUtils.h"
 #include "Time.h"
 #include "JobSystem.h"
@@ -104,6 +102,40 @@ static std::unique_ptr<Graph> createSimpleGraph() {
     return graph;
 }
 
+bool testGraph(const Graph& graph, const fs::Path& path) {
+    fmt::print("- Dumping graph to: {}\n", path.c_str());
+
+    {
+        const auto t0 = Clock::now();
+        if (auto res = GraphDumper::dump(graph, path); !res) {
+            fmt::print("{}\n", res.error().fmtMessage());
+            return false;
+        }
+        const auto t1 = Clock::now();
+        logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
+    }
+
+    fmt::print("- Loading graph from: {}\n", path.c_str());
+
+    const auto t0 = Clock::now();
+    auto loadedGraphRes = GraphLoader::load(path);
+    if (!loadedGraphRes) {
+        fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
+        return 1;
+    }
+    const auto t1 = Clock::now();
+    logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
+
+    const std::unique_ptr<Graph> loadedGraph = std::move(loadedGraphRes.value());
+
+    if (!GraphComparator::same(graph, *loadedGraph)) {
+        fmt::print("Loaded graph is not the same as the one dumped\n");
+        return false;
+    }
+
+    return true;
+}
+
 int main() {
     {
         // Load & dump simple graph
@@ -119,29 +151,7 @@ int main() {
             }
         }
 
-        fmt::print("- Dumping graph to: {}\n", path.c_str());
-
-        const auto t0 = Clock::now();
-        if (auto res = GraphDumper::dump(*graph, path); !res) {
-            fmt::print("{}\n", res.error().fmtMessage());
-            return 1;
-        }
-        const auto t1 = Clock::now();
-        logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
-
-        fmt::print("- Loading graph from: {}\n", path.c_str());
-
-        auto loadedGraphRes = GraphLoader::load(path);
-        if (!loadedGraphRes) {
-            fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
-            return 1;
-        }
-
-        const std::unique_ptr<Graph> loadedGraph = std::move(loadedGraphRes.value());
-
-        const auto& loadedMetadata = *loadedGraph->getMetadata();
-        if (!GraphMetadataComparator::same(*graph->getMetadata(), loadedMetadata)) {
-            fmt::print("Loaded graph is not the same as the one dumped\n");
+        if (!testGraph(*graph, path)) {
             return 1;
         }
     }
@@ -173,33 +183,7 @@ int main() {
             }
         }
 
-        fmt::print("- Dumping graph to: {}\n", path.c_str());
-
-        {
-            const auto t0 = Clock::now();
-            if (auto res = GraphDumper::dump(*graph, path); !res) {
-                fmt::print("{}\n", res.error().fmtMessage());
-                return 1;
-            }
-            const auto t1 = Clock::now();
-            logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
-        }
-        fmt::print("- Loading graph from: {}\n", path.c_str());
-
-        const auto t0 = Clock::now();
-        auto loadedGraphRes = GraphLoader::load(path);
-        if (!loadedGraphRes) {
-            fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
-            return 1;
-        }
-        const auto t1 = Clock::now();
-        logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
-
-        const std::unique_ptr<Graph> loadedGraph = std::move(loadedGraphRes.value());
-
-        const auto& loadedMetadata = *loadedGraph->getMetadata();
-        if (!GraphMetadataComparator::same(*graph->getMetadata(), loadedMetadata)) {
-            fmt::print("Loaded graph is not the same as the one dumped\n");
+        if (!testGraph(*graph, path)) {
             return 1;
         }
     }
@@ -231,33 +215,7 @@ int main() {
             }
         }
 
-        fmt::print("- Dumping graph to: {}\n", path.c_str());
-
-        {
-            const auto t0 = Clock::now();
-            if (auto res = GraphDumper::dump(*graph, path); !res) {
-                fmt::print("{}\n", res.error().fmtMessage());
-                return 1;
-            }
-            const auto t1 = Clock::now();
-            logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
-        }
-        fmt::print("- Loading graph from: {}\n", path.c_str());
-
-        const auto t0 = Clock::now();
-        auto loadedGraphRes = GraphLoader::load(path);
-        if (!loadedGraphRes) {
-            fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
-            return 1;
-        }
-        const auto t1 = Clock::now();
-        logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
-
-        const std::unique_ptr<Graph> loadedGraph = std::move(loadedGraphRes.value());
-
-        const auto& loadedMetadata = *loadedGraph->getMetadata();
-        if (!GraphMetadataComparator::same(*graph->getMetadata(), loadedMetadata)) {
-            fmt::print("Loaded graph is not the same as the one dumped\n");
+        if (!testGraph(*graph, path)) {
             return 1;
         }
     }
@@ -289,15 +247,9 @@ int main() {
     //         }
     //     }
 
-    //     fmt::print("- Dumping graph to: {}\n", path.c_str());
-
-    //     const auto t0 = Clock::now();
-    //     if (auto res = GraphDumper::dump(*graph, path); !res) {
-    //         fmt::print("{}\n", res.error().fmtMessage());
-    //         return 1;
-    //     }
-    //     const auto t1 = Clock::now();
-    //     logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
+    //    if (!testGraph(*graph, path)) {
+    //        return 1;
+    //    }
     // }
 
     return 0;
