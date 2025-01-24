@@ -3,6 +3,7 @@
 #include "DataPartBuilder.h"
 #include "GraphMetadata.h"
 #include "GraphDumper.h"
+#include "comparators/GraphMetadataComparator.h"
 #include "GraphLoader.h"
 #include "GraphReader.h"
 #include "LogUtils.h"
@@ -104,7 +105,7 @@ static std::unique_ptr<Graph> createSimpleGraph() {
 
 int main() {
     {
-        // Dump simple graph
+        // Load & dump simple graph
         const fs::Path path {SAMPLE_DIR "/simple-graph"};
 
         auto graph = createSimpleGraph();
@@ -126,6 +127,22 @@ int main() {
         }
         const auto t1 = Clock::now();
         logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
+
+        fmt::print("- Loading graph from: {}\n", path.c_str());
+
+        auto loadedGraphRes = GraphLoader::load(path);
+        if (!loadedGraphRes) {
+            fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
+            return 1;
+        }
+
+        const std::unique_ptr<Graph> loadedGraph = std::move(loadedGraphRes.value());
+
+        const auto& loadedMetadata = *loadedGraph->getMetadata();
+        if (!GraphMetadataComparator::same(*graph->getMetadata(), loadedMetadata)) {
+            fmt::print("Loaded graph is not the same as the one dumped\n");
+            return 1;
+        }
     }
 
     {
@@ -157,73 +174,92 @@ int main() {
 
         fmt::print("- Dumping graph to: {}\n", path.c_str());
 
+        {
+            const auto t0 = Clock::now();
+            if (auto res = GraphDumper::dump(*graph, path); !res) {
+                fmt::print("{}\n", res.error().fmtMessage());
+                return 1;
+            }
+            const auto t1 = Clock::now();
+            logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
+        }
+        fmt::print("- Loading graph from: {}\n", path.c_str());
+
         const auto t0 = Clock::now();
-        if (auto res = GraphDumper::dump(*graph, path); !res) {
-            fmt::print("{}\n", res.error().fmtMessage());
+        auto loadedGraphRes = GraphLoader::load(path);
+        if (!loadedGraphRes) {
+            fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
+            return 1;
+        }
+        const auto t1 = Clock::now();
+        logt::ElapsedTime(duration<Milliseconds>(t0, t1), "ms");
+
+        const std::unique_ptr<Graph> loadedGraph = std::move(loadedGraphRes.value());
+
+        const auto& loadedMetadata = *loadedGraph->getMetadata();
+        if (!GraphMetadataComparator::same(*graph->getMetadata(), loadedMetadata)) {
+            fmt::print("Loaded graph is not the same as the one dumped\n");
+            return 1;
+        }
+    }
+
+    {
+        // Dump reactome
+        const fs::Path path {SAMPLE_DIR "/reactome"};
+
+        JobSystem jobSystem;
+        jobSystem.initialize();
+
+        auto graph = std::make_unique<Graph>();
+        const std::string turingHome = std::getenv("HOME");
+        const fs::Path jsonDir = fs::Path {turingHome} / "graphs_v2" / "reactome";
+
+        Neo4jImporter::importJsonDir(jobSystem,
+                                     graph.get(),
+                                     db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
+                                     db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
+                                     {
+                                         ._jsonDir = FileUtils::Path {jsonDir.get()},
+                                     });
+
+        if (path.exists()) {
+            // Removing existing dir
+            if (auto res = path.rm(); !res) {
+                fmt::print("{}\n", res.error().fmtMessage());
+                return 1;
+            }
+        }
+
+        fmt::print("- Dumping graph to: {}\n", path.c_str());
+
+        {
+            const auto t0 = Clock::now();
+            if (auto res = GraphDumper::dump(*graph, path); !res) {
+                fmt::print("{}\n", res.error().fmtMessage());
+                return 1;
+            }
+            const auto t1 = Clock::now();
+            logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
+        }
+        fmt::print("- Loading graph from: {}\n", path.c_str());
+
+        const auto t0 = Clock::now();
+        auto loadedGraphRes = GraphLoader::load(path);
+        if (!loadedGraphRes) {
+            fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
             return 1;
         }
         const auto t1 = Clock::now();
         logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
+
+        const std::unique_ptr<Graph> loadedGraph = std::move(loadedGraphRes.value());
+
+        const auto& loadedMetadata = *loadedGraph->getMetadata();
+        if (!GraphMetadataComparator::same(*graph->getMetadata(), loadedMetadata)) {
+            fmt::print("Loaded graph is not the same as the one dumped\n");
+            return 1;
+        }
     }
-
-    // {
-    //     // Dump reactome
-    //     const fs::Path path {SAMPLE_DIR "/reactome"};
-
-    //     JobSystem jobSystem;
-    //     jobSystem.initialize();
-
-    //     auto graph = std::make_unique<Graph>();
-    //     const std::string turingHome = std::getenv("HOME");
-    //     const fs::Path jsonDir = fs::Path {turingHome} / "graphs_v2" / "reactome";
-
-    //     Neo4jImporter::importJsonDir(jobSystem,
-    //                                  graph.get(),
-    //                                  db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
-    //                                  db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
-    //                                  {
-    //                                      ._jsonDir = FileUtils::Path {jsonDir.get()},
-    //                                  });
-
-    //     if (path.exists()) {
-    //         // Removing existing dir
-    //         if (auto res = path.rm(); !res) {
-    //             fmt::print("{}\n", res.error().fmtMessage());
-    //             return 1;
-    //         }
-    //     }
-
-    //     fmt::print("- Dumping graph to: {}\n", path.c_str());
-
-    //     const auto t0 = Clock::now();
-    //     if (auto res = GraphDumper::dump(*graph, path); !res) {
-    //         fmt::print("{}\n", res.error().fmtMessage());
-    //         return 1;
-    //     }
-    //     const auto t1 = Clock::now();
-    //     logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
-
-    //     auto file = fs::File::createAndOpen(fs::Path {SAMPLE_DIR "/displayName"});
-    //     if (!file) {
-    //         fmt::print("{}\n", file.error().fmtMessage());
-    //         return 1;
-    //     }
-
-    //     fs::FileWriter writer;
-    //     writer.setFile(&file.value());
-    //     const PropertyType displayName = graph->getMetadata()->propTypes().get("displayName (String)");
-    //     const auto reader = graph->read();
-    //     auto range = reader.scanNodeProperties<types::String>(displayName._id);
-    //     size_t bytes = 0;
-    //     size_t count = 0;
-    //     for (const auto& name : range) {
-    //         writer.write(name);
-    //         bytes += name.size();
-    //         count++;
-    //     }
-    //     fmt::print("DisplayName: {} => Wrote {} bytes ({} MB) ({} MiB) ({} entries)\n",
-    //                displayName._id, bytes, (float)bytes / 1000'000.f, (float)bytes / 1024.f / 1024.0f, count);
-    // }
 
     // {
     //     // Dump ckg

@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "BioAssert.h"
+#include "spdlog/spdlog.h"
 
 class StringContainer {
 public:
@@ -14,8 +15,7 @@ public:
 
     StringContainer()
         : _buckets(1),
-          _countsPerBucket({0})
-    {
+          _countsPerBucket({0}) {
         _buckets.back().resize(BUCKET_SIZE);
     }
 
@@ -53,7 +53,6 @@ public:
         _views.push_back({bucket.data() + offset, content.size()});
     }
 
-
     const std::string_view& getView(size_t index) const {
         msgbioassert(index < _views.size(), "String index invalid");
         return _views[index];
@@ -73,6 +72,18 @@ public:
 
     ViewVector::const_iterator begin() const { return _views.begin(); }
     ViewVector::const_iterator end() const { return _views.end(); }
+
+    [[nodiscard]] static StringContainer createFromInternals(std::vector<std::vector<char>>&& buckets,
+                                                             std::vector<size_t>&& countsPerBucket,
+                                                             ViewVector&& views,
+                                                             size_t remainingSize) {
+        StringContainer container;
+        container._buckets = std::move(buckets);
+        container._views = std::move(views);
+        container._countsPerBucket = std::move(countsPerBucket);
+        container._remainingSize = remainingSize;
+        return container;
+    }
 
 private:
     std::vector<std::vector<char>> _buckets;
