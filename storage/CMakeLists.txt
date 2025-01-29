@@ -13,6 +13,7 @@ set(storage_sources
         labels/LabelMap.cpp
 
         views/GraphView.cpp
+        views/NodeEdgeView.cpp
 
         reader/GraphReader.cpp
 
@@ -39,16 +40,18 @@ set(storage_sources
         properties/PropertyManager.cpp
 
         writers/DataPartBuilder.cpp
-        writers/ConcurrentWriter.cpp)
+        writers/ConcurrentWriter.cpp
+
+        comparators/DataPartComparator.cpp)
 
 
 add_library(turing_db_storage_s STATIC ${storage_sources})
 target_include_directories(turing_db_storage_s PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(turing_db_storage_s PRIVATE
-    turing_db_common_s
     turing_db_jobs_s)
 
 target_link_libraries(turing_db_storage_s PUBLIC
         turing_db_base_s
+        turing_db_common_s
         range-v3)

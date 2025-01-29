@@ -7,8 +7,6 @@
 #include "DataPart.h"
 #include "EntityID.h"
 
-class JobSystem;
-
 namespace db {
 
 class GraphInfoLoader;

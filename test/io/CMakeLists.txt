@@ -1,0 +1,20 @@
+add_turing_test(test_io_bytebufferiterator ByteBufferIteratorTest.cpp)
+add_turing_test(test_io_filewriter FileWriterTest.cpp)
+add_turing_test(test_io_filepagewriter FilePageWriterTest.cpp)
+add_turing_test(test_io_filepagereader FilePageReaderTest.cpp)
+add_turing_test(test_io_fileresult FileResultTest.cpp)
+
+target_link_libraries(test_io_bytebufferiterator
+    PRIVATE turing_db_io_s)
+
+target_link_libraries(test_io_filewriter
+    PRIVATE turing_db_io_s)
+
+target_link_libraries(test_io_filepagereader
+    PRIVATE turing_db_io_s)
+
+target_link_libraries(test_io_filepagewriter
+    PRIVATE turing_db_io_s)
+
+target_link_libraries(test_io_fileresult
+    PRIVATE turing_db_io_s)

@@ -5,7 +5,8 @@ set(common_sources
         Panic.cpp
         TuringDBException.cpp
         TimerStat.cpp
-        PerfStat.cpp)
+        PerfStat.cpp
+        FileUtils.cpp)
 
 if (${DEBUG_BUILD})
     target_compile_definitions(turing_db_common_s PUBLIC TURING_ASSERT=1)

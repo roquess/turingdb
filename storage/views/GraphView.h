@@ -2,10 +2,6 @@
 
 #include "DataPartSpan.h"
 
-namespace js {
-class JobSystem;
-}
-
 namespace db {
 
 class GraphReader;
