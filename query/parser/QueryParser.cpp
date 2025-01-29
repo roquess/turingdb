@@ -1,0 +1,31 @@
+#include "QueryParser.h"
+
+#include <sstream>
+
+#include "YScanner.h"
+#include "parser.hpp"
+#include "ASTContext.h"
+
+using namespace db;
+
+QueryParser::QueryParser(ASTContext* astCtxt)
+    : _astCtxt(astCtxt)
+{
+}
+
+QueryCommand* QueryParser::parse(std::string_view query) {
+    YScanner yscanner;
+    YParser yparser(yscanner, _astCtxt);
+
+    std::istringstream iss;
+    iss.rdbuf()->pubsetbuf((char*)query.data(), query.size());
+
+    yscanner.switch_streams(&iss, NULL);
+
+    yparser.parse();
+    if (_astCtxt->hasError()) {
+        return nullptr;
+    }
+    
+    return _astCtxt->getRoot();
+}

@@ -1,0 +1,61 @@
+#pragma once
+
+#include <vector>
+
+namespace db {
+
+class ASTContext;
+class VarExpr;
+class TypeConstraint;
+class NameConstraint;
+class ExprConstraint;
+
+class EntityPattern {
+public:
+    friend ASTContext;
+
+    static EntityPattern* create(ASTContext* ctxt,
+                                 VarExpr* var,
+                                 TypeConstraint* typeConstr,
+                                 NameConstraint* nameConstr,
+                                 ExprConstraint* exprConstr);
+
+    void setVar(VarExpr* var) { _var = var; }
+
+    VarExpr* getVar() const { return _var; }
+    TypeConstraint* getTypeConstraint() const { return _typeConstr; }
+    NameConstraint* getNameConstraint() const { return _nameConstr; }
+    ExprConstraint* getExprConstraint() const { return _exprConstr; }
+
+private:
+    VarExpr* _var {nullptr};
+    TypeConstraint* _typeConstr {nullptr};
+    NameConstraint* _nameConstr {nullptr};
+    ExprConstraint* _exprConstr {nullptr};
+
+    EntityPattern(VarExpr* var,
+                  TypeConstraint* typeConstr,
+                  NameConstraint* nameConstr,
+                  ExprConstraint* exprConstr);
+    ~EntityPattern();
+};
+
+class PathPattern {
+public:
+    friend ASTContext;
+    using PathElements = std::vector<EntityPattern*>;
+
+    static PathPattern* create(ASTContext* ctxt);
+
+    const PathElements& elements() const { return _elements; }
+
+    void addElement(EntityPattern* entity);
+
+private:
+    PathElements _elements;
+
+    PathPattern();
+    ~PathPattern();
+};
+
+}
