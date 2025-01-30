@@ -9,7 +9,7 @@ namespace fs {
 
 class Path;
 
-enum class ErrorType {
+enum class ErrorType : uint8_t {
     UNKNOWN = 0,
     NOT_EXISTS,
     NOT_DIRECTORY,
