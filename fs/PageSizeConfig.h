@@ -3,5 +3,5 @@
 #include <cstddef>
 
 namespace fs {
-    static constexpr size_t DEFAULT_PAGE_SIZE = 1024ul * 1024; // 1 MB
+    static constexpr size_t DEFAULT_PAGE_SIZE = 4 * 1024ul * 1024; // 4 MB
 }

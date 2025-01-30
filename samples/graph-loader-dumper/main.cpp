@@ -188,69 +188,72 @@ int main() {
         }
     }
 
-    // {
-    //     // Dump reactome
-    //     const fs::Path path {SAMPLE_DIR "/reactome"};
+    {
+        // Dump reactome
+        auto t0 = Clock::now();
+        const fs::Path path {SAMPLE_DIR "/reactome"};
 
-    //     JobSystem jobSystem;
-    //     jobSystem.initialize();
+        JobSystem jobSystem;
+        jobSystem.initialize();
 
-    //     auto graph = std::make_unique<Graph>();
-    //     const std::string turingHome = std::getenv("HOME");
-    //     const fs::Path jsonDir = fs::Path {turingHome} / "graphs_v2" / "reactome";
+        auto graph = std::make_unique<Graph>();
+        const std::string turingHome = std::getenv("HOME");
+        const fs::Path jsonDir = fs::Path {turingHome} / "graphs_v2" / "reactome";
 
-    //     Neo4jImporter::importJsonDir(jobSystem,
-    //                                  graph.get(),
-    //                                  db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
-    //                                  db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
-    //                                  {
-    //                                      ._jsonDir = FileUtils::Path {jsonDir.get()},
-    //                                  });
+        Neo4jImporter::importJsonDir(jobSystem,
+                                     graph.get(),
+                                     db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
+                                     db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
+                                     {
+                                         ._jsonDir = FileUtils::Path {jsonDir.get()},
+                                     });
+        const auto t1 = Clock::now();
+        logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
 
-    //     if (path.exists()) {
-    //         // Removing existing dir
-    //         if (auto res = path.rm(); !res) {
-    //             fmt::print("{}\n", res.error().fmtMessage());
-    //             return 1;
-    //         }
-    //     }
+        if (path.exists()) {
+            // Removing existing dir
+            if (auto res = path.rm(); !res) {
+                fmt::print("{}\n", res.error().fmtMessage());
+                return 1;
+            }
+        }
 
-    //     if (!testGraph(*graph, path)) {
-    //         return 1;
-    //     }
-    // }
+        if (!testGraph(*graph, path)) {
+            return 1;
+        }
+    }
 
-    //{
-    //    // Dump ckg
-    //    const fs::Path path {SAMPLE_DIR "/ckg"};
+    {
+        // Dump ckg
+        const fs::Path path {SAMPLE_DIR "/ckg"};
 
-    //    JobSystem jobSystem {1};
-    //    jobSystem.initialize();
+        JobSystem jobSystem {1};
+        jobSystem.initialize();
 
-    //    auto graph = std::make_unique<Graph>();
-    //    const std::string turingHome = std::getenv("HOME");
-    //    const fs::Path jsonDir = fs::Path {turingHome} / "graphs_v2" / "ckg";
+        auto graph = std::make_unique<Graph>();
+        const std::string turingHome = std::getenv("HOME");
+        const fs::Path jsonDir = fs::Path {turingHome} / "graphs_v2" / "ckg";
 
-    //    Neo4jImporter::importJsonDir(jobSystem,
-    //                                 graph.get(),
-    //                                 db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
-    //                                 db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
-    //                                 {
-    //                                     ._jsonDir = FileUtils::Path {jsonDir.get()},
-    //                                 });
+        Neo4jImporter::importJsonDir(jobSystem,
+                                     graph.get(),
+                                     db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
+                                     db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
+                                     {
+                                         ._jsonDir = FileUtils::Path {jsonDir.get()},
+                                     });
 
-    //    if (path.exists()) {
-    //        // Removing existing dir
-    //        if (auto res = path.rm(); !res) {
-    //            fmt::print("{}\n", res.error().fmtMessage());
-    //            return 1;
-    //        }
-    //    }
+        if (path.exists()) {
+            // Removing existing dir
+            if (auto res = path.rm(); !res) {
+                fmt::print("{}\n", res.error().fmtMessage());
+                return 1;
+            }
+        }
 
-    //   if (!testGraph(*graph, path)) {
-    //       return 1;
-    //   }
-    //}
+       if (!testGraph(*graph, path)) {
+           return 1;
+       }
+    }
 
     return 0;
 }
