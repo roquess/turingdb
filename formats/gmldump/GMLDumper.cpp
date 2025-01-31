@@ -14,8 +14,7 @@ std::string escapeString(const std::string& str) {
 
     for (char c : str) {
         if (c == '\"') {
-            res.push_back('\\');
-            res.push_back('"');
+            res.push_back('\'');
         } else {
             res.push_back(c);
         }
