@@ -3,6 +3,7 @@
 using namespace db;
 
 TuringDB::TuringDB()
+    : _interp(&_systemManager)
 {
 }
 
@@ -14,11 +15,11 @@ QueryStatus TuringDB::query(std::string_view query,
                              std::string_view graphName,
                              LocalMemory* mem,
                              QueryCallback callback) {
-    return QueryStatus(QueryStatus::Status::OK);
+    return _interp.execute(query, graphName, mem, callback);
 }
 
 QueryStatus TuringDB::query(std::string_view query,
                              std::string_view graphName,
                              LocalMemory* mem) {
-    return QueryStatus(QueryStatus::Status::OK);
+    return _interp.execute(query, graphName, mem, [](const auto&){});
 }

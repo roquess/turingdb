@@ -11,6 +11,7 @@ class QueryStatus {
 public:
     enum class Status {
         OK,
+        GRAPH_NOT_FOUND,
         PARSE_ERROR,
         ANALYZE_ERROR,
         PLAN_ERROR,
@@ -30,8 +31,9 @@ public:
 
     bool isOk() const { return _status == Status::OK; }
 
-    void setError(const std::string& error) { _errorMsg = error; }
+    bool hasErrorMessage() const { return !_errorMsg.empty(); }
     const std::string& getError() const { return _errorMsg; }
+    void setError(const std::string& error) { _errorMsg = error; }
 
     void setTotalTime(Milliseconds totalTime) { _totalTime = totalTime; }
     Milliseconds getTotalTime() const { return _totalTime; }
@@ -44,10 +46,11 @@ private:
 
 using StatusString = EnumToString<QueryStatus::Status>::Create<
     EnumStringPair<QueryStatus::Status::OK, "OK">,
-    EnumStringPair<QueryStatus::Status::PARSE_ERROR, "Parse error">,
-    EnumStringPair<QueryStatus::Status::ANALYZE_ERROR, "Analyze error">,
-    EnumStringPair<QueryStatus::Status::PLAN_ERROR, "Plan error">,
-    EnumStringPair<QueryStatus::Status::EXEC_ERROR, "Execution error">
+    EnumStringPair<QueryStatus::Status::GRAPH_NOT_FOUND, "GRAPH_NOT_FOUND">,
+    EnumStringPair<QueryStatus::Status::PARSE_ERROR, "PARSE_ERROR">,
+    EnumStringPair<QueryStatus::Status::ANALYZE_ERROR, "ANALYZE_ERROR">,
+    EnumStringPair<QueryStatus::Status::PLAN_ERROR, "PLAN_ERROR">,
+    EnumStringPair<QueryStatus::Status::EXEC_ERROR, "EXEC_ERROR">
 >;
 
 }

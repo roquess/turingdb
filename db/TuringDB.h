@@ -1,11 +1,11 @@
 #pragma once
 
 #include <string_view>
-#include <functional>
 
 #include "SystemManager.h"
 #include "QueryStatus.h"
-
+#include "QueryCallback.h"
+#include "QueryInterpreter.h"
 namespace db {
 
 class LocalMemory;
@@ -13,8 +13,6 @@ class Block;
 
 class TuringDB {
 public:
-    using QueryCallback = std::function<void(const Block& block)>;
-
     TuringDB();
     ~TuringDB();
 
@@ -29,6 +27,7 @@ public:
 
 private:
     SystemManager _systemManager;
+    QueryInterpreter _interp;
 };
 
 }

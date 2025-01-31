@@ -1,0 +1,76 @@
+#include "QueryInterpreter.h"
+
+#include "SystemManager.h"
+#include "Graph.h"
+#include "views/GraphView.h"
+#include "ASTContext.h"
+#include "QueryParser.h"
+#include "QueryAnalyzer.h"
+
+#include "Time.h"
+
+using namespace db;
+
+QueryInterpreter::QueryInterpreter(SystemManager* sysMan)
+    : _sysMan(sysMan)
+{
+}
+
+QueryInterpreter::~QueryInterpreter() {
+}
+
+QueryStatus QueryInterpreter::execute(std::string_view query,
+                                      std::string_view graphName,
+                                      LocalMemory* mem,
+                                      QueryCallback callback) {
+    const auto start = Clock::now();
+
+    Graph* graph = graphName.empty() ? _sysMan->getDefaultGraph() 
+            : _sysMan->getGraph(std::string(graphName));
+    if (!graph) {
+        return QueryStatus(QueryStatus::Status::GRAPH_NOT_FOUND);
+    }
+
+    // Get view of the graph for the query
+    [[maybe_unused]] const GraphView view = graph->view();
+
+    // Parsing query
+    ASTContext astCtxt;
+    QueryParser parser(&astCtxt);
+    QueryCommand* cmd = parser.parse(query);
+    if (!cmd) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR);
+    }
+
+    // Analyze query
+    QueryAnalyzer analyzer(&astCtxt, cmd);
+    if (!analyzer.analyze()) {
+        return QueryStatus(QueryStatus::Status::ANALYZE_ERROR);
+    }
+
+/*
+    // Query plan
+    PlannerContext planCtxt(dbView, mem);
+    QueryPlanner planner(&planCtxt, cmd);
+    if (_encodingParams) {
+        planner.setEncodingParams(_encodingParams);
+    }
+
+    if (!planner.plan()) {
+        return QueryStatus(QueryStatus::Status::QUERY_PLAN_ERROR);
+    }
+
+    // Execute
+    ExecutionContext execCtxt(sysMan, dbView);
+    Executor executor(&execCtxt, planner.getPipeline());
+    if (!executor.run()) {
+        return QueryStatus(QueryStatus::Status::EXEC_ERROR);
+    }
+*/
+
+    const auto end = Clock::now();
+    
+    auto res = QueryStatus(QueryStatus::Status::OK);
+    res.setTotalTime(end-start);
+    return res;
+}
