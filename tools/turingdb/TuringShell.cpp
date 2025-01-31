@@ -1,15 +1,14 @@
 #include "TuringShell.h"
 
-#include <chrono>
-#include <ratio>
-
 #include <linenoise.h>
 #include <tabulate/table.hpp>
 #include <argparse.hpp>
 #include <spdlog/spdlog.h>
 #include <termcolor/termcolor.hpp>
 
-#include "Time.h"
+#include "TuringDB.h"
+
+using namespace db;
 
 namespace {
 
@@ -85,7 +84,9 @@ void changeDBCommand(const TuringShell::Command::Words& args, TuringShell& shell
 
 }
 
-TuringShell::TuringShell()
+TuringShell::TuringShell(TuringDB& turingDB, LocalMemory* mem)
+    : _turingDB(turingDB),
+      _mem(mem)
 {
     _localCommands.emplace("q", Command{quitCommand});
     _localCommands.emplace("quit", Command{quitCommand});
@@ -139,32 +140,14 @@ void TuringShell::processLine(std::string& line) {
         return;
     }
 
-    // Otherwise execute as a query
-    const auto timeExecStart = Clock::now();
-
     // Execute query
-    //const auto queryInfo = _turing.query(line, _df);
-    //if (!queryInfo.isOk()) {
-    //    spdlog::error("{}", queryInfo.getError());
-    //    return;
-    //}
-
-    // Query execution time
-    const auto timeExecEnd = Clock::now();
-    const std::chrono::duration<double, std::milli> duration = timeExecEnd - timeExecStart;
-
-    std::cout << "\n";
-
-    //std::cout << "Query executed in " << queryInfo.getTotalTime().count() << " ms.\n";
-    {
-        const auto rowCount = /* _df.rowCount(); */ 0;
-        std::cout << "Downloaded " << rowCount << " record";
-        if (rowCount == 0 || rowCount > 1) {
-            std::cout << "s";
-        }
-
-        std::cout << " in " << duration.count() << "ms.\n";
+    const auto res = _turingDB.query(line, _graphName, _mem);
+    if (!res.isOk()) {
+        spdlog::error("{}: {}", StatusString::value(res.getStatus()), res.getError());
+        return;
     }
+
+    std::cout << "Query executed in " << res.getTotalTime().count() << " ms.\n";
 }
 
 /*

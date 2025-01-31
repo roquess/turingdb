@@ -6,6 +6,11 @@
 #include <functional>
 #include <vector>
 
+namespace db {
+
+class TuringDB;
+class LocalMemory;
+
 class TuringShell {
 public:
     struct Command {
@@ -13,7 +18,7 @@ public:
         std::function<void(const Words&, TuringShell&)> _func;
     };
 
-    TuringShell();
+    TuringShell(TuringDB& turingDB, LocalMemory* mem);
     ~TuringShell();
 
     void setGraphName(const std::string& graphName) { _graphName = graphName; }
@@ -23,9 +28,13 @@ public:
     void printHelp() const;
 
 private:
+    TuringDB& _turingDB;
+    LocalMemory* _mem {nullptr};
     std::string _graphName {"default"};
     std::unordered_map<std::string_view, Command> _localCommands;
 
     void processLine(std::string& line);
     std::string composePrompt();
 };
+
+}

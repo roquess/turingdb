@@ -2,6 +2,7 @@
 #include <argparse.hpp>
 
 #include "TuringDB.h"
+#include "LocalMemory.h"
 
 #include "ToolInit.h"
 #include "TuringShell.h"
@@ -16,8 +17,9 @@ int main(int argc, const char** argv) {
     toolInit.init(argc, argv);
 
     TuringDB turingDB;
+    LocalMemory mem;
 
-    TuringShell shell;
+    TuringShell shell(turingDB, &mem);
     shell.startLoop();
 
     return EXIT_SUCCESS;
