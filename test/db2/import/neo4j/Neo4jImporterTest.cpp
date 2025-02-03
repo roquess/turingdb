@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <spdlog/fmt/bundled/core.h>
+
 #include "Graph.h"
 #include "GraphView.h"
 #include "GraphReader.h"
@@ -74,7 +76,7 @@ TEST_F(Neo4jImporterTest, Simple) {
         EntityID id2 = builder2->addNode(LabelSet::fromList({0}));
         builder2->addNodeProperty<types::String>(id2, 0, "test2");
         builder2->addNodeProperty<types::String>(2, 0, "test3");
-        const EdgeRecord& edge= builder2->addEdge(4, 3, 4);
+        const EdgeRecord& edge = builder2->addEdge(4, 3, 4);
         builder2->addEdgeProperty<types::String>(edge, 0, "Edge property test");
         builder2->addNode(LabelSet::fromList({0}));
         builder2->addNode(LabelSet::fromList({0}));
@@ -126,6 +128,72 @@ TEST_F(Neo4jImporterTest, General) {
     t1 = Clock::now();
     ASSERT_TRUE(res);
     std::cout << "Parsing: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
+
+    static std::vector<std::string_view> labelsRef = {
+        "Group",
+        "Domain",
+        "OU",
+        "User",
+        "Computer",
+        "GPO",
+        "HighValue",
+    };
+
+    static std::vector<std::string_view> edgeTypesRef = {
+        "GP_LINK",
+        "CONTAINS",
+        "GENERIC_ALL",
+        "OWNS",
+        "WRITE_OWNER",
+        "WRITE_DACL",
+        "DC_SYNC",
+        "GET_CHANGES",
+        "GET_CHANGES_ALL",
+        "MEMBER_OF",
+        "ADMIN_TO",
+        "CAN_RDP",
+        "EXECUTE_DCOM",
+        "ALLOWED_TO_DELEGATE",
+        "HAS_SESSION",
+        "GENERIC_WRITE",
+    };
+
+    static std::vector<std::string_view> propTypesRef = {
+        "isacl (Bool)",
+        "enforced (Bool)",
+        "name (String)",
+        "objectid (String)",
+        "neo4jImportId (String)",
+        "domain (String)",
+        "blocksInheritance (Bool)",
+        "owned (Bool)",
+        "enabled (Bool)",
+        "pwdlastset (Int64)",
+        "pwdlastset (UInt64)",
+        "displayname (String)",
+        "lastlogon (Int64)",
+        "lastlogon (UInt64)",
+        "hasspn (Bool)",
+        "operatingsystem (String)",
+        "highvalue (Bool)",
+    };
+
+    const auto* meta = _graph->getMetadata();
+    const auto& labels = meta->labels();
+    const auto& edgeTypes = meta->edgeTypes();
+    const auto& propTypes = meta->propTypes();
+
+    for (size_t i = 0; i < labels.getCount(); i++) {
+        ASSERT_EQ(labelsRef[i], labels.getName(i));
+    }
+
+    for (size_t i = 0; i < edgeTypes.getCount(); i++) {
+        ASSERT_EQ(edgeTypesRef[i], edgeTypes.getName(i));
+    }
+
+    for (size_t i = 0; i < propTypes.getCount(); i++) {
+        ASSERT_EQ(propTypesRef[i], propTypes.getName(i));
+    }
 
     const auto view = _graph->view();
     const auto reader = view.read();
