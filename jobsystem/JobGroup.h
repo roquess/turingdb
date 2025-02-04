@@ -7,7 +7,8 @@ namespace js {
 class JobGroup {
 public:
     explicit JobGroup(JobSystem* jobSystem)
-        : _jobSystem(jobSystem) {
+        : _jobSystem(jobSystem)
+    {
     }
 
     void wait() {

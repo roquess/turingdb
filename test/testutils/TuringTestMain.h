@@ -64,8 +64,6 @@ inline int turingTestMain(int argc, char** argv, TuringMainConfig config = nullp
     ::testing::InitGoogleTest(&argc, argv);
 
     testing::TestEventListeners& listeners = testing::UnitTest::GetInstance()->listeners();
-    delete listeners.Release(listeners.default_result_printer());
-
     TuringEventListener* listener = new TuringEventListener;
     listeners.Append(listener);
 

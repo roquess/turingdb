@@ -31,7 +31,6 @@ public:
      * */
     template <typename T>
     Future<T> submit(JobOperation&& operation) {
-        _submitedCount += 1;
         TypedPromise<T>* promise = new TypedPromise<T>();
         Future<T> future {promise->get_future()};
 
@@ -40,29 +39,7 @@ public:
             std::unique_ptr<Promise>(static_cast<Promise*>(promise)),
         };
 
-        std::unique_lock lock(_queueMutex);
-        if (std::this_thread::get_id() == _mainThreadID) {
-            // Submitted from main
-            _jobs.push(std::move(job));
-            _wakeCondition.notify_one();
-            return future;
-        }
-
-
-        // Not running from main, make sure at least
-        // one thread remains available to execute
-        // jobs
-        if (_jobs.size() < _nThreads - 1) {
-            // Submit for parallel execution
-            _jobs.push(std::move(job));
-            _wakeCondition.notify_one();
-        } else {
-            // Execute sequentially
-            job._operation(job._promise.get());
-            job._promise->finish();
-            _finishedCount.fetch_add(1);
-        }
-
+        _jobs.push(std::move(job));
         return future;
     }
 
@@ -73,8 +50,6 @@ public:
      * */
     template <typename T>
     SharedFuture<T> submitShared(JobOperation&& operation) {
-        std::unique_lock lock(_queueMutex);
-        _submitedCount += 1;
         TypedPromise<T>* promise = new TypedPromise<T>;
         SharedFuture<T> future {promise->get_future().share()};
 
@@ -83,28 +58,7 @@ public:
             std::unique_ptr<Promise>(static_cast<Promise*>(promise)),
         };
 
-        if (std::this_thread::get_id() == _mainThreadID) {
-            // Submitted from main
-            _jobs.push(std::move(job));
-            _wakeCondition.notify_one();
-            return future;
-        }
-
-
-        // Not running from main, make sure at least
-        // one thread remains available to execute
-        // jobs
-        if (_jobs.size() < _nThreads - 1) {
-            // Submit for parallel execution
-            _jobs.push(std::move(job));
-            _wakeCondition.notify_one();
-        } else {
-            // Execute sequentially
-            job._operation(job._promise.get());
-            job._promise->finish();
-            _finishedCount.fetch_add(1);
-        }
-
+        _jobs.push(std::move(job));
         return future;
     }
 
@@ -120,13 +74,8 @@ public:
 private:
     std::thread::id _mainThreadID;
     size_t _nThreads {0};
-    std::mutex _queueMutex;
-    std::mutex _wakeMutex;
-    std::condition_variable _wakeCondition;
     JobQueue _jobs;
     std::vector<std::jthread> _workers;
-    std::atomic<size_t> _finishedCount {0};
-    std::atomic<size_t> _submitedCount {0};
     std::atomic<bool> _stopRequested {false};
     bool _terminated {false};
 };
