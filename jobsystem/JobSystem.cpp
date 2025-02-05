@@ -7,13 +7,16 @@
 using namespace js;
 
 JobSystem::JobSystem()
-    : _mainThreadID(std::this_thread::get_id())
+    : _nThreads(std::max(1ul, (size_t)std::thread::hardware_concurrency())),
+      _jobs(_nThreads)
 {
 }
 
 JobSystem::JobSystem(size_t nThreads)
-    : _mainThreadID(std::this_thread::get_id()),
-      _nThreads(nThreads)
+    : _nThreads(nThreads == 0
+                    ? std::max(1ul, (size_t)std::thread::hardware_concurrency())
+                    : nThreads),
+      _jobs(_nThreads)
 {
 }
 
@@ -24,11 +27,6 @@ JobSystem::~JobSystem() {
 }
 
 void JobSystem::initialize() {
-    if (_nThreads == 0) {
-        size_t numCores = std::thread::hardware_concurrency();
-        _nThreads = std::max(1ul, numCores);
-    }
-
     for (size_t i = 0; i < _nThreads; i++) {
         _workers.emplace_back([&] {
             while (true) {
@@ -42,7 +40,6 @@ void JobSystem::initialize() {
                 }
 
                 auto& job = j.value();
-
                 job._operation(job._promise.get());
                 job._promise->finish();
                 _jobs.incrementFinished();

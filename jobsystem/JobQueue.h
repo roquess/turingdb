@@ -7,13 +7,35 @@
 
 namespace js {
 
+class JobSystem;
+
 class JobQueue {
 public:
-    Job& push(Job job) {
-        std::scoped_lock lock {_mutex};
+    explicit JobQueue(size_t threadCount)
+        : _threadCount(threadCount)
+    {
+    }
+
+    void submit(Job job) {
+        std::unique_lock lock {_mutex};
         _submitted++;
-        _wakeCondition.notify_one();
-        return _jobs.emplace(std::move(job));
+
+        if (_runningCount >= _threadCount) {
+            // Execute from sequentially
+            _runningCount++;
+
+            lock.unlock();
+            job._operation(job._promise.get());
+            job._promise->finish();
+            lock.lock();
+
+            _finished++;
+            _runningCount--;
+
+        } else {
+            _jobs.emplace(std::move(job));
+            _wakeCondition.notify_one();
+        }
     }
 
     std::optional<Job> pop() {
@@ -24,6 +46,7 @@ public:
 
         Job job = std::move(_jobs.front());
         _jobs.pop();
+        _runningCount++;
         return job;
     }
 
@@ -50,13 +73,14 @@ public:
 
         Job job = std::move(_jobs.front());
         _jobs.pop();
-
+        _runningCount++;
         return job;
     }
 
     void incrementFinished() {
         std::scoped_lock lock {_mutex};
         _finished++;
+        _runningCount--;
     }
 
     void wait() {
@@ -68,15 +92,22 @@ public:
             std::this_thread::yield();
             lock.lock();
         }
+
         _wakeCondition.notify_all();
     }
 
 private:
+    friend JobSystem;
+
+    size_t _threadCount {1};
     std::condition_variable _wakeCondition;
     mutable std::mutex _mutex;
     std::queue<Job> _jobs;
     size_t _finished {0};
     size_t _submitted {0};
+    size_t _runningCount {0};
+
+    std::mutex& getMutex() { return _mutex; }
 };
 
 }

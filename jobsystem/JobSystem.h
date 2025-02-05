@@ -39,7 +39,8 @@ public:
             std::unique_ptr<Promise>(static_cast<Promise*>(promise)),
         };
 
-        _jobs.push(std::move(job));
+        _jobs.submit(std::move(job));
+
         return future;
     }
 
@@ -58,7 +59,8 @@ public:
             std::unique_ptr<Promise>(static_cast<Promise*>(promise)),
         };
 
-        _jobs.push(std::move(job));
+        _jobs.submit(std::move(job));
+
         return future;
     }
 
@@ -72,7 +74,6 @@ public:
     void terminate();
 
 private:
-    std::thread::id _mainThreadID;
     size_t _nThreads {0};
     JobQueue _jobs;
     std::vector<std::jthread> _workers;
