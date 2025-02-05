@@ -16,7 +16,7 @@ JobSystem::JobSystem(size_t nThreads)
     : _nThreads(nThreads == 0
                     ? std::max(1ul, (size_t)std::thread::hardware_concurrency())
                     : nThreads),
-      _jobs(nThreads)
+      _jobs(_nThreads)
 {
 }
 
