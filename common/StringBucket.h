@@ -1,6 +1,5 @@
 #pragma once
 
-#include "BioAssert.h"
 #include <cstdint>
 #include <cstring>
 #include <limits>
@@ -8,6 +7,8 @@
 #include <span>
 #include <string_view>
 #include <vector>
+
+#include "BioAssert.h"
 
 class StringBucket {
 public:
