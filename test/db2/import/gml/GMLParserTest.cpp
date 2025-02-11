@@ -114,13 +114,13 @@ TEST_F(GMLParserTest, Empty) {
     EXPECT_SUCCESS("\n\n\r graph [] \n");
 
     EXPECT_ERROR("graphRANDOM [] dsqd\n",
-                 "GML Error at line 1: Unexpected token 'R'. Expected: '['");
+                 "GML Error at line 1: Unexpected token 'graphRANDOM'. Expected: 'graph'");
 
     EXPECT_ERROR("\n\n\r graph [] dsqd\n",
                  "GML Error at line 3: Unexpected token 'd'. Expected: 'end of file'");
 
     EXPECT_ERROR("\tdsqd [] \n",
-                 "GML Error at line 1: Unexpected token 'dsqd '. Expected: 'graph'");
+                 "GML Error at line 1: Unexpected token 'dsqd'. Expected: 'graph'");
 
     {
         GMLSax sax;
@@ -287,4 +287,21 @@ TEST_F(GMLParserTest, NestedProperties) {
         "]",
         "GML Error at line 6: Unexpected end of file. Expected: ']'");
 }
+TEST_F(GMLParserTest, GraphAttributes) {
+    EXPECT_SUCCESS(
+        "graph [\n"
+        "  attribute_1 value_1\n"
+        "  attribute_2 value_2\n"
+        "  node [ id 0 identifier 1]\n"
+        "]");
 
+    EXPECT_SUCCESS(
+        "graph [attribute_1 value_1 node[id 1 ]]");
+
+    EXPECT_ERROR(
+        "graph [\n"
+        "  1_attribute value_1\n"
+        "  node [\n"
+        "]",
+        "GML Error at line 2: Unexpected token '1'. Expected: 'alphabet or ]'"); // Changed error message
+}
