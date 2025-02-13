@@ -14,7 +14,8 @@ set(pipeline_sources
 
         PipelineStep.cpp
         Pipeline.cpp
-        PipelineException.cpp)
+        PipelineException.cpp
+        Executor.cpp)
 
 add_library(turing_db_pipeline_s STATIC ${pipeline_sources})
 
@@ -22,8 +23,9 @@ target_include_directories(turing_db_pipeline_s PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/operations)
 
-target_link_libraries(turing_db_pipeline_s PRIVATE 
-    turing_db_storage_s
+target_link_libraries(turing_db_pipeline_s PRIVATE
     turing_db_query_AST_s
     turing_db_memory_s
-    turing_db_system_s)
+    turing_db_storage_s
+    turing_db_system_s
+    turing_db_common_s)

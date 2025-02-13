@@ -17,8 +17,6 @@ enum class PipelineOpcode : uint64_t {
     TRANSFORM,
     COUNT,
     LAMBDA,
-    JSON_ENCODER,
-    DEBUG_DUMP,
     CREATE_GRAPH,
     LIST_GRAPH,
     LOAD_GRAPH,
