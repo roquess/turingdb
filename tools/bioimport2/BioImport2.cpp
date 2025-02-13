@@ -1,6 +1,5 @@
 #include <argparse.hpp>
 #include <spdlog/spdlog.h>
-
 #include "BannerDisplay.h"
 #include "Graph.h"
 #include "GraphDumper.h"
@@ -54,6 +53,8 @@ int main(int argc, const char** argv) {
 
     uint16_t nThreads = 0;
     std::vector<ImportData> importData;
+
+    std::string filePath;
 
     argParser.add_argument("-j")
         .help("Number of threads to use")
@@ -179,6 +180,17 @@ int main(int argc, const char** argv) {
             });
         });
 
+    argParser.add_argument("-db-path")
+        .help("Dump the GraphDB binary to a separate directory")
+        .metavar("db.dump")
+        .action([&](const std::string& value) {
+            if (!FileUtils::exists(value)) {
+                logt::FileNotFound(value);
+                exit(EXIT_FAILURE);
+            }
+            filePath = value + "/bindump";
+        });
+
     toolInit.init(argc, argv);
 
     const bool noPathsGiven = importData.empty();
@@ -275,7 +287,11 @@ int main(int argc, const char** argv) {
     float dur = duration<Seconds>(t0, Clock::now());
     logt::ElapsedTime(dur, "s");
 
-    const fs::Path path {toolInit.getOutputsDir() + "/bindump"};
+    if (filePath.empty()) {
+        filePath = toolInit.getOutputsDir() + "/bindump";
+    }
+    const fs::Path path {filePath};
+
     if (auto res = GraphDumper::dump(*graph, path); !res) {
         spdlog::error("Failed To Dump Graph: {}", res.error().fmtMessage());
         return 1;
