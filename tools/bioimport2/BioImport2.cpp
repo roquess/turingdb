@@ -5,6 +5,7 @@
 #include "GraphDumper.h"
 #include "FileUtils.h"
 #include "GMLImporter.h"
+#include "GraphLoader.h"
 #include "JobSystem.h"
 #include "LogUtils.h"
 #include "Neo4j/Neo4JParserConfig.h"
@@ -21,6 +22,7 @@ enum class ImportType {
     NEO4J_URL,
     JSON_NEO4J,
     GML,
+    BIN,
     // CSV,
 };
 
@@ -73,6 +75,21 @@ int main(int argc, const char** argv) {
             }
             importData.emplace_back(ImportData {
                 .type = ImportType::GML,
+                .path = value,
+            });
+        });
+
+    argParser.add_argument("-db")
+        .help("Imports a turingDB binary")
+        .append()
+        .metavar("db.gml")
+        .action([&](const std::string& value) {
+            if (!FileUtils::exists(value)) {
+                logt::FileNotFound(value);
+                exit(EXIT_FAILURE);
+            }
+            importData.emplace_back(ImportData {
+                .type = ImportType::BIN,
                 .path = value,
             });
         });
@@ -208,6 +225,13 @@ int main(int argc, const char** argv) {
 
     for (auto& data : importData) {
         switch (data.type) {
+            case ImportType::BIN: {
+                if (auto res = GraphLoader::load(graph.get(), fs::Path(data.path)); !res) {
+                    spdlog::error("Failed To Load Graph: {}", res.error().fmtMessage());
+                    return 1;
+                }
+                break;
+            }
             case ImportType::GML: {
                 GMLImporter parser;
                 if (!parser.importFile(jobSystem, graph.get(), FileUtils::Path(data.path))) {
