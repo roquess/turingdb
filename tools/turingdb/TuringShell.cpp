@@ -7,6 +7,11 @@
 #include <termcolor/termcolor.hpp>
 
 #include "TuringDB.h"
+#include "columns/Block.h"
+#include "columns/Column.h"
+#include "columns/ColumnVector.h"
+#include "columns/ColumnOptVector.h"
+#include "Panic.h"
 
 using namespace db;
 
@@ -82,6 +87,14 @@ void changeDBCommand(const TuringShell::Command::Words& args, TuringShell& shell
     shell.setGraphName(graphName);
 }
 
+size_t getBlockRowCount(const Block& block) {
+    size_t rowCount = 0;
+    for (const Column* column : block.columns()) {
+        rowCount = std::max(rowCount, column->size());
+    }
+    return rowCount;
+}
+
 }
 
 TuringShell::TuringShell(TuringDB& turingDB, LocalMemory* mem)
@@ -126,6 +139,28 @@ std::string TuringShell::composePrompt() {
     return prompt;
 }
 
+template <typename T>
+void tabulateWrite(tabulate::RowStream& rs, const T& value) {
+    rs << value;
+}
+
+template <typename T>
+void tabulateWrite(tabulate::RowStream& rs, const std::optional<T>& value) {
+    if (value) {
+        rs << *value;
+    } else {
+        rs << "null";
+    }
+}
+
+#define TABULATE_COL_CASE(Type, i)                        \
+    case Type::staticKind(): {                            \
+        const Type& src = *static_cast<const Type*>(col); \
+        tabulateWrite(rs, src[i]);                        \
+    }                                                     \
+    break;                                                \
+
+
 void TuringShell::processLine(std::string& line) {
     // Remove leading whitespace
     trim(line);
@@ -141,7 +176,38 @@ void TuringShell::processLine(std::string& line) {
     }
 
     // Execute query
-    const auto res = _turingDB.query(line, _graphName, _mem);
+    tabulate::Table table;
+
+    const auto res = _turingDB.query(line, _graphName, _mem,
+    [&table](const Block& block) {
+        const size_t rowCount = getBlockRowCount(block);
+
+        for (size_t i = 0; i < rowCount; ++i) {
+            tabulate::RowStream rs;
+            for (const Column* col : block.columns()) {
+                switch (col->getKind()) {
+                    TABULATE_COL_CASE(ColumnVector<EntityID>, i)
+                    TABULATE_COL_CASE(ColumnVector<types::UInt64::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnVector<types::Int64::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnVector<types::Double::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnVector<types::String::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnVector<types::Bool::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnOptVector<types::UInt64::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnOptVector<types::Int64::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnOptVector<types::Double::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnOptVector<types::String::Primitive>, i)
+                    TABULATE_COL_CASE(ColumnOptVector<types::Bool::Primitive>, i)
+
+                    default: {
+                        panic("can not print columns of kind {}", col->getKind());
+                    }
+                }
+            }
+
+            table.add_row(std::move(rs));
+        }
+    });
+
     if (!res.isOk()) {
         if (res.hasErrorMessage()) {
             spdlog::error("{}: {}", QueryStatusDescription::value(res.getStatus()), res.getError());
@@ -152,25 +218,9 @@ void TuringShell::processLine(std::string& line) {
     }
 
     std::cout << "Query executed in " << res.getTotalTime().count() << " ms.\n";
-}
-
-/*
-void TuringShell::displayTable() {
-    tabulate::Table table;
-
-    for (const auto& row : _df.rows()) {
-        tabulate::RowStream rs;
-
-        for (const auto& value : row) {
-            rs << value.toString();
-        }
-
-        table.add_row(std::move(rs));
-    }
 
     std::cout << table << "\n";
 }
-*/
 
 void TuringShell::printHelp() const {
     for (const auto& entry : _localCommands) {
