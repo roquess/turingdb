@@ -6,13 +6,13 @@ class TuringDB;
 
 class TuringServer {
 public:
-    TuringServer(TuringDB* db);
+    TuringServer(TuringDB& db);
     ~TuringServer();
 
-    void start();
-
+    bool start();
+    
 private:
-    TuringDB* _db {nullptr};
+    TuringDB& _db;
 };
 
 }

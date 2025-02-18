@@ -164,3 +164,14 @@ bool SystemManager::loadGmlDB(const std::string& graphName,
     jobsystem.terminate();
     return true;
 }
+
+void SystemManager::listAvailableGraphs(std::vector<fs::Path>& names) {
+    const auto list = fs::Path(_graphsDir).listDir();
+    if (!list) {
+        return;
+    }
+
+    for (const auto& path : list.value()) {
+        names.push_back(path);
+    }
+}

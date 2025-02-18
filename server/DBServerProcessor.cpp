@@ -1,0 +1,1143 @@
+#include "DBServerProcessor.h"
+
+#include <nlohmann/json.hpp>
+
+#include "TuringDB.h"
+#include "Graph.h"
+#include "GraphMetadata.h"
+#include "reader/GraphReader.h"
+#include "views/EdgeView.h"
+#include "QueryInterpreter.h"
+#include "SystemManager.h"
+#include "Path.h"
+
+#include "ListNodesExecutor.h"
+#include "ExploreNodeEdgesExecutor.h"
+
+#include "DBThreadContext.h"
+#include "HTTPParser.h"
+#include "DBURIParser.h"
+#include "Endpoints.h"
+#include "HTTP.h"
+#include "HTTPResponseWriter.h"
+#include "TCPConnection.h"
+
+using namespace db;
+
+DBServerProcessor::DBServerProcessor(TuringDB& db,
+                                     net::TCPConnection& connection)
+    : _writer(&connection.getWriter()),
+      _db(db),
+      _connection(connection)
+{
+}
+
+DBServerProcessor::~DBServerProcessor() {
+}
+
+void DBServerProcessor::process(net::AbstractThreadContext* abstractContext) {
+    bioassert(abstractContext);
+    _threadContext = static_cast<DBThreadContext*>(abstractContext);
+    auto& parser = _connection.getParser<net::HTTPParser<DBURIParser>>();
+
+    const auto& httpInfo = parser.getHttpInfo();
+    if (httpInfo._method != net::HTTP::Method::POST) {
+        _writer.writeHttpError(net::HTTP::Status::METHOD_NOT_ALLOWED);
+        return;
+    }
+
+    switch ((Endpoint)httpInfo._endpoint) {
+        case Endpoint::QUERY: {
+            return query();
+        }
+        case Endpoint::LOAD_GRAPH: {
+            return load_graph();
+        }
+        case Endpoint::GET_GRAPH_STATUS: {
+            return get_graph_status();
+        }
+        case Endpoint::IS_GRAPH_LOADED: {
+            return is_graph_loaded();
+        }
+        case Endpoint::IS_GRAPH_LOADING: {
+            return is_graph_loading();
+        }
+        case Endpoint::LIST_LOADED_GRAPHS: {
+            return list_loaded_graphs();
+        }
+        case Endpoint::LIST_AVAIL_GRAPHS: {
+            return list_avail_graphs();
+        }
+        case Endpoint::LIST_LABELS: {
+            return list_labels();
+        }
+        case Endpoint::LIST_PROPERTY_TYPES: {
+            return list_property_types();
+        }
+        case Endpoint::LIST_EDGE_TYPES: {
+            return list_edge_types();
+        }
+        case Endpoint::LIST_NODES: {
+            return list_nodes();
+        }
+        case Endpoint::GET_NODE_PROPERTIES: {
+            return get_node_properties();
+        }
+        case Endpoint::GET_NEIGHBORS: {
+            return get_neighbors();
+        }
+        case Endpoint::GET_NODES: {
+            return get_nodes();
+        }
+        case Endpoint::GET_NODE_EDGES: {
+            return get_node_edges();
+        }
+        case Endpoint::EXPLORE_NODE_EDGES: {
+            return explore_node_edges();
+        }
+        default: {
+            _writer.writeHttpError(net::HTTP::Status::NOT_FOUND);
+            return;
+        }
+    }
+}
+
+const Graph* DBServerProcessor::getRequestedGraph() const {
+    auto& parser = _connection.getParser<net::HTTPParser<DBURIParser>>();
+    const auto& sysMan = _db.getSystemManager();
+    const auto& httpInfo = parser.getHttpInfo();
+    const std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+
+    return graphNameView.empty()
+             ? sysMan.getDefaultGraph()
+             : sysMan.getGraph(std::string(graphNameView));
+}
+
+const net::HTTP::Info& DBServerProcessor::getHttpInfo() const {
+    auto& parser = _connection.getParser<net::HTTPParser<DBURIParser>>();
+    return parser.getHttpInfo();
+}
+
+void DBServerProcessor::query() {
+    LocalMemory& mem = _threadContext->getLocalMemory();
+    const auto& httpInfo = getHttpInfo();
+
+    const auto graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+    payload.key("data");
+    payload.arr();
+
+    const auto res = _db.query(httpInfo._payload, graphNameView, &mem);
+
+    payload.end();
+
+    if (!res.isOk()) {
+        payload.key("error");
+        payload.value(QueryStatusDescription::value(res.getStatus()));
+        return;
+    }
+
+    payload.key("time");
+    payload.value(res.getTotalTime().count());
+}
+
+void DBServerProcessor::load_graph() {
+    const auto& httpInfo = getHttpInfo();
+    auto& sys = _db.getSystemManager();
+
+    const auto graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+    if (graphNameView.empty()) {
+        _writer.writeHttpError(net::HTTP::Status::BAD_REQUEST);
+        return;
+    }
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const std::string graphName(graphNameView);
+    if (!sys.loadGraph(graphName)) {
+        payload.key("error");
+        // Try to determine the specific error
+        if (sys.getGraph(graphName)) {
+            payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_ALREADY_EXISTS));
+        } else if (sys.isGraphLoading(graphName)) {
+            payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_ALREADY_LOADING));
+        } else {
+            payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_LOAD_ERROR));
+        }
+        return;
+    }
+}
+
+void DBServerProcessor::get_graph_status() {
+    const auto& sysMan = _db.getSystemManager();
+    const auto& httpInfo = getHttpInfo();
+
+    const auto graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+    const std::string graphName(graphNameView);
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = getRequestedGraph();
+
+    payload.key("data");
+    payload.obj();
+
+    payload.key("isLoaded");
+    payload.value(graph != nullptr);
+
+    payload.key("isLoading");
+    payload.value(graph != nullptr && sysMan.isGraphLoading(graphName));
+
+    if (graph != nullptr) {
+        const auto reader = graph->read();
+        payload.key("nodeCount");
+        payload.value(reader.getNodeCount());
+        payload.key("edgeCount");
+        payload.value(reader.getNodeCount());
+    }
+}
+
+void DBServerProcessor::is_graph_loaded() {
+    const auto& httpInfo = getHttpInfo();
+
+    const auto graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+    if (graphNameView.empty()) {
+        _writer.writeHttpError(net::HTTP::Status::BAD_REQUEST);
+        return;
+    }
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = _db.getSystemManager().getGraph(std::string(graphNameView));
+
+    payload.key("data");
+    payload.value(graph != nullptr);
+}
+
+void DBServerProcessor::is_graph_loading() {
+    const auto& httpInfo = getHttpInfo();
+
+    const auto graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+    if (graphNameView.empty()) {
+        _writer.writeHttpError(net::HTTP::Status::BAD_REQUEST);
+        return;
+    }
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const bool isLoading = _db.getSystemManager().isGraphLoading(std::string(graphNameView));
+    payload.key("data");
+    payload.value(isLoading);
+}
+
+void DBServerProcessor::list_loaded_graphs() {
+    LocalMemory& mem = _threadContext->getLocalMemory();
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+    PayloadWriter payload(_writer.getWriter());
+
+    payload.obj();
+    payload.key("data");
+    payload.arr();
+
+    const auto res = _db.query("LIST GRAPHS", "", &mem);
+
+    if (!res.isOk()) {
+        payload.end();
+        payload.key("error");
+        payload.value(QueryStatusDescription::value(res.getStatus()));
+    }
+}
+
+void DBServerProcessor::list_avail_graphs() {
+    std::vector<fs::Path> list;
+    _db.getSystemManager().listAvailableGraphs(list);
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+
+    payload.obj();
+    payload.key("data");
+    payload.arr();
+
+    for (const auto& path : list) {
+        payload.value(path.filename());
+    }
+}
+
+void DBServerProcessor::list_labels() {
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    const auto& reqBody = getHttpInfo()._payload;
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = getRequestedGraph();
+
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    const auto& labels = graph->getMetadata()->labels();
+    LabelSet labelset;
+
+    if (!reqBody.empty()) {
+        try {
+            const auto json = nlohmann::json::parse(reqBody);
+
+            // Labels
+            const auto labelsIt = json.find("currentLabels");
+            if (labelsIt != json.end()) {
+                for (const auto& label : labelsIt.value()) {
+                    const auto& labelName = label.get<std::string>();
+                    const LabelID labelID = labels.get(labelName);
+                    if (!labelID.isValid()) {
+                        continue;
+                    }
+
+                    labelset.set(labelID);
+                }
+            }
+        } catch (const std::exception& e) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+            return;
+        }
+    }
+
+    payload.key("data");
+    payload.obj();
+
+    const GraphReader reader = graph->read();
+    const auto& labelMap = graph->getMetadata()->labels();
+    const size_t labelCount = labelMap.getCount();
+    std::vector<LabelID> remainingLabels;
+
+    payload.key("labels");
+    payload.arr();
+
+    for (size_t i = 0; i < labelCount; i++) {
+        if (labelset.hasLabel(i)) {
+            continue;
+        }
+        remainingLabels.push_back(i);
+
+        payload.value(labelMap.getName((LabelID)i));
+    }
+
+    payload.end();
+
+    payload.key("nodeCounts");
+    payload.arr();
+
+    LabelSet curLabelset = labelset;
+    for (size_t i = 0; i < remainingLabels.size(); i++) {
+        curLabelset = labelset;
+        curLabelset.set(remainingLabels[i]);
+
+        payload.value(reader.getNodeCountMatchingLabelset(curLabelset));
+    }
+}
+
+void DBServerProcessor::list_property_types() {
+    const auto& httpInfo = getHttpInfo();
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+    std::vector<EntityID::Type> nodeIDs;
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = getRequestedGraph();
+
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    if (!httpInfo._payload.empty()) {
+        try {
+            const auto json = nlohmann::json::parse(httpInfo._payload);
+
+            // NodeIDs
+            const auto nodeIDsIt = json.find("nodeIDs");
+            if (nodeIDsIt != json.end()) {
+                nodeIDs = nodeIDsIt->get<std::vector<EntityID::Type>>();
+            }
+        } catch (const std::exception& e) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+        }
+    }
+
+    payload.key("data");
+    payload.arr();
+
+    const auto& propTypes = graph->getMetadata()->propTypes();
+
+    // If no node IDs provided, list all property types
+    if (nodeIDs.empty()) {
+        const size_t propTypeCount = propTypes.getCount();
+        for (size_t i = 0; i < propTypeCount; i++) {
+            payload.value(propTypes.getName((PropertyTypeID)i));
+        }
+        return;
+    }
+
+    const auto reader = graph->read();
+
+    // Else only show the node's property types
+    const size_t propTypeCount = propTypes.getCount();
+    for (PropertyTypeID ptID = 0; ptID < propTypeCount; ptID++) {
+        for (const auto nodeID : nodeIDs) {
+            if (reader.nodeHasProperty(ptID, nodeID)) {
+                payload.value(propTypes.getName((PropertyTypeID)ptID));
+                break;
+            }
+        }
+    }
+}
+
+void DBServerProcessor::list_edge_types() {
+    const auto& httpInfo = getHttpInfo();
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+    std::vector<EntityID::Type> edgeIDs;
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = getRequestedGraph();
+
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    if (!httpInfo._payload.empty()) {
+        try {
+            const auto json = nlohmann::json::parse(httpInfo._payload);
+
+            // EdgeIDs
+            const auto edgeIDsIt = json.find("edgeIDs");
+            if (edgeIDsIt != json.end()) {
+                edgeIDs = edgeIDsIt->get<std::vector<EntityID::Type>>();
+            }
+        } catch (const std::exception& e) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+        }
+    }
+
+    payload.key("data");
+    payload.arr();
+
+    const auto& edgeTypes = graph->getMetadata()->edgeTypes();
+
+    // If no edge IDs provided, list all edge types
+    if (edgeIDs.empty()) {
+        const size_t edgeTypeCount = edgeTypes.getCount();
+        for (size_t i = 0; i < edgeTypeCount; i++) {
+            payload.value(edgeTypes.getName((EdgeTypeID)i));
+        }
+        return;
+    }
+
+    const auto reader = graph->read();
+
+    // Else only show the edges' property types
+    const size_t edgeTypeCount = edgeTypes.getCount();
+    for (EdgeTypeID etID = 0; etID < edgeTypeCount; etID++) {
+        for (const auto edgeID : edgeIDs) {
+            auto currentTypeID = reader.getEdgeTypeID(edgeID);
+            if (etID == currentTypeID) {
+                payload.value(edgeTypes.getName((EdgeTypeID)etID));
+                break;
+            }
+        }
+    }
+}
+
+void DBServerProcessor::list_nodes() {
+    const auto& httpInfo = getHttpInfo();
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+    const Graph* graph = getRequestedGraph();
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    const GraphView view = graph->view();
+    const GraphMetadata* metadata = graph->getMetadata();
+    const LabelMap& labels = metadata->labels();
+    const PropertyTypeMap& propTypes = metadata->propTypes();
+
+    payload.setMetadata(metadata);
+
+    ListNodesExecutor executor(view, payload);
+
+    try {
+        const auto json = nlohmann::json::parse(httpInfo._payload);
+
+        // Labels
+        const auto labelsIt = json.find("labels");
+        if (labelsIt != json.end()) {
+            for (const auto& label : labelsIt.value()) {
+                const auto& labelName = label.get<std::string>();
+                const LabelID labelID = labels.get(labelName);
+                if (!labelID.isValid()) {
+                    continue;
+                }
+
+                executor.addLabel(labelID);
+            }
+        }
+
+        // Skip
+        const auto skipIt = json.find("skip");
+        if (skipIt != json.end()) {
+            executor.setSkip(skipIt.value());
+        }
+
+        // Limit
+        const auto limitIt = json.find("limit");
+        if (limitIt != json.end()) {
+            executor.setLimit(limitIt.value());
+        }
+
+        // Properties
+        const auto propertiesIt = json.find("properties");
+        if (propertiesIt != json.end()) {
+            for (const auto& [type, expr] : propertiesIt->items()) {
+                const PropertyType pType = propTypes.get(type);
+                if (!pType._id.isValid()) {
+                    continue;
+                }
+
+                if (pType._valueType != ValueType::String) {
+                    continue;
+                }
+
+                auto str = expr.get<std::string>();
+                std::transform(str.begin(), str.end(), str.begin(), [](char c) { return std::tolower(c); });
+                executor.addPropertyFilter(pType._id, std::move(str));
+            }
+        }
+
+    } catch (const std::exception& e) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+        return;
+    }
+
+    payload.key("data");
+    payload.obj();
+
+    executor.run();
+
+    payload.end();
+    payload.key("nodeCount");
+    payload.value(executor.nodeCount());
+    payload.key("reachedEnd");
+    payload.value(executor.reachedEnd());
+}
+
+void DBServerProcessor::get_node_properties() {
+    auto& parser = _connection.getParser<net::HTTPParser<DBURIParser>>();
+    LocalMemory& mem = _threadContext->getLocalMemory();
+    const auto& httpInfo = parser.getHttpInfo();
+    const std::string_view reqBody = httpInfo._payload;
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = getRequestedGraph();
+
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    const GraphView view = graph->view();
+
+    ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
+    std::vector<std::string> properties;
+    const auto& propTypes = view.metadata().propTypes();
+
+    try {
+        const auto json = nlohmann::json::parse(reqBody);
+
+        // NodeIDs
+        const auto nodeIDsIt = json.find("nodeIDs");
+        if (nodeIDsIt == json.end()) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::MISSING_PARAM));
+            return;
+        }
+
+        const auto& nodeIDsVec = nodeIDsIt->get<std::vector<EntityID::Type>>();
+        nodeIDs->reserve(nodeIDsVec.size());
+        for (const EntityID::Type nodeID : nodeIDsVec) {
+            nodeIDs->push_back(nodeID);
+        }
+
+        // Property types
+        const auto propsIt = json.find("properties");
+        if (propsIt == json.end()) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::MISSING_PARAM));
+            return;
+        }
+
+        properties = propsIt->get<std::vector<std::string>>();
+        if (properties.empty()) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::MISSING_PARAM));
+            return;
+        }
+    } catch (const std::exception& e) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+        return;
+    }
+
+    payload.key("data");
+    payload.obj();
+
+    const auto reader = view.read();
+    for (const auto& propName : properties) {
+        const auto ptype = propTypes.get(propName);
+        if (!ptype._id.isValid()) {
+            continue;
+        }
+
+        payload.key(propName);
+        payload.obj();
+
+        const auto treat = [&]<SupportedType TypeT> {
+            const auto range = reader.getNodeProperties<TypeT>(ptype._id, nodeIDs);
+            for (auto it = range.begin(); it.isValid(); it.next()) {
+                payload.key(it.getCurrentNodeID());
+                payload.value(it.get());
+            }
+        };
+
+        switch (ptype._valueType) {
+            case db::ValueType::UInt64: {
+                treat.template operator()<types::UInt64>();
+                break;
+            }
+            case db::ValueType::Int64: {
+                treat.template operator()<types::Int64>();
+                break;
+            }
+            case db::ValueType::Double: {
+                treat.template operator()<types::Double>();
+                break;
+            }
+            case db::ValueType::Bool: {
+                treat.template operator()<types::Bool>();
+                break;
+            }
+            case db::ValueType::String: {
+                treat.template operator()<types::String>();
+                break;
+            }
+            case db::ValueType::Invalid:
+            case db::ValueType::_SIZE: {
+                _writer.writeHttpError(net::HTTP::Status::METHOD_NOT_ALLOWED);
+                return;
+            }
+        }
+    }
+}
+
+void DBServerProcessor::get_neighbors() {
+    LocalMemory& mem = _threadContext->getLocalMemory();
+    const auto& httpInfo = getHttpInfo();
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = getRequestedGraph();
+
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    const GraphView view = graph->view();
+
+    ColumnVector<EntityID>* allNodeIDs = mem.alloc<ColumnVector<EntityID>>();
+    ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
+    size_t limitPerNode = std::numeric_limits<size_t>::max();
+
+    try {
+        const auto json = nlohmann::json::parse(httpInfo._payload);
+
+        // NodeIDs
+        const auto nodeIDsIt = json.find("nodeIDs");
+        if (nodeIDsIt == json.end()) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::MISSING_PARAM));
+            return;
+        }
+
+        const auto& vec = nodeIDsIt->get<std::vector<EntityID::Type>>();
+        allNodeIDs->reserve(vec.size());
+        for (const EntityID::Type nodeID : vec) {
+            allNodeIDs->push_back(nodeID);
+        }
+
+        if (auto it = json.find("limitPerNode"); it != json.end()) {
+            limitPerNode = it->get<size_t>();
+        }
+
+    } catch (const std::exception& e) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+        return;
+    }
+
+    payload.key("data");
+    payload.obj();
+
+    const auto reader = view.read();
+    nodeIDs->resize(1); // One node at a time
+
+    for (auto nodeID : *allNodeIDs) {
+        payload.key(nodeID);
+        payload.obj();
+        payload.key("outs");
+        payload.obj();
+        payload.key("edges");
+        payload.obj();
+
+        bool reachedEnd = true;
+
+        (*nodeIDs)[0] = nodeID;
+
+        size_t j = 0;
+        for (const auto& edge : reader.getOutEdges(nodeIDs)) {
+            if (j > limitPerNode) {
+                reachedEnd = false;
+                break;
+            }
+
+            j++;
+
+            payload.key(edge._edgeID);
+            payload.value<EdgeDir::Out>(edge);
+        }
+
+        payload.end(); // edges
+        payload.key("reachedEnd");
+        payload.value(reachedEnd);
+        payload.end(); // outs
+
+        payload.key("ins");
+        payload.obj();
+        payload.key("edges");
+        payload.obj();
+
+        reachedEnd = true;
+        (*nodeIDs)[0] = nodeID;
+
+        j = 0;
+        for (const auto& edge : reader.getInEdges(nodeIDs)) {
+            if (j > limitPerNode) {
+                reachedEnd = false;
+                break;
+            }
+
+            j++;
+
+            payload.key(edge._edgeID);
+            payload.value<EdgeDir::In>(edge);
+        }
+
+        payload.end(); // edges
+        payload.key("reachedEnd");
+        payload.value(reachedEnd);
+        payload.end(); // ins
+        payload.end(); // Node
+    }
+}
+
+void DBServerProcessor::get_nodes() {
+    auto& parser = _connection.getParser<net::HTTPParser<DBURIParser>>();
+    LocalMemory& mem = _threadContext->getLocalMemory();
+    const auto& sysMan = _db.getSystemManager();
+    const auto& httpInfo = parser.getHttpInfo();
+    const std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+    const std::string_view reqBody = httpInfo._payload;
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = graphNameView.empty() ? sysMan.getDefaultGraph() : sysMan.getGraph(std::string(graphNameView));
+
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    payload.setMetadata(graph->getMetadata());
+
+    const GraphView view = graph->view();
+
+    ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
+
+    try {
+        const auto json = nlohmann::json::parse(reqBody);
+
+        // Labels
+        const auto nodeIDsIt = json.find("nodeIDs");
+        if (nodeIDsIt == json.end()) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::MISSING_PARAM));
+            return;
+        }
+
+        const auto& vec = nodeIDsIt->get<std::vector<EntityID::Type>>();
+        nodeIDs->reserve(vec.size());
+        for (const EntityID::Type nodeID : vec) {
+            nodeIDs->push_back(nodeID);
+        }
+    } catch (const std::exception& e) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+        return;
+    }
+
+    const auto reader = view.read();
+    payload.key("data");
+    payload.obj();
+
+    for (const auto nodeID : *nodeIDs) {
+        const NodeView node = reader.getNodeView(nodeID);
+        payload.key(nodeID);
+        payload.value(node);
+    }
+}
+
+void DBServerProcessor::get_node_edges() {
+    LocalMemory& mem = _threadContext->getLocalMemory();
+    const auto& sysMan = _db.getSystemManager();
+    const auto& httpInfo = getHttpInfo();
+    const std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+    const std::string_view reqBody = httpInfo._payload;
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = graphNameView.empty()
+                         ? sysMan.getDefaultGraph()
+                         : sysMan.getGraph(std::string(graphNameView));
+
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    const GraphView view = graph->view();
+    const GraphMetadata* metadata = graph->getMetadata();
+
+    payload.setMetadata(metadata);
+
+    ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
+    size_t limit = 1000;
+
+    try {
+        const auto json = nlohmann::json::parse(reqBody);
+
+        // Labels
+        const auto nodeIDsIt = json.find("nodeIDs");
+        if (nodeIDsIt == json.end()) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::MISSING_PARAM));
+            return;
+        }
+
+        const auto& vec = nodeIDsIt->get<std::vector<EntityID::Type>>();
+        nodeIDs->reserve(vec.size());
+        for (const EntityID::Type nodeID : vec) {
+            nodeIDs->push_back(nodeID);
+        }
+
+        const auto limitIt = json.find("limit");
+        if (limitIt != json.end()) {
+            limit = limitIt.value();
+        }
+
+    } catch (const std::exception& e) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+        return;
+    }
+
+    std::unordered_map<EdgeTypeID, size_t> outCounts;
+    std::unordered_map<EdgeTypeID, size_t> inCounts;
+    const auto reader = view.read();
+    payload.key("data");
+    payload.obj();
+
+    ColumnVector<EntityID> singleNodeID(1);
+
+    for (const EntityID nodeID : *nodeIDs) {
+        outCounts.clear();
+        inCounts.clear();
+        singleNodeID[0] = nodeID;
+        payload.key(nodeID);
+        payload.obj();
+
+        const auto outs = reader.getOutEdges(&singleNodeID);
+        payload.key("outs");
+        payload.arr();
+        for (const EdgeRecord& out : outs) {
+            size_t& count = outCounts[out._edgeTypeID];
+            count++;
+            if (count > limit) {
+                continue;
+            }
+            payload.value(reader.getEdgeView(out._edgeID));
+        }
+        payload.end(); // outs
+
+        const auto ins = reader.getInEdges(&singleNodeID);
+        payload.key("ins");
+        payload.arr();
+        for (const EdgeRecord& in : ins) {
+            size_t& count = inCounts[in._edgeTypeID];
+            count++;
+            if (count > limit) {
+                continue;
+            }
+            payload.value(reader.getEdgeView(in._edgeID));
+        }
+        payload.end(); // outs
+
+        payload.key("outEdgeCounts");
+        payload.obj();
+        for (const auto [edgeTypeID, count] : outCounts) {
+            payload.key(edgeTypeID);
+            payload.value(count);
+        }
+        payload.end(); // outEdgeCounts
+
+        payload.key("inEdgeCounts");
+        payload.obj();
+        for (const auto [edgeTypeID, count] : inCounts) {
+            payload.key(edgeTypeID);
+            payload.value(count);
+        }
+        payload.end(); // inEdgeCounts
+
+        payload.end(); // node
+    }
+
+
+    payload.end();
+}
+
+void DBServerProcessor::explore_node_edges() {
+    const auto& httpInfo = getHttpInfo();
+
+    const auto header = _writer.startHeader(net::HTTP::Status::OK,
+                                            !_connection.isCloseRequired());
+
+    PayloadWriter payload(_writer.getWriter());
+    payload.obj();
+
+    const Graph* graph = getRequestedGraph();
+
+    if (!graph) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        return;
+    }
+
+    const GraphView view = graph->view();
+    const GraphMetadata* metadata = graph->getMetadata();
+    const LabelMap& labels = metadata->labels();
+    const EdgeTypeMap& edgeTypes = metadata->edgeTypes();
+    const PropertyTypeMap& propTypes = metadata->propTypes();
+
+    payload.setMetadata(metadata);
+
+    ExploreNodeEdgesExecutor executor {view, payload};
+
+    try {
+        const auto json = nlohmann::json::parse(httpInfo._payload);
+        // NodeID
+        auto it = json.find("nodeID");
+        if (it == json.end()) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::MISSING_PARAM));
+            return;
+        }
+
+        EntityID nodeID = (size_t)it.value();
+        if (!nodeID.isValid()) {
+            payload.key("error");
+            payload.value(EndpointStatusDescription::value(EndpointStatus::INVALID_NODE_ID));
+            return;
+        }
+
+        executor.setNodeID(nodeID);
+
+        // Labels
+        it = json.find("labels");
+        if (it != json.end()) {
+            for (const auto& label : it.value()) {
+                const auto& labelName = label.get<std::string>();
+                const LabelID labelID = labels.get(labelName);
+                if (!labelID.isValid()) {
+                    continue;
+                }
+
+                executor.addLabel(labelID);
+            }
+        }
+
+        // Skip
+        it = json.find("skip");
+        if (it != json.end()) {
+            executor.setSkip(it.value());
+        }
+
+        // Limit
+        it = json.find("limit");
+        if (it != json.end()) {
+            executor.setLimit(it.value());
+        }
+
+        // Node Properties
+        it = json.find("nodeProperties");
+        if (it != json.end()) {
+            for (const auto& [type, expr] : it->items()) {
+                const PropertyType pType = propTypes.get(type);
+                if (!pType._id.isValid()) {
+                    continue;
+                }
+
+                if (pType._valueType != ValueType::String) {
+                    continue;
+                }
+
+                auto str = expr.get<std::string>();
+                std::transform(str.begin(), str.end(), str.begin(), [](char c) { return std::tolower(c); });
+                executor.addNodePropertyFilter(pType._id, std::move(str));
+            }
+        }
+
+        // Edge Properties
+        it = json.find("edgeProperties");
+        if (it != json.end()) {
+            for (const auto& [type, expr] : it->items()) {
+                const PropertyType pType = propTypes.get(type);
+                if (!pType._id.isValid()) {
+                    continue;
+                }
+
+                if (pType._valueType != ValueType::String) {
+                    continue;
+                }
+
+                auto str = expr.get<std::string>();
+                std::transform(str.begin(), str.end(), str.begin(), [](char c) { return std::tolower(c); });
+                executor.addEdgePropertyFilter(pType._id, std::move(str));
+            }
+        }
+
+        // Edge direction
+        it = json.find("excludeOutgoing");
+        if (it != json.end()) {
+            executor.setExcludeOutgoing(it.value());
+        }
+
+        it = json.find("excludeIncoming");
+        if (it != json.end()) {
+            executor.setExcludeIncoming(it.value());
+        }
+
+        // Edge type
+        it = json.find("edgeTypes");
+        if (it != json.end()) {
+            for (const auto& type : it.value()) {
+                const auto& etName = type.get<std::string>();
+                const EdgeTypeID etID = edgeTypes.get(etName);
+                if (!etID.isValid()) {
+                    continue;
+                }
+
+                executor.addEdgeType(etID);
+            }
+        }
+
+    } catch (const std::exception& e) {
+        payload.key("error");
+        payload.value(EndpointStatusDescription::value(EndpointStatus::COULD_NOT_PARSE_BODY));
+        return;
+    }
+
+    std::unordered_map<EdgeTypeID, size_t> outCounts;
+    std::unordered_map<EdgeTypeID, size_t> inCounts;
+    payload.key("data");
+
+    executor.run();
+}
+

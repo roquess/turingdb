@@ -44,7 +44,7 @@ private:
     Milliseconds _totalTime {0};
 };
 
-using StatusString = EnumToString<QueryStatus::Status>::Create<
+using QueryStatusDescription = EnumToString<QueryStatus::Status>::Create<
     EnumStringPair<QueryStatus::Status::OK, "OK">,
     EnumStringPair<QueryStatus::Status::GRAPH_NOT_FOUND, "GRAPH_NOT_FOUND">,
     EnumStringPair<QueryStatus::Status::PARSE_ERROR, "PARSE_ERROR">,

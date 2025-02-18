@@ -16,6 +16,10 @@ public:
     TuringDB();
     ~TuringDB();
 
+    SystemManager& getSystemManager() {
+        return _systemManager;
+    }
+
     QueryStatus query(std::string_view query,
                       std::string_view graphName,
                       LocalMemory* mem,
