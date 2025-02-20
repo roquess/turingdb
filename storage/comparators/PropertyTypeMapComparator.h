@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstddef>
+#include <stddef.h>
 
-#include "PropertyTypeMap.h"
+#include "types/PropertyTypeMap.h"
 
 namespace db {
 

@@ -42,7 +42,8 @@ set(storage_sources
         writers/DataPartBuilder.cpp
         writers/ConcurrentWriter.cpp
 
-        comparators/DataPartComparator.cpp)
+        comparators/DataPartComparator.cpp
+        comparators/GraphComparator.cpp)
 
 
 add_library(turing_db_storage_s STATIC ${storage_sources})

@@ -1,5 +1,5 @@
 #include "Graph.h"
-#include "DataPartBuilder.h"
+#include "writers/DataPartBuilder.h"
 #include "GraphMetadata.h"
 #include "GraphDumper.h"
 #include "comparators/GraphComparator.h"
@@ -12,7 +12,6 @@
 #include "Neo4j/Neo4JParserConfig.h"
 
 using namespace db;
-using namespace js;
 
 static std::unique_ptr<Graph> createSimpleGraph() {
     auto graph = std::make_unique<Graph>();

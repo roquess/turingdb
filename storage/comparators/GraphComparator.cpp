@@ -1,7 +1,7 @@
 #include "GraphComparator.h"
 
 #include "Graph.h"
-#include "GraphReader.h"
+#include "reader/GraphReader.h"
 #include "DataPartComparator.h"
 #include "GraphMetadataComparator.h"
 

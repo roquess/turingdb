@@ -4,7 +4,7 @@ set(SOURCES     main.cpp)
 turing_sample(${SAMPLE_NAME} ${SOURCES})
 
 target_link_libraries(${SAMPLE_NAME}
-    PRIVATE common_s
-            turing_log_s
-            turing_db2_import_neo4j_s
-            turing_db2_dump_s)
+    PRIVATE turing_db_common_s
+            turing_db_log_s
+            turing_db_import_neo4j_s
+            turing_db_dump_s)
