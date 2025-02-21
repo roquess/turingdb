@@ -118,7 +118,8 @@ bool testGraph(const Graph& graph, const fs::Path& path) {
     fmt::print("- Loading graph from: {}\n", path.c_str());
 
     const auto t0 = Clock::now();
-    auto loadedGraphRes = GraphLoader::load(path);
+    auto loadedGraph = std::make_unique<Graph>();
+    auto loadedGraphRes = GraphLoader::load(loadedGraph.get(), path);
     if (!loadedGraphRes) {
         fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
         return false;
@@ -126,7 +127,6 @@ bool testGraph(const Graph& graph, const fs::Path& path) {
     const auto t1 = Clock::now();
     logt::ElapsedTime(duration<Seconds>(t0, t1), "s");
 
-    const std::unique_ptr<Graph> loadedGraph = std::move(loadedGraphRes.value());
 
     if (!GraphComparator::same(graph, *loadedGraph)) {
         fmt::print("Loaded graph is not the same as the one dumped\n");
