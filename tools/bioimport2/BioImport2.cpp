@@ -217,9 +217,9 @@ int main(int argc, const char** argv) {
     argParser.add_argument("-cmp")
         .help("Compare Loaded Graphs")
         .nargs(0)
-        .action([&](const auto&) {
-            cmpEnabled = true;
-        });
+        .default_value(false)
+        .implicit_value(true)
+        .store_into(cmpEnabled);
 
     toolInit.init(argc, argv);
 
