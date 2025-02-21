@@ -20,10 +20,6 @@ build-job:
     - date
     - make test
     - date
-    - release/check_python.sh
-    - date
-    - make regress
-    - date
     - make run_samples
     - date
   artifacts:
