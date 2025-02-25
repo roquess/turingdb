@@ -6,7 +6,8 @@ set(common_sources
         TuringDBException.cpp
         TimerStat.cpp
         PerfStat.cpp
-        FileUtils.cpp)
+        FileUtils.cpp
+        Demonology.cpp)
 
 add_library(turing_db_common_s STATIC ${common_sources})
 if (${DEBUG_BUILD})
