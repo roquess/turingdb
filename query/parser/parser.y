@@ -23,7 +23,6 @@ class PathPattern;
 class EntityPattern;
 class TypeConstraint;
 class ExprConstraint;
-class NameConstraint;
 class VarExpr;
 class VarList;
 class Expr;
@@ -45,7 +44,6 @@ class SelectProjection;
 #include "PathPattern.h"
 #include "Expr.h"
 #include "TypeConstraint.h"
-#include "NameConstraint.h"
 #include "ExprConstraint.h"
 #include "SelectProjection.h"
 
@@ -119,7 +117,6 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %type<db::EntityPattern*> node_pattern
 %type<db::EntityPattern*> edge_pattern
 %type<db::EntityPattern*> entity_pattern
-%type<db::NameConstraint*> name_constraint
 %type<db::TypeConstraint*> type_constraint
 %type<db::ExprConstraint*> expr_constraint
 %type<db::VarExpr*> entity_var
@@ -210,7 +207,7 @@ path_pattern: node_pattern
             }
             | path_pattern MINUS MINUS node_pattern
             {
-                auto edge = EntityPattern::create(ctxt, nullptr, nullptr, nullptr, nullptr);
+                auto edge = EntityPattern::create(ctxt, nullptr, nullptr, nullptr);
                 $1->addElement(edge);
                 $1->addElement($4);
                 $$ = $1;
@@ -230,30 +227,20 @@ node_pattern: OPAR entity_pattern CPAR { $$ = $2; }
 edge_pattern: entity_pattern { $$ = $1; }
             ;
 
-entity_pattern: entity_var type_constraint name_constraint expr_constraint
+entity_pattern: entity_var type_constraint expr_constraint
               {
-                  $$ = EntityPattern::create(ctxt, $1, $2, $3, $4);
+                  $$ = EntityPattern::create(ctxt, $1, $2, $3);
               }
-              | entity_var type_constraint name_constraint
-              { $$ = EntityPattern::create(ctxt, $1, $2, $3, nullptr); }
-              | entity_var type_constraint expr_constraint 
-              { $$ = EntityPattern::create(ctxt, $1, $2, nullptr, $3); }
-              | entity_var type_constraint 
-              { $$ = EntityPattern::create(ctxt, $1, $2, nullptr, nullptr); }
-              | entity_var name_constraint
-              { $$ = EntityPattern::create(ctxt, $1, nullptr, $2, nullptr); }
+              | entity_var type_constraint
+              { $$ = EntityPattern::create(ctxt, $1, $2, nullptr); }
               | entity_var expr_constraint
-              { $$ = EntityPattern::create(ctxt, $1, nullptr, nullptr, $2); }
-              | entity_var
-              { $$ = EntityPattern::create(ctxt, $1, nullptr, nullptr, nullptr); }
-              | type_constraint name_constraint expr_constraint
-              { $$ = EntityPattern::create(ctxt, nullptr, $1, $2, $3); }
-              | type_constraint name_constraint
-              { $$ = EntityPattern::create(ctxt, nullptr, $1, $2, nullptr); }
+              { $$ = EntityPattern::create(ctxt, $1, nullptr, $2); }
+              | entity_var 
+              { $$ = EntityPattern::create(ctxt, $1, nullptr, nullptr); }
               | type_constraint expr_constraint
-              { $$ = EntityPattern::create(ctxt, nullptr, $1, nullptr, $2); }
-              | type_constraint
-              { $$ = EntityPattern::create(ctxt, nullptr, $1, nullptr, nullptr); }
+              { $$ = EntityPattern::create(ctxt, nullptr, $1, $2); }
+              | type_constraint 
+              { $$ = EntityPattern::create(ctxt, nullptr, $1, nullptr); }
               ;
 
 entity_var: ID COLON { $$ = VarExpr::create(ctxt, $1); }
@@ -268,10 +255,6 @@ type_constraint: type_constraint COMMA ID {
                                               constr->addType(VarExpr::create(ctxt, $1));
                                               $$ = constr;
                                           }
-               ;
-
-name_constraint: OSBRACK ID CSBRACK { $$ = NameConstraint::create(ctxt, $2); }
-               | OSBRACK STRING_CONSTANT CSBRACK { $$ = NameConstraint::create(ctxt, $2); }
                ;
 
 expr_constraint: OBRACK expr CBRACK { $$ = ExprConstraint::create(ctxt, $2); }

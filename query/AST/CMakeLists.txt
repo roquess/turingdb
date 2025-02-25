@@ -6,7 +6,6 @@ set(AST_sources
         ExprConstraint.cpp 
         FromTarget.cpp 
         PathPattern.cpp 
-        NameConstraint.cpp
         QueryCommand.cpp 
         SelectField.cpp 
         TypeConstraint.cpp 

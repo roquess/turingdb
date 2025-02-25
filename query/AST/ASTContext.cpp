@@ -7,7 +7,6 @@
 #include "Expr.h"
 #include "TypeConstraint.h"
 #include "ExprConstraint.h"
-#include "NameConstraint.h"
 #include "VarDecl.h"
 #include "SelectProjection.h"
 
@@ -39,10 +38,6 @@ ASTContext::~ASTContext() {
     }
 
     for (TypeConstraint* constr : _typeConstraints) {
-        delete constr;
-    }
-
-    for (NameConstraint* constr : _nameConstraints) {
         delete constr;
     }
 
@@ -89,10 +84,6 @@ void ASTContext::addExpr(Expr* expr) {
 
 void ASTContext::addTypeConstraint(TypeConstraint* constr) {
     _typeConstraints.push_back(constr);
-}
-
-void ASTContext::addNameConstraint(NameConstraint* constr) {
-    _nameConstraints.push_back(constr);
 }
 
 void ASTContext::addExprConstraint(ExprConstraint* constr) {

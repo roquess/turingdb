@@ -10,7 +10,6 @@ class FromTarget;
 class PathPattern;
 class EntityPattern;
 class TypeConstraint;
-class NameConstraint;
 class ExprConstraint;
 class Expr;
 class VarDecl;
@@ -24,7 +23,6 @@ public:
     friend PathPattern;
     friend EntityPattern;
     friend TypeConstraint;
-    friend NameConstraint;
     friend ExprConstraint;
     friend Expr;
     friend VarDecl;
@@ -54,7 +52,6 @@ private:
     std::vector<PathPattern*> _pathPatterns;
     std::vector<EntityPattern*> _entityPatterns;
     std::vector<TypeConstraint*> _typeConstraints;
-    std::vector<NameConstraint*> _nameConstraints;
     std::vector<ExprConstraint*> _exprConstraints;
     std::vector<Expr*> _expr;
     std::vector<VarDecl*> _varDecls;
@@ -66,7 +63,6 @@ private:
     void addPathPattern(PathPattern* pattern);
     void addEntityPattern(EntityPattern* pattern);
     void addTypeConstraint(TypeConstraint* constr);
-    void addNameConstraint(NameConstraint* constr);
     void addExprConstraint(ExprConstraint* constr);
     void addExpr(Expr* expr);
     void addVarDecl(VarDecl* decl);
