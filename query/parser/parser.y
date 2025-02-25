@@ -157,10 +157,10 @@ cmd: select_cmd { ctxt->setRoot($1); }
    | explain_cmd { ctxt->setRoot($1); }
    ;
 
-select_cmd: SELECT select_fields FROM from_target {
+select_cmd: FROM from_target SELECT select_fields {
                                                        auto cmd = SelectCommand::create(ctxt); 
-                                                       cmd->setProjection($2);
-                                                       cmd->addFromTarget($4);
+                                                       cmd->setProjection($4);
+                                                       cmd->addFromTarget($2);
                                                        $$ = cmd;
                                                   }
           ;
