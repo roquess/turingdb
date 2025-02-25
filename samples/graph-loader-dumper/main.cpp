@@ -95,9 +95,8 @@ static std::unique_ptr<Graph> createSimpleGraph() {
     builder->addEdgeProperty<types::String>(e11, name._id, "Maxime -> Paddle");
     builder->addEdgeProperty<types::String>(e12, name._id, "Martina -> Cooking");
 
-    JobSystem jobSystem;
-    jobSystem.initialize();
-    builder->commit(jobSystem);
+    auto jobSystem = JobSystem::create();
+    builder->commit(*jobSystem);
     return graph;
 }
 
@@ -159,14 +158,13 @@ int main() {
         // Dump pole
         const fs::Path path {SAMPLE_DIR "/pole"};
 
-        JobSystem jobSystem;
-        jobSystem.initialize();
+        auto jobSystem = JobSystem::create();
 
         auto graph = std::make_unique<Graph>();
         const std::string turingHome = std::getenv("TURING_HOME");
         const fs::Path jsonDir = fs::Path {turingHome} / "neo4j" / "pole-db";
 
-        if (!Neo4jImporter::importJsonDir(jobSystem,
+        if (!Neo4jImporter::importJsonDir(*jobSystem,
                                           graph.get(),
                                           db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                           db::json::neo4j::Neo4JParserConfig::edgeCountLimit,

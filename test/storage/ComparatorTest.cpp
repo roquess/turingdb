@@ -16,11 +16,11 @@ namespace rv = ranges::views;
 class ComparatorTest : public TuringTest {
 protected:
     void initialize() override {
-        _jobSystem.initialize();
+        _jobSystem = JobSystem::create();
     }
 
     void terminate() override {
-        _jobSystem.terminate();
+        _jobSystem->terminate();
     }
 
     [[nodiscard]] std::unique_ptr<Graph> createDB1() {
@@ -63,7 +63,7 @@ protected:
         change->addEdgeProperty<types::UInt64>(k1, since._id, 3);
         change->addEdgeProperty<types::UInt64>(k2, since._id, 3);
 
-        change->commit(_jobSystem);
+        change->commit(*_jobSystem);
 
         return graph;
     }
@@ -114,12 +114,12 @@ protected:
         change->addEdgeProperty<types::UInt64>(k1, since._id, 3);
         change->addEdgeProperty<types::UInt64>(k2, since._id, 3);
 
-        change->commit(_jobSystem);
+        change->commit(*_jobSystem);
 
         return graph;
     }
 
-    db::JobSystem _jobSystem;
+    std::unique_ptr<db::JobSystem> _jobSystem;
 };
 
 

@@ -38,8 +38,7 @@ protected:
         }
         FileUtils::createDirectory(_outDir);
         LogSetup::setupLogFileBacked(_logPath.string());
-        _jobSystem = std::make_unique<db::JobSystem>();
-        _jobSystem->initialize();
+        _jobSystem = db::JobSystem::create();
 
         _graph = new Graph();
         PropertyTypeID uint64ID = 0;

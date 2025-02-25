@@ -2,6 +2,8 @@
 #include <sstream>
 #include <iostream>
 
+#include <spdlog/spdlog.h>
+
 #include "TuringDB.h"
 #include "Graph.h"
 #include "reader/GraphReader.h"
@@ -18,24 +20,28 @@ int main(int argc, const char** argv) {
     ToolInit toolInit("simpledb");
     toolInit.init(argc, argv);
 
-    const auto& outDir = fs::Path(toolInit.getOutputsDir());
+    const auto& outDir = fs::Path(toolInit.getOutputsDir())/"simpledb";
 
     TuringDB db;
 
-    std::cout << "* Create company graph\n";
+    spdlog::info("Create company graph");
     SimpleGraph::createSimpleGraph(db);
 
     const Graph* defaultGraph = db.getSystemManager().getDefaultGraph();
 
-    std::cout << "* Graph created\n";
+    spdlog::info("Graph created");
     { 
         std::stringstream sstream;
         GraphReport::getReport(defaultGraph->read(), sstream);
         std::cout << sstream.str() << '\n';
     }
 
-    std::cout << "* Dump graph\n";
+    spdlog::info("Dump graph into {}", outDir.c_str());
     const auto dumpRes = GraphDumper::dump(*defaultGraph, outDir);
+    if (!dumpRes) {
+        spdlog::error("{}", dumpRes.error().fmtMessage());
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }

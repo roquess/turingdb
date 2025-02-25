@@ -41,6 +41,7 @@ void SimpleGraph::createSimpleGraph(TuringDB& db) {
     const EntityID luc = builder->addNode(getLabelSet({"Person", "SoftwareEngineering"}));
     const EntityID maxime = builder->addNode(getLabelSet({"Person", "Bioinformatics"}));
     const EntityID martina = builder->addNode(getLabelSet({"Person", "Bioinformatics"}));
+    const EntityID suhas = builder->addNode(getLabelSet({"Person", "Bioinformatics"}));
 
     // Interests
     const EntityID ghosts = builder->addNode(getLabelSet({"Interest"}));
@@ -74,6 +75,7 @@ void SimpleGraph::createSimpleGraph(TuringDB& db) {
     builder->addNodeProperty<types::String>(luc, name._id, "Luc");
     builder->addNodeProperty<types::String>(maxime, name._id, "Maxime");
     builder->addNodeProperty<types::String>(martina, name._id, "Martina");
+    builder->addNodeProperty<types::String>(suhas, name._id, "Suhas");
     builder->addNodeProperty<types::String>(ghosts, name._id, "Ghosts");
     builder->addNodeProperty<types::String>(bio, name._id, "Bio");
     builder->addNodeProperty<types::String>(cooking, name._id, "Cooking");
