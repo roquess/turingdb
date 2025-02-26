@@ -242,10 +242,8 @@ int main(int argc, const char** argv) {
     }
 
     std::vector<Graph> graphs(importData.size());
-    JobSystem jobSystem(nThreads);
+    auto jobSystem = JobSystem::create(nThreads);
     auto t0 = Clock::now();
-
-    jobSystem.initialize();
 
     auto graphIt = graphs.begin();
     auto dataIt = importData.begin();
@@ -257,15 +255,15 @@ int main(int argc, const char** argv) {
             case ImportType::BIN: {
                 if (auto res = GraphLoader::load(&(*graphIt), fs::Path(dataIt->path)); !res) {
                     spdlog::error("Failed To Load Graph: {}", res.error().fmtMessage());
-                    jobSystem.terminate();
+                    jobSystem->terminate();
                     return EXIT_FAILURE;
                 }
                 break;
             }
             case ImportType::GML: {
                 GMLImporter parser;
-                if (!parser.importFile(jobSystem, &(*graphIt), FileUtils::Path(dataIt->path))) {
-                    jobSystem.terminate();
+                if (!parser.importFile(*jobSystem, &(*graphIt), FileUtils::Path(dataIt->path))) {
+                    jobSystem->terminate();
                     return EXIT_FAILURE;
                 }
                 break;
@@ -276,12 +274,12 @@ int main(int argc, const char** argv) {
                 args._writeFiles = true;
                 args._dumpFilePath = dataIt->path;
 
-                if (!Neo4jImporter::importDumpFile(jobSystem,
+                if (!Neo4jImporter::importDumpFile(*jobSystem,
                                                    &(*graphIt),
                                                    db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                    db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                    args)) {
-                    jobSystem.terminate();
+                    jobSystem->terminate();
                     return EXIT_FAILURE;
                 }
                 break;
@@ -293,12 +291,12 @@ int main(int argc, const char** argv) {
                 args._writeFilesOnly = true;
                 args._dumpFilePath = dataIt->path;
 
-                if (!Neo4jImporter::importDumpFile(jobSystem,
+                if (!Neo4jImporter::importDumpFile(*jobSystem,
                                                    &(*graphIt),
                                                    db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                    db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                    args)) {
-                    jobSystem.terminate();
+                    jobSystem->terminate();
                     return EXIT_FAILURE;
                 }
                 break;
@@ -314,12 +312,12 @@ int main(int argc, const char** argv) {
                 args._writeFilesOnly = false;
                 args._writeFiles = true;
 
-                if (!Neo4jImporter::importUrl(jobSystem,
+                if (!Neo4jImporter::importUrl(*jobSystem,
                                               &(*graphIt),
                                               db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                               db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                               args)) {
-                    jobSystem.terminate();
+                    jobSystem->terminate();
                     return EXIT_FAILURE;
                 }
                 break;
@@ -329,12 +327,12 @@ int main(int argc, const char** argv) {
                 args._jsonDir = dataIt->path;
                 args._workDir = toolInit.getOutputsDir();
 
-                if (!Neo4jImporter::importJsonDir(jobSystem,
+                if (!Neo4jImporter::importJsonDir(*jobSystem,
                                                   &(*graphIt),
                                                   db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                   db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                   args)) {
-                    jobSystem.terminate();
+                    jobSystem->terminate();
                     return EXIT_FAILURE;
                 }
                 break;
@@ -355,7 +353,7 @@ int main(int argc, const char** argv) {
             const fs::Path path {filePath};
             if (auto res = GraphDumper::dump((*graphIt), path); !res) {
                 spdlog::error("Failed To Dump Graph at {} err: {}", filePath, res.error().fmtMessage());
-                jobSystem.terminate();
+                jobSystem->terminate();
                 return EXIT_FAILURE;
             }
         }
@@ -363,14 +361,14 @@ int main(int argc, const char** argv) {
         if (cmpEnabled && graphIt != graphs.begin()) {
             if (!GraphComparator::same(*graphIt, *(graphIt - 1))) {
                 spdlog::error("Graph loaded from:{} is not the same as the one loaded from: {}\n", dataIt->path, (dataIt - 1)->path);
-                jobSystem.terminate();
+                jobSystem->terminate();
                 return EXIT_FAILURE;
             }
             spdlog::info("Graph loaded from:{} is the same as the one loaded from: {}\n", dataIt->path, (dataIt - 1)->path);
         }
     }
 
-    jobSystem.terminate();
+    jobSystem->terminate();
     float dur = duration<Seconds>(t0, Clock::now());
     logt::ElapsedTime(dur, "s");
 

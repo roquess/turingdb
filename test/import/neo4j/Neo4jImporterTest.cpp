@@ -38,8 +38,7 @@ protected:
         PerfStat::init(_perfPath);
 
         _graph = std::make_unique<Graph>();
-        _jobSystem = std::make_unique<db::JobSystem>();
-        _jobSystem->initialize();
+        _jobSystem = JobSystem::create();
     }
 
     void TearDown() override {
@@ -106,8 +105,6 @@ TEST_F(Neo4jImporterTest, Simple) {
 }
 
 TEST_F(Neo4jImporterTest, General) {
-    JobSystem jobSystem;
-    jobSystem.initialize();
     auto t0 = Clock::now();
     auto t1 = Clock::now();
 
@@ -117,7 +114,7 @@ TEST_F(Neo4jImporterTest, General) {
     ASSERT_TRUE(FileUtils::exists(jsonDir));
 
     t0 = Clock::now();
-    const bool res = Neo4jImporter::importJsonDir(jobSystem,
+    const bool res = Neo4jImporter::importJsonDir(*_jobSystem,
                                                   _graph.get(),
                                                   db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                   db::json::neo4j::Neo4JParserConfig::edgeCountLimit,

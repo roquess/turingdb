@@ -6,6 +6,7 @@
 #include "TuringShell.h"
 #include "TuringServer.h"
 #include "DBServerConfig.h"
+#include "Demonology.h"
 
 #include "ToolInit.h"
 
@@ -17,8 +18,14 @@ int main(int argc, const char** argv) {
     auto& argParser = toolInit.getArgParser();
 
     bool noServer = false;
+    unsigned port = 0;
+    bool nodemon = false;
     argParser.add_argument("-noserver")
              .store_into(noServer);
+    argParser.add_argument("-p")
+             .store_into(port);
+    argParser.add_argument("-nodemon")
+             .store_into(nodemon);
 
     toolInit.init(argc, argv);
 
@@ -30,6 +37,12 @@ int main(int argc, const char** argv) {
         shell.startLoop();
     } else {
         DBServerConfig config;
+        config.setPort(port);
+
+        if (!nodemon) {
+            Demonology::demonize();
+        }
+
         TuringServer server(config, turingDB);
         server.start();
     }

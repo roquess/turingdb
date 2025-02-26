@@ -18,7 +18,7 @@ namespace rv = rg::views;
 
 DumpResult<void> GraphDumper::dump(const Graph& graph, const fs::Path& path) {
     if (path.exists()) {
-        return DumpError::result(DumpErrorType::GRAPH_ALREADY_EXISTS);
+        return DumpError::result(DumpErrorType::GRAPH_DIR_ALREADY_EXISTS);
     }
 
     // Create directory

@@ -37,8 +37,7 @@ protected:
         FileUtils::createDirectory(_outDir);
         LogSetup::setupLogFileBacked(_logPath.string());
 
-        _jobSystem = std::make_unique<JobSystem>();
-        _jobSystem->initialize();
+        _jobSystem = JobSystem::create();
         _graph = new Graph();
 
         /* FIRST BUFFER */
