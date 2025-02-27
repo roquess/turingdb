@@ -20,6 +20,7 @@ build-job:
   - apt-get install openssh-client
   - echo "HOST *" > ~/.ssh/config
   - echo "StrictHostKeyChecking no" >> ~/.ssh/config
+  - curl https://gitlab.turing.bio/turing/turing-common.git
   script:
     - date
     - source /turing/setup.sh
