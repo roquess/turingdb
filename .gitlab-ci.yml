@@ -2,8 +2,8 @@ default:
   image: 799170964164.dkr.ecr.eu-west-2.amazonaws.com/turing:latest
 
 variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-  GIT_SUBMODULE_FORCE_HTTPS: "true"
+  #  GIT_SUBMODULE_STRATEGY: recursive
+  #GIT_SUBMODULE_FORCE_HTTPS: "true"
 
 stages:
   - build
