@@ -13,6 +13,7 @@ build-job:
   - git fetch --prune --all  # Fetch fresh refs, removing old ones
   - git branch -r            # List remote branches for verification
   script:
+    - git submodule update
     - date
     - source /turing/setup.sh
     - date
