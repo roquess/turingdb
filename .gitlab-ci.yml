@@ -2,8 +2,8 @@ default:
   image: 799170964164.dkr.ecr.eu-west-2.amazonaws.com/turing:latest
 
 variables:
-  #  GIT_SUBMODULE_STRATEGY: recursive
-  #GIT_SUBMODULE_FORCE_HTTPS: "true"
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_FORCE_HTTPS: "true"
 
 stages:
   - build
@@ -17,10 +17,8 @@ build-job:
   - git fetch --prune --all  # Fetch fresh refs, removing old ones
   - git branch -r            # List remote branches for verification
   - mkdir -p $HOME/.ssh
-  - apt-get install openssh-client
   - echo "HOST *" > ~/.ssh/config
   - echo "StrictHostKeyChecking no" >> ~/.ssh/config
-  - curl https://gitlab.turing.bio/turing/turing-common.git
   script:
     - date
     - source /turing/setup.sh
