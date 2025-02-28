@@ -224,26 +224,26 @@ node_pattern: OPAR entity_pattern CPAR { $$ = $2; }
             | entity_pattern { $$ = $1; }
             ;
 
-edge_pattern: entity_pattern { $$ = $1; }
+edge_pattern: OSBRACK entity_pattern CSBRACK { $$ = $2; }
             ;
 
-entity_pattern: entity_var type_constraint expr_constraint
+entity_pattern: entity_var COLON type_constraint expr_constraint
               {
-                  $$ = EntityPattern::create(ctxt, $1, $2, $3);
+                  $$ = EntityPattern::create(ctxt, $1, $3, $4);
               }
-              | entity_var type_constraint
-              { $$ = EntityPattern::create(ctxt, $1, $2, nullptr); }
-              | entity_var expr_constraint
-              { $$ = EntityPattern::create(ctxt, $1, nullptr, $2); }
+              | entity_var COLON type_constraint
+              { $$ = EntityPattern::create(ctxt, $1, $3, nullptr); }
+              | entity_var COLON expr_constraint
+              { $$ = EntityPattern::create(ctxt, $1, nullptr, $3); }
               | entity_var 
               { $$ = EntityPattern::create(ctxt, $1, nullptr, nullptr); }
-              | type_constraint expr_constraint
-              { $$ = EntityPattern::create(ctxt, nullptr, $1, $2); }
-              | type_constraint 
-              { $$ = EntityPattern::create(ctxt, nullptr, $1, nullptr); }
+              | COLON type_constraint expr_constraint
+              { $$ = EntityPattern::create(ctxt, nullptr, $2, $3); }
+              | COLON type_constraint
+              { $$ = EntityPattern::create(ctxt, nullptr, $2, nullptr); }
               ;
 
-entity_var: ID COLON { $$ = VarExpr::create(ctxt, $1); }
+entity_var: ID { $$ = VarExpr::create(ctxt, $1); }
           ;
 
 type_constraint: type_constraint COMMA ID {
