@@ -16,7 +16,10 @@ public:
 
     Executor();
     ~Executor();
-    bool run(ExecutionContext* ctxt, Pipeline* pipeline);
+
+    // Run the pipeline
+    // May throw PipelineException
+    void run(ExecutionContext* ctxt, Pipeline* pipeline);
 
 private:
     PipelineJumpTable _activateTbl;

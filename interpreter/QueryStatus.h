@@ -20,8 +20,9 @@ public:
     };
 
     QueryStatus() = default;
-    explicit QueryStatus(Status status)
+    QueryStatus(Status status, const std::string& errorMsg = "")
         : _status(status)
+        , _errorMsg(errorMsg)
     {
     }
 
