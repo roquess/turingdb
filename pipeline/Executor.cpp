@@ -18,13 +18,8 @@ void Executor::init() {
     runImpl(nullptr, nullptr, true);
 }
 
-bool Executor::run(ExecutionContext* ctxt, Pipeline* pipeline) {
-    try {
-        runImpl(ctxt, pipeline);
-        return true;
-    } catch (const PipelineException&) {
-        return false;
-    }
+void Executor::run(ExecutionContext* ctxt, Pipeline* pipeline) {
+    runImpl(ctxt, pipeline);
 }
 
 void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {

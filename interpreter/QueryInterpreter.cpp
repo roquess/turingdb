@@ -9,6 +9,7 @@
 #include "QueryPlanner.h"
 #include "ExecutionContext.h"
 #include "Executor.h"
+#include "PipelineException.h"
 
 #include "Time.h"
 
@@ -60,8 +61,10 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
 
     // Execute
     ExecutionContext execCtxt(_sysMan, view);
-    if (!_executor->run(&execCtxt, planner.getPipeline())) {
-        return QueryStatus(QueryStatus::Status::EXEC_ERROR);
+    try {
+        _executor->run(&execCtxt, planner.getPipeline());
+    } catch (const PipelineException& e) {
+        return QueryStatus(QueryStatus::Status::EXEC_ERROR, e.what());
     }
 
     const auto end = Clock::now();
