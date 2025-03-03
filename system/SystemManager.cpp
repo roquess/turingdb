@@ -132,17 +132,14 @@ std::optional<GraphFileType> SystemManager::getGraphFileType(const fs::Path& gra
     }
 
     const auto typeFilePath = graphPath/"type";
-    std::ifstream typeFile(typeFilePath.get());
-    if (!typeFile.is_open()) {
+    std::string typeName;
+    if (!FileUtils::readContent(typeFilePath.get(), typeName)) {
         return {};
     }
 
-    std::string typeName;
-    typeFile >> typeName;
-
-    if (typeName == "NEO4J") {
+    if (typeName == GraphFileTypeDescription::value(GraphFileType::NEO4J_JSON)) {
         return GraphFileType::NEO4J_JSON;
-    } else if (typeName == "BINARY") {
+    } else if (typeName == GraphFileTypeDescription::value(GraphFileType::BINARY)) {
         return GraphFileType::BINARY;
     }
 
