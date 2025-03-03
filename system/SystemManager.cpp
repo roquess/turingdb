@@ -9,6 +9,7 @@
 #include "Neo4jImporter.h"
 #include "GMLImporter.h"
 #include "JobSystem.h"
+#include "GraphLoader.h"
 #include "FileUtils.h"
 #include "Panic.h"
 
@@ -108,21 +109,63 @@ bool SystemManager::loadGraph(const std::string& graphName) {
         return false;
     }
 
-    if (graphPath.extension() == ".gml") {
-        // Store graph to keep track of it while it is loading
-        if (!_graphLoadStatus.addLoadingGraph(graphName)) {
-            return false;
-        }
-
-        return loadGmlDB(graphName, graphPath);
+    const auto fileType = getGraphFileType(graphPath);
+    if (!fileType) {
+        return false;
     }
 
-    // Store graph to keep track of it while it is loading
+    switch (*fileType) {
+        case GraphFileType::GML:
+            return loadGmlDB(graphName, graphPath);
+        case GraphFileType::NEO4J_JSON:
+            return loadNeo4jJsonDB(graphName, graphPath);
+        case GraphFileType::BINARY:
+            return loadBinaryDB(graphName, graphPath);
+        default:
+            return false;
+    }
+}
+
+std::optional<GraphFileType> SystemManager::getGraphFileType(const fs::Path& graphPath) {
+    if (graphPath.extension() == ".gml") {
+        return GraphFileType::GML;
+    }
+
+    const auto typeFilePath = graphPath/"type";
+    std::ifstream typeFile(typeFilePath.get());
+    if (!typeFile.is_open()) {
+        return {};
+    }
+
+    std::string typeName;
+    typeFile >> typeName;
+
+    if (typeName == "NEO4J") {
+        return GraphFileType::NEO4J_JSON;
+    } else if (typeName == "BINARY") {
+        return GraphFileType::BINARY;
+    }
+
+    return {};
+}
+
+bool SystemManager::loadBinaryDB(const std::string& graphName,
+                                const fs::Path& dbPath) {
     if (!_graphLoadStatus.addLoadingGraph(graphName)) {
         return false;
     }
 
-    return loadNeo4jJsonDB(graphName, graphPath);
+    Graph* graph = new Graph();
+
+    if (!GraphLoader::load(graph, dbPath)) {
+        _graphLoadStatus.removeLoadingGraph(graphName);
+        delete graph;
+        return false;
+    }
+
+    addGraph(graph, graphName);
+    _graphLoadStatus.removeLoadingGraph(graphName);
+    return true;
 }
 
 bool SystemManager::isGraphLoading(const std::string& graphName) const {
@@ -131,6 +174,10 @@ bool SystemManager::isGraphLoading(const std::string& graphName) const {
 
 bool SystemManager::loadNeo4jJsonDB(const std::string& graphName,
                                     const fs::Path& dbPath) {
+    if (!_graphLoadStatus.addLoadingGraph(graphName)) {
+        return false;
+    }
+
     Graph* graph = new Graph();
     auto jobsystem = JobSystem::create();
 
@@ -155,6 +202,10 @@ bool SystemManager::loadNeo4jJsonDB(const std::string& graphName,
 
 bool SystemManager::loadGmlDB(const std::string& graphName,
                               const fs::Path& dbPath) {
+    if (!_graphLoadStatus.addLoadingGraph(graphName)) {
+        return false;
+    }
+
     // Load graph
     Graph* graph = new Graph();
     auto jobsystem = JobSystem::create();
