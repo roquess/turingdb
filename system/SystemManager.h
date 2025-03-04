@@ -2,10 +2,12 @@
 
 #include <unordered_map>
 #include <vector>
+#include <optional>
 
 #include "RWSpinLock.h"
 #include "GraphLoadStatus.h"
 #include "Path.h"
+#include "GraphFileType.h"
 
 namespace db {
 
@@ -50,7 +52,9 @@ private:
 
     bool loadNeo4jJsonDB(const std::string& graphName, const fs::Path& dbPath);
     bool loadGmlDB(const std::string& graphName, const fs::Path& dbPath);
+    bool loadBinaryDB(const std::string& graphName, const fs::Path& dbPath);
     bool addGraph(Graph* graph, const std::string& name);
+    std::optional<GraphFileType> getGraphFileType(const fs::Path& graphPath);
 };
 
 }
