@@ -3,6 +3,9 @@ function(add_db_query_gtest exe_name cpp_file)
     target_link_libraries(${exe_name}
         PRIVATE turing_db_query_parser_s
                 turing_db_query_AST_s
+                turing_db_system_s
+                turing_db_memory_s
+                turing_db_interpreter_s
                 gtest_main)
     gtest_discover_tests(${exe_name}
         DISCOVERY_TIMEOUT 10
