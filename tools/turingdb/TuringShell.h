@@ -22,7 +22,7 @@ public:
     ~TuringShell();
 
     void setGraphName(const std::string& graphName) { _graphName = graphName; }
-
+    void setQuiet(bool quiet) { _quiet = quiet; }
     void startLoop();
 
     void printHelp() const;
@@ -31,6 +31,7 @@ private:
     TuringDB& _turingDB;
     LocalMemory* _mem {nullptr};
     std::string _graphName {"default"};
+    bool _quiet {false};
     std::unordered_map<std::string_view, Command> _localCommands;
 
     void processLine(std::string& line);

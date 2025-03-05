@@ -87,6 +87,10 @@ void changeDBCommand(const TuringShell::Command::Words& args, TuringShell& shell
     shell.setGraphName(graphName);
 }
 
+void quietCommand(const TuringShell::Command::Words& args, TuringShell& shell) {
+    shell.setQuiet(true);
+}
+
 size_t getBlockRowCount(const Block& block) {
     size_t rowCount = 0;
     for (const Column* column : block.columns()) {
@@ -106,6 +110,7 @@ TuringShell::TuringShell(TuringDB& turingDB, LocalMemory* mem)
     _localCommands.emplace("exit", Command{quitCommand});
     _localCommands.emplace("help", Command{helpCommand});
     _localCommands.emplace("cd", Command{changeDBCommand});
+    _localCommands.emplace("quiet", Command{quietCommand});
 }
 
 TuringShell::~TuringShell() {
@@ -178,8 +183,7 @@ void TuringShell::processLine(std::string& line) {
     // Execute query
     tabulate::Table table;
 
-    const auto res = _turingDB.query(line, _graphName, _mem,
-    [&table](const Block& block) {
+    auto queryCallback = [&table](const Block& block) {
         const size_t rowCount = getBlockRowCount(block);
 
         for (size_t i = 0; i < rowCount; ++i) {
@@ -206,7 +210,10 @@ void TuringShell::processLine(std::string& line) {
 
             table.add_row(std::move(rs));
         }
-    });
+    };
+
+    const auto res = _quiet ? _turingDB.query(line, _graphName, _mem) :
+                              _turingDB.query(line, _graphName, _mem, queryCallback);
 
     if (!res.isOk()) {
         if (res.hasErrorMessage()) {
@@ -219,7 +226,9 @@ void TuringShell::processLine(std::string& line) {
 
     std::cout << "Query executed in " << res.getTotalTime().count() << " ms.\n";
 
-    std::cout << table << "\n";
+    if (!_quiet) {
+        std::cout << table << "\n";
+    }
 }
 
 void TuringShell::printHelp() const {
