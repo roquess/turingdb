@@ -693,7 +693,20 @@ void QueryPlanner::planProjection(const SelectCommand* select) {
 
     for (const SelectField* field : projection->selectFields()) {
         if (field->isAll()) {
-            _output->append(_transformData->getOutput());
+            for (const FromTarget* target : select->fromTargets()) {
+                const PathPattern* pattern = target->getPattern();
+                for (EntityPattern* entityPattern : pattern->elements()) {
+                    if (VarExpr* var = entityPattern->getVar()) {
+                        if (VarDecl* decl = var->getDecl()) {
+                            ColumnIDs* columnIDs = decl->getColumn()->cast<ColumnIDs>();
+                            if (!columnIDs) {
+                                continue;
+                            }
+                            _output->addColumn(columnIDs);
+                        }
+                    }
+                }
+            }
             continue;
         }
 
