@@ -347,6 +347,7 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
 
     const auto indices = _mem->alloc<ColumnVector<size_t>>();
     const auto targets = _mem->alloc<ColumnIDs>();
+    const auto edges = _mem->alloc<ColumnIDs>();
 
     const auto& typeConstrNames = edgeTypeConstr->getTypeNames();
     if (typeConstrNames.size() != 1) {
@@ -372,21 +373,23 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
     _transformData->createStep(indices);
 
     edgeWriteInfo._targetNodes = targets;
+    edgeWriteInfo._edges = edges;
 
     const VarExpr* edgeVar = edge->getVar();
     VarDecl* edgeDecl = edgeVar ? edgeVar->getDecl() : nullptr;
     const bool mustWriteEdges = edgeDecl && edgeDecl->isSelected();
     if (mustWriteEdges) {
-        const auto edges = _mem->alloc<ColumnIDs>();
-        edgeWriteInfo._edges = edges;
         _transformData->addColumn(edges, edgeDecl);
     }
     
     _pipeline->add<GetOutEdgesStep>(_result, edgeWriteInfo);
 
+    const auto edgeTypeIDs= _mem->alloc<ColumnVector<EdgeTypeID>>();
+    _pipeline->add<GetEdgeTypeIDStep>(edges, edgeTypeIDs);
+
     // Filter out edges that do not match the edge type ID
-    const auto edgeTypeIDs = _mem->alloc<ColumnConst<EdgeTypeID>>();
-    edgeTypeIDs->set(edgeTypeID);
+    const auto filterEdgeTypeID = _mem->alloc<ColumnConst<EdgeTypeID>>();
+    filterEdgeTypeID->set(edgeTypeID);
 
     const auto filterIndices = _mem->alloc<ColumnVector<size_t>>();
     auto& filter = _pipeline->add<FilterStep>(filterIndices).get<FilterStep>();
@@ -395,8 +398,8 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
     filter.addExpression(FilterStep::Expression {
         ._op = ColumnOperator::OP_EQUAL,
         ._mask = filterMask,
-        ._lhs = edgeWriteInfo._edges,
-        ._rhs = edgeTypeIDs
+        ._lhs = edgeTypeIDs,
+        ._rhs = filterEdgeTypeID
     });
 
     _transformData->createStep(filterIndices);
@@ -437,6 +440,7 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
 
     const auto indices = _mem->alloc<ColumnVector<size_t>>();
     const auto targets = _mem->alloc<ColumnIDs>();
+    const auto edges = _mem->alloc<ColumnIDs>();
 
     const auto& typeConstrNames = edgeTypeConstr->getTypeNames();
     if (typeConstrNames.size() != 1) {
@@ -472,13 +476,12 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     _transformData->createStep(indices);
 
     edgeWriteInfo._targetNodes = targets;
+    edgeWriteInfo._edges = edges;
 
     const VarExpr* edgeVar = edge->getVar();
     VarDecl* edgeDecl = edgeVar ? edgeVar->getDecl() : nullptr;
     const bool mustWriteEdges = edgeDecl && edgeDecl->isSelected();
     if (mustWriteEdges) {
-        const auto edges = _mem->alloc<ColumnIDs>();
-        edgeWriteInfo._edges = edges;
         _transformData->addColumn(edges, edgeDecl);
     }
     
@@ -488,9 +491,13 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     const auto nodesLabelSetIDs = _mem->alloc<ColumnVector<LabelSetID>>();
     _pipeline->add<GetLabelSetIDStep>(targets, nodesLabelSetIDs);
 
+    // Get Edge Type IDs of target nodes
+    const auto edgeTypeIDs= _mem->alloc<ColumnVector<EdgeTypeID>>();
+    _pipeline->add<GetEdgeTypeIDStep>(edges, edgeTypeIDs);
+
     // Filter out edges that do not match the edge type ID
-    const auto edgeTypeIDs = _mem->alloc<ColumnConst<EdgeTypeID>>();
-    edgeTypeIDs->set(edgeTypeID);
+    const auto filterEdgeTypeID = _mem->alloc<ColumnConst<EdgeTypeID>>();
+    filterEdgeTypeID->set(edgeTypeID);
 
     const auto filterIndices = _mem->alloc<ColumnVector<size_t>>();
     auto& filter = _pipeline->add<FilterStep>(filterIndices).get<FilterStep>();
@@ -499,8 +506,8 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     filter.addExpression(FilterStep::Expression {
         ._op = ColumnOperator::OP_EQUAL,
         ._mask = filterMaskEdges,
-        ._lhs = edgeWriteInfo._edges,
-        ._rhs = edgeTypeIDs
+        ._lhs = edgeTypeIDs,
+        ._rhs = filterEdgeTypeID
     });
 
     ColumnMask* filterMaskNodes = nullptr;
