@@ -105,6 +105,7 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token <std::string> STRING_CONSTANT
 %token <std::string> INT_CONSTANT
 %token <std::string> DECIMAL_CONSTANT
+%token <std::string> BOOLEAN_CONSTANT
 
 %type<db::QueryCommand*> query_unit
 %type<db::QueryCommand*> cmd
@@ -356,6 +357,7 @@ simple_expr: OPAR expr CPAR   { $$ = $2; }
            | STRING_CONSTANT  { $$ = nullptr; }
            | INT_CONSTANT     { $$ = nullptr; }
            | DECIMAL_CONSTANT { $$ = nullptr; }
+           | BOOLEAN_CONSTANT { $$ = nullptr; }
            ;
 
 %%
