@@ -13,7 +13,7 @@ class QueryParserTest : public ::testing::Test {
     }
 };
 
-TEST_F(QueryParserTest, selectPath1) {
+TEST_F(QueryParserTest, matchPath1) {
     ASTContext ctxt;
     QueryParser parser(&ctxt);
 
@@ -49,7 +49,7 @@ TEST_F(QueryParserTest, selectPath1) {
     ASSERT_TRUE(parser.parse(query13));
 }
 
-TEST_F(QueryParserTest, selectSingle1) {
+TEST_F(QueryParserTest, matchSingle1) {
     ASTContext ctxt;
     QueryParser parser(&ctxt);
 
@@ -73,7 +73,7 @@ TEST_F(QueryParserTest, selectSingle1) {
     ASSERT_TRUE(parser.parse(query8));
 }
 
-TEST_F(QueryParserTest, selectProperties) {
+TEST_F(QueryParserTest, matchProperties) {
     ASTContext ctxt;
     QueryParser parser(&ctxt);
 

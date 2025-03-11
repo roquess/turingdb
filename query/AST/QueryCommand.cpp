@@ -11,20 +11,21 @@ void QueryCommand::registerCmd(ASTContext* ctxt) {
 
 // ReturnCommand
 
-ReturnCommand::ReturnCommand()
-    : _declContext(std::make_unique<DeclContext>()) {
+MatchCommand::MatchCommand()
+    : _declContext(std::make_unique<DeclContext>()) 
+{
 }
 
-ReturnCommand::~ReturnCommand() {
+MatchCommand::~MatchCommand() {
 }
 
-ReturnCommand* ReturnCommand::create(ASTContext* ctxt) {
-    ReturnCommand* returnCmd = new ReturnCommand();
-    returnCmd->registerCmd(ctxt);
-    return returnCmd;
+MatchCommand* MatchCommand::create(ASTContext* ctxt) {
+    MatchCommand* matchCmd = new MatchCommand();
+    matchCmd->registerCmd(ctxt);
+    return matchCmd;
 }
 
-void ReturnCommand::addMatchTarget(MatchTarget* matchTarget) {
+void MatchCommand::addMatchTarget(MatchTarget* matchTarget) {
     _matchTargets.push_back(matchTarget);
 }
 

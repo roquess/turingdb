@@ -13,7 +13,7 @@ using namespace db;
 
 namespace {
 
-void returnAllVariables(ReturnCommand* cmd) {
+void returnAllVariables(MatchCommand* cmd) {
     for (const MatchTarget* target : cmd->matchTargets()) {
         const PathPattern* pattern = target->getPattern();
         for (EntityPattern* entityPattern : pattern->elements()) {
@@ -26,10 +26,11 @@ void returnAllVariables(ReturnCommand* cmd) {
     }
 }
 
-} // namespace
+}
 
 QueryAnalyzer::QueryAnalyzer(ASTContext* ctxt)
-    : _ctxt(ctxt) {
+    : _ctxt(ctxt) 
+{
 }
 
 QueryAnalyzer::~QueryAnalyzer() {
@@ -37,28 +38,28 @@ QueryAnalyzer::~QueryAnalyzer() {
 
 bool QueryAnalyzer::analyze(QueryCommand* cmd) {
     switch (cmd->getKind()) {
-        case QueryCommand::Kind::RETURN_COMMAND:
-            return analyzeReturn(static_cast<ReturnCommand*>(cmd));
-            break;
+        case QueryCommand::Kind::MATCH_COMMAND:
+            return analyzeMatch(static_cast<MatchCommand*>(cmd));
+        break;
 
         case QueryCommand::Kind::CREATE_GRAPH_COMMAND:
             return analyzeCreateGraph(static_cast<CreateGraphCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::LIST_GRAPH_COMMAND:
             return true;
-            break;
+        break;
 
         case QueryCommand::Kind::LOAD_GRAPH_COMMAND:
             return analyzeLoadGraph(static_cast<LoadGraphCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::EXPLAIN_COMMAND:
             return analyzeExplain(static_cast<ExplainCommand*>(cmd));
-            break;
+        break;
 
         default:
-            return false;
+        return false;
     }
 
     return true;
@@ -84,7 +85,7 @@ bool QueryAnalyzer::analyzeCreateGraph(CreateGraphCommand* cmd) {
     return true;
 }
 
-bool QueryAnalyzer::analyzeReturn(ReturnCommand* cmd) {
+bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
     ReturnProjection* proj = cmd->getProjection();
     if (!proj) {
         return false;

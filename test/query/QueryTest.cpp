@@ -172,7 +172,7 @@ TEST_F(QueryTest, EdgeMatching) {
     ASSERT_TRUE(res);
   });
 }
-TEST_F(QueryTest, SelectAll) {
+TEST_F(QueryTest, MatchAll) {
   const std::string query1 = "MATCH n return *";
   const std::string query2 = "MATCH n--m return *";
 

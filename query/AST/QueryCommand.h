@@ -16,7 +16,7 @@ public:
     friend ASTContext;
 
     enum class Kind {
-        RETURN_COMMAND = 0,
+        MATCH_COMMAND = 0,
         CREATE_GRAPH_COMMAND,
         LIST_GRAPH_COMMAND,
         LOAD_GRAPH_COMMAND,
@@ -31,15 +31,15 @@ protected:
     void registerCmd(ASTContext* ctxt);
 };
 
-class ReturnCommand : public QueryCommand {
+class MatchCommand : public QueryCommand {
 public:
     using MatchTargets = std::vector<MatchTarget*>;
 
-    static ReturnCommand* create(ASTContext* ctxt);
+    static MatchCommand* create(ASTContext* ctxt);
 
     DeclContext* getDeclContext() const { return _declContext.get(); }
 
-    Kind getKind() const override { return Kind::RETURN_COMMAND; }
+    Kind getKind() const override { return Kind::MATCH_COMMAND; }
 
     ReturnProjection* getProjection() const { return _proj; }
     const MatchTargets& matchTargets() const { return _matchTargets; }
@@ -52,8 +52,8 @@ private:
     ReturnProjection* _proj {nullptr};
     MatchTargets _matchTargets;
 
-    ReturnCommand();
-    ~ReturnCommand() override;
+    MatchCommand();
+    ~MatchCommand() override;
 };
 
 class CreateGraphCommand : public QueryCommand {

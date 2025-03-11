@@ -48,8 +48,8 @@ bool QueryPlanner::plan(const QueryCommand* query) {
     const auto kind = query->getKind();
 
     switch (kind) {
-        case QueryCommand::Kind::RETURN_COMMAND:
-            return planReturn(static_cast<const ReturnCommand*>(query));
+        case QueryCommand::Kind::MATCH_COMMAND:
+            return planMatch(static_cast<const MatchCommand*>(query));
 
         case QueryCommand::Kind::CREATE_GRAPH_COMMAND:
             return planCreateGraph(static_cast<const CreateGraphCommand*>(query));
@@ -69,10 +69,10 @@ bool QueryPlanner::plan(const QueryCommand* query) {
     }
 }
 
-bool QueryPlanner::planReturn(const ReturnCommand* returnCmd) {
-    const auto& matchTargets = returnCmd->matchTargets();
+bool QueryPlanner::planMatch(const MatchCommand* matchCmd) {
+    const auto& matchTargets = matchCmd->matchTargets();
     if (matchTargets.size() != 1) {
-        spdlog::error("Unsupported RETURN queries with more than one target");
+        spdlog::error("Unsupported MATCH queries with more than one target");
         return false;
     }
 
@@ -92,7 +92,7 @@ bool QueryPlanner::planReturn(const ReturnCommand* returnCmd) {
 
     planPath(pathElements);
     planTransformStep();
-    planProjection(returnCmd);
+    planProjection(matchCmd);
     planOutputLambda();
 
     // Add END step
@@ -684,12 +684,12 @@ bool QueryPlanner::planLoadGraph(const LoadGraphCommand* loadCmd) {
     return true;
 }
 
-void QueryPlanner::planProjection(const ReturnCommand* returnCmd) {
-    const auto& projection = returnCmd->getProjection();
+void QueryPlanner::planProjection(const MatchCommand* matchCmd) {
+    const auto& projection = matchCmd->getProjection();
 
     for (const ReturnField* field : projection->returnFields()) {
         if (field->isAll()) {
-            for (const MatchTarget* target : returnCmd->matchTargets()) {
+            for (const MatchTarget* target : matchCmd->matchTargets()) {
                 const PathPattern* pattern = target->getPattern();
                 for (EntityPattern* entityPattern : pattern->elements()) {
                     if (VarExpr* var = entityPattern->getVar()) {

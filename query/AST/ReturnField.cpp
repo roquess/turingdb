@@ -8,8 +8,7 @@ ReturnField::ReturnField()
 {
 }
 
-ReturnField::~ReturnField()
-{
+ReturnField::~ReturnField(){
 }
 
 ReturnField* ReturnField::create(ASTContext* ctxt) {

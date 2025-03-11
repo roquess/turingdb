@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "QueryCommand.h"
 #include "columns/ColumnIDs.h"
 #include "labels/LabelSet.h"
 #include "VectorHash.h"
@@ -68,7 +69,7 @@ private:
                               const LabelSet* targetLabelSet);
 
     // Planning functions
-    bool planReturn(const ReturnCommand* returnCmd);
+    bool planMatch(const MatchCommand* matchCmd);
     void planPath(const std::vector<EntityPattern*>& path);
     void planScanNodes(const EntityPattern* entity);
     void planExpandEdge(const EntityPattern* edge, const EntityPattern* target);
@@ -90,7 +91,7 @@ private:
     bool planCreateGraph(const CreateGraphCommand* createCmd);
     bool planListGraph(const ListGraphCommand* listCmd);
     bool planLoadGraph(const LoadGraphCommand* loadCmd);
-    void planProjection(const ReturnCommand* returnCmd);
+    void planProjection(const MatchCommand* matchCmd);
     void planPropertyProjection(ColumnIDs* columnIDs,
                                 const std::string& memberName);
     void planOutputLambda();

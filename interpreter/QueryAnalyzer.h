@@ -7,7 +7,7 @@ namespace db {
 
 class ASTContext;
 class QueryCommand;
-class ReturnCommand;
+class MatchCommand;
 class CreateGraphCommand;
 class DeclContext;
 class EntityPattern;
@@ -25,7 +25,7 @@ private:
     ASTContext* _ctxt {nullptr};
     uint64_t _nextNewVarID {0};
 
-    bool analyzeReturn(ReturnCommand* cmd);
+    bool analyzeMatch(MatchCommand* cmd);
     bool analyzeCreateGraph(CreateGraphCommand* cmd);
     bool analyzeLoadGraph(LoadGraphCommand* cmd);
     bool analyzeEntityPattern(DeclContext* declContext, EntityPattern* entity);

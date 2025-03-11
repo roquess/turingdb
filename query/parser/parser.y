@@ -109,7 +109,7 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %type<db::QueryCommand*> query_unit
 %type<db::QueryCommand*> cmd
 
-%type<db::QueryCommand*> return_cmd
+%type<db::QueryCommand*> match_cmd
 %type<db::ReturnProjection*> return_fields
 %type<db::ReturnField*> return_field
 %type<db::MatchTarget*> match_target
@@ -149,15 +149,15 @@ query_unit: cmd { $$ = $1; }
           | error { ctxt->setError(true); }
           ;
           
-cmd: return_cmd { ctxt->setRoot($1); }
+cmd: match_cmd { ctxt->setRoot($1); }
    | create_graph_cmd { ctxt->setRoot($1); }
    | list_graph_cmd { ctxt->setRoot($1); }
    | load_graph_cmd { ctxt->setRoot($1); }
    | explain_cmd { ctxt->setRoot($1); }
    ;
 
-return_cmd: MATCH match_target RETURN return_fields {
-                                                       auto cmd = ReturnCommand::create(ctxt); 
+match_cmd: MATCH match_target RETURN return_fields {
+                                                       auto cmd = MatchCommand::create(ctxt); 
                                                        cmd->setProjection($4);
                                                        cmd->addMatchTarget($2);
                                                        $$ = cmd;
