@@ -906,7 +906,9 @@ void DBServerProcessor::get_node_edges() {
     payload.setMetadata(metadata);
 
     ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
-    size_t limit = 1000;
+    std::unordered_map<EdgeTypeID, size_t> outEdgeTypeLimits;
+    std::unordered_map<EdgeTypeID, size_t> inEdgeTypeLimits;
+    size_t defaultLimit = 10;
 
     try {
         const auto json = nlohmann::json::parse(reqBody);
@@ -925,9 +927,35 @@ void DBServerProcessor::get_node_edges() {
             nodeIDs->push_back(nodeID);
         }
 
-        const auto limitIt = json.find("limit");
-        if (limitIt != json.end()) {
-            limit = limitIt.value();
+        const auto defaultLimitIt = json.find("defaultLimit");
+        if (defaultLimitIt != json.end()) {
+            defaultLimit = defaultLimitIt->get<size_t>();
+        }
+
+        const auto outLimitIt = json.find("limitByOutEdgeType");
+        if (outLimitIt != json.end()) {
+            for (const auto& item : *outLimitIt) {
+                const EdgeTypeID etID = item.at(0).get<EdgeTypeID::Type>();
+                if (!etID.isValid()) {
+                    continue;
+                }
+
+                const size_t edgeLimit = item.at(1).get<size_t>();
+                outEdgeTypeLimits[etID] = edgeLimit;
+            }
+        }
+
+        const auto inLimitIt = json.find("limitByInEdgeType");
+        if (inLimitIt != json.end()) {
+            for (const auto& item : *inLimitIt) {
+                const EdgeTypeID etID = item.at(0).get<EdgeTypeID::Type>();
+                if (!etID.isValid()) {
+                    continue;
+                }
+
+                const size_t edgeLimit = item.at(1).get<size_t>();
+                inEdgeTypeLimits[etID] = edgeLimit;
+            }
         }
 
     } catch (const std::exception& e) {
@@ -955,9 +983,12 @@ void DBServerProcessor::get_node_edges() {
         payload.key("outs");
         payload.arr();
         for (const EdgeRecord& out : outs) {
-            size_t& count = outCounts[out._edgeTypeID];
-            count++;
-            if (count > limit) {
+            size_t& currentCount = outCounts[out._edgeTypeID];
+            const size_t limit = outEdgeTypeLimits.contains(out._edgeTypeID)
+                                   ? outEdgeTypeLimits.at(out._edgeTypeID)
+                                   : defaultLimit;
+            currentCount++;
+            if (currentCount > limit) {
                 continue;
             }
             payload.value(reader.getEdgeView(out._edgeID));
@@ -968,9 +999,12 @@ void DBServerProcessor::get_node_edges() {
         payload.key("ins");
         payload.arr();
         for (const EdgeRecord& in : ins) {
-            size_t& count = inCounts[in._edgeTypeID];
-            count++;
-            if (count > limit) {
+            size_t& currentCount = inCounts[in._edgeTypeID];
+            const size_t limit = inEdgeTypeLimits.contains(in._edgeTypeID)
+                                   ? inEdgeTypeLimits.at(in._edgeTypeID)
+                                   : defaultLimit;
+            currentCount++;
+            if (currentCount > limit) {
                 continue;
             }
             payload.value(reader.getEdgeView(in._edgeID));
