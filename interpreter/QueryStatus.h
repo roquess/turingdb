@@ -32,6 +32,8 @@ public:
 
     bool isOk() const { return _status == Status::OK; }
 
+    operator bool() const { return isOk(); }
+
     bool hasErrorMessage() const { return !_errorMsg.empty(); }
     const std::string& getError() const { return _errorMsg; }
     void setError(const std::string& error) { _errorMsg = error; }
