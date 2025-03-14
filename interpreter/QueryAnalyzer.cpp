@@ -10,6 +10,7 @@
 #include "ReturnField.h"
 #include "ReturnProjection.h"
 #include "VarDecl.h"
+#include "BioAssert.h"
 
 using namespace db;
 namespace rv = ranges::views;
@@ -100,25 +101,20 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
         const PathPattern* pattern = target->getPattern();
         const auto& elements = pattern->elements();
 
-        if (elements.size() == 1) {
-            EntityPattern* entityPattern = elements[0];
-            entityPattern->setKind(DeclKind::NODE_DECL);
-            if (!analyzeEntityPattern(declContext, entityPattern)) {
-                return false;
-            }
-        } else {
-            for (auto triple : elements | rv::chunk(3)) {
-                EntityPattern* node = triple[0];
-                EntityPattern* edge = triple[1];
-                EntityPattern* target = triple[2];
+        EntityPattern* entityPattern = elements[0];
+        entityPattern->setKind(DeclKind::NODE_DECL);
+        if (!analyzeEntityPattern(declContext, entityPattern)) {
+            return false;
+        }
 
-                node->setKind(DeclKind::NODE_DECL);
+        if (elements.size() >= 2) {
+            bioassert(elements.size() >= 3);
+            for (auto triple : elements | rv::drop(1) | rv::chunk(2)) {
+                EntityPattern* edge = triple[0];
+                EntityPattern* target = triple[1];
+
                 edge->setKind(DeclKind::EDGE_DECL);
                 target->setKind(DeclKind::NODE_DECL);
-
-                if (!analyzeEntityPattern(declContext, node)) {
-                    return false;
-                }
 
                 if (!analyzeEntityPattern(declContext, edge)) {
                     return false;
