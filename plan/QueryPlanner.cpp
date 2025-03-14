@@ -721,13 +721,11 @@ void QueryPlanner::planProjection(const MatchCommand* matchCmd) {
     case ValueType::Type: {                                                        \
         auto propValues = _mem->alloc<ColumnOptVector<types::Type::Primitive>>();  \
         if (declKind == DeclKind::NODE_DECL) {                                     \
-            spdlog::info("Plan node property projection for type {}", #Type);       \
             using StepType = GetNodeProperty##Type##Step;                          \
             _pipeline->add<StepType>(columnIDs,                                    \
                                      propType,                                     \
                                      propValues);                                  \
         } else if (declKind == DeclKind::EDGE_DECL) {                              \
-            spdlog::info("Plan edge property projection for type {}", #Type);       \
             using StepType = GetEdgeProperty##Type##Step;                          \
             _pipeline->add<StepType>(columnIDs,                                    \
                                      propType,                                     \
