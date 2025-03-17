@@ -1,5 +1,7 @@
 #include "QueryAnalyzer.h"
 
+#include <range/v3/view.hpp>
+
 #include "DeclContext.h"
 #include "Expr.h"
 #include "MatchTarget.h"
@@ -8,8 +10,10 @@
 #include "ReturnField.h"
 #include "ReturnProjection.h"
 #include "VarDecl.h"
+#include "BioAssert.h"
 
 using namespace db;
+namespace rv = ranges::views;
 
 namespace {
 
@@ -95,9 +99,30 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
     DeclContext* declContext = cmd->getDeclContext();
     for (const MatchTarget* target : cmd->matchTargets()) {
         const PathPattern* pattern = target->getPattern();
-        for (EntityPattern* entityPattern : pattern->elements()) {
-            if (!analyzeEntityPattern(declContext, entityPattern)) {
-                return false;
+        const auto& elements = pattern->elements();
+
+        EntityPattern* entityPattern = elements[0];
+        entityPattern->setKind(DeclKind::NODE_DECL);
+        if (!analyzeEntityPattern(declContext, entityPattern)) {
+            return false;
+        }
+
+        if (elements.size() >= 2) {
+            bioassert(elements.size() >= 3);
+            for (auto triple : elements | rv::drop(1) | rv::chunk(2)) {
+                EntityPattern* edge = triple[0];
+                EntityPattern* target = triple[1];
+
+                edge->setKind(DeclKind::EDGE_DECL);
+                target->setKind(DeclKind::NODE_DECL);
+
+                if (!analyzeEntityPattern(declContext, edge)) {
+                    return false;
+                }
+
+                if (!analyzeEntityPattern(declContext, target)) {
+                    return false;
+                }
             }
         }
     }
@@ -141,7 +166,7 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
     }
 
     // Create the variable declaration in the scope of the command
-    VarDecl* decl = VarDecl::create(_ctxt, declContext, var->getName());
+    VarDecl* decl = VarDecl::create(_ctxt, declContext, var->getName(), entity->getKind());
     if (!decl) {
         return false;
     }
