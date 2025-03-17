@@ -24,6 +24,8 @@ class EntityPattern;
 class TypeConstraint;
 class ExprConstraint;
 class VarExpr;
+class BinExpr;
+class ExprConst;
 class VarList;
 class Expr;
 class ReturnProjection;
@@ -121,6 +123,9 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %type<db::EntityPattern*> edge_entity_pattern
 %type<db::TypeConstraint*> type_constraint
 %type<db::ExprConstraint*> expr_constraint
+%type<db::BinExpr*> prop_equals_expr
+%type<db::ExprConstraint*> prop_expr_constraint
+%type<db::ExprConst*> prop_expr_constant
 %type<db::VarExpr*> entity_var
 
 %type<db::QueryCommand*> create_graph_cmd
@@ -259,18 +264,18 @@ edge_entity_pattern: entity_var COLON ID expr_constraint
               }
               ;
 
-entity_pattern: entity_var COLON type_constraint expr_constraint
+entity_pattern: entity_var COLON type_constraint OBRACK prop_expr_constraint CBRACK
               {
-                  $$ = EntityPattern::create(ctxt, $1, $3, $4);
+                  $$ = EntityPattern::create(ctxt, $1, $3, $5);
               }
               | entity_var COLON type_constraint
               { $$ = EntityPattern::create(ctxt, $1, $3, nullptr); }
-              | entity_var COLON expr_constraint
-              { $$ = EntityPattern::create(ctxt, $1, nullptr, $3); }
+              | entity_var COLON OBRACK prop_expr_constraint CBRACK
+              { $$ = EntityPattern::create(ctxt, $1, nullptr, $4); }
               | entity_var 
               { $$ = EntityPattern::create(ctxt, $1, nullptr, nullptr); }
-              | COLON type_constraint expr_constraint
-              { $$ = EntityPattern::create(ctxt, nullptr, $2, $3); }
+              | COLON type_constraint OBRACK prop_expr_constraint CBRACK
+              { $$ = EntityPattern::create(ctxt, nullptr, $2, $4); }
               | COLON type_constraint
               { $$ = EntityPattern::create(ctxt, nullptr, $2, nullptr); }
               ;
@@ -289,8 +294,45 @@ type_constraint: type_constraint COMMA ID {
                                           }
                ;
 
-expr_constraint: OBRACK expr CBRACK { $$ = ExprConstraint::create(ctxt, $2); }
+prop_expr_constraint : prop_expr_constraint COMMA prop_equals_expr { 
+                                                            $1->addExpr($3);
+                                                            $$ = $1; 
+                                                        }
+         | prop_equals_expr                             {
+                                                            auto ExprConstraint = ExprConstraint::create(ctxt);
+                                                            ExprConstraint->addExpr($1);
+                                                            $$ = ExprConstraint;
+                                                        }
+         ;
+
+prop_equals_expr: ID EQUAL prop_expr_constant { $$ = BinExpr::create(ctxt, VarExpr::create(ctxt,$1),$3, BinExpr::OpType::OP_EQUAL); }
+          | ID NOT_EQUAL prop_expr_constant { $$ = nullptr; }
+          | ID COLON prop_expr_constant { $$ = BinExpr::create(ctxt, VarExpr::create(ctxt,$1),$3, BinExpr::OpType::OP_EQUAL); }
+          ;
+
+prop_expr_constant: STRING_CONSTANT  { $$ = StringExprConst::create(ctxt, $1); }
+                     | DECIMAL_CONSTANT { $$ =  DoubleExprConst::create(ctxt, std::stod($1));}
+                     | INT_CONSTANT     { 
+                                if($1[0] == '-'){
+                                    $$ = IntExprConst::create(ctxt, std::stoi($1)); 
+                                }
+                                else{
+                                    $$ = UintExprConst::create(ctxt, static_cast<uint64_t>(std::stoul($1))); 
+                                }
+                              }
+                     | BOOLEAN_CONSTANT { 
+                                if($1[0] == 't' || $1[0] == 'T'){
+                                    $$ = BoolExprConst::create(ctxt, true); 
+                                }
+                                else{
+                                    $$ = BoolExprConst::create(ctxt, false); 
+                                }
+                            }
+                     ;
+
+expr_constraint: OBRACK expr CBRACK { $$ = ExprConstraint::create(ctxt); }
                ;
+
 
 // CREATE GRAPH
 create_graph_cmd: CREATE GRAPH ID { $$ = CreateGraphCommand::create(ctxt, $3); }

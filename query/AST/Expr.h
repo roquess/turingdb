@@ -1,5 +1,8 @@
 #pragma once
 
+#include "ExprConstraint.h"
+#include "types/PropertyType.h"
+
 #include <string>
 
 namespace db {
@@ -10,9 +13,10 @@ class VarDecl;
 class Expr {
 public:
     friend ASTContext;
-
-    enum Kind {
-        EK_VAR_EXPR    
+enum Kind {
+        EK_VAR_EXPR,
+        EK_CONST_EXPR,
+        EK_BIN_EXPR
     };
 
     virtual Kind getKind() const = 0;
@@ -43,4 +47,123 @@ private:
     ~VarExpr();
 };
 
+class ExprConst : public Expr {
+public:
+    Expr::Kind getKind() const override { return EK_CONST_EXPR; }
+    db::ValueType getType() const { return _type; }
+
+protected: 
+    db::ValueType _type {db::ValueType::Invalid};
+    ExprConst(db::ValueType t):
+        _type(t)
+    {
+    };
+    virtual ~ExprConst();
+
+};
+
+class BoolExprConst : public ExprConst {
+public:
+    static BoolExprConst* create(ASTContext* ctxt, bool val);
+
+    db::CustomBool& getVal() { return _val;};
+
+private:
+    db::CustomBool _val ;
+
+    BoolExprConst(bool val)
+        : ExprConst(db::ValueType::Bool),
+        _val(val)
+    {
+    }
+
+    ~BoolExprConst() = default;
+};
+
+class StringExprConst : public ExprConst {
+public:
+    static StringExprConst* create(ASTContext* ctxt, const std::string& val);
+
+    const std::string& getVal() { return _val;};
+private:
+    const std::string _val;
+
+    StringExprConst(const std::string& val)
+    : ExprConst(db::ValueType::String),
+    _val(val)
+    {
+    }
+
+    ~StringExprConst();
+
+};
+
+class UintExprConst : public ExprConst {
+public:
+    static UintExprConst* create(ASTContext* ctxt, uint64_t val);
+
+    uint64_t getVal() { return _val;};
+private:
+    uint64_t _val {0};
+
+    UintExprConst(uint64_t val)
+        : ExprConst(db::ValueType::UInt64),
+        _val(val)
+    {
+    };
+    ~UintExprConst() = default;
+};
+
+class IntExprConst : public ExprConst {
+public:
+    static IntExprConst* create(ASTContext* ctxt, int64_t val);
+
+    int64_t getVal() { return _val;};
+private:
+    int64_t _val {0};
+
+    IntExprConst(int64_t val) 
+        : ExprConst(db::ValueType::Int64),
+        _val(val) 
+    {
+    };
+    ~IntExprConst() = default;
+};
+
+class DoubleExprConst : public ExprConst {
+public:
+    static DoubleExprConst* create(ASTContext* ctxt, double val);
+
+    double getVal() { return _val;}; private:
+    double _val {0};
+    DoubleExprConst(int64_t val)
+        : ExprConst(db::ValueType::Double),
+        _val(val)
+    {
+    };
+    ~DoubleExprConst() = default;
+};
+
+class BinExpr : public Expr {
+public:
+    enum OpType {
+        OP_EQUAL,
+    };
+
+    static BinExpr* create(ASTContext* ctxt, Expr* left, Expr* right, OpType _opType);// Could be a virtual protected func of parent class
+   
+    Expr::Kind getKind() const override { return EK_BIN_EXPR; }
+    OpType getOpType() const { return _opType;}
+    Expr* getLeftExpr() const { return _lexpr;}
+    Expr* getRightExpr() const { return _rexpr;}
+
+private:
+    Expr* _lexpr {nullptr};
+    Expr* _rexpr {nullptr} ;
+    OpType _opType; 
+    BinExpr(Expr* left, Expr* right, OpType _opType);
+    ~BinExpr();
+
+
+};
 }
