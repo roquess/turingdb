@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types/PropertyTypeMap.h"
 #include <stdint.h>
 #include <string>
 
@@ -16,13 +17,14 @@ class ExplainCommand;
 
 class QueryAnalyzer {
 public:
-    QueryAnalyzer(ASTContext* ctxt);
+    QueryAnalyzer(ASTContext* ctxt, const PropertyTypeMap& propTypeMap);
     ~QueryAnalyzer();
 
     bool analyze(QueryCommand* cmd);
 
 private:
     ASTContext* _ctxt {nullptr};
+    const PropertyTypeMap& _propTypeMap;
     uint64_t _nextNewVarID {0};
 
     bool analyzeMatch(MatchCommand* cmd);
