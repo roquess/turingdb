@@ -6,6 +6,7 @@
 
 #include "operations/ScanNodesStep.h"
 #include "operations/ScanNodesByLabelStep.h"
+#include "operations/ScanNodesByPropertyStep.h"
 #include "operations/ScanEdgesStep.h"
 #include "operations/ScanInEdgesByLabelStep.h"
 #include "operations/ScanOutEdgesByLabelStep.h"
@@ -24,7 +25,7 @@
 
 #include "FastGet.h"
 
-#define GET_PROPERTY_STEP(TYPE)                                        \
+#define PROPERTY_STEPS(TYPE)                                           \
     PipelineStep(GetNodeProperty##TYPE##Step::Tag,                     \
                  const ColumnIDs* entityIDs,                           \
                  PropertyType propertyType,                            \
@@ -33,6 +34,11 @@
                  const ColumnIDs* entityIDs,                           \
                  PropertyType propertyType,                            \
                  ColumnOptVector<types::TYPE::Primitive>* propValues); \
+    PipelineStep(ScanNodesByProperty##TYPE##Step::Tag,                 \
+                 ColumnIDs* nodeIDs,                                   \
+                 PropertyType propertyType,                            \
+                 ColumnVector<types::TYPE::Primitive>* propValues); \
+
 
 
 namespace net {
@@ -80,11 +86,11 @@ public:
     PipelineStep(EndStep::Tag);
     PipelineStep(LoadGraphStep::Tag, const std::string& graphName);
 
-    GET_PROPERTY_STEP(Int64)
-    GET_PROPERTY_STEP(UInt64)
-    GET_PROPERTY_STEP(Double)
-    GET_PROPERTY_STEP(String)
-    GET_PROPERTY_STEP(Bool)
+    PROPERTY_STEPS(Int64)
+    PROPERTY_STEPS(UInt64)
+    PROPERTY_STEPS(Double)
+    PROPERTY_STEPS(String)
+    PROPERTY_STEPS(Bool)
 
     PipelineStep(PipelineStep&& other) = default;
 
@@ -120,6 +126,11 @@ private:
                  CreateGraphStep,
                  ListGraphStep,
                  LoadGraphStep,
+                 ScanNodesByPropertyInt64Step,
+                 ScanNodesByPropertyUInt64Step,
+                 ScanNodesByPropertyDoubleStep,
+                 ScanNodesByPropertyStringStep,
+                 ScanNodesByPropertyBoolStep,
                  GetNodePropertyInt64Step,
                  GetNodePropertyUInt64Step,
                  GetNodePropertyDoubleStep,

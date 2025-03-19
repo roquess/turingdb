@@ -114,11 +114,13 @@ void QueryPlanner::planPath(const std::vector<EntityPattern*>& path) {
         const TypeConstraint* sourceTypeConstr = source->getTypeConstraint();
         const TypeConstraint* edgeTypeConstr = edge->getTypeConstraint();
         const TypeConstraint* targetTypeConstr = target->getTypeConstraint();
+        const ExprConstraint* sourceExprConstr = source->getExprConstraint();
+        const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
 
-        if (!edgeTypeConstr && (!sourceTypeConstr || !targetTypeConstr)) {
+        if (!edgeTypeConstr && (!sourceTypeConstr || !targetTypeConstr) && !(sourceExprConstr || edgeExprConstr)) {
             return planPathUsingScanEdges(path);
         }
-    } 
+    }
 
     // General case: scan nodes for the origin and expand edges afterward
     planScanNodes(path[0]);
@@ -134,7 +136,12 @@ void QueryPlanner::planPath(const std::vector<EntityPattern*>& path) {
 void QueryPlanner::planScanNodes(const EntityPattern* entity) {
     const auto nodes = _mem->alloc<ColumnIDs>();
 
-    if (const TypeConstraint* typeConstr = entity->getTypeConstraint()) {
+    const TypeConstraint* typeConstr = entity->getTypeConstraint();
+    const ExprConstraint* exprConstr = entity->getExprConstraint();
+
+    if (exprConstr) {
+        planScanNodesWithPropertyConstraints(nodes, exprConstr);
+    } else if (typeConstr) {
         const LabelSet* labelSet = getLabelSet(typeConstr);
         _pipeline->add<ScanNodesByLabelStep>(nodes, labelSet);
     } else {
@@ -151,6 +158,58 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
     }
 
     _result = nodes;
+}
+
+#define CASE_SCAN_NODES_VALUE_TYPE(Type)                                            \
+    case ValueType::Type: {                                                         \
+        using StepType = ScanNodesByProperty##Type##Step;                           \
+        using valType = types::Type::Primitive;                                     \
+        auto propValues = _mem->alloc<ColumnVector<valType>>();                     \
+        valType constVal = static_cast<Type##ExprConst*>(rightExpr)->getVal();      \
+        const auto filterConstVal = _mem->alloc<ColumnConst<valType>>();            \
+        filterConstVal->set(constVal);                                              \
+        _pipeline->add<StepType>(nodes,                                             \
+                                 propType,                                          \
+                                 propValues);                                       \
+        auto& filter = _pipeline->add<FilterStep>(filterIndices).get<FilterStep>(); \
+        filter.addExpression(FilterStep::Expression {                               \
+            ._op = ColumnOperator::OP_EQUAL,                                        \
+            ._mask = filterMask,                                                    \
+            ._lhs = propValues,                                                     \
+            ._rhs = filterConstVal});                                               \
+        break;                                                                      \
+    }
+
+void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* outputNodes, const ExprConstraint* exprConstraint) {
+    const auto reader = _view.read();
+    const auto nodes = _mem->alloc<ColumnIDs>();
+
+    const std::string& varExprName = static_cast<VarExpr*>(exprConstraint->getExpressions()[0]->getLeftExpr())->getName();
+    ExprConst* rightExpr = static_cast<ExprConst*>(exprConstraint->getExpressions()[0]->getRightExpr());
+
+    const PropertyType propType = reader.getPropertyType(varExprName);
+    const auto filterIndices = _mem->alloc<ColumnVector<size_t>>();
+    const auto filterMask = _mem->alloc<ColumnMask>();
+
+    switch (propType._valueType) {
+        CASE_SCAN_NODES_VALUE_TYPE(Int64)
+        CASE_SCAN_NODES_VALUE_TYPE(UInt64)
+        CASE_SCAN_NODES_VALUE_TYPE(Double)
+        CASE_SCAN_NODES_VALUE_TYPE(String)
+        CASE_SCAN_NODES_VALUE_TYPE(Bool)
+        default: {
+            throw PlannerException("Unsupported property type for property member");
+        }
+    }
+
+    auto& filter = _pipeline->steps().back().get<FilterStep>();
+
+    filter.addOperand(FilterStep::Operand {
+        ._mask = filterMask,
+        ._src = nodes,
+        ._dest = outputNodes
+    });
+
 }
 
 void QueryPlanner::planExpandEdge(const EntityPattern* edge, const EntityPattern* target) {

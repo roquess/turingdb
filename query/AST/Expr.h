@@ -95,39 +95,40 @@ private:
     }
 
     ~StringExprConst();
-
 };
 
-class UintExprConst : public ExprConst {
+class UInt64ExprConst : public ExprConst {
 public:
-    static UintExprConst* create(ASTContext* ctxt, uint64_t val);
+    static UInt64ExprConst* create(ASTContext* ctxt, uint64_t val);
 
-    uint64_t getVal() { return _val;};
+    uint64_t getVal() { return _val; };
+
 private:
     uint64_t _val {0};
 
-    UintExprConst(uint64_t val)
+    UInt64ExprConst(uint64_t val)
         : ExprConst(db::ValueType::UInt64),
         _val(val)
     {
     };
-    ~UintExprConst() = default;
+    ~UInt64ExprConst() = default;
 };
 
-class IntExprConst : public ExprConst {
+class Int64ExprConst : public ExprConst {
 public:
-    static IntExprConst* create(ASTContext* ctxt, int64_t val);
+    static Int64ExprConst* create(ASTContext* ctxt, int64_t val);
 
-    int64_t getVal() { return _val;};
+    int64_t getVal() { return _val; };
+
 private:
     int64_t _val {0};
 
-    IntExprConst(int64_t val) 
+    Int64ExprConst(int64_t val)
         : ExprConst(db::ValueType::Int64),
         _val(val) 
     {
     };
-    ~IntExprConst() = default;
+    ~Int64ExprConst() = default;
 };
 
 class DoubleExprConst : public ExprConst {

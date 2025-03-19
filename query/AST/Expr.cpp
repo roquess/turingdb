@@ -35,14 +35,14 @@ DoubleExprConst* DoubleExprConst::create(ASTContext* ctxt, double val){
     return expr;
 }
 
-IntExprConst* IntExprConst::create(ASTContext* ctxt, int64_t val){
-    IntExprConst* expr = new IntExprConst(val);
+Int64ExprConst* Int64ExprConst::create(ASTContext* ctxt, int64_t val) {
+    Int64ExprConst* expr = new Int64ExprConst(val);
     expr->postCreate(ctxt);
     return expr;
 }
 
-UintExprConst* UintExprConst::create(ASTContext* ctxt, uint64_t val){
-    UintExprConst* expr = new UintExprConst(val);
+UInt64ExprConst* UInt64ExprConst::create(ASTContext* ctxt, uint64_t val) {
+    UInt64ExprConst* expr = new UInt64ExprConst(val);
     expr->postCreate(ctxt);
     return expr;
 }

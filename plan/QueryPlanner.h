@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "ExprConstraint.h"
 #include "QueryCommand.h"
 #include "columns/ColumnIDs.h"
 #include "labels/LabelSet.h"
@@ -72,6 +73,7 @@ private:
     bool planMatch(const MatchCommand* matchCmd);
     void planPath(const std::vector<EntityPattern*>& path);
     void planScanNodes(const EntityPattern* entity);
+    void planScanNodesWithPropertyConstraints(ColumnIDs* outputNodes, const ExprConstraint* exprConstraint);
     void planExpandEdge(const EntityPattern* edge, const EntityPattern* target);
     void planExpandEdgeWithNoConstraint(const EntityPattern* edge,
                                         const EntityPattern* target);

@@ -314,10 +314,10 @@ prop_expr_constant: STRING_CONSTANT  { $$ = StringExprConst::create(ctxt, $1); }
                      | DECIMAL_CONSTANT { $$ =  DoubleExprConst::create(ctxt, std::stod($1));}
                      | INT_CONSTANT     { 
                                 if($1[0] == '-'){
-                                    $$ = IntExprConst::create(ctxt, std::stoi($1)); 
+                                    $$ = Int64ExprConst::create(ctxt, std::stoi($1)); 
                                 }
                                 else{
-                                    $$ = UintExprConst::create(ctxt, static_cast<uint64_t>(std::stoul($1))); 
+                                    $$ = UInt64ExprConst::create(ctxt, static_cast<uint64_t>(std::stoul($1))); 
                                 }
                               }
                      | BOOLEAN_CONSTANT { 
