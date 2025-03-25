@@ -69,11 +69,16 @@ private:
     void getMatchingLabelSets(std::vector<LabelSetID>& labelSets,
                               const LabelSet* targetLabelSet);
 
+    // Property Functions
+    void genPropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
+                                std::span<BinExpr* const> expressions,
+                                ColumnIDs* nodes);
+
     // Planning functions
     bool planMatch(const MatchCommand* matchCmd);
     void planPath(const std::vector<EntityPattern*>& path);
     void planScanNodes(const EntityPattern* entity);
-    void planScanNodesWithPropertyConstraints(ColumnIDs* outputNodes, const ExprConstraint* exprConstraint);
+    void planScanNodesWithPropertyConstraints(ColumnIDs* const& outputNodes, const ExprConstraint* exprConstraint);
     void planExpandEdge(const EntityPattern* edge, const EntityPattern* target);
     void planExpandEdgeWithNoConstraint(const EntityPattern* edge,
                                         const EntityPattern* target);

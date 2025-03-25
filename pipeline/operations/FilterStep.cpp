@@ -48,6 +48,9 @@ FilterStep::FilterStep(ColumnVector<size_t>* indices)
 {
 }
 
+FilterStep::FilterStep() {
+}
+
 FilterStep::~FilterStep() {
 }
 
@@ -104,6 +107,14 @@ static constexpr ColumnKind::ColumnKindCode OpCase = getOpCase(Op, Lhs::staticKi
         }                                             \
         break;                                        \
     }
+#define PROJECT_CASE(Lhs, Rhs)                    \
+    case OpCase<OP_PROJECT, Lhs, Rhs>: {          \
+        ColumnOperators::projectOp(               \
+            *expr._mask,                          \
+            *static_cast<const Lhs*>(expr._lhs),  \
+            *static_cast<const Rhs*>(expr._rhs)); \
+        break;                                    \
+    }
 
 void FilterStep::compute() {
     for (const Expression& expr : _expressions) {
@@ -146,11 +157,29 @@ void FilterStep::compute() {
             AND_CASE(ColumnMask, ColumnMask)
             OR_CASE(ColumnMask, ColumnMask)
 
+            PROJECT_CASE(ColumnVector<size_t>, ColumnMask)
+            PROJECT_CASE(ColumnMask, ColumnVector<size_t>)
+
             default: {
                 panic("Operator not implemented (kinds: {} and {})",
                       expr._lhs->getKind(),
                       expr._rhs->getKind());
             }
+        }
+    }
+}
+
+void FilterStep::generateIndices() {
+    auto maskd = _expressions.back()._mask->data();
+    auto size = _expressions.back()._mask->size();
+
+
+    _indices->clear();
+    _indices->reserve(size);
+
+    for (size_t i = 0; i < size; i++) {
+        if (maskd[i]) {
+            _indices->push_back(i);
         }
     }
 }
@@ -209,6 +238,10 @@ void FilterStep::reset() {
 
 void FilterStep::execute() {
     compute();
+
+    if (_indices) {
+        generateIndices();
+    }
 
     for (const auto& operand : _operands) {
         apply(operand._mask, operand._src, operand._dest);

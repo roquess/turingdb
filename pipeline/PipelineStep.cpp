@@ -11,20 +11,37 @@
               propertyType,                                                          \
               propValues)                                                            \
     {                                                                                \
-    }                                                                                \
+    }
 
-#define SCAN_NODE_PROPERTIES_IMPL(Opcode, Type)                                      \
-    PipelineStep::PipelineStep(ScanNodesByProperty##Type##Step::Tag,                 \
-                 ColumnIDs* nodeIDs,                                           \
-                 PropertyType propertyType,                                          \
-                 ColumnVector<types::Type::Primitive>* propValues)                \
-        : _opcode(PipelineOpcode::Opcode),                                           \
-        _impl(std::in_place_type<ScanNodesByProperty##Type##Step>,                   \
-              nodeIDs,                                                               \
-              propertyType,                                                          \
-              propValues)                                                            \
-    {                                                                                \
-    }                                                                                \
+#define SCAN_NODE_PROPERTIES_IMPL(Opcode, Type)                                  \
+    PipelineStep::PipelineStep(ScanNodesByProperty##Type##Step::Tag,             \
+                               ColumnIDs* nodeIDs,                               \
+                               PropertyType propertyType,                        \
+                               ColumnVector<types::Type::Primitive>* propValues) \
+        : _opcode(PipelineOpcode::Opcode),                                       \
+          _impl(std::in_place_type<ScanNodesByProperty##Type##Step>,             \
+                nodeIDs,                                                         \
+                propertyType,                                                    \
+                propValues)                                                      \
+    {                                                                            \
+    }                                                                            \
+
+#define GET_FILTERED_PROPERTY_STEP_IMPL(NodeOrEdge, Opcode, Type)                  \
+    PipelineStep::PipelineStep(GetFiltered##NodeOrEdge##Property##Type##Step::Tag, \
+                               const ColumnIDs* entityIDs,                         \
+                               PropertyType propertyType,                          \
+                               ColumnVector<types::Type::Primitive>* propValues,   \
+                               ColumnVector<size_t>* indices,                      \
+                               ColumnMask* projectedMask)                          \
+        : _opcode(PipelineOpcode::Opcode),                                         \
+          _impl(std::in_place_type<GetFiltered##NodeOrEdge##Property##Type##Step>, \
+                entityIDs,                                                         \
+                propertyType,                                                      \
+                propValues,                                                        \
+                indices,                                                           \
+                projectedMask)                                                     \
+    {                                                                              \
+    }                                                                              \
 
 
 using namespace db;
@@ -77,15 +94,18 @@ PipelineStep::PipelineStep(ScanNodesByLabelStep::Tag,
 PipelineStep::PipelineStep(FilterStep::Tag,
                            ColumnVector<size_t>* indices)
     : _opcode(PipelineOpcode::FILTER),
-    _impl(std::in_place_type<FilterStep>, indices)
-{
+      _impl(std::in_place_type<FilterStep>, indices) {
+}
+
+PipelineStep::PipelineStep(FilterStep::Tag)
+    : _opcode(PipelineOpcode::FILTER),
+      _impl(std::in_place_type<FilterStep>) {
 }
 
 PipelineStep::PipelineStep(TransformStep::Tag,
                            TransformData* transformData)
     : _opcode(PipelineOpcode::TRANSFORM),
-    _impl(std::in_place_type<TransformStep>, transformData)
-{
+      _impl(std::in_place_type<TransformStep>, transformData) {
 }
 
 PipelineStep::PipelineStep(LambdaStep::Tag,
@@ -158,6 +178,18 @@ GET_PROPERTY_STEP_IMPL(Edge, GET_EDGE_PROPERTY_UINT64, UInt64)
 GET_PROPERTY_STEP_IMPL(Edge, GET_EDGE_PROPERTY_DOUBLE, Double)
 GET_PROPERTY_STEP_IMPL(Edge, GET_EDGE_PROPERTY_STRING, String)
 GET_PROPERTY_STEP_IMPL(Edge, GET_EDGE_PROPERTY_BOOL, Bool)
+
+GET_FILTERED_PROPERTY_STEP_IMPL(Node, GET_FILTERED_NODE_PROPERTY_INT64, Int64)
+GET_FILTERED_PROPERTY_STEP_IMPL(Node, GET_FILTERED_NODE_PROPERTY_UINT64, UInt64)
+GET_FILTERED_PROPERTY_STEP_IMPL(Node, GET_FILTERED_NODE_PROPERTY_DOUBLE, Double)
+GET_FILTERED_PROPERTY_STEP_IMPL(Node, GET_FILTERED_NODE_PROPERTY_STRING, String)
+GET_FILTERED_PROPERTY_STEP_IMPL(Node, GET_FILTERED_NODE_PROPERTY_BOOL, Bool)
+
+GET_FILTERED_PROPERTY_STEP_IMPL(Edge, GET_FILTERED_EDGE_PROPERTY_INT64, Int64)
+GET_FILTERED_PROPERTY_STEP_IMPL(Edge, GET_FILTERED_EDGE_PROPERTY_UINT64, UInt64)
+GET_FILTERED_PROPERTY_STEP_IMPL(Edge, GET_FILTERED_EDGE_PROPERTY_DOUBLE, Double)
+GET_FILTERED_PROPERTY_STEP_IMPL(Edge, GET_FILTERED_EDGE_PROPERTY_STRING, String)
+GET_FILTERED_PROPERTY_STEP_IMPL(Edge, GET_FILTERED_EDGE_PROPERTY_BOOL, Bool)
 
 PipelineStep::~PipelineStep() {
 }

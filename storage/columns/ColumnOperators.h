@@ -48,7 +48,6 @@ public:
         msgbioassert(lhs.size() == rhs.size(),
                      "Columns must have matching dimensions");
         mask.resize(lhs.size());
-        indices.clear();
         auto* maskd = mask.data();
         const auto* lhsd = lhs.data();
         const auto* rhsd = rhs.data();
@@ -56,9 +55,6 @@ public:
         for (size_t i = 0; i < size; i++) {
             const bool v = lhsd[i] == rhsd[i];
             maskd[i]._value = v;
-            if (v) {
-                indices.push_back(i);
-            }
         }
     }
 
@@ -97,7 +93,6 @@ public:
                       const ColumnVector<T>& lhs,
                       const ColumnConst<U>& rhs) {
         mask.resize(lhs.size());
-        indices.clear();
         auto* maskd = mask.data();
         const auto* lhsd = lhs.data();
         const auto& rhsd = rhs.getRaw();
@@ -105,9 +100,6 @@ public:
         for (size_t i = 0; i < size; i++) {
             const bool v = lhsd[i] == rhsd;
             maskd[i]._value = v;
-            if (v) {
-                indices.push_back(i);
-            }
         }
     }
 
@@ -146,7 +138,6 @@ public:
                       const ColumnConst<T>& lhs,
                       const ColumnVector<U>& rhs) {
         mask.resize(rhs.size());
-        indices.clear();
         auto* maskd = mask.data();
         const auto& lhsd = lhs.getRaw();
         const auto* rhsd = rhs.data();
@@ -154,9 +145,6 @@ public:
         for (size_t i = 0; i < size; i++) {
             const bool v = lhsd == rhsd[i];
             maskd[i]._value = v;
-            if (v) {
-                indices.push_back(i);
-            }
         }
     }
 
@@ -189,12 +177,8 @@ public:
                       const ColumnConst<T>& lhs,
                       const ColumnConst<U>& rhs) {
         mask.resize(1);
-        indices.clear();
         const bool v = lhs.getRaw() == rhs.getRaw();
         mask[0] = v;
-        if (v) {
-            indices.push_back(0);
-        }
     }
 
     /**
@@ -234,7 +218,6 @@ public:
         msgbioassert(lhs.size() == rhs.size(),
                      "Columns must have matching dimensions");
         mask.resize(lhs.size());
-        indices.clear();
         auto* maskd = mask.data();
         const auto* lhsd = lhs.data();
         const auto* rhsd = rhs.data();
@@ -242,9 +225,6 @@ public:
         for (size_t i = 0; i < size; i++) {
             const bool v = lhsd[i]._value && rhsd[i]._value;
             maskd[i]._value = v;
-            if (v) {
-                indices.push_back(i);
-            }
         }
     }
 
@@ -285,7 +265,6 @@ public:
         msgbioassert(lhs.size() == rhs.size(),
                      "Columns must have matching dimensions");
         mask.resize(lhs.size());
-        indices.clear();
         auto* maskd = mask.data();
         const auto* lhsd = lhs.data();
         const auto* rhsd = rhs.data();
@@ -293,9 +272,34 @@ public:
         for (size_t i = 0; i < size; i++) {
             const bool v = lhsd[i]._value || rhsd[i]._value;
             maskd[i]._value = v;
-            if (v) {
-                indices.push_back(i);
-            }
+        }
+    }
+
+    static void projectOp(ColumnMask& mask,
+                          const ColumnVector<size_t>& lhs,
+                          const ColumnMask& rhs) {
+        msgbioassert(lhs.size() == rhs.size(),
+                     "Columns must have matching dimensions");
+        auto* maskd = mask.data();
+        const auto* lhsd = lhs.data();
+        const auto* rhsd = rhs.data();
+        const auto size = lhs.size();
+        for (size_t i = 0; i < size; i++) {
+            maskd[lhsd[i]]._value = rhsd[i];
+        }
+    }
+
+    static void projectOp(ColumnMask& mask,
+                          const ColumnMask& lhs,
+                          const ColumnVector<size_t>& rhs) {
+        msgbioassert(rhs.size() == lhs.size(),
+                     "Columns must have matching dimensions");
+        auto* maskd = mask.data();
+        const auto* rhsd = rhs.data();
+        const auto* lhsd = lhs.data();
+        const auto size = rhs.size();
+        for (size_t i = 0; i < size; i++) {
+            maskd[rhsd[i]]._value = lhsd[i];
         }
     }
 
