@@ -46,7 +46,8 @@ GraphReader CommitBuilder::readGraph() const {
 DataPartBuilder& CommitBuilder::newBuilder() {
     std::scoped_lock lock {_mutex};
     GraphView view {*_graph, *_commit->_data};
-    auto& builder = _builders.emplace_back(DataPartBuilder::prepare(*_graph, view));
+    const size_t partIndex = view.dataparts().size() + _builders.size();
+    auto& builder = _builders.emplace_back(DataPartBuilder::prepare(*_graph, view, partIndex));
 
     return *builder;
 }
@@ -87,6 +88,7 @@ std::unique_ptr<Commit> CommitBuilder::build(JobSystem& jobsystem) {
 
 CommitBuilder::CommitBuilder(Graph& graph)
     : _graph(&graph),
-      _versionController(graph._versionController.get()) {
+      _versionController(graph._versionController.get())
+{
 }
 

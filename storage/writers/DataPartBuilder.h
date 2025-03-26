@@ -30,7 +30,8 @@ public:
 
     [[nodiscard]] static std::unique_ptr<DataPartBuilder> prepare(
         Graph& graph,
-        const GraphView& view);
+        const GraphView& view,
+        size_t partIndex);
 
     EntityID addNode(const LabelSetID& labelset);
     EntityID addNode(const LabelSet& labelset);
@@ -53,6 +54,7 @@ public:
     size_t edgeCount() const { return _edges.size(); }
     size_t getOutPatchEdgeCount() const { return _outPatchEdgeCount; };
     size_t getInPatchEdgeCount() const { return _inPatchEdgeCount; };
+    size_t getPartIndex() const { return _partIndex; };
 
 private:
     friend ConcurrentWriter;
@@ -67,6 +69,7 @@ private:
     GraphView _view;
     size_t _outPatchEdgeCount {0};
     size_t _inPatchEdgeCount {0};
+    size_t _partIndex {0};
 
     std::vector<LabelSetID> _coreNodeLabelSets;
     std::vector<EdgeRecord> _edges;

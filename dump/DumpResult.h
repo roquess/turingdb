@@ -16,6 +16,7 @@ enum class DumpErrorType : uint8_t {
 
     NOT_TURING_FILE,
     OUTDATED,
+    NO_COMMITS,
 
     GRAPH_DIR_ALREADY_EXISTS,
     COMMIT_ALREADY_EXISTS,
@@ -84,6 +85,7 @@ using DumpErrorTypeDescription = EnumToString<DumpErrorType>::Create<
     EnumStringPair<DumpErrorType::UNKNOWN, "Unknown">,
     EnumStringPair<DumpErrorType::NOT_TURING_FILE, "Not a turing file">,
     EnumStringPair<DumpErrorType::OUTDATED, "File outdated">,
+    EnumStringPair<DumpErrorType::NO_COMMITS, "Graph does not have commits">,
     EnumStringPair<DumpErrorType::GRAPH_DIR_ALREADY_EXISTS, "Graph directory already exists">,
     EnumStringPair<DumpErrorType::COMMIT_ALREADY_EXISTS, "Commit already exists">,
     EnumStringPair<DumpErrorType::DATAPART_ALREADY_EXISTS, "Datapart already exists">,

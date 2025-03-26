@@ -215,7 +215,7 @@ void DBServerProcessor::get_graph_status() {
         payload.key("nodeCount");
         payload.value(reader.getNodeCount());
         payload.key("edgeCount");
-        payload.value(reader.getNodeCount());
+        payload.value(reader.getEdgeCount());
     }
 }
 

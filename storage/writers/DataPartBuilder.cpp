@@ -13,7 +13,8 @@ using namespace db;
 DataPartBuilder::~DataPartBuilder() = default;
 
 std::unique_ptr<DataPartBuilder> DataPartBuilder::prepare(Graph& graph,
-                                                          const GraphView& view) {
+                                                          const GraphView& view,
+                                                          size_t partIndex) {
     const auto reader = view.read();
     auto* ptr = new DataPartBuilder();
 
@@ -25,6 +26,7 @@ std::unique_ptr<DataPartBuilder> DataPartBuilder::prepare(Graph& graph,
     ptr->_nextEdgeID = ptr->_firstEdgeID;
     ptr->_nodeProperties = std::make_unique<PropertyManager>(graph.getMetadata());
     ptr->_edgeProperties = std::make_unique<PropertyManager>(graph.getMetadata());
+    ptr->_partIndex = partIndex;
 
     return std::unique_ptr<DataPartBuilder> {ptr};
 }

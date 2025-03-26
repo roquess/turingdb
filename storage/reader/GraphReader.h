@@ -42,7 +42,7 @@ public:
     [[nodiscard]] size_t getDatapartCount() const;
     [[nodiscard]] size_t getNodePropertyCount(PropertyTypeID ptID) const;
     [[nodiscard]] size_t getNodePropertyCount(size_t datapartIndex, PropertyTypeID ptID) const;
-    [[nodiscard]] EntityID getFinalNodeID(EntityID tmpID) const;
+    [[nodiscard]] EntityID getFinalNodeID(size_t partIndex, EntityID tmpID) const;
     [[nodiscard]] NodeView getNodeView(EntityID id) const;
     [[nodiscard]] EdgeView getEdgeView(EntityID id) const;
     [[nodiscard]] EdgeTypeID getEdgeTypeID(EntityID edgeID) const;

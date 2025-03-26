@@ -3,6 +3,7 @@
 #include "ArcManager.h"
 
 using namespace turing::test;
+using namespace db;
 
 class ArcManagerTest : public TuringTest {
 protected:

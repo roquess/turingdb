@@ -51,11 +51,10 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
         return DumpError::result(DumpErrorType::CANNOT_LIST_DATAPARTS, files.error());
     }
 
-    auto versionController = std::make_unique<VersionController>();
-
     static constexpr std::string_view COMMIT_FOLDER_PREFIX = "commit-";
 
     graph->_versionController = std::make_unique<VersionController>();
+    graph->_versionController->_dataManager = std::make_unique<ArcManager<CommitData>>();
 
     std::map<uint64_t, std::unique_ptr<Commit>> commits;
     for (auto& child : files.value()) {
@@ -87,6 +86,10 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
         commits.emplace(offset, std::move(res.value()));
     }
 
+    if (commits.empty()) {
+        return DumpError::result(DumpErrorType::NO_COMMITS);
+    }
+    
     graph->_versionController->_head.store(commits.at(commits.size() - 1).get());
 
     for (auto& [commitIndex, commit] : commits) {

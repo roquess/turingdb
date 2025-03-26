@@ -96,19 +96,21 @@ size_t GraphReader::getNodePropertyCount(size_t datapartIndex,
     return 0;
 }
 
-EntityID GraphReader::getFinalNodeID(EntityID tmpID) const {
+EntityID GraphReader::getFinalNodeID(size_t partIndex, EntityID tmpID) const {
     // TODO Update with a new Unique-Internal ID System.
     // This implementation does not work if multiple nodes
     // have the same temporary ID
-    for (const auto& part : _view.dataparts()) {
-        const auto& map = part->_tmpToFinalNodeIDs;
-        auto it = map.find(tmpID);
-        if (it != map.end()) {
-            return it->second;
-        }
+    if (partIndex >= _view.dataparts().size()) {
+        return EntityID {};
     }
 
-    return EntityID {};
+    const auto& part = _view.dataparts()[partIndex];
+    auto it = part->_tmpToFinalNodeIDs.find(tmpID);
+    if (it == part->_tmpToFinalNodeIDs.end()) {
+        return EntityID {};
+    }
+
+    return it->second;
 }
 
 

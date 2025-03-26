@@ -226,6 +226,14 @@ int main(int argc, const char** argv) {
         folderPath = toolInit.getOutputsDir() + "/bindump";
     }
 
+    if(!cmpEnabled){
+        const fs::Path binDumpPath {folderPath};
+        if (auto res = binDumpPath.mkdir(); !res) {
+            spdlog::error("Failed To create bindump directory err: {}", res.error().fmtMessage());
+            return EXIT_FAILURE;
+        }
+    }
+
     const bool noPathsGiven = importData.empty();
     if (noPathsGiven) {
         spdlog::error("Please give an import option.");
@@ -371,6 +379,7 @@ int main(int argc, const char** argv) {
 
         if (!cmpEnabled) {
             const fs::Path path {filePath};
+            spdlog::info("Dumping graph at {}", filePath);
             if (auto res = GraphDumper::dump((*graphIt), path); !res) {
                 spdlog::error("Failed To Dump Graph at {} err: {}", filePath, res.error().fmtMessage());
                 jobSystem->terminate();
