@@ -15,6 +15,7 @@ set(pipeline_sources
         operations/GetLabelSetIDStep.cpp
         operations/LoadGraphStep.cpp
         operations/LambdaStep.cpp
+        operations/HistoryStep.cpp
         
         PipelineStep.cpp
         Pipeline.cpp

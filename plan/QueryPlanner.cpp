@@ -6,6 +6,7 @@
 #include <range/v3/all.hpp>
 
 #include "Expr.h"
+#include "HistoryStep.h"
 #include "MatchTarget.h"
 #include "LocalMemory.h"
 #include "PathPattern.h"
@@ -63,6 +64,9 @@ bool QueryPlanner::plan(const QueryCommand* query) {
 
         case QueryCommand::Kind::EXPLAIN_COMMAND:
             return planExplain(static_cast<const ExplainCommand*>(query));
+
+        case QueryCommand::Kind::HISTORY_COMMAND:
+            return planHistory(static_cast<const HistoryCommand*>(query));
 
         default:
             spdlog::error("Unsupported query of kind {}", (unsigned)kind);
@@ -1178,6 +1182,18 @@ bool QueryPlanner::planExplain(const ExplainCommand* explain) {
 
     _pipeline->add<StopStep>();
     planOutputLambda();
+    _pipeline->add<EndStep>();
+
+    return true;
+}
+
+bool QueryPlanner::planHistory(const HistoryCommand* history) {
+    auto* historyLog = _mem->alloc<ColumnVector<std::string>>();
+
+    _pipeline->add<StopStep>();
+    _pipeline->add<HistoryStep>(historyLog);
+    planOutputLambda();
+    _output->addColumn(historyLog);
     _pipeline->add<EndStep>();
 
     return true;

@@ -20,7 +20,8 @@ public:
         CREATE_GRAPH_COMMAND,
         LIST_GRAPH_COMMAND,
         LOAD_GRAPH_COMMAND,
-        EXPLAIN_COMMAND
+        EXPLAIN_COMMAND,
+        HISTORY_COMMAND
     };
 
     virtual Kind getKind() const = 0;
@@ -111,6 +112,17 @@ private:
 
     ExplainCommand(QueryCommand* query);
     ~ExplainCommand() override = default;
+};
+
+class HistoryCommand : public QueryCommand {
+public:
+    static HistoryCommand* create(ASTContext* ctxt);
+
+    Kind getKind() const override { return Kind::HISTORY_COMMAND; }
+
+private:
+    HistoryCommand();
+    ~HistoryCommand() override = default;
 };
 
 }

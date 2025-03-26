@@ -4,6 +4,7 @@
 #include "Graph.h"
 #include "versioning/Commit.h"
 #include "versioning/VersionController.h"
+#include "versioning/CommitView.h"
 #include "writers/DataPartBuilder.h"
 
 using namespace db;
@@ -20,17 +21,7 @@ std::unique_ptr<CommitBuilder> CommitBuilder::prepare(Graph& graph, const GraphV
     ptr->_firstNodeID = reader.getNodeCount();
     ptr->_firstEdgeID = reader.getNodeCount();
 
-    ptr->_commit = std::make_unique<Commit>();
-    ptr->_commit->_graph = ptr->_graph;
-    ptr->_commit->_data = ptr->_versionController->createCommitData();
-    ptr->_commit->_data->_hash = ptr->_commit->hash();
-    ptr->_commit->_data->_graphMetadata = graph.getMetadata();
-
-    const DataPartSpan previousDataparts = reader.dataparts();
-    ptr->_commit->_data->_history._allDataparts.resize(previousDataparts.size());
-    std::copy(previousDataparts.begin(),
-              previousDataparts.end(),
-              ptr->_commit->_data->_history._allDataparts.begin());
+    ptr->_commit = ptr->prepareCommit(view);
 
     return std::unique_ptr<CommitBuilder> {ptr};
 }
@@ -92,3 +83,23 @@ CommitBuilder::CommitBuilder(Graph& graph)
 {
 }
 
+std::unique_ptr<Commit> CommitBuilder::prepareCommit(const GraphView& view) {
+    auto reader = view.read();
+
+    auto commit = std::make_unique<Commit>();
+    commit->_graph = _graph;
+    commit->_data = _versionController->createCommitData(commit->hash());
+    commit->_data->_hash = commit->hash();
+    commit->_data->_graphMetadata = _graph->getMetadata();
+
+    auto& history = commit->history();
+
+    const DataPartSpan previousDataparts = reader.dataparts();
+    const std::span<const CommitView> previousCommits = reader.commits();
+
+    history.pushPreviousDataparts(previousDataparts);
+    history.pushPreviousCommits(previousCommits);
+    history.pushCommit(CommitView {commit.get()});
+
+    return commit;
+}

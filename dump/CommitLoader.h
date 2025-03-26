@@ -34,7 +34,7 @@ public:
 
         auto commit = std::make_unique<Commit>();
         commit->_graph = &graph;
-        commit->_data = versionController->createCommitData();
+        commit->_data = versionController->createCommitData(hash);
         commit->_data->_graphMetadata = graph.getMetadata();
         commit->_data->_hash = hash;
 
@@ -68,8 +68,9 @@ public:
             graph.allocIDRange(part->getNodeCount(), part->getEdgeCount());
         }
 
+        auto& history = commit->history();
         for (auto& [partIndex, part] : dataparts) {
-            commit->_data->_history._commitDataparts.emplace_back(part);
+            history.pushCommitDatapart(part);
         }
 
         return std::move(commit);

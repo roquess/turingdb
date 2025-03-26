@@ -50,6 +50,8 @@ private:
     std::vector<std::unique_ptr<DataPartBuilder>> _builders;
 
     explicit CommitBuilder(Graph& graph);
+
+    std::unique_ptr<Commit> prepareCommit(const GraphView& view);
 };
 
 }

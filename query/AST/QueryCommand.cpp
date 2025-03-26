@@ -78,3 +78,15 @@ ExplainCommand* ExplainCommand::create(ASTContext* ctxt, QueryCommand* query) {
     cmd->registerCmd(ctxt);
     return cmd;
 }
+
+// HistoryCommand
+
+HistoryCommand::HistoryCommand()
+{
+}
+
+HistoryCommand* HistoryCommand::create(ASTContext* ctxt) {
+    HistoryCommand* cmd = new HistoryCommand;
+    cmd->registerCmd(ctxt);
+    return cmd;
+}

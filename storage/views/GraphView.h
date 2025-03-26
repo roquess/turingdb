@@ -22,7 +22,7 @@ public:
     bool isValid() const { return !_data; }
 
     [[nodiscard]] GraphReader read() const;
-    [[nodiscard]] CommitHash commitHash() const { return _data->hash(); }
+    [[nodiscard]] std::span<const CommitView> commits() const { return _data->commits(); }
     [[nodiscard]] DataPartSpan dataparts() const { return _data->allDataparts(); }
     [[nodiscard]] DataPartSpan commitDataparts() const { return _data->commitDataparts(); }
     [[nodiscard]] GraphMetadata& metadata() const { return _data->metadata(); }

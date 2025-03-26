@@ -1,13 +1,13 @@
 #include "VersionController.h"
 
 #include "Graph.h"
+#include "CommitView.h"
 
 using namespace db;
 
 VersionController::VersionController()
-    : _dataManager(std::make_unique<ArcManager<CommitData>>())
-    , _partManager(std::make_unique<ArcManager<DataPart>>())
-{
+    : _dataManager(std::make_unique<ArcManager<CommitData>>()),
+      _partManager(std::make_unique<ArcManager<DataPart>>()) {
 }
 
 VersionController::~VersionController() = default;
@@ -15,11 +15,12 @@ VersionController::~VersionController() = default;
 void VersionController::createFirstCommit(Graph* graph) {
     auto commit = std::make_unique<Commit>();
     commit->_graph = graph;
-    commit->_data = _dataManager->create();
+    commit->_data = _dataManager->create(commit->hash());
     commit->_data->_graphMetadata = graph->getMetadata();
 
     auto* ptr = commit.get();
     _offsets.emplace(commit->hash(), _commits.size());
+    commit->_data->_history._commits.emplace_back(commit.get());
     _commits.emplace_back(std::move(commit));
     _head.store(ptr);
 }
@@ -57,15 +58,27 @@ WriteTransaction VersionController::openWriteTransaction(CommitHash hash) const 
 CommitResult<void> VersionController::rebase(Commit& commit) {
     std::scoped_lock lock {_mutex};
 
-    auto& commitDataparts = commit._data->_history._allDataparts;
-    const std::span headDataparts = _head.load()->_data->_history.allDataparts();
+    auto& history = commit._data->_history;
+    auto& headHistory = _head.load()->_data->_history;
 
-    size_t j = 0;
-    for (const auto& headDatapart : headDataparts) {
-        if (commitDataparts[j].get() != headDatapart.get()) {
-            commitDataparts.insert(commitDataparts.begin() + j, headDatapart);
+    size_t commitIndex = 0;
+    auto& currentCommits = history._commits;
+
+    for (const auto& c : headHistory.commits()) {
+        if (c != currentCommits[commitIndex]) {
+            currentCommits.insert(currentCommits.begin() + commitIndex, c);
         }
-        j++;
+        commitIndex++;
+    }
+
+    size_t partIndex = 0;
+    auto& currentDataparts = history._allDataparts;
+
+    for (const auto& p : headHistory.allDataparts()) {
+        if (p != history.allDataparts()[partIndex]) {
+            currentDataparts.insert(currentDataparts.begin() + partIndex, p);
+        }
+        partIndex++;
     }
 
     return {};

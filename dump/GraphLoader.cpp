@@ -6,6 +6,7 @@
 #include "Graph.h"
 #include "versioning/Commit.h"
 #include "versioning/VersionController.h"
+#include "versioning/CommitView.h"
 
 using namespace db;
 
@@ -94,16 +95,18 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
     graph->_versionController->_head.store(commits.at(commits.size() - 1).get());
 
     for (auto& [commitIndex, commit] : commits) {
+        auto& history = commit->history();
+
         if (commitIndex != 0) {
-            const auto prevDataparts = commits.at(commitIndex - 1)->_data->allDataparts();
-            for (const auto& part : prevDataparts) {
-                commit->_data->_history._allDataparts.emplace_back(part);
-            }
+            const auto& prevCommit = commits.at(commitIndex - 1);
+            const auto prevDataparts = prevCommit->_data->allDataparts();
+
+            history.pushPreviousDataparts(prevDataparts);
+            history.pushPreviousCommits(prevCommit->history().commits());
         }
 
-        for (const auto& part : commit->_data->_history._commitDataparts) {
-            commit->_data->_history._allDataparts.emplace_back(part);
-        }
+        history.pushCommit(CommitView{commit.get()});
+        history.pushPreviousDataparts(commit->history().commitDataparts());
     }
 
     for (auto& [commitIndex, commit] : commits) {

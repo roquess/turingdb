@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include "ArcManager.h"
 #include "versioning/CommitHash.h"
 #include "versioning/Transaction.h"
@@ -39,9 +37,12 @@ public:
         return {*_graph, _data};
     }
 
-    [[nodiscard]] CommitHash hash() const { return _data->hash(); }
+    [[nodiscard]] CommitHash hash() const { return _hash; }
 
     [[nodiscard]] const CommitData& data() const { return *_data; }
+    [[nodiscard]] bool hasData() const { return _data != nullptr; }
+    [[nodiscard]] const CommitHistory& history() const { return _data->history(); }
+    [[nodiscard]] CommitHistory& history() { return _data->history(); }
 
 private:
     friend CommitBuilder;
@@ -50,6 +51,7 @@ private:
     friend VersionController;
 
     Graph* _graph {nullptr};
+    CommitHash _hash = CommitHash::create();
     WeakArc<CommitData> _data;
 };
 

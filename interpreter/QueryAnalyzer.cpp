@@ -65,6 +65,10 @@ bool QueryAnalyzer::analyze(QueryCommand* cmd) {
             return analyzeExplain(static_cast<ExplainCommand*>(cmd));
         break;
 
+        case QueryCommand::Kind::HISTORY_COMMAND:
+            return true;
+        break;
+
         default:
         return false;
     }

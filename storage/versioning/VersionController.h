@@ -38,8 +38,8 @@ public:
     [[nodiscard]] Transaction openTransaction(CommitHash hash = CommitHash::head()) const;
     [[nodiscard]] WriteTransaction openWriteTransaction(CommitHash hash = CommitHash::head()) const;
 
-    WeakArc<CommitData> createCommitData() {
-        return _dataManager->create();
+    WeakArc<CommitData> createCommitData(CommitHash hash) {
+        return _dataManager->create(hash);
     }
 
     WeakArc<DataPart> createDataPart(EntityID firstNodeID, EntityID firstEdgeID) {

@@ -35,6 +35,7 @@ public:
     [[nodiscard]] size_t getEdgeCount() const;
     [[nodiscard]] const GraphView& getView() const { return _view; }
     [[nodiscard]] DataPartSpan dataparts() const { return _view.dataparts(); }
+    [[nodiscard]] std::span<const CommitView> commits() const { return _view.commits(); }
     [[nodiscard]] const EdgeRecord* getEdge(EntityID edgeID) const;
     [[nodiscard]] LabelSetID getNodeLabelSetID(EntityID nodeID) const;
     [[nodiscard]] size_t getNodeCountMatchingLabelset(const LabelSet& labelset) const;
