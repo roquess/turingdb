@@ -4,14 +4,15 @@
 
 using namespace db;
 
-VersionController::VersionController() = default;
+VersionController::VersionController()
+    : _dataManager(std::make_unique<ArcManager<CommitData>>())
+    , _partManager(std::make_unique<ArcManager<DataPart>>())
+{
+}
 
 VersionController::~VersionController() = default;
 
-void VersionController::initialize(Graph* graph) {
-    _dataManager = std::make_unique<ArcManager<CommitData>>();
-    _partManager = std::make_unique<ArcManager<DataPart>>();
-
+void VersionController::createFirstCommit(Graph* graph) {
     auto commit = std::make_unique<Commit>();
     commit->_graph = graph;
     commit->_data = _dataManager->create();

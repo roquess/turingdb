@@ -226,7 +226,7 @@ int main(int argc, const char** argv) {
         folderPath = toolInit.getOutputsDir() + "/bindump";
     }
 
-    if(!cmpEnabled){
+    if (!cmpEnabled) {
         const fs::Path binDumpPath {folderPath};
         if (auto res = binDumpPath.mkdir(); !res) {
             spdlog::error("Failed To create bindump directory err: {}", res.error().fmtMessage());
@@ -241,19 +241,19 @@ int main(int argc, const char** argv) {
         return EXIT_FAILURE;
     }
 
-    std::vector<Graph> graphs(importData.size());
+    std::vector<std::unique_ptr<Graph>> graphs(importData.size());
     auto jobSystem = JobSystem::create(nThreads);
     auto t0 = Clock::now();
 
-    auto graphIt = graphs.begin();
     auto dataIt = importData.begin();
 
     bioassert(graphs.size() == importData.size());
-    for (; dataIt != importData.end(); graphIt++, dataIt++) {
-
+    size_t i = 0;
+    for (auto& graph : graphs) {
         switch (dataIt->type) {
             case ImportType::BIN: {
-                if (auto res = GraphLoader::load(&(*graphIt), fs::Path(dataIt->path)); !res) {
+                graph = Graph::createEmptyGraph();
+                if (auto res = GraphLoader::load(graph.get(), fs::Path(dataIt->path)); !res) {
                     spdlog::error("Failed To Load Graph: {}", res.error().fmtMessage());
                     jobSystem->terminate();
                     return EXIT_FAILURE;
@@ -262,7 +262,8 @@ int main(int argc, const char** argv) {
             }
             case ImportType::GML: {
                 GMLImporter parser;
-                if (!parser.importFile(*jobSystem, &(*graphIt), FileUtils::Path(dataIt->path))) {
+                graph = Graph::create();
+                if (!parser.importFile(*jobSystem, graph.get(), FileUtils::Path(dataIt->path))) {
                     jobSystem->terminate();
                     return EXIT_FAILURE;
                 }
@@ -274,8 +275,9 @@ int main(int argc, const char** argv) {
                     args._workDir = toolInit.getOutputsDir();
                     args._dumpFilePath = dataIt->path;
 
+                    graph = Graph::create();
                     if (!Neo4jImporter::fromDumpFileToJsonDir(*jobSystem,
-                                                              &(*graphIt),
+                                                              graph.get(),
                                                               db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                               db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                               args)) {
@@ -288,8 +290,9 @@ int main(int argc, const char** argv) {
                     Neo4jImporter::ImportJsonDirArgs args;
                     args._jsonDir = toolInit.getOutputsDir() + "/json";
                     args._workDir = toolInit.getOutputsDir();
+                    graph = Graph::create();
                     if (!Neo4jImporter::importJsonDir(*jobSystem,
-                                                      &(*graphIt),
+                                                      graph.get(),
                                                       db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                       db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                       args)) {
@@ -304,8 +307,9 @@ int main(int argc, const char** argv) {
                 args._workDir = toolInit.getOutputsDir();
                 args._dumpFilePath = dataIt->path;
 
+                graph = Graph::create();
                 if (!Neo4jImporter::fromDumpFileToJsonDir(*jobSystem,
-                                                          &(*graphIt),
+                                                          graph.get(),
                                                           db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                           db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                           args)) {
@@ -324,8 +328,9 @@ int main(int argc, const char** argv) {
                     args._port = dataIt->port;
                     args._workDir = toolInit.getOutputsDir();
 
+                    graph = Graph::create();
                     if (!Neo4jImporter::fromUrlToJsonDir(*jobSystem,
-                                                         &(*graphIt),
+                                                         graph.get(),
                                                          db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                          db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                          args)) {
@@ -338,8 +343,9 @@ int main(int argc, const char** argv) {
                         Neo4jImporter::ImportJsonDirArgs args;
                         args._jsonDir = toolInit.getOutputsDir() + "/json";
                         args._workDir = toolInit.getOutputsDir();
+                        graph = Graph::create();
                         if (!Neo4jImporter::importJsonDir(*jobSystem,
-                                                          &(*graphIt),
+                                                          graph.get(),
                                                           db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                           db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                           args)) {
@@ -355,8 +361,9 @@ int main(int argc, const char** argv) {
                 args._jsonDir = dataIt->path;
                 args._workDir = toolInit.getOutputsDir();
 
+                graph = Graph::create();
                 if (!Neo4jImporter::importJsonDir(*jobSystem,
-                                                  &(*graphIt),
+                                                  graph.get(),
                                                   db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                                   db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                                   args)) {
@@ -380,21 +387,23 @@ int main(int argc, const char** argv) {
         if (!cmpEnabled) {
             const fs::Path path {filePath};
             spdlog::info("Dumping graph at {}", filePath);
-            if (auto res = GraphDumper::dump((*graphIt), path); !res) {
+            if (auto res = GraphDumper::dump(*graph, path); !res) {
                 spdlog::error("Failed To Dump Graph at {} err: {}", filePath, res.error().fmtMessage());
                 jobSystem->terminate();
                 return EXIT_FAILURE;
             }
         }
 
-        if (cmpEnabled && graphIt != graphs.begin()) {
-            if (!GraphComparator::same(*graphIt, *(graphIt - 1))) {
+        if (cmpEnabled && i != 0) {
+            if (!GraphComparator::same(*graph, *graphs[i - 1])) {
                 spdlog::error("Graph loaded from:{} is not the same as the one loaded from: {}\n", dataIt->path, (dataIt - 1)->path);
                 jobSystem->terminate();
                 return EXIT_FAILURE;
             }
             spdlog::info("Graph loaded from:{} is the same as the one loaded from: {}\n", dataIt->path, (dataIt - 1)->path);
         }
+
+        i++;
     }
 
     jobSystem->terminate();

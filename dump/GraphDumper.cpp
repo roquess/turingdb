@@ -36,7 +36,7 @@ DumpResult<void> GraphDumper::dump(const Graph& graph, const fs::Path& path) {
     {
         const fs::Path graphTypePath = path / "type";
         const auto typeTag = GraphFileTypeDescription::value(GraphFileType::BINARY);
-        if (!FileUtils::writeFile(graphTypePath.get(), typeTag.data())) {
+        if (!FileUtils::writeFile(graphTypePath.get(), std::string(typeTag))) {
             return DumpError::result(DumpErrorType::CANNOT_WRITE_GRAPH_TYPE);
         }
     }

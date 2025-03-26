@@ -90,7 +90,7 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
     if (commits.empty()) {
         return DumpError::result(DumpErrorType::NO_COMMITS);
     }
-    
+
     graph->_versionController->_head.store(commits.at(commits.size() - 1).get());
 
     for (auto& [commitIndex, commit] : commits) {

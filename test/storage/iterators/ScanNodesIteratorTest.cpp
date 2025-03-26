@@ -34,7 +34,7 @@ protected:
 };
 
 TEST_F(ScanNodesIteratorTest, emptyGraph) {
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
     const Transaction transaction = graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
 
@@ -47,7 +47,7 @@ TEST_F(ScanNodesIteratorTest, emptyGraph) {
 }
 
 TEST_F(ScanNodesIteratorTest, oneEmptyCommit) {
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
     const auto tx = graph->openWriteTransaction();
     auto commitBuilder = tx.prepareCommit();
     [[maybe_unused]] auto& builder = commitBuilder->newBuilder();
@@ -68,7 +68,7 @@ TEST_F(ScanNodesIteratorTest, oneEmptyCommit) {
 }
 
 TEST_F(ScanNodesIteratorTest, threeEmptyCommits) {
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
 
     const auto tx = graph->openWriteTransaction();
     for (auto i = 0; i < 3; i++) {
@@ -92,7 +92,7 @@ TEST_F(ScanNodesIteratorTest, threeEmptyCommits) {
 }
 
 TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
 
     auto& labelsets = graph->getMetadata()->labelsets();
     LabelSet labelset = LabelSet::fromList({0});
@@ -144,7 +144,7 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
 }
 
 TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
 
     auto& labelsets = graph->getMetadata()->labelsets();
     LabelSet labelset = LabelSet::fromList({0});
@@ -201,7 +201,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
 TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
     const size_t nodeCount = 1.35 * ChunkConfig::CHUNK_SIZE;
 
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
 
     auto& labelsets = graph->getMetadata()->labelsets();
     LabelSet labelset = LabelSet::fromList({0});

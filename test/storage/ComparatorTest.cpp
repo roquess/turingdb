@@ -26,7 +26,7 @@ protected:
     }
 
     [[nodiscard]] std::unique_ptr<Graph> createDB1() {
-        auto graph = std::make_unique<Graph>();
+        auto graph = Graph::create();
 
         auto* metadata = graph->getMetadata();
         auto& labels = metadata->labels();
@@ -73,7 +73,7 @@ protected:
     }
 
     [[nodiscard]] std::unique_ptr<Graph> createDB2() {
-        auto graph = std::make_unique<Graph>();
+        auto graph = Graph::create();
 
         auto* metadata = graph->getMetadata();
         auto& labels = metadata->labels();

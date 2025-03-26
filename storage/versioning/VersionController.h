@@ -31,7 +31,7 @@ public:
     VersionController& operator=(const VersionController&) = delete;
     VersionController& operator=(VersionController&&) = delete;
 
-    void initialize(Graph*);
+    void createFirstCommit(Graph*);
     CommitResult<void> rebase(Commit& commit);
     CommitResult<void> commit(std::unique_ptr<Commit> commit);
 

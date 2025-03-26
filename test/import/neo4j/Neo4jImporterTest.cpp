@@ -39,7 +39,7 @@ protected:
         LogSetup::setupLogFileBacked(_logPath.string());
         PerfStat::init(_perfPath);
 
-        _graph = std::make_unique<Graph>();
+        _graph = Graph::create();
         _jobSystem = JobSystem::create();
     }
 

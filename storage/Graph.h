@@ -33,10 +33,7 @@ public:
         EntityID _edge {0};
     };
 
-    Graph();
     ~Graph();
-
-    explicit Graph(const std::string& name);
 
     Graph(const Graph&) = delete;
     Graph(Graph&&) = delete;
@@ -61,6 +58,11 @@ public:
 
     [[nodiscard]] EntityIDs getNextFreeIDs() const;
 
+    [[nodiscard]] static std::unique_ptr<Graph> create();
+    [[nodiscard]] static std::unique_ptr<Graph> create(const std::string& name);
+    [[nodiscard]] static std::unique_ptr<Graph> createEmptyGraph();
+    [[nodiscard]] static std::unique_ptr<Graph> createEmptyGraph(const std::string& name);
+
 private:
     friend GraphInfoLoader;
     friend PartIterator;
@@ -81,6 +83,9 @@ private:
 
     EntityIDs allocIDs();
     EntityIDs allocIDRange(size_t nodeCount, size_t edgeCount);
+
+    Graph();
+    explicit Graph(const std::string& name);
 };
 
 }

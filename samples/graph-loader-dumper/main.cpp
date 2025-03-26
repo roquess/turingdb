@@ -15,7 +15,7 @@
 using namespace db;
 
 static std::unique_ptr<Graph> createSimpleGraph() {
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
     const auto tx = graph->openWriteTransaction();
     auto commitBuilder = tx.prepareCommit();
     auto& builder = commitBuilder->newBuilder();
@@ -119,7 +119,7 @@ bool testGraph(const Graph& graph, const fs::Path& path) {
     fmt::print("- Loading graph from: {}\n", path.c_str());
 
     const auto t0 = Clock::now();
-    auto loadedGraph = std::make_unique<Graph>();
+    auto loadedGraph = Graph::createEmptyGraph();
     auto loadedGraphRes = GraphLoader::load(loadedGraph.get(), path);
     if (!loadedGraphRes) {
         fmt::print("{}\n", loadedGraphRes.error().fmtMessage());
@@ -163,7 +163,7 @@ int main() {
 
         auto jobSystem = JobSystem::create();
 
-        auto graph = std::make_unique<Graph>();
+        auto graph = Graph::create();
         const std::string turingHome = std::getenv("TURING_HOME");
         const fs::Path jsonDir = fs::Path {turingHome} / "neo4j" / "pole-db";
 
@@ -198,7 +198,7 @@ int main() {
 
         auto jobSystem = JobSystem::create();
 
-        auto graph = std::make_unique<Graph>();
+        auto graph = Graph::create();
         const std::string turingHome = std::getenv("HOME");
         const fs::Path jsonDir = fs::Path {turingHome} / "graphs_v2" / "reactome";
 
@@ -236,7 +236,7 @@ int main() {
     //     JobSystem jobSystem {1};
     //     jobSystem.initialize();
 
-    //     auto graph = std::make_unique<Graph>();
+    //     auto graph = Graph::create();
     //     const std::string turingHome = std::getenv("HOME");
     //     const fs::Path jsonDir = fs::Path {turingHome} / "graphs_v2" / "ckg";
 

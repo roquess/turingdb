@@ -40,7 +40,7 @@ protected:
         LogSetup::setupLogFileBacked(_logPath.string());
 
         _jobSystem = JobSystem::create();
-        _graph = new Graph();
+        _graph = Graph::create();
 
         /* FIRST BUFFER */
         const auto tx1 = _graph->openWriteTransaction();
@@ -243,11 +243,10 @@ protected:
 
     void TearDown() override {
         _jobSystem->terminate();
-        delete _graph;
     }
 
     std::unique_ptr<db::JobSystem> _jobSystem;
-    Graph* _graph = nullptr;
+    std::unique_ptr<Graph> _graph = nullptr;
     std::string _outDir;
     FileUtils::Path _logPath;
     static inline const EdgeTypeID _edgeTypeID {0};

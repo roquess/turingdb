@@ -9,22 +9,6 @@
 
 using namespace db;
 
-Graph::Graph()
-    : _graphName("default"),
-      _metadata(new GraphMetadata()),
-      _versionController(new VersionController)
-{
-    _versionController->initialize(this);
-}
-
-Graph::Graph(const std::string& name)
-    : _graphName(name),
-      _metadata(new GraphMetadata()),
-      _versionController(new VersionController)
-{
-    _versionController->initialize(this);
-}
-
 Graph::~Graph() {
 }
 
@@ -101,4 +85,39 @@ Graph::EntityIDs Graph::allocIDRange(size_t nodeCount, size_t edgeCount) {
     _nextFreeIDs._node += nodeCount;
     _nextFreeIDs._edge += edgeCount;
     return ids;
+}
+
+std::unique_ptr<Graph> Graph::create() {
+    auto* graph = new Graph;
+    graph->_versionController->createFirstCommit(graph);
+    return std::unique_ptr<Graph> {graph};
+}
+
+std::unique_ptr<Graph> Graph::create(const std::string& name) {
+    auto* graph = new Graph(name);
+    graph->_versionController->createFirstCommit(graph);
+    return std::unique_ptr<Graph>(graph);
+}
+
+std::unique_ptr<Graph> Graph::createEmptyGraph() {
+    return std::unique_ptr<Graph>(new Graph);
+}
+
+std::unique_ptr<Graph> Graph::createEmptyGraph(const std::string& name) {
+    return std::unique_ptr<Graph>(new Graph(name));
+}
+
+
+Graph::Graph()
+    : _graphName("default"),
+      _metadata(new GraphMetadata()),
+      _versionController(new VersionController)
+{
+}
+
+Graph::Graph(const std::string& name)
+    : _graphName(name),
+      _metadata(new GraphMetadata()),
+      _versionController(new VersionController)
+{
 }

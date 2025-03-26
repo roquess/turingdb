@@ -15,14 +15,13 @@
 
 using namespace db;
 
-SystemManager::SystemManager()
-{
+SystemManager::SystemManager() {
     const char* home = std::getenv("HOME");
     if (!home) {
         panic("HOME environment variable not set");
     }
 
-    _graphsDir = fs::Path(home)/"graphs_v2";
+    _graphsDir = fs::Path(home) / "graphs_v2";
     if (!_graphsDir.exists()) {
         panic("graphs_v2 directory not found at {}", _graphsDir.get());
     }
@@ -31,9 +30,6 @@ SystemManager::SystemManager()
 }
 
 SystemManager::~SystemManager() {
-    for (const auto& [name, graph] : _graphs) {
-        delete graph;
-    }
 }
 
 void SystemManager::setGraphsDir(const fs::Path& dir) {
@@ -41,17 +37,17 @@ void SystemManager::setGraphsDir(const fs::Path& dir) {
 }
 
 Graph* SystemManager::createGraph(const std::string& name) {
-    Graph* graph = new Graph(name);
-    
-    if (!addGraph(graph, name)) {
-        delete graph;
+    std::unique_ptr<Graph> graph = Graph::create(name);
+    auto* rawPtr = graph.get();
+
+    if (!addGraph(std::move(graph), name)) {
         return nullptr;
     }
 
-    return graph;
+    return rawPtr;
 }
 
-bool SystemManager::addGraph(Graph* graph, const std::string& name) {
+bool SystemManager::addGraph(std::unique_ptr<Graph> graph, const std::string& name) {
     std::unique_lock guard(_lock);
 
     // Search if a graph with the same name exists
@@ -60,7 +56,7 @@ bool SystemManager::addGraph(Graph* graph, const std::string& name) {
         return false;
     }
 
-    _graphs[name] = graph;
+    _graphs[name] = std::move(graph);
     return true;
 }
 
@@ -74,7 +70,7 @@ void SystemManager::setDefaultGraph(const std::string& name) {
 
     const auto it = _graphs.find(name);
     if (it != _graphs.end()) {
-        _defaultGraph = it->second;
+        _defaultGraph = it->second.get();
     }
 }
 
@@ -86,7 +82,7 @@ Graph* SystemManager::getGraph(const std::string& graphName) const {
         return nullptr;
     }
 
-    return it->second;
+    return it->second.get();
 }
 
 void SystemManager::listGraphs(std::vector<std::string_view>& names) {
@@ -98,7 +94,7 @@ void SystemManager::listGraphs(std::vector<std::string_view>& names) {
 }
 
 bool SystemManager::loadGraph(const std::string& graphName) {
-    const fs::Path graphPath = fs::Path(_graphsDir)/graphName;
+    const fs::Path graphPath = fs::Path(_graphsDir) / graphName;
 
     // Check if graph was already loaded || is already loading
     if (getGraph(graphName) || isGraphLoading(graphName)) {
@@ -133,7 +129,7 @@ std::optional<GraphFileType> SystemManager::getGraphFileType(const fs::Path& gra
         return GraphFileType::GML;
     }
 
-    const auto typeFilePath = graphPath/"type";
+    const auto typeFilePath = graphPath / "type";
     std::string typeName;
     if (!FileUtils::readContent(typeFilePath.get(), typeName)) {
         return {};
@@ -149,20 +145,19 @@ std::optional<GraphFileType> SystemManager::getGraphFileType(const fs::Path& gra
 }
 
 bool SystemManager::loadBinaryDB(const std::string& graphName,
-                                const fs::Path& dbPath) {
+                                 const fs::Path& dbPath) {
     if (!_graphLoadStatus.addLoadingGraph(graphName)) {
         return false;
     }
 
-    Graph* graph = new Graph();
+    auto graph = Graph::create(graphName);
 
-    if (!GraphLoader::load(graph, dbPath)) {
+    if (!GraphLoader::load(graph.get(), dbPath)) {
         _graphLoadStatus.removeLoadingGraph(graphName);
-        delete graph;
         return false;
     }
 
-    addGraph(graph, graphName);
+    addGraph(std::move(graph), graphName);
     _graphLoadStatus.removeLoadingGraph(graphName);
     return true;
 }
@@ -177,23 +172,22 @@ bool SystemManager::loadNeo4jJsonDB(const std::string& graphName,
         return false;
     }
 
-    Graph* graph = new Graph();
+    auto graph = Graph::create();
     auto jobsystem = JobSystem::create();
 
     Neo4jImporter::ImportJsonDirArgs args;
     args._jsonDir = FileUtils::Path {dbPath.c_str()};
 
     if (!Neo4jImporter::importJsonDir(*jobsystem,
-                                      graph,
+                                      graph.get(),
                                       db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                       db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
                                       args)) {
         _graphLoadStatus.removeLoadingGraph(graphName);
-        delete graph;
         return false;
     }
 
-    addGraph(graph, graphName);
+    addGraph(std::move(graph), graphName);
     _graphLoadStatus.removeLoadingGraph(graphName);
     jobsystem->terminate();
     return true;
@@ -206,19 +200,18 @@ bool SystemManager::loadGmlDB(const std::string& graphName,
     }
 
     // Load graph
-    Graph* graph = new Graph();
+    auto graph = Graph::create();
     auto jobsystem = JobSystem::create();
 
     // load GMLs
     GMLImporter importer;
 
-    if (!importer.importFile(*jobsystem, graph, FileUtils::Path {dbPath.c_str()})) {
+    if (!importer.importFile(*jobsystem, graph.get(), FileUtils::Path {dbPath.c_str()})) {
         _graphLoadStatus.removeLoadingGraph(graphName);
-        delete graph;
         return false;
     }
 
-    addGraph(graph, graphName);
+    addGraph(std::move(graph), graphName);
     _graphLoadStatus.removeLoadingGraph(graphName);
     jobsystem->terminate();
     return true;

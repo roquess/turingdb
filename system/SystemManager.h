@@ -47,13 +47,13 @@ private:
     mutable RWSpinLock _lock;
     fs::Path _graphsDir;
     Graph* _defaultGraph {nullptr};
-    std::unordered_map<std::string, Graph*> _graphs;
+    std::unordered_map<std::string, std::unique_ptr<Graph>> _graphs;
     GraphLoadStatus _graphLoadStatus;
 
     bool loadNeo4jJsonDB(const std::string& graphName, const fs::Path& dbPath);
     bool loadGmlDB(const std::string& graphName, const fs::Path& dbPath);
     bool loadBinaryDB(const std::string& graphName, const fs::Path& dbPath);
-    bool addGraph(Graph* graph, const std::string& name);
+    bool addGraph(std::unique_ptr<Graph> graph, const std::string& name);
     std::optional<GraphFileType> getGraphFileType(const fs::Path& graphPath);
 };
 
