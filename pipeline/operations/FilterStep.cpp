@@ -92,6 +92,14 @@ static constexpr ColumnKind::ColumnKindCode OpCase = getOpCase(Op, Lhs::staticKi
         break;                                    \
     }
 
+#define GEN_COMPOUND_MASK_CASE(Lhs, Rhs)           \
+    case OpCase<OP_GEN_COMPOUND_MASK, Lhs, Rhs>: { \
+        ColumnOperators::genCompoundMaskOp(        \
+            *expr._mask,                           \
+            *static_cast<const Rhs*>(expr._rhs));  \
+        break;                                     \
+    }                                              \
+
 void FilterStep::compute() {
     for (const Expression& expr : _expressions) {
         switch (getOpCase(expr._op, expr._lhs->getKind(), expr._rhs->getKind())) {
@@ -135,6 +143,8 @@ void FilterStep::compute() {
 
             PROJECT_CASE(ColumnVector<size_t>, ColumnMask)
             PROJECT_CASE(ColumnMask, ColumnVector<size_t>)
+
+            GEN_COMPOUND_MASK_CASE(ColumnMask, ColumnVector<EntityID>);
 
             default: {
                 panic("Operator not implemented (kinds: {} and {})",

@@ -70,9 +70,12 @@ private:
                               const LabelSet* targetLabelSet);
 
     // Property Functions
-    void genPropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
-                                std::span<BinExpr* const> expressions,
-                                ColumnIDs* nodes);
+    void generateNodePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
+                                         std::span<BinExpr* const> expressions,
+                                         const ColumnIDs* entities);
+    void generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
+                                         std::span<BinExpr* const> expressions,
+                                         const ColumnIDs* entities);
 
     // Planning functions
     bool planMatch(const MatchCommand* matchCmd);
@@ -89,6 +92,9 @@ private:
                                           const EntityPattern* target);
     void planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern* edge,
                                                    const EntityPattern* target);
+    void planExpressionConstraintFilters(const ExprConstraint* edgeExprConstr, const ExprConstraint* targetExprConstr,
+                                         const ColumnIDs* edges, const ColumnIDs* targetNodes, VarDecl* edgeDecl, VarDecl* targetDecl,
+                                         bool mustWriteEdges, bool mustWriteTargetNodes);
 
     void planTransformStep();
     void planPathUsingScanEdges(const std::vector<EntityPattern*>& path);
