@@ -49,6 +49,8 @@ public:
                                               std::string_view v) {
             if (k == "graph") {
                 params[(size_t)DBHTTPParams::graph] = v;
+            } else if (k == "commit") {
+                params[(size_t)DBHTTPParams::commit] = v;
             }
         };
 

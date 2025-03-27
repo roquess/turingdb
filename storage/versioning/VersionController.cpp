@@ -2,13 +2,13 @@
 
 #include "Graph.h"
 #include "CommitView.h"
-#include "spdlog/spdlog.h"
 
 using namespace db;
 
 VersionController::VersionController()
     : _dataManager(std::make_unique<ArcManager<CommitData>>()),
-      _partManager(std::make_unique<ArcManager<DataPart>>()) {
+      _partManager(std::make_unique<ArcManager<DataPart>>())
+{
 }
 
 VersionController::~VersionController() = default;
@@ -35,11 +35,6 @@ Transaction VersionController::openTransaction(CommitHash hash) const {
 
     auto it = _offsets.find(hash);
     if (it == _offsets.end()) {
-        spdlog::error("Commit {} does not exist", hash.get());
-        spdlog::error("Available commits:");
-        for (const auto& [hash, offset] : _offsets) {
-            spdlog::error(" - {}", hash.get());
-        }
         return Transaction {}; // Invalid hash
     }
 

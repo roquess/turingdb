@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HTTPResponseWriter.h"
+#include "versioning/CommitHash.h"
 
 namespace net {
 
@@ -22,6 +23,11 @@ public:
     DBServerProcessor(TuringDB& db,
                       net::TCPConnection& connection);
     ~DBServerProcessor();
+
+    DBServerProcessor(const DBServerProcessor&) = delete;
+    DBServerProcessor(DBServerProcessor&&) = delete;
+    DBServerProcessor& operator=(const DBServerProcessor&) = delete;
+    DBServerProcessor& operator=(DBServerProcessor&&) = delete;
 
     void process(net::AbstractThreadContext*);
 
@@ -55,6 +61,13 @@ private:
     void get_node_edges();
     void get_edges();
     void explore_node_edges();
+
+    struct TransactionInfo {
+        std::string graphName;
+        CommitHash commit;
+    };
+
+    TransactionInfo getTransactionInfo() const;
 };
 
 }

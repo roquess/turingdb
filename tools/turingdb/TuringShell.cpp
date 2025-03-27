@@ -115,19 +115,13 @@ void checkoutCommand(const TuringShell::Command::Words& args, TuringShell& shell
         return;
     }
 
-    CommitHash::ValueType hashValue = CommitHash::head().get();
-    if (hashStr != "head") {
-        const char* begin = hashStr.data();
-        const char* end = hashStr.data() + hashStr.size();
-        const auto res = std::from_chars(begin, end, hashValue, 16);
-
-        if (res.ec == std::errc::result_out_of_range || res.ec == std::errc::invalid_argument || res.ptr != end) {
-            spdlog::error("Commit {} is invalid", hashStr);
-            return;
-        }
+    auto hash = CommitHash::fromString(hashStr);
+    if (!hash) {
+        spdlog::error("Commit {} is invalid: {}", hashStr, hash.error());
+        return;
     }
 
-    if (!shell.setCommitHash(CommitHash {hashValue})) {
+    if (!shell.setCommitHash(hash.value())) {
         spdlog::error("Commit {} is not part of the graph's history", hashStr);
     }
 }

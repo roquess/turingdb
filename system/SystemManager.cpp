@@ -228,3 +228,18 @@ void SystemManager::listAvailableGraphs(std::vector<fs::Path>& names) {
         names.push_back(path);
     }
 }
+
+BasicResult<Transaction, std::string_view> SystemManager::openTransaction(const std::string& graphName,
+                                                                          const CommitHash& commit) const {
+    const auto* graph = getGraph(graphName);
+    if (!graph) {
+        return BadResult<std::string_view> {"Graph does not exist"};
+    }
+
+    Transaction tr = graph->openTransaction(commit);
+    if (!tr.isValid()) {
+        return BadResult<std::string_view> {"Invalid commit hash"};
+    }
+
+    return tr;
+}

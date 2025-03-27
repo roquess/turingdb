@@ -1,9 +1,12 @@
 #pragma once
 
+#include <charconv>
 #include <spdlog/fmt/ostr.h>
 #include <cstdint>
 #include <limits>
 #include <string>
+
+#include "BasicResult.h"
 
 namespace db {
 
@@ -60,6 +63,27 @@ public:
         return _value > other._value;
     }
 
+    [[nodiscard]] static BasicResult<CommitHash, std::string_view> fromString(std::string_view str) {
+        CommitHash::ValueType hashValue = CommitHash::head().get();
+        if (str != "head") {
+            const char* begin = str.data();
+            const char* end = str.data() + str.size();
+            const auto res = std::from_chars(begin, end, hashValue, 16);
+
+            if (res.ec == std::errc::result_out_of_range) {
+                return BadResult<std::string_view>("Too large hash value");
+            } else if (res.ec == std::errc::invalid_argument) {
+                return BadResult<std::string_view>("Invalid hash value");
+            } else if (res.ptr != end) {
+                return BadResult<std::string_view>("String contains invalid characters");
+            }
+
+            return CommitHash(hashValue);
+        }
+
+        return CommitHash::head();
+    }
+
 private:
     ValueType _value = std::numeric_limits<ValueType>::max();
 };
@@ -88,5 +112,3 @@ ostream& operator<<(ostream& os, db::CommitHash h) {
 
 template <>
 struct fmt::formatter<db::CommitHash> : ostream_formatter {};
-
-

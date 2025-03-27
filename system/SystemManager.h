@@ -8,6 +8,7 @@
 #include "GraphLoadStatus.h"
 #include "Path.h"
 #include "GraphFileType.h"
+#include "versioning/Transaction.h"
 
 namespace db {
 
@@ -37,11 +38,14 @@ public:
 
     void setDefaultGraph(const std::string& name);
 
-    void setGraphsDir(const fs::Path& dir); 
+    void setGraphsDir(const fs::Path& dir);
 
     bool loadGraph(const std::string& graphName);
 
     bool isGraphLoading(const std::string& graphName) const;
+
+    BasicResult<Transaction, std::string_view> openTransaction(const std::string& graphName,
+                                                               const CommitHash& commit) const;
 
 private:
     mutable RWSpinLock _lock;
