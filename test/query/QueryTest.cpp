@@ -66,12 +66,18 @@ TEST_F(QueryTest, NodeMatching) {
         std::vector<std::vector<EntityID>> queryResult(rowCount);
 
         const std::vector<std::vector<EntityID>> targetResult = {
-            {EntityID(0), EntityID(1)},  {EntityID(0), EntityID(6)},
-            {EntityID(0), EntityID(11)}, {EntityID(0), EntityID(12)},
-            {EntityID(1), EntityID(0)},  {EntityID(1), EntityID(7)},
-            {EntityID(1), EntityID(8)},  {EntityID(2), EntityID(10)},
-            {EntityID(2), EntityID(11)}, {EntityID(4), EntityID(7)},
-            {EntityID(4), EntityID(9)},  {EntityID(5), EntityID(8)}
+            {EntityID(0), EntityID(1) },
+            {EntityID(0), EntityID(6) },
+            {EntityID(0), EntityID(12)},
+            {EntityID(0), EntityID(11)},
+            {EntityID(1), EntityID(0) },
+            {EntityID(1), EntityID(7) },
+            {EntityID(1), EntityID(8) },
+            {EntityID(2), EntityID(10)},
+            {EntityID(2), EntityID(12)},
+            {EntityID(4), EntityID(7) },
+            {EntityID(4), EntityID(9) },
+            {EntityID(5), EntityID(8) }
         };
 
         for (size_t i = 0; i < rowCount; ++i) {
@@ -91,13 +97,13 @@ TEST_F(QueryTest, NodeMatching) {
 
         std::vector<std::vector<EntityID>> queryResult(rowCount);
         const std::vector<std::vector<EntityID>> targetResult = {
-            {EntityID(0), EntityID(1), EntityID(0), EntityID(1)},
-            {EntityID(0), EntityID(1), EntityID(0), EntityID(6)},
-            {EntityID(0), EntityID(1), EntityID(0), EntityID(11)},
+            {EntityID(0), EntityID(1), EntityID(0), EntityID(1) },
+            {EntityID(0), EntityID(1), EntityID(0), EntityID(6) },
             {EntityID(0), EntityID(1), EntityID(0), EntityID(12)},
-            {EntityID(1), EntityID(0), EntityID(1), EntityID(0)},
-            {EntityID(1), EntityID(0), EntityID(1), EntityID(7)},
-            {EntityID(1), EntityID(0), EntityID(1), EntityID(8)}
+            {EntityID(0), EntityID(1), EntityID(0), EntityID(11)},
+            {EntityID(1), EntityID(0), EntityID(1), EntityID(0) },
+            {EntityID(1), EntityID(0), EntityID(1), EntityID(7) },
+            {EntityID(1), EntityID(0), EntityID(1), EntityID(8) }
         };
 
         for (size_t i = 0; i < rowCount; ++i) {
@@ -191,18 +197,18 @@ TEST_F(QueryTest, MatchAll) {
         const size_t rowCount = block.getBlockRowCount();
         std::vector<std::vector<EntityID>> queryResult(rowCount);
         const std::vector<std::vector<EntityID>> targetResult = {
-            {EntityID(0), EntityID(0), EntityID(1)},
-            {EntityID(0), EntityID(1), EntityID(6)},
-            {EntityID(0), EntityID(2), EntityID(11)},
-            {EntityID(0), EntityID(3), EntityID(12)},
-            {EntityID(1), EntityID(4), EntityID(0)},
-            {EntityID(1), EntityID(5), EntityID(7)},
-            {EntityID(1), EntityID(6), EntityID(8)},
-            {EntityID(2), EntityID(7), EntityID(10)},
-            {EntityID(2), EntityID(8), EntityID(11)},
-            {EntityID(4), EntityID(9), EntityID(7)},
-            {EntityID(4), EntityID(10), EntityID(9)},
-            {EntityID(5), EntityID(11), EntityID(8)}
+            {EntityID(0), EntityID(0),  EntityID(1) },
+            {EntityID(0), EntityID(1),  EntityID(6) },
+            {EntityID(0), EntityID(2),  EntityID(12)},
+            {EntityID(0), EntityID(3),  EntityID(11)},
+            {EntityID(1), EntityID(4),  EntityID(0) },
+            {EntityID(1), EntityID(5),  EntityID(7) },
+            {EntityID(1), EntityID(6),  EntityID(8) },
+            {EntityID(2), EntityID(7),  EntityID(10)},
+            {EntityID(2), EntityID(8),  EntityID(12)},
+            {EntityID(4), EntityID(9),  EntityID(7) },
+            {EntityID(4), EntityID(10), EntityID(9) },
+            {EntityID(5), EntityID(11), EntityID(8) }
         };
 
         for (size_t i = 0; i < rowCount; ++i) {
@@ -294,9 +300,7 @@ TEST_F(QueryTest, NodePropertyProjection) {
 
         std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
         const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy"}}, {{"Adam"}}, {{"Luc"}}, {{"Suhas"}}, {{"Maxime"}}, {{"Martina"}},
-            {{"Ghosts"}}, {{"Bio"}}, {{"Cooking"}}, {{"Paddle"}}, {{"Animals"}}, {{"Computers"} }, {{"Eighties"}}
-        };
+            {{"Remy"}}, {{"Adam"}}, {{"Luc"}}, {{"Suhas"}}, {{"Maxime"}}, {{"Martina"}}, {{"Ghosts"}}, {{"Bio"}}, {{"Cooking"}}, {{"Paddle"}}, {{"Animals"}}, {{"Eighties"}}, {{"Computers"}}};
 
         for (size_t i = 0; i < rowCount; ++i) {
             for (const Column *col : block.columns()) {
