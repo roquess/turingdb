@@ -57,55 +57,31 @@ FilterStep::~FilterStep() {
 template <ColumnOperator Op, typename Lhs, typename Rhs>
 static constexpr ColumnKind::ColumnKindCode OpCase = getOpCase(Op, Lhs::staticKind(), Rhs::staticKind());
 
-#define EQUAL_CASE(Lhs, Rhs)                          \
-    case OpCase<OP_EQUAL, Lhs, Rhs>: {                \
-        if (&expr == &_expressions.back()) {          \
-            ColumnOperators::equal(                   \
-                *expr._mask,                          \
-                *_indices,                            \
-                *static_cast<const Lhs*>(expr._lhs),  \
-                *static_cast<const Rhs*>(expr._rhs)); \
-        } else {                                      \
-            ColumnOperators::equal(                   \
-                *expr._mask,                          \
-                *static_cast<const Lhs*>(expr._lhs),  \
-                *static_cast<const Rhs*>(expr._rhs)); \
-        }                                             \
-        break;                                        \
+#define EQUAL_CASE(Lhs, Rhs)                      \
+    case OpCase<OP_EQUAL, Lhs, Rhs>: {            \
+        ColumnOperators::equal(                   \
+            *expr._mask,                          \
+            *static_cast<const Lhs*>(expr._lhs),  \
+            *static_cast<const Rhs*>(expr._rhs)); \
+        break;                                    \
     }
 
-#define AND_CASE(Lhs, Rhs)                            \
-    case OpCase<OP_AND, Lhs, Rhs>: {                  \
-        if (&expr == &_expressions.back()) {          \
-            ColumnOperators::andOp(                   \
-                *expr._mask,                          \
-                *_indices,                            \
-                *static_cast<const Lhs*>(expr._lhs),  \
-                *static_cast<const Rhs*>(expr._rhs)); \
-        } else {                                      \
-            ColumnOperators::andOp(                   \
-                *expr._mask,                          \
-                *static_cast<const Lhs*>(expr._lhs),  \
-                *static_cast<const Rhs*>(expr._rhs)); \
-        }                                             \
-        break;                                        \
+#define AND_CASE(Lhs, Rhs)                        \
+    case OpCase<OP_AND, Lhs, Rhs>: {              \
+        ColumnOperators::andOp(                   \
+            *expr._mask,                          \
+            *static_cast<const Lhs*>(expr._lhs),  \
+            *static_cast<const Rhs*>(expr._rhs)); \
+        break;                                    \
     }
 
-#define OR_CASE(Lhs, Rhs)                             \
-    case OpCase<OP_OR, Lhs, Rhs>: {                   \
-        if (&expr == &_expressions.back()) {          \
-            ColumnOperators::orOp(                    \
-                *expr._mask,                          \
-                *_indices,                            \
-                *static_cast<const Lhs*>(expr._lhs),  \
-                *static_cast<const Rhs*>(expr._rhs)); \
-        } else {                                      \
-            ColumnOperators::orOp(                    \
-                *expr._mask,                          \
-                *static_cast<const Lhs*>(expr._lhs),  \
-                *static_cast<const Rhs*>(expr._rhs)); \
-        }                                             \
-        break;                                        \
+#define OR_CASE(Lhs, Rhs)                         \
+    case OpCase<OP_OR, Lhs, Rhs>: {               \
+        ColumnOperators::orOp(                    \
+            *expr._mask,                          \
+            *static_cast<const Lhs*>(expr._lhs),  \
+            *static_cast<const Rhs*>(expr._rhs)); \
+        break;                                    \
     }
 #define PROJECT_CASE(Lhs, Rhs)                    \
     case OpCase<OP_PROJECT, Lhs, Rhs>: {          \
