@@ -586,10 +586,12 @@ void QueryPlanner::planExpandEdgeWithNoConstraint(const EntityPattern* edge,
                                                   const EntityPattern* target) {
     const auto indices = _mem->alloc<ColumnVector<size_t>>();
 
+    const ExprConstraint* targetExprConstr = target->getExprConstraint();
     const VarExpr* targetVar = target->getVar();
     VarDecl* targetDecl = targetVar ? targetVar->getDecl() : nullptr;
     const bool mustWriteTargetNodes = targetDecl && targetDecl->isReturned();
 
+    const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
     const VarExpr* edgeVar = edge->getVar();
     VarDecl* edgeDecl = edgeVar ? edgeVar->getDecl() : nullptr;
     const bool mustWriteEdges = edgeDecl && edgeDecl->isReturned();
@@ -603,15 +605,13 @@ void QueryPlanner::planExpandEdgeWithNoConstraint(const EntityPattern* edge,
     const auto targets = _mem->alloc<ColumnIDs>();
     edgeWriteInfo._targetNodes = targets;
 
-    if (mustWriteEdges) {
+    if (mustWriteEdges || edgeExprConstr) {
         const auto edges = _mem->alloc<ColumnIDs>();
         edgeWriteInfo._edges = edges;
     }
 
     _pipeline->add<GetOutEdgesStep>(_result, edgeWriteInfo);
 
-    const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
-    const ExprConstraint* targetExprConstr = target->getExprConstraint();
 
     if (edgeExprConstr || targetExprConstr) {
         planExpressionConstraintFilters(edgeExprConstr, targetExprConstr, edgeWriteInfo._edges, edgeWriteInfo._targetNodes,
@@ -632,63 +632,46 @@ void QueryPlanner::planExpandEdgeWithNoConstraint(const EntityPattern* edge,
 void QueryPlanner::planExpressionConstraintFilters(const ExprConstraint* edgeExprConstr, const ExprConstraint* targetExprConstr,
                                                    const ColumnIDs* edges, const ColumnIDs* targetNodes, VarDecl* edgeDecl, VarDecl* targetDecl,
                                                    const bool mustWriteEdges, const bool mustWriteTargetNodes) {
-    spdlog::info("we expression constraints");
     const auto filteredIndices = _mem->alloc<ColumnVector<size_t>>();
-    auto filterMask = _mem->alloc<ColumnMask>();
     auto filteredNodes = _mem->alloc<ColumnIDs>();
 
-    std::vector<ColumnMask*> targetExprMasks;
-    std::vector<ColumnMask*> edgeExprMasks;
+    std::vector<std::vector<ColumnMask*>> filterMasks;
 
     if (edgeExprConstr) {
         const auto& expressions = edgeExprConstr->getExpressions();
-        spdlog::info("num edgeExpressions: {}", expressions.size());
-        edgeExprMasks.resize(expressions.size());
-        for (auto& mask : edgeExprMasks) {
+        filterMasks.emplace_back(expressions.size());
+        for (auto& mask : filterMasks.back()) {
             mask = _mem->alloc<ColumnMask>();
         }
-        generateEdgePropertyFilterMasks(edgeExprMasks,
+        generateEdgePropertyFilterMasks(filterMasks.back(),
                                         std::span<BinExpr* const>(expressions), edges);
     }
 
     if (targetExprConstr) {
         const auto& expressions = targetExprConstr->getExpressions();
-        spdlog::info("num tgtExpressions: {}", expressions.size());
-        targetExprMasks.resize(expressions.size());
-        for (auto& mask : targetExprMasks) {
+        filterMasks.emplace_back(expressions.size());
+        for (auto& mask : filterMasks.back()) {
             mask = _mem->alloc<ColumnMask>();
         }
-        generateNodePropertyFilterMasks(targetExprMasks,
+        generateNodePropertyFilterMasks(filterMasks.back(),
                                         std::span<BinExpr* const>(expressions),
                                         targetNodes);
     }
 
     auto& filter = _pipeline->add<FilterStep>(filteredIndices).get<FilterStep>();
 
-    filter.addExpression(FilterStep::Expression {
-        ._op = ColumnOperator::OP_GEN_COMPOUND_MASK,
-        ._mask = filterMask,
-        ._lhs = filterMask,
-        ._rhs = targetNodes});
-
-    for (size_t i = 0; i < edgeExprMasks.size(); i++) {
-        filter.addExpression(FilterStep::Expression {
-            ._op = ColumnOperator::OP_AND,
-            ._mask = filterMask,
-            ._lhs = filterMask,
-            ._rhs = edgeExprMasks[i]});
-    }
-
-    for (size_t i = 0; i < targetExprMasks.size(); i++) {
-        filter.addExpression(FilterStep::Expression {
-            ._op = ColumnOperator::OP_AND,
-            ._mask = filterMask,
-            ._lhs = filterMask,
-            ._rhs = targetExprMasks[i]});
+    for (size_t i = 0; i < filterMasks.size(); i++) {
+        for (size_t j = 0; j < filterMasks[i].size(); j++) {
+            filter.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_AND,
+                ._mask = filterMasks[0][0],
+                ._lhs = filterMasks[0][0],
+                ._rhs = filterMasks[i][j]});
+        }
     }
 
     filter.addOperand(FilterStep::Operand {
-        ._mask = filterMask,
+        ._mask = filterMasks[0][0],
         ._src = targetNodes,
         ._dest = filteredNodes});
 
@@ -698,7 +681,7 @@ void QueryPlanner::planExpressionConstraintFilters(const ExprConstraint* edgeExp
     if (mustWriteEdges) {
         auto filteredEdges = _mem->alloc<ColumnIDs>();
         filter.addOperand(FilterStep::Operand {
-            ._mask = filterMask,
+            ._mask = filterMasks[0][0],
             ._src = edges,
             ._dest = filteredEdges});
         _transformData->addColumn(filteredEdges, edgeDecl);
@@ -981,13 +964,14 @@ void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
 
     edgeWriteInfo._targetNodes = targets;
 
+    const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
     const VarExpr* edgeVar = edge->getVar();
     VarDecl* edgeDecl = edgeVar ? edgeVar->getDecl() : nullptr;
     const bool mustWriteEdges = edgeDecl && edgeDecl->isReturned();
-    const auto edges = _mem->alloc<ColumnIDs>();
 
-    edgeWriteInfo._edges = edges;
-    if (mustWriteEdges) {
+    if (mustWriteEdges || edgeExprConstr) {
+        const auto edges = _mem->alloc<ColumnIDs>();
+        edgeWriteInfo._edges = edges;
         _transformData->addColumn(edges, edgeDecl);
     }
 
@@ -1044,13 +1028,10 @@ void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
         ._src = edgeWriteInfo._edges,
         ._dest = filterOutEdges});
 
-    // Add targets to the writeSet
+    const ExprConstraint* targetExprConstr = target->getExprConstraint();
     const VarExpr* targetVar = target->getVar();
     VarDecl* targetDecl = targetVar ? targetVar->getDecl() : nullptr;
     const bool mustWriteTargetNodes = targetDecl && targetDecl->isReturned();
-
-    const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
-    const ExprConstraint* targetExprConstr = target->getExprConstraint();
 
     if (edgeExprConstr || targetExprConstr) {
         planExpressionConstraintFilters(edgeExprConstr, targetExprConstr, filterOutEdges, filterOutNodes,

@@ -303,16 +303,6 @@ public:
         }
     }
 
-    static void genCompoundMaskOp(ColumnMask& mask,
-                                  const ColumnVector<EntityID>& rhs) {
-        auto size = rhs.size();
-        mask.resize(size);
-        auto* maskd = mask.data();
-        for (size_t i = 0; i < size; i++) {
-            maskd[i] = true;
-        }
-    }
-
     template <typename T>
     static void copyChunk(ColumnVector<T>::ConstIterator srcStart,
                           ColumnVector<T>::ConstIterator srcEnd,
