@@ -26,7 +26,8 @@ int main(int argc, const char** argv) {
     TuringDB db;
 
     spdlog::info("Create company graph");
-    SimpleGraph::createSimpleGraph(db);
+    auto* graph = db.getSystemManager().getDefaultGraph();
+    SimpleGraph::createSimpleGraph(graph);
 
     const Graph* defaultGraph = db.getSystemManager().getDefaultGraph();
 

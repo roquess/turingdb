@@ -299,7 +299,7 @@ TEST_F(IteratorsTest, ScanNodesIteratorTest) {
 TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
     const Transaction transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
-    std::vector<EntityID> compareSet {2, 4, 3, 8, 6, 7};
+    std::vector<EntityID> compareSet {2, 3, 4, 6, 7, 8};
 
     auto it = compareSet.begin();
     size_t count = 0;
@@ -520,7 +520,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
     const auto labelset = LabelSet::fromList({1});
 
     {
-        std::vector<uint64_t> compareSet {2, 0, 1, 5, 7, 8};
+        std::vector<uint64_t> compareSet {2, 1, 0, 7, 8, 5};
         auto it = compareSet.begin();
         size_t count = 0;
         for (const uint64_t v : reader.scanNodePropertiesByLabel<types::UInt64>(0, &labelset)) {
@@ -533,17 +533,17 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
 
     {
         std::vector<std::string_view> compareSet {
-            // "TmpID1", This property is not set for this node
             "TmpID0",
-            "TmpID5",
+            // "TmpID1", This property is not set for this node
             "TmpID2 patch",
             "TmpID7",
             "TmpID8",
+            "TmpID5",
         };
         auto it = compareSet.begin();
         size_t count = 0;
         for (std::string_view v : reader.scanNodePropertiesByLabel<types::String>(1, &labelset)) {
-            ASSERT_TRUE(*it == v);
+            ASSERT_EQ(*it, v);
             count++;
             it++;
         }
