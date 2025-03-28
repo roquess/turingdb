@@ -129,6 +129,10 @@ void FilterStep::compute() {
             EQUAL_CASE(ColumnConst<std::string>, ColumnConst<std::string_view>)
             EQUAL_CASE(ColumnVector<CustomBool>, ColumnConst<CustomBool>)
             EQUAL_CASE(ColumnConst<CustomBool>, ColumnVector<CustomBool>)
+            EQUAL_CASE(ColumnVector<double>, ColumnConst<double>)
+            EQUAL_CASE(ColumnConst<double>, ColumnVector<double>)
+            EQUAL_CASE(ColumnVector<int64_t>, ColumnConst<int64_t>)
+            EQUAL_CASE(ColumnConst<int64_t>, ColumnVector<int64_t>)
 
             AND_CASE(ColumnMask, ColumnMask)
             OR_CASE(ColumnMask, ColumnMask)
