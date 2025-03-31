@@ -44,13 +44,13 @@ void SimpleGraph::createSimpleGraph(TuringDB& db) {
     const EntityID suhas = builder->addNode(getLabelSet({"Person", "SoftwareEngineering"}));
 
     // Interests
-    const EntityID ghosts = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID ghosts = builder->addNode(getLabelSet({"Interest", "Supernatural", "SleepDisturber", "Exotic"}));
     const EntityID bio = builder->addNode(getLabelSet({"Interest"}));
     const EntityID cooking = builder->addNode(getLabelSet({"Interest"}));
     const EntityID paddle = builder->addNode(getLabelSet({"Interest"}));
-    const EntityID animals = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID animals = builder->addNode(getLabelSet({"Interest", "SleepDisturber"}));
     const EntityID computers = builder->addNode(getLabelSet({"Interest", "SoftwareEngineering"}));
-    const EntityID eighties = builder->addNode(getLabelSet({"Interest"}));
+    const EntityID eighties = builder->addNode(getLabelSet({"Interest", "Exotic"}));
 
     // Property types
     const PropertyType name = proptypes.getOrCreate("name", types::String::_valueType);
@@ -74,6 +74,7 @@ void SimpleGraph::createSimpleGraph(TuringDB& db) {
     const EdgeRecord e10 = builder->addEdge(interestedInID, maxime, bio);
     const EdgeRecord e11 = builder->addEdge(interestedInID, maxime, paddle);
     const EdgeRecord e12 = builder->addEdge(interestedInID, martina, cooking);
+    const EdgeRecord e13 = builder->addEdge(knowsWellID, ghosts, remy);
 
     // Node Properties
 
@@ -119,6 +120,7 @@ void SimpleGraph::createSimpleGraph(TuringDB& db) {
     builder->addNodeProperty<types::Bool>(ghosts, isReal._id, true);
     builder->addNodeProperty<types::Bool>(computers, isReal._id, true);
     builder->addNodeProperty<types::Bool>(eighties, isReal._id, false);
+    builder->addNodeProperty<types::Bool>(animals, isReal._id, true);
 
     // Edge Properties
     builder->addEdgeProperty<types::String>(e01, name._id, "Remy -> Adam");
@@ -133,16 +135,22 @@ void SimpleGraph::createSimpleGraph(TuringDB& db) {
     builder->addEdgeProperty<types::String>(e10, name._id, "Maxime -> Bio");
     builder->addEdgeProperty<types::String>(e11, name._id, "Maxime -> Paddle");
     builder->addEdgeProperty<types::String>(e12, name._id, "Martina -> Cooking");
+    builder->addEdgeProperty<types::String>(e13, name._id, "Ghosts -> Remy");
 
     builder->addEdgeProperty<types::String>(e03, proficiency._id, "expert");
-    builder->addEdgeProperty<types::String>(e11, proficiency._id, "expert");
     builder->addEdgeProperty<types::String>(e04, proficiency._id, "expert");
     builder->addEdgeProperty<types::String>(e05, proficiency._id, "moderate");
-    builder->addEdgeProperty<types::Int64>(e12, duration._id, 10);
-    builder->addEdgeProperty<types::Int64>(e09, duration._id, 15);
-    builder->addEdgeProperty<types::Int64>(e05, duration._id, 80);
+    builder->addEdgeProperty<types::String>(e11, proficiency._id, "expert");
+    builder->addEdgeProperty<types::String>(e13, proficiency._id, "expert");
+
     builder->addEdgeProperty<types::Int64>(e01, duration._id, 20);
     builder->addEdgeProperty<types::Int64>(e02, duration._id, 20);
+    builder->addEdgeProperty<types::Int64>(e03, duration._id, 20);
+    builder->addEdgeProperty<types::Int64>(e05, duration._id, 20);
+    builder->addEdgeProperty<types::Int64>(e08, duration._id, 20);
+    builder->addEdgeProperty<types::Int64>(e09, duration._id, 15);
+    builder->addEdgeProperty<types::Int64>(e12, duration._id, 10);
+    builder->addEdgeProperty<types::Int64>(e13, duration._id, 200);
 
     builder->commit(*jobSystem);
     jobSystem->terminate();
