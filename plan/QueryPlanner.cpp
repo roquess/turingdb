@@ -178,7 +178,8 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
         _pipeline->add<StepType>(scannedNodes,                                                       \
                                  propType,                                                           \
                                  propValues);                                                        \
-                                                                                                     \
+        /* Checking whether we are in the multi-expression constraint case so we can appropriately   \
+           assign the outputNodes column to the correct step */                                      \
         if (expressions.size() > 1) {                                                                \
             const auto scannedMatchingNodes = _mem->alloc<ColumnIDs>();                              \
             std::vector<ColumnMask*> masks(expressions.size() - 1);                                  \
@@ -203,7 +204,9 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                                             scannedMatchingNodes);                                   \
                                                                                                      \
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();                           \
-            for (auto mask : masks) {                                                                \
+                                                                                                     \
+            /* Loop over the mask columns, combinig all the masks onto the first mask column*/       \
+            for (auto mask : masks | rv::drop(1)) {                                                  \
                 filter.addExpression(FilterStep::Expression {                                        \
                     ._op = ColumnOperator::OP_AND,                                                   \
                     ._mask = masks[0],                                                               \

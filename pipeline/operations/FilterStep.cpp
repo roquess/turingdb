@@ -158,6 +158,7 @@ void FilterStep::generateIndices() {
     _indices->reserve(size);
 
     for (size_t i = 0; i < size; i++) {
+        // if the mask's index value is true record the index for the transform step:
         if (maskd[i]) {
             _indices->push_back(i);
         }
