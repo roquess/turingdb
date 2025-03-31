@@ -2,6 +2,7 @@
 
 #include <range/v3/view.hpp>
 
+#include "types/PropertyTypeMap.h"
 #include "DeclContext.h"
 #include "Expr.h"
 #include "MatchTarget.h"
@@ -11,6 +12,7 @@
 #include "ReturnProjection.h"
 #include "VarDecl.h"
 #include "BioAssert.h"
+
 #include "spdlog/spdlog.h"
 
 using namespace db;
@@ -171,25 +173,27 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
     if (!decl) {
         return false;
     }
-    if( auto *exprConstraint = entity->getExprConstraint()){
-        for( auto *binExpr: exprConstraint->getExpressions()){
-            VarExpr* lexpr = static_cast<VarExpr*>(binExpr->getLeftExpr());
+
+    if (auto* exprConstraint = entity->getExprConstraint()) {
+        for (auto* binExpr : exprConstraint->getExpressions()) {
+            const VarExpr* lexpr = static_cast<VarExpr*>(binExpr->getLeftExpr());
             const std::string& varName = lexpr->getName();
 
-            ExprConst* rexpr = static_cast<ExprConst*>(binExpr->getRightExpr());
+            const ExprConst* rexpr = static_cast<ExprConst*>(binExpr->getRightExpr());
             switch (binExpr->getOpType()) {
-                case BinExpr::OP_EQUAL:
-                    if(_propTypeMap.get(varName)._valueType != rexpr->getType()){
-                        spdlog::error("Type Error for variable: {}" ,varName );
-                        return false;
-                    }
-                break;
+                {
+                    case BinExpr::OP_EQUAL:
+                        if (_propTypeMap.get(varName)._valueType != rexpr->getType()) {
+                            spdlog::error("Type Error for variable: {}", varName);
+                            return false;
+                        }
+                        break;
+                }
                 default:
-                        spdlog::error("Optype not supported");
-                        return false;
+                    spdlog::error("Optype not supported");
+                    return false;
             }
         }
-
     }
 
     var->setDecl(decl);

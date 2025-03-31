@@ -1,11 +1,11 @@
 #pragma once
 
-#include "types/PropertyTypeMap.h"
 #include <stdint.h>
 #include <string>
 
 namespace db {
 
+class PropertyTypeMap;
 class ASTContext;
 class QueryCommand;
 class MatchCommand;
