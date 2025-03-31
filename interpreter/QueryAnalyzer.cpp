@@ -181,18 +181,17 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
 
             const ExprConst* rexpr = static_cast<ExprConst*>(binExpr->getRightExpr());
             switch (binExpr->getOpType()) {
-                {
-                    case BinExpr::OP_EQUAL:
-                        if (_propTypeMap.get(varName)._valueType != rexpr->getType()) {
-                            std::string errorMsg = "Type Error for variable " + varName;
-                            if (_propTypeMap.get(varName)._valueType == db::ValueType::Invalid) {
-                                errorMsg += ": Property not found";
-                            }
-
-                            spdlog::error(errorMsg);
-                            return false;
+                case BinExpr::OP_EQUAL: {
+                    if (_propTypeMap.get(varName)._valueType != rexpr->getType()) {
+                        std::string errorMsg = "Type Error for variable " + varName;
+                        if (_propTypeMap.get(varName)._valueType == db::ValueType::Invalid) {
+                            errorMsg += ": Property not found";
                         }
-                        break;
+
+                        spdlog::error(errorMsg);
+                        return false;
+                    }
+                    break;
                 }
                 default:
                     spdlog::error("Optype not supported");
