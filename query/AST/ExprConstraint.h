@@ -16,10 +16,10 @@ public:
     static ExprConstraint* create(ASTContext* ctxt);
     void addExpr(BinExpr* expr);
 
-    const std::vector<BinExpr*>& getExpressions() const { return _expressions; }
+    const std::vector<const BinExpr*>& getExpressions() const { return _expressions; }
 
 private:
-    std::vector<BinExpr*> _expressions;
+    std::vector<const BinExpr*> _expressions;
 
     ExprConstraint();
     ~ExprConstraint();

@@ -71,10 +71,10 @@ private:
 
     // Property Functions
     void generateNodePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
-                                         std::span<const BinExpr*> expressions,
+                                         std::span<const BinExpr* const> expressions,
                                          const ColumnIDs* entities);
     void generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
-                                         std::span<const BinExpr*> expressions,
+                                         std::span<const BinExpr* const> expressions,
                                          const ColumnIDs* entities);
 
     // Planning functions
