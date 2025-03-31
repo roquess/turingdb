@@ -302,7 +302,7 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* const& output
 
     const auto& expressions = exprConstraint->getExpressions();
 
-    VarExpr* leftExpr = static_cast<VarExpr*>(expressions[0]->getLeftExpr());
+    const VarExpr* leftExpr = static_cast<VarExpr*>(expressions[0]->getLeftExpr());
     ExprConst* rightExpr = static_cast<ExprConst*>(expressions[0]->getRightExpr());
     const std::string& varExprName = leftExpr->getName();
 
@@ -327,7 +327,7 @@ void QueryPlanner::planScanNodesWithPropertyAndLabelConstraints(ColumnIDs* const
 
     const auto& expressions = exprConstraint->getExpressions();
 
-    VarExpr* leftExpr = static_cast<VarExpr*>(expressions[0]->getLeftExpr());
+    const VarExpr* leftExpr = static_cast<VarExpr*>(expressions[0]->getLeftExpr());
     ExprConst* rightExpr = static_cast<ExprConst*>(expressions[0]->getRightExpr());
     const std::string& varExprName = leftExpr->getName();
 
@@ -388,7 +388,7 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
     for (size_t i = 0; i < filterMasks.size(); i++) {
         const auto indices = _mem->alloc<ColumnVector<size_t>>();
 
-        VarExpr* leftExpr = static_cast<VarExpr*>(expressions[i]->getLeftExpr());
+        const VarExpr* leftExpr = static_cast<VarExpr*>(expressions[i]->getLeftExpr());
         ExprConst* rightExpr = static_cast<ExprConst*>(expressions[i]->getRightExpr());
 
         const std::string& varExprName = leftExpr->getName();
@@ -415,7 +415,7 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
     for (size_t i = 0; i < filterMasks.size(); i++) {
         const auto indices = _mem->alloc<ColumnVector<size_t>>();
 
-        VarExpr* leftExpr = static_cast<VarExpr*>(expressions[i]->getLeftExpr());
+        const VarExpr* leftExpr = static_cast<VarExpr*>(expressions[i]->getLeftExpr());
         ExprConst* rightExpr = static_cast<ExprConst*>(expressions[i]->getRightExpr());
 
         const std::string& varExprName = leftExpr->getName();
@@ -1068,7 +1068,7 @@ void QueryPlanner::planProjection(const MatchCommand* matchCmd) {
             for (const MatchTarget* target : matchCmd->matchTargets()) {
                 const PathPattern* pattern = target->getPattern();
                 for (EntityPattern* entityPattern : pattern->elements()) {
-                    if (VarExpr* var = entityPattern->getVar()) {
+                    if (const VarExpr* var = entityPattern->getVar()) {
                         if (VarDecl* decl = var->getDecl()) {
                             ColumnIDs* columnIDs = decl->getColumn()->cast<ColumnIDs>();
                             if (!columnIDs) {
