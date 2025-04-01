@@ -25,9 +25,8 @@ public:
         auto* buffer = &_writer.buffer();
         for (const auto& [ptID, ptIndexer] : indexer) {
             const size_t stride = Constants::getPropTypeIndexerStride(ptIndexer);
-
             if (stride > Constants::PAGE_AVAIL) {
-                return DumpError::result(DumpErrorType::COULD_NOT_WRITE_DATAPART_INFO);
+                return DumpError::result(DumpErrorType::COULD_NOT_WRITE_PROP_INDEXER);
             }
 
             if (buffer->avail() < stride) {

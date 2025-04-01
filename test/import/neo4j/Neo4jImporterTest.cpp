@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 
 #include "Graph.h"
+#include "versioning/Transaction.h"
 #include "views/GraphView.h"
 #include "reader/GraphReader.h"
+#include "versioning/CommitBuilder.h"
 #include "writers/DataPartBuilder.h"
 #include "views/EdgeView.h"
 #include "Neo4j/Neo4JParserConfig.h"
@@ -37,7 +39,7 @@ protected:
         LogSetup::setupLogFileBacked(_logPath.string());
         PerfStat::init(_perfPath);
 
-        _graph = std::make_unique<Graph>();
+        _graph = Graph::create();
         _jobSystem = JobSystem::create();
     }
 
@@ -55,38 +57,39 @@ protected:
 
 TEST_F(Neo4jImporterTest, Simple) {
     {
-        auto builder1 = _graph->newPartWriter();
-        builder1->addNode(LabelSet::fromList({1})); // 0
-        builder1->addNode(LabelSet::fromList({0})); // 1
-        builder1->addNode(LabelSet::fromList({1})); // 2
-        builder1->addNode(LabelSet::fromList({2})); // 3
-        builder1->addEdge(0, 0, 1);
-        builder1->commit(*_jobSystem);
+        const auto tx = _graph->openWriteTransaction();
+        auto commitBuilder = tx.prepareCommit();
+        auto& builder1 = commitBuilder->newBuilder();
+        builder1.addNode(LabelSet::fromList({1})); // 0
+        builder1.addNode(LabelSet::fromList({0})); // 1
+        builder1.addNode(LabelSet::fromList({1})); // 2
+        builder1.addNode(LabelSet::fromList({2})); // 3
+        builder1.addEdge(0, 0, 1);
 
-        auto builder2 = _graph->newPartWriter();
-        builder2->addEdge(2, 1, 2);
-        EntityID id1 = builder2->addNode(LabelSet::fromList({0}));
-        builder2->addNodeProperty<types::String>(id1, 0, "test1");
+        auto& builder2 = commitBuilder->newBuilder();
+        builder2.addEdge(2, 1, 2);
+        EntityID id1 = builder2.addNode(LabelSet::fromList({0}));
+        builder2.addNodeProperty<types::String>(id1, 0, "test1");
 
-        builder2->addEdge(2, 0, 1);
-        EntityID id2 = builder2->addNode(LabelSet::fromList({0}));
-        builder2->addNodeProperty<types::String>(id2, 0, "test2");
-        builder2->addNodeProperty<types::String>(2, 0, "test3");
-        const EdgeRecord& edge= builder2->addEdge(4, 3, 4);
-        builder2->addEdgeProperty<types::String>(edge, 0, "Edge property test");
-        builder2->addNode(LabelSet::fromList({0}));
-        builder2->addNode(LabelSet::fromList({0}));
-        builder2->addNode(LabelSet::fromList({0}));
-        builder2->addNode(LabelSet::fromList({0}));
-        builder2->addNode(LabelSet::fromList({1}));
-        builder2->addNode(LabelSet::fromList({1}));
-        builder2->addNode(LabelSet::fromList({1}));
-        builder2->addEdge(0, 3, 4);
-        builder2->commit(*_jobSystem);
+        builder2.addEdge(2, 0, 1);
+        EntityID id2 = builder2.addNode(LabelSet::fromList({0}));
+        builder2.addNodeProperty<types::String>(id2, 0, "test2");
+        builder2.addNodeProperty<types::String>(2, 0, "test3");
+        const EdgeRecord& edge = builder2.addEdge(4, 3, 4);
+        builder2.addEdgeProperty<types::String>(edge, 0, "Edge property test");
+        builder2.addNode(LabelSet::fromList({0}));
+        builder2.addNode(LabelSet::fromList({0}));
+        builder2.addNode(LabelSet::fromList({0}));
+        builder2.addNode(LabelSet::fromList({0}));
+        builder2.addNode(LabelSet::fromList({1}));
+        builder2.addNode(LabelSet::fromList({1}));
+        builder2.addNode(LabelSet::fromList({1}));
+        builder2.addEdge(0, 3, 4);
+        _graph->commit(std::move(commitBuilder), *_jobSystem);
     }
 
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     std::cout << "All out edges: ";
     for (const auto& edge : reader.scanOutEdges()) {
         std::cout << edge._edgeID.getValue()
@@ -126,8 +129,8 @@ TEST_F(Neo4jImporterTest, General) {
     ASSERT_TRUE(res);
     std::cout << "Parsing: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
 
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     std::stringstream report;
     GraphReport::getReport(reader, report);
     std::cout << report.view() << std::endl;

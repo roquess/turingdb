@@ -4,6 +4,7 @@
 #include "GMLParser.h"
 #include "ControlCharacters.h"
 #include "Graph.h"
+#include "versioning/CommitBuilder.h"
 
 namespace db {
 
@@ -22,12 +23,14 @@ public:
         _labelsetID = _graph->getMetadata()->labelsets().create(labelset);
 
         _edgeTypeID = _graph->getMetadata()->edgeTypes().create("GMLEdge");
-        _builder = _graph->newPartWriter();
+        const auto tx = _graph->openWriteTransaction();
+        _commitBuilder = tx.prepareCommit();
+        _builder = &_commitBuilder->newBuilder();
         return true;
     }
 
     void finish(JobSystem& jobs) {
-        _builder->commit(jobs);
+        _graph->commit(std::move(_commitBuilder), jobs);
     }
 
     bool onNodeProperty(std::string_view k, std::string_view v) {
@@ -173,7 +176,8 @@ private:
     Graph* _graph {nullptr};
     PropertyTypeMap* _propTypes {nullptr};
 
-    std::unique_ptr<DataPartBuilder> _builder;
+    std::unique_ptr<CommitBuilder> _commitBuilder;
+    DataPartBuilder* _builder {nullptr};
     LabelSetID _labelsetID;
     EntityID _currentNodeID;
     EntityID _edgeSourceID;

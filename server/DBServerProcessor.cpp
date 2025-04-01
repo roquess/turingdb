@@ -6,6 +6,7 @@
 #include "Graph.h"
 #include "GraphMetadata.h"
 #include "reader/GraphReader.h"
+#include "versioning/Transaction.h"
 #include "views/EdgeView.h"
 #include "QueryInterpreter.h"
 #include "SystemManager.h"
@@ -29,8 +30,7 @@ DBServerProcessor::DBServerProcessor(TuringDB& db,
                                      net::TCPConnection& connection)
     : _writer(&connection.getWriter()),
       _db(db),
-      _connection(connection)
-{
+      _connection(connection) {
 }
 
 DBServerProcessor::~DBServerProcessor() {
@@ -126,7 +126,7 @@ void DBServerProcessor::query() {
     LocalMemory& mem = _threadContext->getLocalMemory();
     const auto& httpInfo = getHttpInfo();
 
-    const auto graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+    const auto transactionInfo = getTransactionInfo();
 
     const auto header = _writer.startHeader(net::HTTP::Status::OK,
                                             !_connection.isCloseRequired());
@@ -136,10 +136,12 @@ void DBServerProcessor::query() {
     payload.key("data");
     payload.arr();
 
-    const auto res = _db.query(httpInfo._payload, graphNameView, &mem,
-                               [&](const Block& block) {
-                                   JsonEncoder::writeBlock(payload, block);
-                               });
+    const auto res = _db.query(
+        httpInfo._payload,
+        transactionInfo.graphName,
+        &mem,
+        [&](const Block& block) { JsonEncoder::writeBlock(payload, block); },
+        transactionInfo.commit);
 
     payload.end();
 
@@ -154,14 +156,9 @@ void DBServerProcessor::query() {
 }
 
 void DBServerProcessor::load_graph() {
-    const auto& httpInfo = getHttpInfo();
     auto& sys = _db.getSystemManager();
 
-    const auto graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
-    if (graphNameView.empty()) {
-        _writer.writeHttpError(net::HTTP::Status::BAD_REQUEST);
-        return;
-    }
+    const auto transactionInfo = getTransactionInfo();
 
     const auto header = _writer.startHeader(net::HTTP::Status::OK,
                                             !_connection.isCloseRequired());
@@ -169,13 +166,12 @@ void DBServerProcessor::load_graph() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const std::string graphName(graphNameView);
-    if (!sys.loadGraph(graphName)) {
+    if (!sys.loadGraph(transactionInfo.graphName)) {
         payload.key("error");
         // Try to determine the specific error
-        if (sys.getGraph(graphName)) {
+        if (sys.getGraph(transactionInfo.graphName)) {
             payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_ALREADY_EXISTS));
-        } else if (sys.isGraphLoading(graphName)) {
+        } else if (sys.isGraphLoading(transactionInfo.graphName)) {
             payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_ALREADY_LOADING));
         } else {
             payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_LOAD_ERROR));
@@ -186,10 +182,8 @@ void DBServerProcessor::load_graph() {
 
 void DBServerProcessor::get_graph_status() {
     const auto& sysMan = _db.getSystemManager();
-    const auto& httpInfo = getHttpInfo();
 
-    const auto graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
-    const std::string graphName(graphNameView);
+    const auto transactionInfo = getTransactionInfo();
 
     const auto header = _writer.startHeader(net::HTTP::Status::OK,
                                             !_connection.isCloseRequired());
@@ -206,14 +200,15 @@ void DBServerProcessor::get_graph_status() {
     payload.value(graph != nullptr);
 
     payload.key("isLoading");
-    payload.value(sysMan.isGraphLoading(graphName));
+    payload.value(sysMan.isGraphLoading(transactionInfo.graphName));
 
     if (graph != nullptr) {
-        const auto reader = graph->read();
+        const auto transaction = graph->openTransaction();
+        const auto reader = transaction.readGraph();
         payload.key("nodeCount");
         payload.value(reader.getNodeCount());
         payload.key("edgeCount");
-        payload.value(reader.getNodeCount());
+        payload.value(reader.getEdgeCount());
     }
 }
 
@@ -304,15 +299,17 @@ void DBServerProcessor::list_labels() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = getRequestedGraph();
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
 
-    const auto& labels = graph->getMetadata()->labels();
+    const auto reader = transaction.value().readGraph();
+    const auto& labels = reader.getMetadata().labels();
     LabelSet labelset;
 
     if (!reqBody.empty()) {
@@ -342,9 +339,7 @@ void DBServerProcessor::list_labels() {
     payload.key("data");
     payload.obj();
 
-    const GraphReader reader = graph->read();
-    const auto& labelMap = graph->getMetadata()->labels();
-    const size_t labelCount = labelMap.getCount();
+    const size_t labelCount = labels.getCount();
     std::vector<LabelID> remainingLabels;
 
     payload.key("labels");
@@ -356,7 +351,7 @@ void DBServerProcessor::list_labels() {
         }
         remainingLabels.push_back(i);
 
-        payload.value(labelMap.getName((LabelID)i));
+        payload.value(labels.getName((LabelID)i));
     }
 
     payload.end();
@@ -383,13 +378,16 @@ void DBServerProcessor::list_property_types() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = getRequestedGraph();
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
+
+    const auto reader = transaction.value().readGraph();
 
     if (!httpInfo._payload.empty()) {
         try {
@@ -409,7 +407,7 @@ void DBServerProcessor::list_property_types() {
     payload.key("data");
     payload.arr();
 
-    const auto& propTypes = graph->getMetadata()->propTypes();
+    const auto& propTypes = reader.getMetadata().propTypes();
 
     // If no node IDs provided, list all property types
     if (nodeIDs.empty()) {
@@ -419,8 +417,6 @@ void DBServerProcessor::list_property_types() {
         }
         return;
     }
-
-    const auto reader = graph->read();
 
     // Else only show the node's property types
     const size_t propTypeCount = propTypes.getCount();
@@ -444,13 +440,16 @@ void DBServerProcessor::list_edge_types() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = getRequestedGraph();
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
+
+    const auto reader = transaction.value().readGraph();
 
     if (!httpInfo._payload.empty()) {
         try {
@@ -470,7 +469,7 @@ void DBServerProcessor::list_edge_types() {
     payload.key("data");
     payload.arr();
 
-    const auto& edgeTypes = graph->getMetadata()->edgeTypes();
+    const auto& edgeTypes = reader.getMetadata().edgeTypes();
 
     // If no edge IDs provided, list all edge types
     if (edgeIDs.empty()) {
@@ -480,8 +479,6 @@ void DBServerProcessor::list_edge_types() {
         }
         return;
     }
-
-    const auto reader = graph->read();
 
     // Else only show the edges' property types
     const size_t edgeTypeCount = edgeTypes.getCount();
@@ -504,21 +501,25 @@ void DBServerProcessor::list_nodes() {
 
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
-    const Graph* graph = getRequestedGraph();
-    if (!graph) {
+
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
 
-    const GraphView view = graph->view();
-    const GraphMetadata* metadata = graph->getMetadata();
-    const LabelMap& labels = metadata->labels();
-    const PropertyTypeMap& propTypes = metadata->propTypes();
+    const auto reader = transaction.value().readGraph();
 
-    payload.setMetadata(metadata);
+    const GraphMetadata& metadata = reader.getMetadata();
+    const LabelMap& labels = metadata.labels();
+    const PropertyTypeMap& propTypes = metadata.propTypes();
 
-    ListNodesExecutor executor(view, payload);
+    payload.setMetadata(&metadata);
+
+    ListNodesExecutor executor(reader, payload);
 
     try {
         const auto json = nlohmann::json::parse(httpInfo._payload);
@@ -598,19 +599,20 @@ void DBServerProcessor::get_node_properties() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = getRequestedGraph();
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
 
-    const GraphView view = graph->view();
+    const auto reader = transaction.value().readGraph();
 
     ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
     std::vector<std::string> properties;
-    const auto& propTypes = view.metadata().propTypes();
+    const auto& propTypes = reader.getMetadata().propTypes();
 
     try {
         const auto json = nlohmann::json::parse(reqBody);
@@ -652,7 +654,6 @@ void DBServerProcessor::get_node_properties() {
     payload.key("data");
     payload.obj();
 
-    const auto reader = view.read();
     for (const auto& propName : properties) {
         const auto ptype = propTypes.get(propName);
         if (!ptype._id.isValid()) {
@@ -710,15 +711,16 @@ void DBServerProcessor::get_neighbors() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = getRequestedGraph();
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
 
-    const GraphView view = graph->view();
+    const auto reader = transaction.value().readGraph();
 
     ColumnVector<EntityID>* allNodeIDs = mem.alloc<ColumnVector<EntityID>>();
     ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
@@ -754,7 +756,6 @@ void DBServerProcessor::get_neighbors() {
     payload.key("data");
     payload.obj();
 
-    const auto reader = view.read();
     nodeIDs->resize(1); // One node at a time
 
     for (auto nodeID : *allNodeIDs) {
@@ -819,10 +820,7 @@ void DBServerProcessor::get_neighbors() {
 void DBServerProcessor::get_nodes() {
     auto& parser = _connection.getParser<net::HTTPParser<DBURIParser>>();
     LocalMemory& mem = _threadContext->getLocalMemory();
-    const auto& sysMan = _db.getSystemManager();
-    const auto& httpInfo = parser.getHttpInfo();
-    const std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
-    const std::string_view reqBody = httpInfo._payload;
+    const std::string_view reqBody = parser.getHttpInfo()._payload;
 
     const auto header = _writer.startHeader(net::HTTP::Status::OK,
                                             !_connection.isCloseRequired());
@@ -830,17 +828,19 @@ void DBServerProcessor::get_nodes() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = graphNameView.empty() ? sysMan.getDefaultGraph() : sysMan.getGraph(std::string(graphNameView));
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
 
-    payload.setMetadata(graph->getMetadata());
+    const auto reader = transaction.value().readGraph();
+    const auto& metadata = reader.getMetadata();
 
-    const GraphView view = graph->view();
+    payload.setMetadata(&metadata);
 
     ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
 
@@ -866,7 +866,6 @@ void DBServerProcessor::get_nodes() {
         return;
     }
 
-    const auto reader = view.read();
     payload.key("data");
     payload.obj();
 
@@ -879,10 +878,7 @@ void DBServerProcessor::get_nodes() {
 
 void DBServerProcessor::get_node_edges() {
     LocalMemory& mem = _threadContext->getLocalMemory();
-    const auto& sysMan = _db.getSystemManager();
-    const auto& httpInfo = getHttpInfo();
-    const std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
-    const std::string_view reqBody = httpInfo._payload;
+    const std::string_view reqBody = getHttpInfo()._payload;
 
     const auto header = _writer.startHeader(net::HTTP::Status::OK,
                                             !_connection.isCloseRequired());
@@ -890,20 +886,19 @@ void DBServerProcessor::get_node_edges() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = graphNameView.empty()
-                           ? sysMan.getDefaultGraph()
-                           : sysMan.getGraph(std::string(graphNameView));
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
 
-    const GraphView view = graph->view();
-    const GraphMetadata* metadata = graph->getMetadata();
+    const auto reader = transaction.value().readGraph();
+    const GraphMetadata& metadata = reader.getMetadata();
 
-    payload.setMetadata(metadata);
+    payload.setMetadata(&metadata);
 
     ColumnVector<EntityID>* nodeIDs = mem.alloc<ColumnVector<EntityID>>();
     std::unordered_map<EdgeTypeID, size_t> outEdgeTypeLimits;
@@ -972,7 +967,6 @@ void DBServerProcessor::get_node_edges() {
 
     std::unordered_map<EdgeTypeID, size_t> outCounts;
     std::unordered_map<EdgeTypeID, size_t> inCounts;
-    const auto reader = view.read();
     payload.key("data");
     payload.obj();
 
@@ -1084,23 +1078,24 @@ void DBServerProcessor::explore_node_edges() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = getRequestedGraph();
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
 
-    const GraphView view = graph->view();
-    const GraphMetadata* metadata = graph->getMetadata();
-    const LabelMap& labels = metadata->labels();
-    const EdgeTypeMap& edgeTypes = metadata->edgeTypes();
-    const PropertyTypeMap& propTypes = metadata->propTypes();
+    const auto reader = transaction.value().readGraph();
+    const GraphMetadata& metadata = reader.getMetadata();
+    const LabelMap& labels = metadata.labels();
+    const EdgeTypeMap& edgeTypes = metadata.edgeTypes();
+    const PropertyTypeMap& propTypes = metadata.propTypes();
 
-    payload.setMetadata(metadata);
+    payload.setMetadata(&metadata);
 
-    ExploreNodeEdgesExecutor executor {view, payload};
+    ExploreNodeEdgesExecutor executor {reader, payload};
 
     try {
         const auto json = nlohmann::json::parse(httpInfo._payload);
@@ -1226,10 +1221,7 @@ void DBServerProcessor::explore_node_edges() {
 void DBServerProcessor::get_edges() {
     auto& parser = _connection.getParser<net::HTTPParser<DBURIParser>>();
     LocalMemory& mem = _threadContext->getLocalMemory();
-    const auto& sysMan = _db.getSystemManager();
-    const auto& httpInfo = parser.getHttpInfo();
-    const std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
-    const std::string_view reqBody = httpInfo._payload;
+    const std::string_view reqBody = parser.getHttpInfo()._payload;
 
     const auto header = _writer.startHeader(net::HTTP::Status::OK,
                                             !_connection.isCloseRequired());
@@ -1237,19 +1229,17 @@ void DBServerProcessor::get_edges() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    const Graph* graph = graphNameView.empty()
-                           ? sysMan.getDefaultGraph()
-                           : sysMan.getGraph(std::string(graphNameView));
+    const auto info = getTransactionInfo();
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
 
-    if (!graph) {
+    if (!transaction) {
         payload.key("error");
-        payload.value(EndpointStatusDescription::value(EndpointStatus::GRAPH_NOT_FOUND));
+        payload.value(transaction.error());
         return;
     }
 
-    payload.setMetadata(graph->getMetadata());
-
-    const GraphView view = graph->view();
+    const auto reader = transaction.value().readGraph();
+    payload.setMetadata(&reader.getMetadata());
 
     ColumnVector<EntityID>* edgeIDs = mem.alloc<ColumnVector<EntityID>>();
 
@@ -1274,7 +1264,6 @@ void DBServerProcessor::get_edges() {
         return;
     }
 
-    const auto reader = view.read();
     payload.key("data");
     payload.obj();
 
@@ -1283,4 +1272,33 @@ void DBServerProcessor::get_edges() {
         payload.key(edgeID);
         payload.value(edge);
     }
+}
+
+DBServerProcessor::TransactionInfo DBServerProcessor::getTransactionInfo() const {
+    auto& parser = _connection.getParser<net::HTTPParser<DBURIParser>>();
+    const auto& httpInfo = parser.getHttpInfo();
+    std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
+    std::string_view commitHashStr = httpInfo._params[(size_t)DBHTTPParams::commit];
+
+    if (graphNameView.empty()) {
+        graphNameView = "default";
+    }
+
+    if (commitHashStr.empty()) {
+        commitHashStr = "head";
+    }
+
+    auto commitHashRes = CommitHash::fromString(commitHashStr);
+
+    if (!commitHashRes) {
+        return {
+            .graphName = std::string {graphNameView},
+            .commit = CommitHash::head(),
+        };
+    }
+
+    return {
+        .graphName = std::string {graphNameView},
+        .commit = commitHashRes.value(),
+    };
 }

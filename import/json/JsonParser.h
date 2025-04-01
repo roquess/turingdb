@@ -1,7 +1,7 @@
 #pragma once
 
-#include "writers/ConcurrentWriter.h"
-#include "views/GraphView.h"
+#include "versioning/Transaction.h"
+#include "writers/DataPartBuilder.h"
 
 namespace db {
 
@@ -34,7 +34,7 @@ public:
     JsonParser& operator=(JsonParser&&) = delete;
     ~JsonParser();
 
-    void resetGraphView();
+    void buildPending(JobSystem& jobSystem);
     GraphStats parseStats(const std::string& data);
     bool parseNodeLabels(const std::string& data);
     bool parseNodeLabelSets(const std::string& data);
@@ -44,13 +44,13 @@ public:
     bool parseNodes(const std::string& data, DataPartBuilder&);
     bool parseEdges(const std::string& data, DataPartBuilder&);
 
-    DataPartBuilder& newDataBuffer(size_t nodeCount, size_t edgeCount);
-    void pushDataParts(Graph& graph, JobSystem& jobSystem);
+    DataPartBuilder& newDataBuffer();
+    void commit(Graph& graph, JobSystem& jobSystem);
 
 private:
     Graph* _graph {nullptr};
-    GraphView _view;
-    std::unique_ptr<ConcurrentWriter> _writer;
+    WriteTransaction _transaction;
+    std::unique_ptr<CommitBuilder> _commitBuilder;
     GraphMetadata* _graphMetadata {nullptr};
     std::unique_ptr<IDMapper> _nodeIDMapper;
 };

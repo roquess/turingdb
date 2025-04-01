@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "EntityID.h"
 #include "labels/LabelSetMap.h"
 
@@ -8,7 +10,7 @@ namespace db {
 template <typename T>
 class LabelSetIndexer {
 public:
-    using InternalContainer = std::unordered_map<LabelSetID, T>;
+    using InternalContainer = std::map<LabelSetID, T>;
 
     class MatchIterator {
     public:

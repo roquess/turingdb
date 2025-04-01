@@ -3,6 +3,7 @@
 #include "GraphMetadata.h"
 #include "SystemManager.h"
 #include "Graph.h"
+#include "versioning/Transaction.h"
 #include "views/GraphView.h"
 #include "ASTContext.h"
 #include "QueryParser.h"
@@ -29,7 +30,8 @@ QueryInterpreter::~QueryInterpreter() {
 QueryStatus QueryInterpreter::execute(std::string_view query,
                                       std::string_view graphName,
                                       LocalMemory* mem,
-                                      QueryCallback callback) {
+                                      QueryCallback callback,
+                                      CommitHash hash) {
     const auto start = Clock::now();
 
     Graph* graph = graphName.empty() ? _sysMan->getDefaultGraph() 
@@ -38,8 +40,9 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
         return QueryStatus(QueryStatus::Status::GRAPH_NOT_FOUND);
     }
 
-    // Get view of the graph for the query
-    [[maybe_unused]] const GraphView view = graph->view();
+    // Open transaction
+    const Transaction transaction = graph->openTransaction(hash);
+    const GraphView view = transaction.viewGraph();
 
     // Parsing query
     ASTContext astCtxt;

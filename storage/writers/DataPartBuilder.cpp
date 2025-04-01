@@ -4,26 +4,32 @@
 
 #include "Graph.h"
 #include "GraphMetadata.h"
-#include "DataPartManager.h"
 #include "views/GraphView.h"
+#include "reader/GraphReader.h"
 #include "properties/PropertyManager.h"
 
 using namespace db;
 
-DataPartBuilder::DataPartBuilder(EntityID firstNodeID,
-                                 EntityID firstEdgeID,
-                                 Graph* graph)
-    : _firstNodeID(firstNodeID),
-      _firstEdgeID(firstEdgeID),
-      _nextNodeID(firstNodeID),
-      _nextEdgeID(firstEdgeID),
-      _graph(graph),
-      _nodeProperties(new PropertyManager(graph->getMetadata())),
-      _edgeProperties(new PropertyManager(graph->getMetadata()))
-{
-}
-
 DataPartBuilder::~DataPartBuilder() = default;
+
+std::unique_ptr<DataPartBuilder> DataPartBuilder::prepare(Graph& graph,
+                                                          const GraphView& view,
+                                                          size_t partIndex) {
+    const auto reader = view.read();
+    auto* ptr = new DataPartBuilder();
+
+    ptr->_view = view;
+    ptr->_graph = &graph;
+    ptr->_firstNodeID = reader.getNodeCount();
+    ptr->_firstEdgeID = reader.getEdgeCount();
+    ptr->_nextNodeID = ptr->_firstNodeID;
+    ptr->_nextEdgeID = ptr->_firstEdgeID;
+    ptr->_nodeProperties = std::make_unique<PropertyManager>(graph.getMetadata());
+    ptr->_edgeProperties = std::make_unique<PropertyManager>(graph.getMetadata());
+    ptr->_partIndex = partIndex;
+
+    return std::unique_ptr<DataPartBuilder> {ptr};
+}
 
 EntityID DataPartBuilder::addNode(const LabelSetID& labelset) {
     _coreNodeLabelSets.emplace_back(labelset);
@@ -45,6 +51,7 @@ void DataPartBuilder::addNodeProperty(EntityID nodeID,
     if (!_nodeProperties->hasPropertyType(ptID)) {
         _nodeProperties->registerPropertyType<T>(ptID);
     }
+
     if (nodeID < _firstNodeID) {
         _patchNodeLabelSets.emplace(nodeID, LabelSetID {});
     }
@@ -87,17 +94,6 @@ const EdgeRecord& DataPartBuilder::addEdge(EdgeTypeID typeID, EntityID srcID, En
 
     ++_nextEdgeID;
     return edge;
-}
-
-void DataPartBuilder::commit(JobSystem& jobSystem) {
-    const size_t nodes = nodeCount();
-    const size_t edges = edgeCount();
-
-    const auto [firstNodeID, firstEdgeID] = _graph->allocIDRange(nodes, edges);
-    std::unique_ptr<DataPart> part = std::make_unique<DataPart>(firstNodeID, firstEdgeID);
-
-    part->load(_graph->view(), jobSystem, *this);
-    _graph->_parts->store(std::move(part));
 }
 
 #define INSTANTIATE(PType)                                                   \

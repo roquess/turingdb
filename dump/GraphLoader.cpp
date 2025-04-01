@@ -1,10 +1,12 @@
 #include "GraphLoader.h"
 
-#include "DataPartLoader.h"
-#include "DataPartManager.h"
+#include "CommitLoader.h"
 #include "GraphInfoLoader.h"
 #include "GraphMetadataLoader.h"
 #include "Graph.h"
+#include "versioning/Commit.h"
+#include "versioning/VersionController.h"
+#include "versioning/CommitView.h"
 
 using namespace db;
 
@@ -50,46 +52,65 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
         return DumpError::result(DumpErrorType::CANNOT_LIST_DATAPARTS, files.error());
     }
 
-    static constexpr std::string_view DATAPART_FOLDER_PREFIX = "datapart-";
+    static constexpr std::string_view COMMIT_FOLDER_PREFIX = "commit-";
 
-    size_t nodeCount = 0;
-    size_t edgeCount = 0;
+    graph->_versionController = std::make_unique<VersionController>();
+    graph->_versionController->_dataManager = std::make_unique<ArcManager<CommitData>>();
+    graph->_versionController->_partManager = std::make_unique<ArcManager<DataPart>>();
 
-    std::map<uint64_t, std::unique_ptr<DataPart>> dataparts;
+    std::map<uint64_t, std::unique_ptr<Commit>> commits;
     for (auto& child : files.value()) {
         const auto& childStr = child.get();
 
-        if (childStr.find(DATAPART_FOLDER_PREFIX) == std::string::npos) {
-            // Not a datapart folder
+        if (childStr.find(COMMIT_FOLDER_PREFIX) == std::string::npos) {
+            // Not a commit folder
             continue;
         }
 
-        const auto partIndex = GraphDumpHelper::getIntegerSuffix(
+        const auto suffixRes = GraphDumpHelper::getCommitSuffix(
             childStr,
-            DATAPART_FOLDER_PREFIX.size());
+            COMMIT_FOLDER_PREFIX.size());
 
-        if (!partIndex) {
-            return partIndex.get_unexpected();
+        if (!suffixRes) {
+            return suffixRes.get_unexpected();
         }
 
         child = path / child.get();
 
-        auto res = DataPartLoader::load(child, *graph->getMetadata());
+        const auto [offset, hash] = suffixRes.value();
+
+        auto res = CommitLoader::load(child, *graph, CommitHash {hash});
 
         if (!res) {
-            return res.get_unexpected();
+            return suffixRes.get_unexpected();
         }
 
-        nodeCount += (*res)->getNodeCount();
-        edgeCount += (*res)->getEdgeCount();
-        dataparts.emplace(partIndex.value(), std::move(res.value()));
+        commits.emplace(offset, std::move(res.value()));
     }
 
-    for (auto& [partIndex, part] : dataparts) {
-        graph->_parts->store(std::move(part));
+    if (commits.empty()) {
+        return DumpError::result(DumpErrorType::NO_COMMITS);
     }
 
-    graph->allocIDRange(nodeCount, edgeCount);
+    for (auto& [commitIndex, commit] : commits) {
+        auto& history = commit->history();
+
+        if (commitIndex != 0) {
+            const auto& prevCommit = commits.at(commitIndex - 1);
+            const auto prevDataparts = prevCommit->_data->allDataparts();
+
+            history.pushPreviousDataparts(prevDataparts);
+            history.pushPreviousCommits(prevCommit->history().commits());
+        }
+
+        history.pushCommit(CommitView{commit.get()});
+        history.pushPreviousDataparts(commit->history().commitDataparts());
+    }
+
+    for (auto& [commitIndex, commit] : commits) {
+        graph->_versionController->commit(std::move(commit));
+    }
+
 
     return {};
 }

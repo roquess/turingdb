@@ -173,6 +173,13 @@ PipelineStep::PipelineStep(GetLabelSetIDStep::Tag,
 {
 }
 
+PipelineStep::PipelineStep(HistoryStep::Tag,
+                           ColumnVector<std::string>* log)
+    : _opcode(PipelineOpcode::HISTORY),
+    _impl(std::in_place_type<HistoryStep>, log)
+{
+}
+
 PipelineStep::PipelineStep(LoadGraphStep::Tag, const std::string& graphName)
     : _opcode(PipelineOpcode::LOAD_GRAPH),
     _impl(std::in_place_type<LoadGraphStep>, graphName)

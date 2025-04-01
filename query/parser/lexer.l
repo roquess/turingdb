@@ -25,6 +25,7 @@ using namespace db;
 "graph"|"GRAPH" { return YParser::make_GRAPH(); }
 "load"|"LOAD" { return YParser::make_LOAD(); }
 "explain"|"EXPLAIN" { return YParser::make_EXPLAIN(); }
+"history"|"HISTORY" { return YParser::make_HISTORY(); }
 
 "or"|"OR" { return YParser::make_OR(); }
 "and"|"AND" { return YParser::make_AND(); }

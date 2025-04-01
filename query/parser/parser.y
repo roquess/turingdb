@@ -88,6 +88,7 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token GRAPH
 %token LOAD
 %token EXPLAIN
+%token HISTORY
 
 // Operators
 %token PLUS
@@ -135,6 +136,20 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 
 %type<db::QueryCommand*> explain_cmd
 
+%type<db::QueryCommand*> history_cmd
+
+%type<db::Expr*> expr
+%type<db::Expr*> or_expr
+%type<db::Expr*> and_expr
+%type<db::Expr*> equal_expr
+%type<db::Expr*> greater_expr
+%type<db::Expr*> lower_expr
+%type<db::Expr*> add_expr
+%type<db::Expr*> mult_expr
+%type<db::Expr*> like_expr
+%type<db::Expr*> unary_expr
+%type<db::Expr*> simple_expr
+
 %start query_unit
 
 %%
@@ -148,6 +163,7 @@ cmd: match_cmd { ctxt->setRoot($1); }
    | list_graph_cmd { ctxt->setRoot($1); }
    | load_graph_cmd { ctxt->setRoot($1); }
    | explain_cmd { ctxt->setRoot($1); }
+   | history_cmd { ctxt->setRoot($1); }
    ;
 
 match_cmd: MATCH match_target RETURN return_fields {
@@ -326,6 +342,64 @@ explain_cmd: EXPLAIN cmd {
                             auto explain = ExplainCommand::create(ctxt, ctxt->getRoot());
                             $$ = explain;
                          }
+           ;
+
+// HISTORY
+history_cmd: HISTORY {
+                            auto history = HistoryCommand::create(ctxt);
+                            $$ = history;
+                         }
+           ;
+
+// Expressions
+expr: or_expr { $$ = nullptr; }
+    ;
+
+or_expr: and_expr OR or_expr { $$ = nullptr; }
+       | and_expr            { $$ = $1; }
+
+and_expr: equal_expr AND and_expr { $$ = nullptr; }
+        | equal_expr              { $$ = $1; }
+        ;
+
+equal_expr: greater_expr EQUAL equal_expr     { $$ = nullptr; }
+          | greater_expr NOT_EQUAL equal_expr { $$ = nullptr; }
+          | greater_expr                      { $$ = $1; }
+          ;
+
+greater_expr: lower_expr GREATER greater_expr       { $$ = nullptr; }
+            | lower_expr GREATER_EQUAL greater_expr { $$ = nullptr; }
+            | lower_expr                            { $$ = $1; }
+            ;
+
+lower_expr: add_expr LOWER lower_expr       { $$ = nullptr; }
+          | add_expr LOWER_EQUAL lower_expr { $$ = nullptr; }
+          | add_expr                        { $$ = $1; }
+          ;
+
+add_expr: mult_expr PLUS add_expr { $$ = nullptr; }
+        | mult_expr               { $$ = $1; }
+        ;
+
+mult_expr: like_expr STAR mult_expr { $$ = nullptr; }
+         | like_expr                { $$ = $1; }
+         ;
+
+like_expr: ID LIKE STRING_CONSTANT { $$ = nullptr; }
+         | unary_expr              { $$ = $1; }
+         ;
+
+unary_expr: NOT simple_expr { $$ = nullptr; }
+          | simple_expr     { $$ = $1; }
+          ;
+
+simple_expr: OPAR expr CPAR   { $$ = $2; }
+           | ID               { $$ = nullptr; }
+           | STRING_CONSTANT  { $$ = nullptr; }
+           | INT_CONSTANT     { $$ = nullptr; }
+           | DECIMAL_CONSTANT { $$ = nullptr; }
+           ;
+
 %%
 
 void db::YParser::error(const std::string& message) {

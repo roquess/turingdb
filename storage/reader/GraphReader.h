@@ -34,7 +34,8 @@ public:
     [[nodiscard]] size_t getNodeCount() const;
     [[nodiscard]] size_t getEdgeCount() const;
     [[nodiscard]] const GraphView& getView() const { return _view; }
-    [[nodiscard]] DataPartSpan dataparts() const { return _view._dataparts; }
+    [[nodiscard]] DataPartSpan dataparts() const { return _view.dataparts(); }
+    [[nodiscard]] std::span<const CommitView> commits() const { return _view.commits(); }
     [[nodiscard]] const EdgeRecord* getEdge(EntityID edgeID) const;
     [[nodiscard]] LabelSetID getNodeLabelSetID(EntityID nodeID) const;
     [[nodiscard]] size_t getNodeCountMatchingLabelset(const LabelSet& labelset) const;
@@ -42,7 +43,7 @@ public:
     [[nodiscard]] size_t getDatapartCount() const;
     [[nodiscard]] size_t getNodePropertyCount(PropertyTypeID ptID) const;
     [[nodiscard]] size_t getNodePropertyCount(size_t datapartIndex, PropertyTypeID ptID) const;
-    [[nodiscard]] EntityID getFinalNodeID(EntityID tmpID) const;
+    [[nodiscard]] EntityID getFinalNodeID(size_t partIndex, EntityID tmpID) const;
     [[nodiscard]] NodeView getNodeView(EntityID id) const;
     [[nodiscard]] EdgeView getEdgeView(EntityID id) const;
     [[nodiscard]] EdgeTypeID getEdgeTypeID(EntityID edgeID) const;

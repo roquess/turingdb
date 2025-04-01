@@ -11,17 +11,19 @@
 #include "EdgeContainerLoader.h"
 #include "PropertyContainerLoader.h"
 #include "PropertyIndexerLoader.h"
+#include "versioning/VersionController.h"
 #include "Panic.h"
 
 using namespace db;
 
-DumpResult<std::unique_ptr<DataPart>> DataPartLoader::load(const fs::Path& path,
-                                                           const GraphMetadata& metadata) {
+DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
+                                                         const GraphMetadata& metadata,
+                                                         VersionController& versionController) {
     if (!path.exists()) {
         return DumpError::result(DumpErrorType::DATAPART_DOES_NOT_EXIST);
     }
 
-    auto part = std::make_unique<DataPart>(0, 0);
+    WeakArc<DataPart> part = versionController.createDataPart(0, 0);
 
     // Loading info
     {
@@ -256,5 +258,5 @@ DumpResult<std::unique_ptr<DataPart>> DataPartLoader::load(const fs::Path& path,
 
     part->_initialized = true;
 
-    return std::move(part);
+    return part;
 }

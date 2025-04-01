@@ -98,7 +98,7 @@ public:
     size_t capacity() const { return _data.capacity(); }
 
     template <typename... Args>
-    auto emplace_back(Args&&... args) {
+    auto& emplace_back(Args&&... args) {
         return _data.emplace_back(std::forward<Args>(args)...);
     }
 

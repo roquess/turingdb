@@ -2,7 +2,6 @@
 set(storage_sources
         Graph.cpp
         DataPart.cpp
-        DataPartManager.cpp
         DebugDump.cpp
         NodeContainer.cpp
         EdgeContainer.cpp
@@ -40,7 +39,17 @@ set(storage_sources
         properties/PropertyManager.cpp
 
         writers/DataPartBuilder.cpp
-        writers/ConcurrentWriter.cpp
+        writers/GraphWriter.cpp
+
+        versioning/CommitResult.cpp
+        versioning/VersionController.cpp
+        versioning/CommitHash.cpp
+        versioning/CommitData.cpp
+        versioning/Commit.cpp
+        versioning/CommitView.cpp
+        versioning/CommitBuilder.cpp
+        versioning/Transaction.cpp
+        versioning/CommitHistory.cpp
 
         comparators/DataPartComparator.cpp
         comparators/GraphComparator.cpp)

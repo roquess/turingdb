@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "Graph.h"
+#include "versioning/Transaction.h"
 #include "views/GraphView.h"
 #include "reader/GraphReader.h"
 #include "GraphMetadata.h"
+#include "versioning/CommitBuilder.h"
 #include "writers/DataPartBuilder.h"
 #include "FileUtils.h"
 #include "JobSystem.h"
@@ -38,213 +40,221 @@ protected:
         LogSetup::setupLogFileBacked(_logPath.string());
 
         _jobSystem = JobSystem::create();
-        _graph = new Graph();
+        _graph = Graph::create();
 
         /* FIRST BUFFER */
-        std::unique_ptr<DataPartBuilder> builder1 = _graph->newPartWriter();
+        const auto tx1 = _graph->openWriteTransaction();
+        auto commitBuilder1 = tx1.prepareCommit();
+        auto& builder1 = commitBuilder1->newBuilder();
         PropertyTypeID uint64ID = 0;
         PropertyTypeID stringID = 1;
 
         {
             // Node 0
-            const EntityID tmpID = builder1->addNode(LabelSet::fromList({0}));
-            builder1->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder1.addNode(LabelSet::fromList({0}));
+            builder1.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            builder1->addNodeProperty<types::String>(
+            builder1.addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // Node 1
-            const EntityID tmpID = builder1->addNode(LabelSet::fromList({0}));
-            builder1->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder1.addNode(LabelSet::fromList({0}));
+            builder1.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            builder1->addNodeProperty<types::String>(
+            builder1.addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // Node 2
-            const EntityID tmpID = builder1->addNode(LabelSet::fromList({1}));
-            builder1->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder1.addNode(LabelSet::fromList({1}));
+            builder1.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
         {
             // Edge 001
-            const EdgeRecord& edge = builder1->addEdge(_edgeTypeID, 0, 1);
-            builder1->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder1.addEdge(_edgeTypeID, 0, 1);
+            builder1.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
-            builder1->addEdgeProperty<types::String>(
+            builder1.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
         {
             // Edge 102
-            const EdgeRecord& edge = builder1->addEdge(_edgeTypeID, 0, 2);
-            builder1->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder1.addEdge(_edgeTypeID, 0, 2);
+            builder1.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
-            builder1->addEdgeProperty<types::String>(
+            builder1.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
         /* SECOND BUFFER (Concurrent to the first one) */
-        std::unique_ptr<DataPartBuilder> builder2 = _graph->newPartWriter();
+        const auto tx2 = _graph->openWriteTransaction();
+        auto commitBuilder2 = tx2.prepareCommit();
+        auto& builder2 = commitBuilder2->newBuilder();
 
         {
             // Node 4
-            const EntityID tmpID = builder2->addNode(LabelSet::fromList({0, 1}));
-            builder2->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder2.addNode(LabelSet::fromList({0, 1}));
+            builder2.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            builder2->addNodeProperty<types::String>(
+            builder2.addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // Node 3
-            const EntityID tmpID = builder2->addNode(LabelSet::fromList({1}));
-            builder2->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder2.addNode(LabelSet::fromList({1}));
+            builder2.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
         }
 
         {
             // Edge 343
-            const EdgeRecord& edge = builder2->addEdge(_edgeTypeID, 0, 1);
-            builder2->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder2.addEdge(_edgeTypeID, 0, 1);
+            builder2.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
-            builder2->addEdgeProperty<types::String>(
+            builder2.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
         {
             // Edge 443
-            const EdgeRecord& edge = builder2->addEdge(_edgeTypeID, 0, 1);
-            builder2->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder2.addEdge(_edgeTypeID, 0, 1);
+            builder2.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
-            builder2->addEdgeProperty<types::String>(
+            builder2.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
         {
             // Edge 234
-            const EdgeRecord& edge = builder2->addEdge(_edgeTypeID, 1, 0);
-            builder2->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder2.addEdge(_edgeTypeID, 1, 0);
+            builder2.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
         }
 
         // PUSH DATAPARTS
         spdlog::info("Pushing 1");
-        builder1->commit(*_jobSystem);
+        ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder1), *_jobSystem));
 
         spdlog::info("Pushing 2");
-        builder2->commit(*_jobSystem);
+        ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder2), *_jobSystem));
 
         /* THIRD BUFFER (Empty) */
-        std::unique_ptr<DataPartBuilder> builder3 = _graph->newPartWriter();
+        const auto tx3 = _graph->openWriteTransaction();
+        auto commitBuilder3 = tx3.prepareCommit();
+        [[maybe_unused]] auto& builder3 = commitBuilder3->newBuilder();
+        ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder3), *_jobSystem));
         spdlog::info("Pushing 3");
-        builder3->commit(*_jobSystem);
 
         /* FOURTH BUFFER (First node and edge ids: 5, 5) */
-        std::unique_ptr<DataPartBuilder> builder4 = _graph->newPartWriter();
+        const auto tx4 = _graph->openWriteTransaction();
+        auto commitBuilder4 = tx4.prepareCommit();
+        auto& builder4 = commitBuilder4->newBuilder();
 
         {
             // Node 8
-            const EntityID tmpID = builder4->addNode(LabelSet::fromList({0, 1}));
-            builder4->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder4.addNode(LabelSet::fromList({0, 1}));
+            builder4.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            builder4->addNodeProperty<types::String>(
+            builder4.addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // Node 5
-            const EntityID tmpID = builder4->addNode(LabelSet::fromList({0}));
-            builder4->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder4.addNode(LabelSet::fromList({0}));
+            builder4.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            builder4->addNodeProperty<types::String>(
+            builder4.addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // Node 6
-            const EntityID tmpID = builder4->addNode(LabelSet::fromList({1}));
-            builder4->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder4.addNode(LabelSet::fromList({1}));
+            builder4.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            builder4->addNodeProperty<types::String>(
+            builder4.addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // Node 7
-            const EntityID tmpID = builder4->addNode(LabelSet::fromList({1}));
-            builder4->addNodeProperty<types::UInt64>(
+            const EntityID tmpID = builder4.addNode(LabelSet::fromList({1}));
+            builder4.addNodeProperty<types::UInt64>(
                 tmpID, uint64ID, tmpID.getValue());
-            builder4->addNodeProperty<types::String>(
+            builder4.addNodeProperty<types::String>(
                 tmpID, stringID, "TmpID" + std::to_string(tmpID));
         }
 
         {
             // Edge 654
-            const EdgeRecord& edge = builder4->addEdge(_edgeTypeID, 6, 4);
-            builder4->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder4.addEdge(_edgeTypeID, 6, 4);
+            builder4.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
-            builder4->addEdgeProperty<types::String>(
+            builder4.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
         {
             // Edge 757
-            const EdgeRecord& edge = builder4->addEdge(_edgeTypeID, 6, 8);
-            builder4->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder4.addEdge(_edgeTypeID, 6, 8);
+            builder4.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
-            builder4->addEdgeProperty<types::String>(
+            builder4.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
         {
             // Edge 867
-            const EdgeRecord& edge = builder4->addEdge(_edgeTypeID, 7, 8);
-            builder4->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder4.addEdge(_edgeTypeID, 7, 8);
+            builder4.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
-            builder4->addEdgeProperty<types::String>(
+            builder4.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
         {
             // Edge 528
-            const EdgeRecord& edge = builder4->addEdge(_edgeTypeID, 2, 5);
-            builder4->addEdgeProperty<types::UInt64>(
+            const EdgeRecord& edge = builder4.addEdge(_edgeTypeID, 2, 5);
+            builder4.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
-            builder4->addEdgeProperty<types::String>(
+            builder4.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
-        builder4->addNodeProperty<types::String>(
+        builder4.addNodeProperty<types::String>(
             2, stringID, "TmpID2 patch");
 
-        const EdgeRecord* edgeToPatch = _graph->view().read().getEdge(2);
-        builder4->addEdgeProperty<types::String>(
+        const auto readTransaction = _graph->openTransaction();
+        const EdgeRecord* edgeToPatch = readTransaction.viewGraph().read().getEdge(2);
+        builder4.addEdgeProperty<types::String>(
             *edgeToPatch, stringID, "TmpEdgeID2 patch");
 
         spdlog::info("Pushing 4");
-        builder4->commit(*_jobSystem);
+        ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder4), *_jobSystem));
     }
 
     void TearDown() override {
         _jobSystem->terminate();
-        delete _graph;
     }
 
     std::unique_ptr<db::JobSystem> _jobSystem;
-    Graph* _graph = nullptr;
+    std::unique_ptr<Graph> _graph = nullptr;
     std::string _outDir;
     FileUtils::Path _logPath;
     static inline const EdgeTypeID _edgeTypeID {0};
 };
 
 TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     std::vector<TestEdgeRecord> compareSet {
         {0, 0, 1},
         {1, 0, 2},
@@ -271,8 +281,8 @@ TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodesIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     std::vector<EntityID> compareSet {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
     auto it = compareSet.begin();
@@ -287,9 +297,9 @@ TEST_F(IteratorsTest, ScanNodesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
-    std::vector<EntityID> compareSet {2, 4, 3, 8, 6, 7};
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
+    std::vector<EntityID> compareSet {2, 3, 4, 6, 7, 8};
 
     auto it = compareSet.begin();
     size_t count = 0;
@@ -305,8 +315,8 @@ TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanOutEdgesByLabelIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     std::map<EntityID, const EdgeRecord*> byScanNodesRecords;
     std::map<EntityID, const EdgeRecord*> byScanEdgesRecords;
 
@@ -319,7 +329,7 @@ TEST_F(IteratorsTest, ScanOutEdgesByLabelIteratorTest) {
 
         ColumnIDs nodeIDs;
         for (const EntityID nodeID : reader.scanNodesByLabel(&labelset)) {
-            nodeIDs = ColumnVector{nodeID};
+            nodeIDs = ColumnVector {nodeID};
             for (const EdgeRecord& edge : reader.getOutEdges(&nodeIDs)) {
                 byScanNodesRecords.emplace(edge._edgeID, &edge);
             }
@@ -344,8 +354,8 @@ TEST_F(IteratorsTest, ScanOutEdgesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     std::map<EntityID, const EdgeRecord*> byScanNodesRecords;
     std::map<EntityID, const EdgeRecord*> byScanEdgesRecords;
 
@@ -358,7 +368,7 @@ TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
 
         ColumnIDs nodeIDs;
         for (const EntityID nodeID : reader.scanNodesByLabel(&labelset)) {
-            nodeIDs = ColumnVector{nodeID};
+            nodeIDs = ColumnVector {nodeID};
             for (const EdgeRecord& edge : reader.getInEdges(&nodeIDs)) {
                 byScanNodesRecords.emplace(edge._edgeID, &edge);
             }
@@ -383,8 +393,8 @@ TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetEdgesIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {1, 2, 3, 8};
     std::vector<TestEdgeRecord> compareSet {
         {2, 3, 4},
@@ -427,8 +437,8 @@ TEST_F(IteratorsTest, GetEdgesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
 
     {
         std::vector<uint64_t> compareSet {0, 1, 2, 1, 0, 6, 7, 8, 5};
@@ -466,8 +476,8 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
 
     {
         std::vector<uint64_t> compareSet {0, 1, 2, 0, 1, 8, 5, 6, 7};
@@ -505,12 +515,12 @@ TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     const auto labelset = LabelSet::fromList({1});
 
     {
-        std::vector<uint64_t> compareSet {2, 0, 1, 5, 7, 8};
+        std::vector<uint64_t> compareSet {2, 1, 0, 7, 8, 5};
         auto it = compareSet.begin();
         size_t count = 0;
         for (const uint64_t v : reader.scanNodePropertiesByLabel<types::UInt64>(0, &labelset)) {
@@ -523,17 +533,17 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
 
     {
         std::vector<std::string_view> compareSet {
-            // "TmpID1", This property is not set for this node
             "TmpID0",
-            "TmpID5",
+            // "TmpID1", This property is not set for this node
             "TmpID2 patch",
             "TmpID7",
             "TmpID8",
+            "TmpID5",
         };
         auto it = compareSet.begin();
         size_t count = 0;
         for (std::string_view v : reader.scanNodePropertiesByLabel<types::String>(1, &labelset)) {
-            ASSERT_TRUE(*it == v);
+            ASSERT_EQ(*it, v);
             count++;
             it++;
         }
@@ -542,8 +552,8 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetNodeViewsIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
     {
@@ -593,8 +603,8 @@ TEST_F(IteratorsTest, GetNodeViewsIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
-    const auto view = _graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = _graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {1, 3, 8};
 
     {

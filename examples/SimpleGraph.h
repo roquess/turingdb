@@ -2,11 +2,11 @@
 
 namespace db {
 
-class TuringDB;
+class Graph;
 
 class SimpleGraph {
 public:
-    static void createSimpleGraph(TuringDB& db);
+    static void createSimpleGraph(Graph* graph);
 
     SimpleGraph() = delete;
 };

@@ -73,6 +73,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _activateTbl[(uint64_t)PipelineOpcode::GET_FILTERED_EDGE_PROPERTY_DOUBLE] = ACTIVATE_PTR(GetFilteredEdgePropertyDoubleStep);
         _activateTbl[(uint64_t)PipelineOpcode::GET_FILTERED_EDGE_PROPERTY_STRING] = ACTIVATE_PTR(GetFilteredEdgePropertyStringStep);
         _activateTbl[(uint64_t)PipelineOpcode::GET_FILTERED_EDGE_PROPERTY_BOOL] = ACTIVATE_PTR(GetFilteredEdgePropertyBoolStep);
+        _activateTbl[(uint64_t)PipelineOpcode::HISTORY] = ACTIVATE_PTR(HistoryStep);
         _activateTbl[(uint64_t)PipelineOpcode::END] = ACTIVATE_END_PTR();
 
         // RETURN jump table
@@ -121,6 +122,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _returnTbl[(uint64_t)PipelineOpcode::GET_FILTERED_EDGE_PROPERTY_DOUBLE] = RETURN_PTR(GetFilteredEdgePropertyDoubleStep);
         _returnTbl[(uint64_t)PipelineOpcode::GET_FILTERED_EDGE_PROPERTY_STRING] = RETURN_PTR(GetFilteredEdgePropertyStringStep);
         _returnTbl[(uint64_t)PipelineOpcode::GET_FILTERED_EDGE_PROPERTY_BOOL] = RETURN_PTR(GetFilteredEdgePropertyBoolStep);
+        _returnTbl[(uint64_t)PipelineOpcode::HISTORY] = RETURN_PTR(HistoryStep);
         _returnTbl[(uint64_t)PipelineOpcode::END] = GOTOPTR(StopStep);
 
         checkJumpTables();
@@ -209,6 +211,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     ACTIVATE_STEP(GetFilteredEdgePropertyDoubleStep)
     ACTIVATE_STEP(GetFilteredEdgePropertyStringStep)
     ACTIVATE_STEP(GetFilteredEdgePropertyBoolStep)
+    ACTIVATE_STEP(HistoryStep)
     ACTIVATE_END()
 
     // RETURN actions
@@ -256,6 +259,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     RETURN_STEP(GetFilteredEdgePropertyDoubleStep)
     RETURN_STEP(GetFilteredEdgePropertyStringStep)
     RETURN_STEP(GetFilteredEdgePropertyBoolStep)
+    RETURN_STEP(HistoryStep)
 
 // Exit execution
 ExecutorExit:

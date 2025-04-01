@@ -5,7 +5,9 @@
 #include "iterators/ChunkConfig.h"
 #include "columns/ColumnIDs.h"
 #include "iterators/ScanNodesIterator.h"
+#include "versioning/Transaction.h"
 #include "views/GraphView.h"
+#include "versioning/CommitBuilder.h"
 #include "reader/GraphReader.h"
 #include "GraphMetadata.h"
 #include "writers/DataPartBuilder.h"
@@ -31,10 +33,10 @@ protected:
     FileUtils::Path _logPath;
 };
 
-TEST_F(ScanNodesIteratorTest, emptyDB) {
-    auto graph = std::make_unique<Graph>();
-    const auto view = graph->view();
-    const auto reader = view.read();
+TEST_F(ScanNodesIteratorTest, emptyGraph) {
+    auto graph = Graph::create();
+    const Transaction transaction = graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
 
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
@@ -44,13 +46,19 @@ TEST_F(ScanNodesIteratorTest, emptyDB) {
     ASSERT_TRUE(colNodes.empty());
 }
 
-TEST_F(ScanNodesIteratorTest, oneEmptyPart) {
-    auto graph = std::make_unique<Graph>();
-    auto builder = graph->newPartWriter();
-    builder->commit(*_jobSystem);
+TEST_F(ScanNodesIteratorTest, oneEmptyCommit) {
+    auto graph = Graph::create();
+    const auto tx = graph->openWriteTransaction();
+    auto commitBuilder = tx.prepareCommit();
+    [[maybe_unused]] auto& builder = commitBuilder->newBuilder();
+    const auto res = graph->rebaseAndCommit(std::move(commitBuilder), *_jobSystem);
+    if (!res) {
+        spdlog::info(res.error().fmtMessage());
+    }
+    ASSERT_TRUE(res);
 
-    const auto view = graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
 
@@ -59,16 +67,22 @@ TEST_F(ScanNodesIteratorTest, oneEmptyPart) {
     ASSERT_TRUE(colNodes.empty());
 }
 
-TEST_F(ScanNodesIteratorTest, threeEmptyParts) {
-    auto graph = std::make_unique<Graph>();
+TEST_F(ScanNodesIteratorTest, threeEmptyCommits) {
+    auto graph = Graph::create();
 
+    const auto tx = graph->openWriteTransaction();
     for (auto i = 0; i < 3; i++) {
-        auto builder = graph->newPartWriter();
-        builder->commit(*_jobSystem);
+        auto commitBuilder = tx.prepareCommit();
+        [[maybe_unused]] auto& builder = commitBuilder->newBuilder();
+        const auto res = graph->rebaseAndCommit(std::move(commitBuilder), *_jobSystem);
+        if (!res) {
+            spdlog::info(res.error().fmtMessage());
+        }
+        ASSERT_TRUE(res);
     }
 
-    const auto view = graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
 
@@ -78,24 +92,30 @@ TEST_F(ScanNodesIteratorTest, threeEmptyParts) {
 }
 
 TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
 
     auto& labelsets = graph->getMetadata()->labelsets();
     LabelSet labelset = LabelSet::fromList({0});
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
     {
-        auto builder = graph->newPartWriter();
+        const auto tx = graph->openWriteTransaction();
+        auto commitBuilder = tx.prepareCommit();
+        auto& builder = commitBuilder->newBuilder();
         for (size_t i = 0; i < ChunkConfig::CHUNK_SIZE; i++) {
-            builder->addNode(labelsetID);
+            builder.addNode(labelsetID);
         }
 
-        ASSERT_EQ(builder->nodeCount(), ChunkConfig::CHUNK_SIZE);
-        builder->commit(*_jobSystem);
+        ASSERT_EQ(builder.nodeCount(), ChunkConfig::CHUNK_SIZE);
+        const auto res = graph->rebaseAndCommit(std::move(commitBuilder), *_jobSystem);
+        if (!res) {
+            spdlog::info(res.error().fmtMessage());
+        }
+        ASSERT_TRUE(res);
     }
 
-    const auto view = graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(it.isValid());
 
@@ -124,24 +144,30 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
 }
 
 TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
 
     auto& labelsets = graph->getMetadata()->labelsets();
     LabelSet labelset = LabelSet::fromList({0});
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
+    const auto tx = graph->openWriteTransaction();
     for (auto i = 0; i < 8; i++) {
-        auto builder = graph->newPartWriter();
+        auto commitBuilder = tx.prepareCommit();
+        auto& builder = commitBuilder->newBuilder();
         for (size_t j = 0; j < ChunkConfig::CHUNK_SIZE; j++) {
-            builder->addNode(labelsetID);
+            builder.addNode(labelsetID);
         }
 
-        ASSERT_EQ(builder->nodeCount(), ChunkConfig::CHUNK_SIZE);
-        builder->commit(*_jobSystem);
+        ASSERT_EQ(builder.nodeCount(), ChunkConfig::CHUNK_SIZE);
+        const auto res = graph->rebaseAndCommit(std::move(commitBuilder), *_jobSystem);
+        if (!res) {
+            spdlog::info(res.error().fmtMessage());
+        }
+        ASSERT_TRUE(res);
     }
 
-    const auto view = graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(it.isValid());
 
@@ -175,22 +201,28 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
 TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
     const size_t nodeCount = 1.35 * ChunkConfig::CHUNK_SIZE;
 
-    auto graph = std::make_unique<Graph>();
+    auto graph = Graph::create();
 
     auto& labelsets = graph->getMetadata()->labelsets();
     LabelSet labelset = LabelSet::fromList({0});
     LabelSetID labelsetID = labelsets.getOrCreate(labelset);
 
     {
-        auto builder = graph->newPartWriter();
+        const auto tx = graph->openWriteTransaction();
+        auto commitBuilder = tx.prepareCommit();
+        auto& builder = commitBuilder->newBuilder();
         for (size_t i = 0; i < nodeCount; i++) {
-            builder->addNode(labelsetID);
+            builder.addNode(labelsetID);
         }
-        builder->commit(*_jobSystem);
+        const auto res = graph->rebaseAndCommit(std::move(commitBuilder), *_jobSystem);
+        if (!res) {
+            spdlog::info(res.error().fmtMessage());
+        }
+        ASSERT_TRUE(res);
     }
 
-    const auto view = graph->view();
-    const auto reader = view.read();
+    const Transaction transaction = graph->openTransaction();
+    const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
 
     ColumnIDs colNodes;

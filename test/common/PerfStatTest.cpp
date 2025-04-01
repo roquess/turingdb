@@ -1,7 +1,7 @@
 #include "PerfStat.h"
 #include "TimerStat.h"
 #include "FileUtils.h"
-#include "gtest/gtest.h"
+#include "TuringTest.h"
 
 #include <thread>
 
@@ -27,7 +27,7 @@ protected:
 
     void TearDown() override {}
 
-    PerfStat::Path _logPath{};
+    PerfStat::Path _logPath;
 };
 
 TEST_F(PerfStatTest, MeasurePerfs) {
@@ -79,4 +79,10 @@ TEST_F(PerfStatTest, MeasurePerfs) {
     }
 }
 
+}
+
+int main(int argc, char** argv) {
+    return turing::test::turingTestMain(argc, argv, [] {
+        testing::GTEST_FLAG(repeat) = 10;
+    });
 }

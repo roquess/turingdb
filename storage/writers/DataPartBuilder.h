@@ -6,6 +6,7 @@
 #include "EdgeRecord.h"
 #include "EntityID.h"
 #include "properties/PropertyManager.h"
+#include "views/GraphView.h"
 
 namespace db {
 
@@ -13,21 +14,24 @@ class ConcurrentWriter;
 class EdgeContainer;
 class PropertyManager;
 class DataPart;
+class CommitBuilder;
 class Graph;
 class JobSystem;
+class GraphView;
 
 class DataPartBuilder {
 public:
-    DataPartBuilder(EntityID firstNodeID,
-                    EntityID firstEdgeID,
-                    Graph* graph);
-
     DataPartBuilder(const DataPartBuilder&) = delete;
     DataPartBuilder(DataPartBuilder&&) = default;
     DataPartBuilder& operator=(const DataPartBuilder&) = delete;
     DataPartBuilder& operator=(DataPartBuilder&&) = default;
 
     ~DataPartBuilder();
+
+    [[nodiscard]] static std::unique_ptr<DataPartBuilder> prepare(
+        Graph& graph,
+        const GraphView& view,
+        size_t partIndex);
 
     EntityID addNode(const LabelSetID& labelset);
     EntityID addNode(const LabelSet& labelset);
@@ -50,20 +54,22 @@ public:
     size_t edgeCount() const { return _edges.size(); }
     size_t getOutPatchEdgeCount() const { return _outPatchEdgeCount; };
     size_t getInPatchEdgeCount() const { return _inPatchEdgeCount; };
-
-    void commit(JobSystem& jobSystem);
+    size_t getPartIndex() const { return _partIndex; };
 
 private:
     friend ConcurrentWriter;
     friend DataPart;
+    friend CommitBuilder;
 
     EntityID _firstNodeID {0};
     EntityID _firstEdgeID {0};
     EntityID _nextNodeID {0};
     EntityID _nextEdgeID {0};
     Graph* _graph {nullptr};
+    GraphView _view;
     size_t _outPatchEdgeCount {0};
     size_t _inPatchEdgeCount {0};
+    size_t _partIndex {0};
 
     std::vector<LabelSetID> _coreNodeLabelSets;
     std::vector<EdgeRecord> _edges;
@@ -82,6 +88,8 @@ private:
     size_t patchNodeEdgeDataCount() const {
         return _nodeHasPatchEdges.size();
     }
-};
-}
 
+    DataPartBuilder() = default;
+};
+
+}

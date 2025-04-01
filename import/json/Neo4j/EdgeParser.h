@@ -21,13 +21,12 @@ public:
     EdgeParser(GraphMetadata* graphMetadata,
                DataPartBuilder* buf,
                IDMapper* nodeIDMapper,
-               const GraphView& dbView)
+               const GraphReader& reader)
         : _propTypeMap(&graphMetadata->propTypes()),
           _edgeTypeMap(&graphMetadata->edgeTypes()),
           _buf(buf),
           _nodeIDMapper(nodeIDMapper),
-          _dbView(dbView),
-          _reader(dbView)
+          _reader(reader)
     {
     }
 
@@ -102,11 +101,12 @@ public:
             if (!_parsedTargetID) {
                 _targetID = val;
                 _parsedTargetID = true;
-                EntityID tmpSrcID = _nodeIDMapper->getID(_sourceID);
-                EntityID tmpTgtID = _nodeIDMapper->getID(_targetID);
-                _currentEdge = &_buf->addEdge(_edgeTypeID,
-                                              _reader.getFinalNodeID(tmpSrcID),
-                                              _reader.getFinalNodeID(tmpTgtID));
+                auto tmpSrcIdentifier = _nodeIDMapper->getID(_sourceID);
+                auto tmpTgtIdentifier = _nodeIDMapper->getID(_targetID);
+                const EntityID srcID = _reader.getFinalNodeID(tmpSrcIdentifier.partIndex, tmpSrcIdentifier.nodeID);
+                const EntityID tgtID = _reader.getFinalNodeID(tmpTgtIdentifier.partIndex, tmpTgtIdentifier.nodeID);
+
+                _currentEdge = &_buf->addEdge(_edgeTypeID, srcID, tgtID);
                 return true;
             }
 
@@ -222,7 +222,6 @@ private:
     EdgeTypeMap* _edgeTypeMap;
     DataPartBuilder* _buf;
     const IDMapper* _nodeIDMapper;
-    GraphView _dbView;
     GraphReader _reader;
     size_t _nesting = 0;
     const EdgeRecord* _currentEdge {nullptr};

@@ -91,7 +91,7 @@ public:
 
         if (_nesting == 6) {
             _currentNodeID = _buf->addNode(_labelset);
-            _nodeIDMapper->registerID(val, _currentNodeID);
+            _nodeIDMapper->registerID(val, _buf->getPartIndex(), _currentNodeID);
             return true;
         }
 

@@ -24,6 +24,7 @@
 #include "operations/LoadGraphStep.h"
 #include "operations/GetPropertyStep.h"
 #include "operations/GetFilteredPropertyStep.h"
+#include "operations/HistoryStep.h"
 
 #include "FastGet.h"
 
@@ -102,6 +103,7 @@ public:
                  ColumnVector<std::string_view>* graphNames);
     PipelineStep(StopStep::Tag);
     PipelineStep(EndStep::Tag);
+    PipelineStep(HistoryStep::Tag, ColumnVector<std::string>*);
     PipelineStep(LoadGraphStep::Tag, const std::string& graphName);
 
     PROPERTY_STEPS(Int64)
@@ -173,7 +175,8 @@ private:
                  GetFilteredEdgePropertyUInt64Step,
                  GetFilteredEdgePropertyDoubleStep,
                  GetFilteredEdgePropertyStringStep,
-                 GetFilteredEdgePropertyBoolStep> _impl;
+                 GetFilteredEdgePropertyBoolStep,
+                 HistoryStep> _impl;
 };
 
 }

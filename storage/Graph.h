@@ -6,18 +6,23 @@
 
 #include "DataPart.h"
 #include "EntityID.h"
+#include "versioning/CommitHash.h"
+#include "versioning/CommitResult.h"
+#include "versioning/Transaction.h"
 
 namespace db {
 
 class GraphInfoLoader;
-class GraphView;
 class ConcurrentWriter;
 class DataPartBuilder;
 class PartIterator;
 class GraphMetadata;
-class DataPartManager;
-class GraphReader;
+class CommitBuilder;
+class CommitLoader;
+class VersionController;
 class GraphLoader;
+class Commit;
+class GraphDumper;
 
 class Graph {
 public:
@@ -28,8 +33,6 @@ public:
         EntityID _edge {0};
     };
 
-    Graph();
-    explicit Graph(const std::string& name);
     ~Graph();
 
     Graph(const Graph&) = delete;
@@ -39,23 +42,35 @@ public:
 
     const std::string& getName() const { return _graphName; }
 
-    [[nodiscard]] GraphView view();
-    [[nodiscard]] GraphView view() const;
-    [[nodiscard]] GraphReader read();
-    [[nodiscard]] GraphReader read() const;
-    [[nodiscard]] std::unique_ptr<DataPartBuilder> newPartWriter();
-    [[nodiscard]] std::unique_ptr<ConcurrentWriter> newConcurrentPartWriter();
+    [[nodiscard]] Transaction openTransaction(CommitHash hash = CommitHash::head()) const;
+    [[nodiscard]] WriteTransaction openWriteTransaction(CommitHash hash = CommitHash::head()) const;
+
+    CommitResult<void> rebase(Commit& commit);
+
+    CommitResult<void> commit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem);
+    CommitResult<void> commit(std::unique_ptr<Commit> commit, JobSystem& jobSystem);
+
+    CommitResult<void> rebaseAndCommit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem);
+    CommitResult<void> rebaseAndCommit(std::unique_ptr<Commit> commit, JobSystem& jobSystem);
 
     [[nodiscard]] const GraphMetadata* getMetadata() const { return _metadata.get(); }
     [[nodiscard]] GraphMetadata* getMetadata() { return _metadata.get(); }
-
     [[nodiscard]] EntityIDs getNextFreeIDs() const;
+    [[nodiscard]] CommitHash getHeadHash() const;
+
+    [[nodiscard]] static std::unique_ptr<Graph> create();
+    [[nodiscard]] static std::unique_ptr<Graph> create(const std::string& name);
+    [[nodiscard]] static std::unique_ptr<Graph> createEmptyGraph();
+    [[nodiscard]] static std::unique_ptr<Graph> createEmptyGraph(const std::string& name);
 
 private:
     friend GraphInfoLoader;
     friend PartIterator;
     friend DataPartBuilder;
+    friend GraphDumper;
     friend ConcurrentWriter;
+    friend CommitLoader;
+    friend CommitBuilder;
     friend GraphLoader;
 
     std::string _graphName;
@@ -64,12 +79,13 @@ private:
     mutable std::shared_mutex _entityIDsMutex;
     EntityIDs _nextFreeIDs;
 
-    mutable std::shared_mutex _mainLock;
-
-    std::unique_ptr<DataPartManager> _parts;
+    std::unique_ptr<VersionController> _versionController;
 
     EntityIDs allocIDs();
     EntityIDs allocIDRange(size_t nodeCount, size_t edgeCount);
+
+    Graph();
+    explicit Graph(const std::string& name);
 };
 
 }

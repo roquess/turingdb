@@ -122,5 +122,6 @@ private:
                                 const std::string& memberName);
     void planOutputLambda();
     bool planExplain(const ExplainCommand* explain);
+    bool planHistory(const HistoryCommand* history);
 };
 }

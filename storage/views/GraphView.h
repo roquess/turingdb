@@ -1,35 +1,36 @@
 #pragma once
 
 #include "DataPartSpan.h"
+#include "versioning/CommitData.h"
 
 namespace db {
 
 class GraphReader;
-class GraphMetadata;
+class Graph;
 
+class GraphMetadata;
 class GraphView {
 public:
     GraphView() = default;
 
-    GraphView(DataPartSpan dataparts, GraphMetadata& metadata)
-        : _dataparts(dataparts),
-          _metadata(&metadata)
+    explicit GraphView(const Graph& graph, const CommitData& data)
+        : _graph(&graph),
+          _data(&data)
     {
     }
 
-    bool isValid() const {
-        return !_dataparts.empty();
-    }
+    bool isValid() const { return !_data; }
 
     [[nodiscard]] GraphReader read() const;
-    [[nodiscard]] DataPartSpan dataparts() const { return _dataparts; }
-    [[nodiscard]] GraphMetadata& metadata() const { return *_metadata; }
+    [[nodiscard]] std::span<const CommitView> commits() const { return _data->commits(); }
+    [[nodiscard]] DataPartSpan dataparts() const { return _data->allDataparts(); }
+    [[nodiscard]] DataPartSpan commitDataparts() const { return _data->commitDataparts(); }
+    [[nodiscard]] GraphMetadata& metadata() const { return _data->metadata(); }
 
 private:
     friend GraphReader;
-
-    DataPartSpan _dataparts;
-    GraphMetadata* _metadata {nullptr};
+    const Graph* _graph {nullptr};
+    const CommitData* _data {nullptr};
 };
 
 }

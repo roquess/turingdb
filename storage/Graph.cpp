@@ -1,60 +1,78 @@
 #include "Graph.h"
 
 #include "GraphMetadata.h"
-#include "DataPartManager.h"
 #include "views/GraphView.h"
-#include "reader/GraphReader.h"
-#include "writers/ConcurrentWriter.h"
 #include "writers/DataPartBuilder.h"
+#include "versioning/CommitBuilder.h"
+#include "versioning/Commit.h"
+#include "versioning/VersionController.h"
 
 using namespace db;
-
-Graph::Graph()
-    : _graphName("default"),
-      _metadata(new GraphMetadata()),
-      _parts(std::make_unique<DataPartManager>())
-{
-}
-
-Graph::Graph(const std::string& name)
-    : _graphName(name),
-      _metadata(new GraphMetadata()),
-      _parts(std::make_unique<DataPartManager>())
-{
-}
 
 Graph::~Graph() {
 }
 
-GraphView Graph::view() {
-    return GraphView(_parts->getView(), *_metadata);
+Transaction Graph::openTransaction(CommitHash hash) const {
+    return _versionController->openTransaction(hash);
 }
 
-GraphView Graph::view() const {
-    return GraphView(_parts->getView(), *_metadata);
+WriteTransaction Graph::openWriteTransaction(CommitHash hash) const {
+    return _versionController->openWriteTransaction(hash);
 }
 
-GraphReader Graph::read() {
-    return GraphReader(view());
+CommitResult<void> Graph::rebase(Commit& commit) {
+    return _versionController->rebase(commit);
 }
 
-GraphReader Graph::read() const {
-    return GraphReader(view());
+CommitResult<void> Graph::commit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem) {
+    if (!commitBuilder) {
+        return CommitError::result(CommitErrorType::COMMIT_INVALID);
+    }
+
+    return _versionController->commit(commitBuilder->build(jobSystem));
 }
 
-std::unique_ptr<DataPartBuilder> Graph::newPartWriter() {
-    const auto [firstNodeID, firstEdgeID] = getNextFreeIDs();
-    return std::make_unique<DataPartBuilder>(firstNodeID, firstEdgeID, this);
+CommitResult<void> Graph::commit(std::unique_ptr<Commit> commit, JobSystem& jobSystem) {
+    if (!commit) {
+        return CommitError::result(CommitErrorType::COMMIT_INVALID);
+    }
+
+    return _versionController->commit(std::move(commit));
 }
 
-std::unique_ptr<ConcurrentWriter> Graph::newConcurrentPartWriter() {
-    const auto [firstNodeID, firstEdgeID] = getNextFreeIDs();
-    return std::make_unique<ConcurrentWriter>(firstNodeID, firstEdgeID, this);
+CommitResult<void> Graph::rebaseAndCommit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem) {
+    if (!commitBuilder) {
+        return CommitError::result(CommitErrorType::COMMIT_INVALID);
+    }
+
+    auto commit = commitBuilder->build(jobSystem);
+
+    if (auto res = _versionController->rebase(*commit); !res) {
+        return res;
+    }
+
+    return _versionController->commit(std::move(commit));
+}
+
+CommitResult<void> Graph::rebaseAndCommit(std::unique_ptr<Commit> commit, JobSystem& jobSystem) {
+    if (!commit) {
+        return CommitError::result(CommitErrorType::COMMIT_INVALID);
+    }
+
+    if (auto res = _versionController->rebase(*commit); !res) {
+        return res;
+    }
+
+    return _versionController->commit(std::move(commit));
 }
 
 Graph::EntityIDs Graph::getNextFreeIDs() const {
     std::shared_lock lock(_entityIDsMutex);
     return _nextFreeIDs;
+}
+
+CommitHash Graph::getHeadHash() const {
+    return _versionController->getHeadHash();
 }
 
 Graph::EntityIDs Graph::allocIDs() {
@@ -71,4 +89,39 @@ Graph::EntityIDs Graph::allocIDRange(size_t nodeCount, size_t edgeCount) {
     _nextFreeIDs._node += nodeCount;
     _nextFreeIDs._edge += edgeCount;
     return ids;
+}
+
+std::unique_ptr<Graph> Graph::create() {
+    auto* graph = new Graph;
+    graph->_versionController->createFirstCommit(graph);
+    return std::unique_ptr<Graph> {graph};
+}
+
+std::unique_ptr<Graph> Graph::create(const std::string& name) {
+    auto* graph = new Graph(name);
+    graph->_versionController->createFirstCommit(graph);
+    return std::unique_ptr<Graph>(graph);
+}
+
+std::unique_ptr<Graph> Graph::createEmptyGraph() {
+    return std::unique_ptr<Graph>(new Graph);
+}
+
+std::unique_ptr<Graph> Graph::createEmptyGraph(const std::string& name) {
+    return std::unique_ptr<Graph>(new Graph(name));
+}
+
+
+Graph::Graph()
+    : _graphName("default"),
+      _metadata(new GraphMetadata()),
+      _versionController(new VersionController)
+{
+}
+
+Graph::Graph(const std::string& name)
+    : _graphName(name),
+      _metadata(new GraphMetadata()),
+      _versionController(new VersionController)
+{
 }

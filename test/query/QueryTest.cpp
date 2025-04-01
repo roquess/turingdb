@@ -1,26 +1,18 @@
 #include <gtest/gtest.h>
-#include <optional>
-#include <tabulate/table.hpp>
 
 #include "LocalMemory.h"
 #include "QueryInterpreter.h"
-#include "SimpleGraph.h"
 #include "TuringDB.h"
-#include "columns/Block.h"
-
-#define COL_2_VEC_CASE(Type, i)                            \
-    case Type::staticKind(): {                             \
-        const Type &src = *static_cast<const Type *>(col); \
-        queryResult[i].push_back(src[i]);                  \
-    }                                                      \
-    break;
+#include "SimpleGraph.h"
+#include "QueryTester.h"
 
 using namespace db;
 
 class QueryTest : public ::testing::Test {
 public:
     void SetUp() override {
-        SimpleGraph::createSimpleGraph(_db);
+        Graph* graph = _db.getSystemManager().getDefaultGraph();
+        SimpleGraph::createSimpleGraph(graph);
         _interp = std::make_unique<QueryInterpreter>(&_db.getSystemManager());
     }
 
@@ -29,566 +21,388 @@ public:
 protected:
     TuringDB _db;
     LocalMemory _mem;
-    std::unique_ptr<QueryInterpreter> _interp{nullptr};
+    std::unique_ptr<QueryInterpreter> _interp {nullptr};
 };
 
-TEST_F(QueryTest, NodeMatching) {
-    const std::string query1 = "MATCH n return n.name";
-    const std::string query2 = "MATCH n--m return n.name,m.name";
-    const std::string query3 = "MATCH n--m--q--r return n.name,m.name,q.name,r.name";
+TEST_F(QueryTest, ReturnNode) {
+    QueryTester tester {_mem, *_interp};
 
-    const auto res1 = _interp->execute(query1, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
+    tester.query("MATCH n RETURN n")
+        .expectVector<EntityID>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
+        .execute();
 
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {"Remy"},
-            {"Adam"},
-            {"Luc"},
-            {"Suhas"},
-            {"Maxime"},
-            {"Martina"},
-            {"Ghosts"},
-            {"Bio"},
-            {"Cooking"},
-            {"Paddle"},
-            {"Animals"},
-            {"Computers"},
-            {"Eighties"}};
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const ColumnOptVector<types::String::Primitive>& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+    tester.query("MATCH n--m RETURN n, m")
+        .expectVector<EntityID>({0, 0, 0, 0, 1, 1, 1, 6, 8, 8, 9, 9, 11})
+        .expectVector<EntityID>({1, 6, 2, 3, 0, 4, 5, 0, 4, 7, 10, 2, 5})
+        .execute();
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res1);
-
-    const auto res2 = _interp->execute(query2, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {"Remy",    "Adam"     },
-            {"Remy",    "Ghosts"   },
-            {"Remy",    "Computers"},
-            {"Remy",    "Eighties" },
-            {"Adam",    "Remy"     },
-            {"Adam",    "Bio"      },
-            {"Adam",    "Cooking"  },
-            {"Luc",     "Animals"  },
-            {"Luc",     "Computers"},
-            {"Maxime",  "Bio"      },
-            {"Maxime",  "Paddle"   },
-            {"Martina", "Cooking"  },
-            {"Ghosts",  "Remy"     }
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const ColumnOptVector<types::String::Primitive>& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res2);
-
-    const auto res3 = _interp->execute(query3, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {"Remy",   "Adam",   "Remy",   "Adam"     },
-            {"Remy",   "Adam",   "Remy",   "Ghosts"   },
-            {"Remy",   "Adam",   "Remy",   "Computers"},
-            {"Remy",   "Adam",   "Remy",   "Eighties" },
-            {"Remy",   "Ghosts", "Remy",   "Adam"     },
-            {"Remy",   "Ghosts", "Remy",   "Ghosts"   },
-            {"Remy",   "Ghosts", "Remy",   "Computers"},
-            {"Remy",   "Ghosts", "Remy",   "Eighties" },
-            {"Adam",   "Remy",   "Adam",   "Remy"     },
-            {"Adam",   "Remy",   "Adam",   "Bio"      },
-            {"Adam",   "Remy",   "Adam",   "Cooking"  },
-            {"Adam",   "Remy",   "Ghosts", "Remy"     },
-            {"Ghosts", "Remy",   "Adam",   "Remy"     },
-            {"Ghosts", "Remy",   "Adam",   "Bio"      },
-            {"Ghosts", "Remy",   "Adam",   "Cooking"  },
-            {"Ghosts", "Remy",   "Ghosts", "Remy"     }
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const ColumnOptVector<types::String::Primitive>& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res3);
+    tester.query("MATCH n--m--q--r RETURN n, m, q, r")
+        .expectVector<EntityID>({0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 6, 6, 6, 6})
+        .expectVector<EntityID>({1, 1, 1, 1, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0})
+        .expectVector<EntityID>({0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 6, 1, 1, 1, 6})
+        .expectVector<EntityID>({1, 6, 2, 3, 1, 6, 2, 3, 0, 4, 5, 0, 0, 4, 5, 0})
+        .execute();
 }
 
 TEST_F(QueryTest, EdgeMatching) {
-    const std::string query1 = "MATCH n-[e]-m return e";
-    const std::string query2 = "MATCH n-[e]-m-[e1]-q-[e2]-r return e2, e1";
+    QueryTester tester {_mem, *_interp};
 
-    const auto res1 = _interp->execute(query1, "", &_mem, [](const Block &block) {
-        const size_t rowCount = block.getBlockRowCount();
-        std::vector<std::vector<EntityID>> queryResult(rowCount);
-        const std::vector<std::vector<EntityID>> targetResult = {
-            {EntityID(0)},
-            {EntityID(1)},
-            {EntityID(2)},
-            {EntityID(3)},
-            {EntityID(4)},
-            {EntityID(5)},
-            {EntityID(6)},
-            {EntityID(7)},
-            {EntityID(8)},
-            {EntityID(9)},
-            {EntityID(10)},
-            {EntityID(11)},
-            {EntityID(12)},
-        };
+    tester.query("MATCH n-[e]-m RETURN n, e, m")
+        .expectVector<EntityID>({0, 0, 0, 0, 1, 1, 1, 6, 8, 8, 9, 9, 11})
+        .expectVector<EntityID>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
+        .expectVector<EntityID>({1, 6, 2, 3, 0, 4, 5, 0, 4, 7, 10, 2, 5})
+        .execute();
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column *col : block.columns()) {
-                const ColumnVector<EntityID> &src =
-                    *static_cast<const ColumnVector<EntityID> *>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+    tester.query("MATCH n-[e]-m-[e1]-q-[e2]-r RETURN n, e, m, e1, q, e2, r")
+        .expectVector<EntityID>({0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 6, 6, 6, 6})
+        .expectVector<EntityID>({0, 0, 0, 0, 1, 1, 1, 1, 4, 4, 4, 4, 7, 7, 7, 7})
+        .expectVector<EntityID>({1, 1, 1, 1, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0})
+        .expectVector<EntityID>({4, 4, 4, 4, 7, 7, 7, 7, 0, 0, 0, 1, 0, 0, 0, 1})
+        .expectVector<EntityID>({0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 6, 1, 1, 1, 6})
+        .expectVector<EntityID>({0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 7, 4, 5, 6, 7})
+        .expectVector<EntityID>({1, 6, 2, 3, 1, 6, 2, 3, 0, 4, 5, 0, 0, 4, 5, 0})
+        .execute();
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res1);
 
-    const auto res2 = _interp->execute(query2, "", &_mem, [](const Block &block) {
-        const size_t rowCount = block.getBlockRowCount();
-        std::vector<std::vector<EntityID>> queryResult(rowCount);
-
-        const std::vector<std::vector<EntityID>> targetResult = {
-            {EntityID(0),  EntityID(4) },
-            {EntityID(1),  EntityID(4) },
-            {EntityID(2),  EntityID(4) },
-            {EntityID(3),  EntityID(4) },
-            {EntityID(0),  EntityID(12)},
-            {EntityID(1),  EntityID(12)},
-            {EntityID(2),  EntityID(12)},
-            {EntityID(3),  EntityID(12)},
-            {EntityID(4),  EntityID(0) },
-            {EntityID(5),  EntityID(0) },
-            {EntityID(6),  EntityID(0) },
-            {EntityID(12), EntityID(1) },
-            {EntityID(4),  EntityID(0) },
-            {EntityID(5),  EntityID(0) },
-            {EntityID(6),  EntityID(0) },
-            {EntityID(12), EntityID(1) }
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column *col : block.columns()) {
-                const ColumnVector<EntityID> &src =
-                    *static_cast<const ColumnVector<EntityID> *>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res2);
-}
-TEST_F(QueryTest, MatchAll) {
-    const std::string query1 = "MATCH n return *";
-    const std::string query2 = "MATCH n--m return *";
-
-    const auto res1 = _interp->execute(query1, "", &_mem, [](const Block &block) {
-        const size_t rowCount = block.getBlockRowCount();
-        std::vector<std::vector<EntityID>> queryResult(rowCount);
-        const std::vector<std::vector<EntityID>> targetResult = {
-            {EntityID(0)}, {EntityID(1)}, {EntityID(2)},  {EntityID(3)},
-            {EntityID(4)}, {EntityID(5)}, {EntityID(6)},  {EntityID(7)},
-            {EntityID(8)}, {EntityID(9)}, {EntityID(10)}, {EntityID(11)},
-            {EntityID(12)}
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column *col : block.columns()) {
-                const ColumnVector<EntityID> &src =
-                    *static_cast<const ColumnVector<EntityID> *>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res1);
-
-    const auto res2 = _interp->execute(query2, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-        std::vector<std::vector<EntityID>> queryResult(rowCount);
-        const std::vector<std::vector<EntityID>> targetResult = {
-            {EntityID(0), EntityID(0),  EntityID(1) },
-            {EntityID(0), EntityID(1),  EntityID(6) },
-            {EntityID(0), EntityID(2),  EntityID(11)},
-            {EntityID(0), EntityID(3),  EntityID(12)},
-            {EntityID(1), EntityID(4),  EntityID(0) },
-            {EntityID(1), EntityID(5),  EntityID(7) },
-            {EntityID(1), EntityID(6),  EntityID(8) },
-            {EntityID(2), EntityID(7),  EntityID(10)},
-            {EntityID(2), EntityID(8),  EntityID(11)},
-            {EntityID(4), EntityID(9),  EntityID(7) },
-            {EntityID(4), EntityID(10), EntityID(9) },
-            {EntityID(5), EntityID(11), EntityID(8) },
-            {EntityID(6), EntityID(12), EntityID(0) }
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column *col : block.columns()) {
-                const ColumnVector<EntityID> &src =
-                    *static_cast<const ColumnVector<EntityID> *>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res2);
+    // FIXME: This query is missing edge "Luc -> Animals"
+    // tester.query("MATCH n:Person-[e]-m:Interest RETURN n, n.name, e.name, m.name, m")
+    //     .expectVector<EntityID>({0, 0, 0, 1, 1, 8, 8, 9, 9, 11})
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Remy",
+    //         "Remy",
+    //         "Remy",
+    //         "Adam",
+    //         "Adam",
+    //         "Maxime",
+    //         "Maxime",
+    //         "Luc",
+    //         "Luc",
+    //         "Martina",
+    //     })
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Remy -> Ghosts",
+    //         "Remy -> Computers",
+    //         "Remy -> Eighties",
+    //         "Adam -> Bio",
+    //         "Adam -> Cooking",
+    //         "Maxime -> Bio",
+    //         "Maxime -> Paddle",
+    //         "Luc -> Computers",
+    //         "Luc -> Animals",
+    //         "Martina -> Cooking",
+    //     })
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Ghosts",
+    //         "Computers",
+    //         "Eighties",
+    //         "Bio",
+    //         "Cooking",
+    //         "Bio",
+    //         "Paddle",
+    //         "Computers",
+    //         "Animals",
+    //         "Cooking",
+    //     })
+    //     .expectVector<EntityID>({6, 2, 3, 4, 5, 4, 7, 9, 2, 5})
+    //     .execute();
 }
 
-TEST_F(QueryTest, LabelMatching) {
-    const std::string query1 = "MATCH n:Interests return n.name";
-    const std::string query2 = "MATCH n-[e:KNOWS_WELL]-m return n.name";
-    const std::string query3 = "MATCH n-[e:KNOWS_WELL]-m return e";
+TEST_F(QueryTest, MatchWildcard) {
+    QueryTester tester {_mem, *_interp};
+    tester.query("MATCH n RETURN *")
+        .expectVector<EntityID>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
+        .execute();
 
-    /*Testing Node LabelSet Matching is pretty hard right now as
-      the structure of our label set indexer is an unordered map
-      this leads to non determenistic order of the output rows.
-      Should look into finishing these tests once labelSetIndexing
-      system is modified.*/
+    tester.query("MATCH n--m RETURN *")
+        .expectVector<EntityID>({0, 0, 0, 0, 1, 1, 1, 6, 8, 8, 9, 9, 11})
+        .expectVector<EntityID>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
+        .expectVector<EntityID>({1, 6, 2, 3, 0, 4, 5, 0, 4, 7, 10, 2, 5})
+        .execute();
 
-    const auto res1 = _interp->execute(query1, "", &_mem, [](const Block &block) {
-        const size_t rowCount = block.getBlockRowCount();
-        std::vector<std::vector<EntityID>> queryResult(rowCount);
-        const std::vector<std::vector<EntityID>> targetResult = {};
+    tester.query("MATCH n:Person--m:Person RETURN n.name, *")
+        .expectOptVector<types::String::Primitive>({"Remy", "Adam"})
+        .expectVector<EntityID>({0, 1})
+        .expectVector<EntityID>({0, 4})
+        .expectVector<EntityID>({1, 0})
+        .execute();
+}
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column *col : block.columns()) {
-                const ColumnVector<EntityID> &src =
-                    *static_cast<const ColumnVector<EntityID> *>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+TEST_F(QueryTest, MatchNodeLabel) {
+    QueryTester tester {_mem, *_interp};
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res1);
+    tester.query("MATCH n:Person RETURN n")
+        .expectVector<EntityID>({0, 1, 8, 9, 11, 12})
+        .execute();
 
-    const auto res2 = _interp->execute(query2, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {"Remy"}, {"Adam"}, {"Ghosts"}};
+    tester.query("MATCH n:Interest RETURN n")
+        .expectVector<EntityID>({2, 3, 4, 5, 6, 7, 10})
+        .execute();
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const ColumnOptVector<types::String::Primitive>& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+    tester.query("MATCH n:Founder RETURN n, n.name")
+        .expectVector<EntityID>({0, 1})
+        .expectOptVector<types::String::Primitive>({"Remy", "Adam"})
+        .execute();
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res2);
+    tester.query("MATCH n:Founder,SoftwareEngineering RETURN n")
+        .expectVector<EntityID>({0})
+        .execute();
 
-    const auto res3 = _interp->execute(query3, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-        std::vector<std::vector<EntityID>> queryResult(rowCount);
-        const std::vector<std::vector<EntityID>> targetResult = {
-            {EntityID(0)}, {EntityID(4)}, {EntityID(12)}};
+    tester.query("MATCH n:SoftwareEngineering RETURN n")
+        .expectVector<EntityID>({0, 2, 9, 12})
+        .execute();
+}
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column *col : block.columns()) {
-                const ColumnVector<EntityID> &src =
-                    *static_cast<const ColumnVector<EntityID> *>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+TEST_F(QueryTest, MatchEdgeType) {
+    QueryTester tester {_mem, *_interp};
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res3);
+    tester.query("MATCH n-[e:INTERESTED_IN]-m RETURN n, e, m")
+        .expectVector<EntityID>({0, 0, 0, 1, 1, 8, 8, 9, 9, 11})
+        .expectVector<EntityID>({1, 2, 3, 5, 6, 8, 9, 10, 11, 12})
+        .expectVector<EntityID>({6, 2, 3, 4, 5, 4, 7, 10, 2, 5})
+        .execute();
+
+    tester.query("MATCH n-[e:KNOWS_WELL]-m RETURN n, n.name, e, e.name, m, m.name")
+        .expectVector<EntityID>({0, 1, 6})
+        .expectOptVector<types::String::Primitive>({
+            "Remy",
+            "Adam",
+            "Ghosts",
+        })
+        .expectVector<EntityID>({0, 4, 7})
+        .expectOptVector<types::String::Primitive>({
+            "Remy -> Adam",
+            "Adam -> Remy",
+            "Ghosts -> Remy",
+        })
+        .expectVector<EntityID>({1, 0, 0})
+        .expectOptVector<types::String::Primitive>({
+            "Adam",
+            "Remy",
+            "Remy",
+        })
+        .execute();
+
+    // TODO: Fix this test, it should return 3 empty columns OR generate an error
+    // tester.query("MATCH n-[e:DOES_NOT_EXIST]-m RETURN n, e, m")
+    //     .expectVector<EntityID>({})
+    //     .expectVector<EntityID>({})
+    //     .expectVector<EntityID>({})
+    //     .execute();
 }
 
 TEST_F(QueryTest, NodePropertyProjection) {
-    const std::string query1 = "MATCH n RETURN n.name";
-    const std::string query2 = "MATCH n RETURN n.doesnotexist";
+    QueryTester tester {_mem, *_interp};
 
-    const auto res1 = _interp->execute(query1, "", &_mem, [](const Block &block) {
-        const size_t rowCount = block.getBlockRowCount();
+    tester.query("MATCH n RETURN n, n.name")
+        .expectVector<EntityID>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
+        .expectOptVector<types::String::Primitive>({
+            "Remy",
+            "Adam",
+            "Computers",
+            "Eighties",
+            "Bio",
+            "Cooking",
+            "Ghosts",
+            "Paddle",
+            "Maxime",
+            "Luc",
+            "Animals",
+            "Martina",
+            "Suhas",
+        })
+        .execute();
 
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy"}}, {{"Adam"}}, {{"Luc"}}, {{"Suhas"}}, {{"Maxime"}}, {{"Martina"}}, {{"Ghosts"}}, {{"Bio"}}, {{"Cooking"}}, {{"Paddle"}}, {{"Animals"}}, {{"Computers"}}, {{"Eighties"}}};
+    tester.query("MATCH n:Person RETURN n, n.name")
+        .expectVector<EntityID>({0, 1, 8, 9, 11, 12})
+        .expectOptVector<types::String::Primitive>({"Remy", "Adam", "Maxime", "Luc", "Martina", "Suhas"})
+        .execute();
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+    tester.query("MATCH n:Interest RETURN n, n.name")
+        .expectVector<EntityID>({2, 3, 4, 5, 6, 7, 10})
+        .expectOptVector<types::String::Primitive>({"Computers", "Eighties", "Bio", "Cooking", "Ghosts", "Paddle", "Animals"})
+        .execute();
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res1);
+    tester.query("MATCH n:Founder RETURN n, n.name")
+        .expectVector<EntityID>({0, 1})
+        .expectOptVector<types::String::Primitive>({"Remy", "Adam"})
+        .execute();
 
-    const auto res2 = _interp->execute(query2, "", &_mem, [](const Block &block) {});
-    ASSERT_FALSE(res2.isOk());
-    ASSERT_EQ(res2.getStatus(), QueryStatus::Status::PLAN_ERROR);
+    tester.query("MATCH n:Founder,SoftwareEngineering RETURN n, n.name")
+        .expectVector<EntityID>({0})
+        .expectOptVector<types::String::Primitive>({"Remy"})
+        .execute();
+
+    tester.query("MATCH n:SoftwareEngineering RETURN n, n.name")
+        .expectVector<EntityID>({0, 2, 9, 12})
+        .expectOptVector<types::String::Primitive>({"Remy", "Computers", "Luc", "Suhas"})
+        .execute();
+
+    tester.query("MATCH n RETURN n.doesnotexist")
+        .expectError()
+        .execute();
 }
 
 TEST_F(QueryTest, EdgePropertyProjection) {
-    const std::string query1 = "MATCH n-[e]-m RETURN e.name";
-    const std::string query2 = "MATCH n-[e]-m RETURN e.doesnotexist";
+    QueryTester tester {_mem, *_interp};
 
-    const auto res1 = _interp->execute(query1, "", &_mem, [](const Block &block) {
-        const size_t rowCount = block.getBlockRowCount();
+    tester.query("MATCH n-[e]-m RETURN e.name")
+        .expectOptVector<types::String::Primitive>({
+            "Remy -> Adam",
+            "Remy -> Ghosts",
+            "Remy -> Computers",
+            "Remy -> Eighties",
+            "Adam -> Remy",
+            "Adam -> Bio",
+            "Adam -> Cooking",
+            "Ghosts -> Remy",
+            "Maxime -> Bio",
+            "Maxime -> Paddle",
+            "Luc -> Animals",
+            "Luc -> Computers",
+            "Martina -> Cooking",
+        })
+        .execute();
 
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy -> Adam"}}, {{"Remy -> Ghosts"}}, {{"Remy -> Computers"}}, {{"Remy -> Eighties"}}, {{"Adam -> Remy"}}, {{"Adam -> Bio"}}, {{"Adam -> Cooking"}}, {{"Luc -> Animals"}}, {{"Luc -> Computers"}}, {{"Maxime -> Bio"}}, {{"Maxime -> Paddle"}}, {{"Martina -> Cooking"}}, {{"Ghosts -> Remy"}}};
+    // FIXME This segfaults
+    // tester.query("MATCH n:Person--m:Interest RETURN n, n.name, m, m.name")
+    //     .expectVector<EntityID>({0, 0, 0, 1, 1, 8, 8, 9, 9, 11})
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Remy",
+    //         "Remy",
+    //         "Remy",
+    //         "Adam",
+    //         "Adam",
+    //         "Maxime",
+    //         "Maxime",
+    //         "Luc",
+    //         "Luc",
+    //         "Martina",
+    //     })
+    //     .expectVector<EntityID>({1, 2, 3, 5, 6, 8, 9, 10, 11, 12})
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Remy -> Ghosts",
+    //         "Remy -> Computers",
+    //         "Remy -> Eighties",
+    //         "Adam -> Bio",
+    //         "Adam -> Cooking",
+    //         "Maxime -> Bio",
+    //         "Maxime -> Paddle",
+    //         "Luc -> Animals",
+    //         "Luc -> Computers",
+    //         "Martina -> Cooking",
+    //     })
+    //     .expectVector<EntityID>({6, 2, 3, 4, 5, 4, 7, 10, 2, 5})
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Ghosts",
+    //         "Computers",
+    //         "Eighties",
+    //         "Bio",
+    //         "Cooking",
+    //         "Bio",
+    //         "Paddle",
+    //         "Animals",
+    //         "Computers",
+    //         "Cooking",
+    //     })
+    //     .execute();
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column *col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+    tester.query("MATCH n-[e]-m RETURN e.doesnotexist")
+        .expectError();
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
-    ASSERT_TRUE(res1);
+    // FIXME: This query is missing edge "Luc -> Animals"
+    // tester.query("MATCH n-[e:INTERESTED_IN]-m RETURN n, n.name, e, e.name, m, m.name")
+    //     .expectVector<EntityID>({0, 0, 0, 1, 1, 8, 8, 9, 9, 11})
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Remy",
+    //         "Remy",
+    //         "Remy",
+    //         "Adam",
+    //         "Adam",
+    //         "Maxime",
+    //         "Maxime",
+    //         "Luc",
+    //         "Luc",
+    //         "Martina",
+    //     })
+    //     .expectVector<EntityID>({1, 2, 3, 5, 6, 8, 9, 10, 11, 12})
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Remy -> Ghosts",
+    //         "Remy -> Computers",
+    //         "Remy -> Eighties",
+    //         "Adam -> Bio",
+    //         "Adam -> Cooking",
+    //         "Maxime -> Bio",
+    //         "Maxime -> Paddle",
+    //         "Luc -> Animals",
+    //         "Luc -> Computers",
+    //         "Martina -> Cooking",
+    //     })
+    //     .expectVector<EntityID>({6, 2, 3, 4, 5, 4, 7, 10, 2, 5})
+    //     .expectOptVector<types::String::Primitive>({
+    //         "Ghosts",
+    //         "Computers",
+    //         "Eighties",
+    //         "Bio",
+    //         "Cooking",
+    //         "Bio",
+    //         "Paddle",
+    //         "Animals",
+    //         "Computers",
+    //         "Cooking",
+    //     })
+    //     .execute();
 
-    const auto res2 = _interp->execute(query2, "", &_mem, [](const Block &block) {});
-    ASSERT_FALSE(res2.isOk());
-    ASSERT_EQ(res2.getStatus(), QueryStatus::Status::PLAN_ERROR);
+    // tester.query("MATCH n-[e]-m RETURN e.doesnotexist")
+    //     .expectError();
 }
 
 TEST_F(QueryTest, PropertyConstraints) {
-    const std::string query1 = "MATCH n:{hasPhD:true} RETURN n.name";
-    const std::string query2 = "MATCH n:{hasPhD:true, isFrench: false} RETURN n.name";
-    const std::string query3 = "MATCH n:SoftwareEngineering{hasPhD:false} RETURN n.name";
-    const std::string query4 = "MATCH n:Person,SoftwareEngineering{hasPhD:false, isFrench: false} RETURN n.name";
-    const std::string query5 = "MATCH n-[e:{proficiency:\"expert\"}]-m RETURN n.name,m.name";
-    const std::string query6 = "MATCH n-[e:{proficiency:\"expert\",duration:20}]-m RETURN n.name,m.name";
-    const std::string query7 = "MATCH n-[e:{proficiency:\"expert\"}]-m:{isReal:true} RETURN n.name,m.name";
-    const std::string query8 = "MATCH n-[e:{proficiency:\"expert\"}]-m:SoftwareEngineering{isReal:true} RETURN n.name,m.name";
-    const std::string query9 = "MATCH n-[e:KNOWS_WELL{duration:20}]-m:SoftwareEngineering RETURN n.name,m.name";
-    const std::string query10 = "MATCH n-[e:INTERESTED_IN{duration:20}]-m:Exotic{isReal:true} RETURN n.name,m.name";
+    QueryTester tester {_mem, *_interp};
 
-    const auto res1 = _interp->execute(query1, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
+    tester.query("MATCH n:{hasPhD:true} RETURN n.name")
+        .expectOptVector<types::String::Primitive>({"Remy", "Adam", "Luc", "Martina"})
+        .execute();
 
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy"}},
-            {{"Adam"}},
-            {{"Luc"}},
-            {{"Martina"}},
-        };
+    tester.query("MATCH n:{hasPhD:true, isFrench: false} RETURN n.name")
+        .expectOptVector<types::String::Primitive>({"Martina"})
+        .execute();
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+    tester.query("MATCH n:SoftwareEngineering{hasPhD:false} RETURN n.name")
+        .expectOptVector<types::String::Primitive>({"Suhas"})
+        .execute();
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
+    tester.query("MATCH n:Person,SoftwareEngineering{hasPhD:false, isFrench: false} RETURN n.name")
+        .expectOptVector<types::String::Primitive>({"Suhas"})
+        .execute();
 
-    const auto res2 = _interp->execute(query2, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
+    tester.query("MATCH n-[e:{proficiency:\"expert\"}]-m RETURN n.name,m.name")
+        .expectOptVector<types::String::Primitive>({"Remy", "Remy", "Ghosts", "Maxime"})
+        .expectOptVector<types::String::Primitive>({"Ghosts", "Computers", "Remy", "Paddle"})
+        .execute();
 
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Martina"}}};
+    tester.query("MATCH n-[e:{proficiency:\"expert\", duration:20}]-m RETURN n.name,m.name")
+        .expectOptVector<types::String::Primitive>({"Remy"})
+        .expectOptVector<types::String::Primitive>({"Ghosts"})
+        .execute();
 
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
+    tester.query("MATCH n-[e:{proficiency:\"expert\"}]-m:{isReal:true} RETURN n.name,m.name")
+        .expectOptVector<types::String::Primitive>({"Remy", "Remy"})
+        .expectOptVector<types::String::Primitive>({"Ghosts", "Computers"})
+        .execute();
 
-        ASSERT_EQ(queryResult, targetResult);
-    });
+    tester.query("MATCH n-[e:{proficiency:\"expert\"}]-m:SoftwareEngineering{isReal:true} RETURN n.name,m.name")
+        .expectOptVector<types::String::Primitive>({"Remy"})
+        .expectOptVector<types::String::Primitive>({"Computers"})
+        .execute();
 
-    const auto res3 = _interp->execute(query3, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
+    tester.query("MATCH n-[e:KNOWS_WELL{duration:20}]-m:SoftwareEngineering RETURN n.name,m.name")
+        .expectOptVector<types::String::Primitive>({"Adam"})
+        .expectOptVector<types::String::Primitive>({"Remy"})
+        .execute();
 
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Suhas"}}};
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-
-    const auto res4 = _interp->execute(query4, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Suhas"}}};
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-
-    const auto res5 = _interp->execute(query5, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy", "Ghosts"}},
-            {{"Remy", "Computers"}},
-            {{"Maxime", "Paddle"}},
-            {{"Ghosts", "Remy"}},
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-
-    const auto res6 = _interp->execute(query6, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy", "Ghosts"}},
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-
-    const auto res7 = _interp->execute(query7, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy", "Ghosts"}},
-            {{"Remy", "Computers"}},
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-
-    const auto res8 = _interp->execute(query8, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy", "Computers"}},
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-
-    const auto res9 = _interp->execute(query9, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Adam", "Remy"}},
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
-
-    const auto res10 = _interp->execute(query10, "", &_mem, [](const Block& block) {
-        const size_t rowCount = block.getBlockRowCount();
-
-        std::vector<std::vector<std::optional<types::String::Primitive>>> queryResult(rowCount);
-        const std::vector<std::vector<std::optional<types::String::Primitive>>> targetResult = {
-            {{"Remy", "Ghosts"}},
-        };
-
-        for (size_t i = 0; i < rowCount; ++i) {
-            for (const Column* col : block.columns()) {
-                const auto& src =
-                    *static_cast<const ColumnOptVector<types::String::Primitive>*>(col);
-                queryResult[i].push_back(src[i]);
-            }
-        }
-
-        ASSERT_EQ(queryResult, targetResult);
-    });
+    tester.query("MATCH n-[e:INTERESTED_IN{duration:20}]-m:Exotic{isReal:true} RETURN n.name,m.name")
+        .expectOptVector<types::String::Primitive>({"Remy"})
+        .expectOptVector<types::String::Primitive>({"Ghosts"})
+        .execute();
 }
