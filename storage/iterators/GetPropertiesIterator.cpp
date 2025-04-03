@@ -11,7 +11,6 @@ GetPropertiesIterator<IteratorClass, T>::GetPropertiesIterator(const GraphView& 
                                                                const ColumnIDs* inputEntityIDs)
     : Iterator(view),
     _propTypeID(propTypeID),
-    _view(&view),
     _inputEntityIDs(inputEntityIDs)
       
 {
