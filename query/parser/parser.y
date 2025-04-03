@@ -109,6 +109,7 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token <std::string> INT_CONSTANT
 %token <std::string> DECIMAL_CONSTANT
 %token <std::string> BOOLEAN_CONSTANT
+%token <std::string> BACKTICK_STRING_CONSTANT
 
 %type<db::QueryCommand*> query_unit
 %type<db::QueryCommand*> cmd
@@ -328,6 +329,7 @@ prop_expr_constant: STRING_CONSTANT  { $$ = StringExprConst::create(ctxt, $1); }
 
 prop_ID: ID
        | STRING_CONSTANT
+       | BACKTICK_STRING_CONSTANT
 
 // CREATE GRAPH
 create_graph_cmd: CREATE GRAPH ID { $$ = CreateGraphCommand::create(ctxt, $3); }
