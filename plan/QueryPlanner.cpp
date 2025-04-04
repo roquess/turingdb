@@ -713,16 +713,16 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
     const auto edges = _mem->alloc<ColumnIDs>();
     const auto edgeTypeIDs = _mem->alloc<ColumnVector<EdgeTypeID>>();
 
+    _transformData->createStep(indices);
+
     const auto& typeConstrNames = edgeTypeConstr->getTypeNames();
 
     const std::string& edgeTypeName = typeConstrNames.front()->getName();
-    
+
     // Search edge type IDs
     const auto& edgeTypeMap = _view.metadata().edgeTypes();
     const auto edgeTypeID = edgeTypeMap.get(edgeTypeName);
     if (!edgeTypeID.isValid()) {
-        _transformData->createStep(indices);
-        _transformData->addColumn(targets, nullptr);
         _result = targets;
         return;
     }
@@ -730,19 +730,9 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
     // Get out edges step
     EdgeWriteInfo edgeWriteInfo;
     edgeWriteInfo._indices = indices;
-
-    _transformData->createStep(indices);
-
     edgeWriteInfo._targetNodes = targets;
     edgeWriteInfo._edges = edges;
     edgeWriteInfo._edgeTypes = edgeTypeIDs;
-
-    const VarExpr* edgeVar = edge->getVar();
-    VarDecl* edgeDecl = edgeVar ? edgeVar->getDecl() : nullptr;
-    const bool mustWriteEdges = edgeDecl && edgeDecl->isReturned();
-    if (mustWriteEdges) {
-        _transformData->addColumn(edges, edgeDecl);
-    }
 
     _pipeline->add<GetOutEdgesStep>(_result, edgeWriteInfo);
 
@@ -776,10 +766,13 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
         ._src = edgeWriteInfo._edges,
         ._dest = filterOutEdges});
 
-    // Add targets to the writeSet
     const VarExpr* targetVar = target->getVar();
     VarDecl* targetDecl = targetVar ? targetVar->getDecl() : nullptr;
     const bool mustWriteTargetNodes = targetDecl && targetDecl->isReturned();
+
+    const VarExpr* edgeVar = edge->getVar();
+    VarDecl* edgeDecl = edgeVar ? edgeVar->getDecl() : nullptr;
+    const bool mustWriteEdges = edgeDecl && edgeDecl->isReturned();
 
     const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
     const ExprConstraint* targetExprConstr = target->getExprConstraint();
@@ -809,18 +802,18 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     const auto indices = _mem->alloc<ColumnVector<size_t>>();
     const auto targets = _mem->alloc<ColumnIDs>();
     const auto edges = _mem->alloc<ColumnIDs>();
-    const auto edgeTypeIDs= _mem->alloc<ColumnVector<EdgeTypeID>>();
+    const auto edgeTypeIDs = _mem->alloc<ColumnVector<EdgeTypeID>>();
+
+    _transformData->createStep(indices);
 
     const auto& typeConstrNames = edgeTypeConstr->getTypeNames();
 
     const std::string& edgeTypeName = typeConstrNames.front()->getName();
-    
+
     // Search edge type IDs
     const auto& edgeTypeMap = _view.metadata().edgeTypes();
     const auto edgeTypeID = edgeTypeMap.get(edgeTypeName);
     if (!edgeTypeID.isValid()) {
-        _transformData->createStep(indices);
-        _transformData->addColumn(targets, nullptr);
         _result = targets;
         return;
     }
@@ -829,8 +822,6 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     const LabelSet* targetLabelSet = getLabelSet(targetTypeConstr);
     getMatchingLabelSets(_tmpLabelSetIDs, targetLabelSet);
     if (_tmpLabelSetIDs.empty()) {
-        _transformData->createStep(indices);
-        _transformData->addColumn(targets, nullptr);
         _result = targets;
         return;
     }
@@ -838,19 +829,9 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     // Get out edges step
     EdgeWriteInfo edgeWriteInfo;
     edgeWriteInfo._indices = indices;
-
-    _transformData->createStep(indices);
-
     edgeWriteInfo._targetNodes = targets;
     edgeWriteInfo._edges = edges;
     edgeWriteInfo._edgeTypes = edgeTypeIDs;
-
-    const VarExpr* edgeVar = edge->getVar();
-    VarDecl* edgeDecl = edgeVar ? edgeVar->getDecl() : nullptr;
-    const bool mustWriteEdges = edgeDecl && edgeDecl->isReturned();
-    if (mustWriteEdges) {
-        _transformData->addColumn(edges, edgeDecl);
-    }
 
     _pipeline->add<GetOutEdgesStep>(_result, edgeWriteInfo);
 
@@ -923,10 +904,13 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
         ._src = edgeWriteInfo._edges,
         ._dest = filterOutEdges});
 
-    // Add targets to the writeSet
     const VarExpr* targetVar = target->getVar();
     VarDecl* targetDecl = targetVar ? targetVar->getDecl() : nullptr;
     const bool mustWriteTargetNodes = targetDecl && targetDecl->isReturned();
+
+    const VarExpr* edgeVar = edge->getVar();
+    VarDecl* edgeDecl = edgeVar ? edgeVar->getDecl() : nullptr;
+    const bool mustWriteEdges = edgeDecl && edgeDecl->isReturned();
 
     const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
     const ExprConstraint* targetExprConstr = target->getExprConstraint();
@@ -940,6 +924,7 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
             _transformData->addColumn(filterOutEdges, edgeDecl);
         }
 
+        // Generate nodeIDs only if the node is returned by projection
         if (mustWriteTargetNodes) {
             _transformData->addColumn(filterOutNodes, targetDecl);
         }
@@ -954,24 +939,21 @@ void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
     const auto indices = _mem->alloc<ColumnVector<size_t>>();
     const auto targets = _mem->alloc<ColumnIDs>();
 
+    _transformData->createStep(indices);
+
     const LabelSet* targetLabelSet = getLabelSet(targetTypeConstr);
 
     getMatchingLabelSets(_tmpLabelSetIDs, targetLabelSet);
 
     // If no matching LabelSet, empty result
     if (_tmpLabelSetIDs.empty()) {
-        _transformData->createStep(indices);
-        _transformData->addColumn(targets, nullptr);
         _result = targets;
         return;
     }
 
     // GetOutEdgesStep
     EdgeWriteInfo edgeWriteInfo;
-
     edgeWriteInfo._indices = indices;
-    _transformData->createStep(indices);
-
     edgeWriteInfo._targetNodes = targets;
 
     const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
@@ -982,7 +964,6 @@ void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
     if (mustWriteEdges || edgeExprConstr) {
         const auto edges = _mem->alloc<ColumnIDs>();
         edgeWriteInfo._edges = edges;
-        _transformData->addColumn(edges, edgeDecl);
     }
 
     _pipeline->add<GetOutEdgesStep>(_result, edgeWriteInfo);
@@ -1082,7 +1063,7 @@ void QueryPlanner::planProjection(const MatchCommand* matchCmd) {
                         if (VarDecl* decl = var->getDecl()) {
                             ColumnIDs* columnIDs = decl->getColumn()->cast<ColumnIDs>();
                             if (!columnIDs) {
-                                continue;
+                                columnIDs = _mem->alloc<ColumnIDs>();
                             }
                             _output->addColumn(columnIDs);
                         }
@@ -1096,7 +1077,7 @@ void QueryPlanner::planProjection(const MatchCommand* matchCmd) {
         const VarDecl* decl = field->getDecl();
         ColumnIDs* columnIDs = decl->getColumn()->cast<ColumnIDs>();
         if (!columnIDs) {
-            continue;
+            columnIDs = _mem->alloc<ColumnIDs>();
         }
 
         const auto& memberName = field->getMemberName();
