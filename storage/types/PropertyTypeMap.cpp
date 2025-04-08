@@ -6,6 +6,42 @@ PropertyTypeMap::PropertyTypeMap() = default;
 
 PropertyTypeMap::~PropertyTypeMap() = default;
 
+PropertyTypeMap::PropertyTypeMap(const PropertyTypeMap& other) {
+    for (const auto& pair : other._container) {
+        const PropertyType& pt = pair._pt;
+        const auto& name = pair._name;
+        const size_t count = _container.size();
+        auto newName = std::make_unique<std::string>(*name);
+        auto* namePtr = newName.get();
+        _container.emplace_back(pt, std::move(newName));
+        _nameMap.emplace(*namePtr, count);
+        _idMap.emplace(pt._id, count);
+    }
+}
+
+PropertyTypeMap& PropertyTypeMap::operator=(const PropertyTypeMap& other) {
+    if (this == &other) {
+        return *this;
+    }
+
+    _nameMap.clear();
+    _idMap.clear();
+    _container.clear();
+
+    for (const auto& pair : other._container) {
+        const PropertyType& pt = pair._pt;
+        const auto& name = pair._name;
+        const size_t count = _container.size();
+        auto newName = std::make_unique<std::string>(*name);
+        auto* namePtr = newName.get();
+        _container.emplace_back(pt, std::move(newName));
+        _nameMap.emplace(*namePtr, count);
+        _idMap.emplace(pt._id, count);
+    }
+
+    return *this;
+}
+
 std::optional<PropertyType> PropertyTypeMap::get(const std::string& name) const {
     auto it = _nameMap.find(name);
     if (it == _nameMap.end()) {

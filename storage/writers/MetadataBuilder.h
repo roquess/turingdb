@@ -11,6 +11,7 @@
 namespace db {
 
 class CommitMetadata;
+class MetadataRebaser;
 
 class MetadataBuilder {
 public:
@@ -29,6 +30,8 @@ public:
     [[nodiscard]] static std::unique_ptr<MetadataBuilder> create(const CommitMetadata& prevMetadata, CommitMetadata* metadata);
 
 private:
+    friend class MetadataRebaser;
+
     mutable RWSpinLock _spinLock;
     CommitMetadata* _metadata {nullptr};
 

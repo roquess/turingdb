@@ -22,9 +22,9 @@ public:
     LabelMap();
     ~LabelMap();
 
-    LabelMap(const LabelMap&) = default;
+    LabelMap(const LabelMap&);
     LabelMap(LabelMap&&) noexcept = default;
-    LabelMap& operator=(const LabelMap&) = default;
+    LabelMap& operator=(const LabelMap&);
     LabelMap& operator=(LabelMap&&) noexcept = default;
 
     [[nodiscard]] std::optional<LabelID> get(const std::string& name) const;

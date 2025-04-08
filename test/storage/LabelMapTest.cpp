@@ -40,3 +40,29 @@ TEST_F(LabelMapTest, emptyString) {
     const LabelID id = map.getOrCreate("");
     ASSERT_TRUE(id.isValid());
 }
+
+TEST_F(LabelMapTest, swap) {
+    LabelMap labelMap;
+
+    labelMap.getOrCreate("Protein");
+    labelMap.getOrCreate("Gene");
+
+    ASSERT_EQ(labelMap.get("Protein").value(), 0);
+    ASSERT_EQ(labelMap.get("Gene").value(), 1);
+
+    ASSERT_TRUE(labelMap.swapIDs(0, 1));
+    ASSERT_FALSE(labelMap.swapIDs(0, 2));
+
+    ASSERT_EQ(labelMap.get("Protein").value(), 1);
+    ASSERT_EQ(labelMap.get("Gene").value(), 0);
+
+    const auto GeneName = labelMap.getName(0);
+    ASSERT_TRUE(GeneName);
+    fmt::print("\"{}\" ?= \"Gene\"\n", *GeneName);
+    ASSERT_TRUE(*GeneName == "Gene");
+
+    const auto ProteinName = labelMap.getName(1);
+    ASSERT_TRUE(ProteinName);
+    fmt::print("\"{}\" ?= \"Protein\"\n", *ProteinName);
+    ASSERT_TRUE(*ProteinName == "Protein");
+}

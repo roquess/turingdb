@@ -2,7 +2,6 @@
 
 #include <map>
 
-#include "EntityID.h"
 #include "labels/LabelSetHandle.h"
 
 namespace db {

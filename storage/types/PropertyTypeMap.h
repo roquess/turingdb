@@ -22,9 +22,9 @@ public:
     PropertyTypeMap();
     ~PropertyTypeMap();
 
-    PropertyTypeMap(const PropertyTypeMap&) = default;
+    PropertyTypeMap(const PropertyTypeMap&);
     PropertyTypeMap(PropertyTypeMap&&) noexcept = default;
-    PropertyTypeMap& operator=(const PropertyTypeMap&) = default;
+    PropertyTypeMap& operator=(const PropertyTypeMap&);
     PropertyTypeMap& operator=(PropertyTypeMap&&) noexcept = default;
 
     [[nodiscard]] std::optional<PropertyType> get(const std::string& name) const;

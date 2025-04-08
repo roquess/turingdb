@@ -50,6 +50,7 @@ set(storage_sources
         versioning/Commit.cpp
         versioning/CommitView.cpp
         versioning/CommitBuilder.cpp
+        versioning/MetadataRebaser.cpp
         versioning/Transaction.cpp
         versioning/CommitHistory.cpp
 

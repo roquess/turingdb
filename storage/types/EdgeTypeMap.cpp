@@ -5,6 +5,42 @@ using namespace db;
 EdgeTypeMap::EdgeTypeMap() = default;
 
 EdgeTypeMap::~EdgeTypeMap() = default;
+ 
+EdgeTypeMap::EdgeTypeMap(const EdgeTypeMap& other) {
+    for (const auto& pair : other._container) {
+        const EdgeTypeID id = pair._id;
+        const auto& name = pair._name;
+        const size_t count = _container.size();
+        auto newName = std::make_unique<std::string>(*name);
+        auto* namePtr = newName.get();
+        _container.emplace_back(id, std::move(newName));
+        _nameMap.emplace(*namePtr, count);
+        _idMap.emplace(id, count);
+    }
+}
+
+EdgeTypeMap& EdgeTypeMap::operator=(const EdgeTypeMap& other) {
+    if (this == &other) {
+        return *this;
+    }
+
+    _nameMap.clear();
+    _idMap.clear();
+    _container.clear();
+
+    for (const auto& pair : other._container) {
+        const EdgeTypeID id = pair._id;
+        const auto& name = pair._name;
+        const size_t count = _container.size();
+        auto newName = std::make_unique<std::string>(*name);
+        auto* namePtr = newName.get();
+        _container.emplace_back(id, std::move(newName));
+        _nameMap.emplace(*namePtr, count);
+        _idMap.emplace(id, count);
+    }
+
+    return *this;
+}
 
 std::optional<EdgeTypeID> EdgeTypeMap::get(const std::string& name) const {
     auto it = _nameMap.find(name);

@@ -22,9 +22,9 @@ public:
     EdgeTypeMap();
     ~EdgeTypeMap();
 
-    EdgeTypeMap(const EdgeTypeMap&) = default;
+    EdgeTypeMap(const EdgeTypeMap&);
     EdgeTypeMap(EdgeTypeMap&&) noexcept = default;
-    EdgeTypeMap& operator=(const EdgeTypeMap&) = default;
+    EdgeTypeMap& operator=(const EdgeTypeMap&);
     EdgeTypeMap& operator=(EdgeTypeMap&&) noexcept = default;
 
     [[nodiscard]] std::optional<EdgeTypeID> get(const std::string& name) const;
