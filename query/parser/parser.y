@@ -108,6 +108,8 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token NEW          "'NEW'"
 %token SUBMIT       "'SUBMIT'"
 %token DELETE       "'DELETE'"
+%token PROPERTIES   "'PROPERTIES'"
+%token CALL         "'CALL'"
 // Operators
 %token PLUS         "'+'"
 %token MINUS        "'-'"
@@ -177,6 +179,8 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 
 %type <db::ChangeOpType> change_subcmd
 
+%type<db::QueryCommand*> call_cmd
+
 %start query_unit
 
 %%
@@ -194,6 +198,7 @@ cmd: match_cmd { ctxt->setRoot($1); }
    | history_cmd { ctxt->setRoot($1); }
    | change_cmd { ctxt->setRoot($1); }
    | commit_cmd { ctxt->setRoot($1); }
+   | call_cmd { ctxt->setRoot($1); }
    ;
 
 match_cmd: MATCH match_targets RETURN return_fields {
@@ -452,6 +457,12 @@ history_cmd: HISTORY {
                             auto history = HistoryCommand::create(ctxt);
                             $$ = history;
                          }
+           ;
+// CALL
+call_cmd: CALL PROPERTIES OPAR CPAR{
+                    auto callProperties = CallCommand::create(ctxt, CallCommand::Type::PROPERTIES);
+                    $$ = callProperties;
+                }
            ;
 
 // CHANGE
