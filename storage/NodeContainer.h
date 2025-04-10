@@ -11,6 +11,7 @@ namespace db {
 
 class NodeContainerLoader;
 class DataPartLoader;
+class DataPartRebaser;
 
 class NodeContainer {
 public:
@@ -80,6 +81,7 @@ public:
 private:
     friend NodeContainerLoader;
     friend DataPartLoader;
+    friend DataPartRebaser;
 
     EntityID _firstID {0};
     size_t _nodeCount {0};

@@ -46,11 +46,8 @@ public:
 
     CommitResult<void> rebase(Commit& commit);
 
-    CommitResult<void> commit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem);
-    CommitResult<void> commit(std::unique_ptr<Commit> commit, JobSystem& jobSystem);
-
+    CommitResult<void> commit(std::unique_ptr<CommitBuilder>& commitBuilder, JobSystem& jobSystem);
     CommitResult<void> rebaseAndCommit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem);
-    CommitResult<void> rebaseAndCommit(std::unique_ptr<Commit> commit, JobSystem& jobSystem);
 
     [[nodiscard]] EntityIDs getNextFreeIDs() const;
     [[nodiscard]] CommitHash getHeadHash() const;

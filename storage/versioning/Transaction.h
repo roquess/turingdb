@@ -31,6 +31,7 @@ public:
 
     [[nodiscard]] GraphView viewGraph() const;
     [[nodiscard]] GraphReader readGraph() const;
+    [[nodiscard]] const CommitData& commitData() const { return *_data; }
 
 private:
     WeakArc<const CommitData> _data;

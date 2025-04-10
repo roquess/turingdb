@@ -12,7 +12,7 @@ class VersionController;
 
 class DataPartLoader {
 public:
-    [[nodiscard]] static DumpResult<WeakArc<const DataPart>> load(const fs::Path& path,
+    [[nodiscard]] static DumpResult<WeakArc<DataPart>> load(const fs::Path& path,
                                                                   VersionController& versionController);
 
 private:

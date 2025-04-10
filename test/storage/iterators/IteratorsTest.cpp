@@ -1,5 +1,4 @@
-#include <gtest/gtest.h>
-
+#include "TuringTest.h"
 #include "Graph.h"
 #include "versioning/Transaction.h"
 #include "views/GraphView.h"
@@ -9,11 +8,12 @@
 #include "writers/DataPartBuilder.h"
 #include "FileUtils.h"
 #include "JobSystem.h"
-#include "LogSetup.h"
+#include "writers/MetadataBuilder.h"
 
 #include <spdlog/spdlog.h>
 
 using namespace db;
+using namespace turing::test;
 
 struct TestEdgeRecord {
     EntityID _edgeID;
@@ -21,24 +21,9 @@ struct TestEdgeRecord {
     EntityID _otherID;
 };
 
-class IteratorsTest : public ::testing::Test {
+class IteratorsTest : public TuringTest {
 protected:
-    void SetUp() override {
-        const testing::TestInfo* const testInfo =
-            testing::UnitTest::GetInstance()->current_test_info();
-
-        _outDir = testInfo->test_suite_name();
-        _outDir += "_";
-        _outDir += testInfo->name();
-        _outDir += ".out";
-        _logPath = FileUtils::Path(_outDir) / "log";
-
-        if (FileUtils::exists(_outDir)) {
-            FileUtils::removeDirectory(_outDir);
-        }
-        FileUtils::createDirectory(_outDir);
-        LogSetup::setupLogFileBacked(_logPath.string());
-
+    void initialize() override {
         _jobSystem = JobSystem::create();
         _graph = Graph::create();
 
@@ -48,6 +33,15 @@ protected:
         auto& builder1 = commitBuilder1->newBuilder();
         PropertyTypeID uint64ID = 0;
         PropertyTypeID stringID = 1;
+
+        {
+            // Metadata
+            commitBuilder1->metadata().getOrCreateLabel("0");
+            commitBuilder1->metadata().getOrCreateLabel("1");
+            commitBuilder1->metadata().getOrCreateEdgeType("0");
+            commitBuilder1->metadata().getOrCreatePropertyType("UIntProp", ValueType::UInt64);
+            commitBuilder1->metadata().getOrCreatePropertyType("StringProp", ValueType::String);
+        }
 
         {
             // Node 0
@@ -76,7 +70,7 @@ protected:
 
         {
             // Edge 001
-            const EdgeRecord& edge = builder1.addEdge(_edgeTypeID, 0, 1);
+            const EdgeRecord& edge = builder1.addEdge(0, 0, 1);
             builder1.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
             builder1.addEdgeProperty<types::String>(
@@ -85,17 +79,29 @@ protected:
 
         {
             // Edge 102
-            const EdgeRecord& edge = builder1.addEdge(_edgeTypeID, 0, 2);
+            const EdgeRecord& edge = builder1.addEdge(0, 0, 2);
             builder1.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
             builder1.addEdgeProperty<types::String>(
                 edge, stringID, "TmpEdgeID" + std::to_string(edge._edgeID));
         }
 
-        /* SECOND BUFFER (Concurrent to the first one) */
+        spdlog::info(" -- Pushing 1");
+        ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder1), *_jobSystem));
+
+        /* SECOND BUFFER */
         const auto tx2 = _graph->openWriteTransaction();
         auto commitBuilder2 = tx2.prepareCommit();
         auto& builder2 = commitBuilder2->newBuilder();
+
+        {
+            // Metadata
+            commitBuilder2->metadata().getOrCreateLabel("0");
+            commitBuilder2->metadata().getOrCreateLabel("1");
+            commitBuilder2->metadata().getOrCreateEdgeType("0");
+            commitBuilder2->metadata().getOrCreatePropertyType("UIntProp", ValueType::UInt64);
+            commitBuilder2->metadata().getOrCreatePropertyType("StringProp", ValueType::String);
+        }
 
         {
             // Node 4
@@ -115,7 +121,7 @@ protected:
 
         {
             // Edge 343
-            const EdgeRecord& edge = builder2.addEdge(_edgeTypeID, 0, 1);
+            const EdgeRecord& edge = builder2.addEdge(0, 3, 4);
             builder2.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
             builder2.addEdgeProperty<types::String>(
@@ -124,7 +130,7 @@ protected:
 
         {
             // Edge 443
-            const EdgeRecord& edge = builder2.addEdge(_edgeTypeID, 0, 1);
+            const EdgeRecord& edge = builder2.addEdge(0, 3, 4);
             builder2.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
             builder2.addEdgeProperty<types::String>(
@@ -133,16 +139,12 @@ protected:
 
         {
             // Edge 234
-            const EdgeRecord& edge = builder2.addEdge(_edgeTypeID, 1, 0);
+            const EdgeRecord& edge = builder2.addEdge(0, 4, 3);
             builder2.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
         }
 
-        // PUSH DATAPARTS
-        spdlog::info("Pushing 1");
-        ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder1), *_jobSystem));
-
-        spdlog::info("Pushing 2");
+        spdlog::info(" -- Pushing 2");
         ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder2), *_jobSystem));
 
         /* THIRD BUFFER (Empty) */
@@ -150,7 +152,7 @@ protected:
         auto commitBuilder3 = tx3.prepareCommit();
         [[maybe_unused]] auto& builder3 = commitBuilder3->newBuilder();
         ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder3), *_jobSystem));
-        spdlog::info("Pushing 3");
+        spdlog::info(" -- Pushing 3");
 
         /* FOURTH BUFFER (First node and edge ids: 5, 5) */
         const auto tx4 = _graph->openWriteTransaction();
@@ -195,7 +197,7 @@ protected:
 
         {
             // Edge 654
-            const EdgeRecord& edge = builder4.addEdge(_edgeTypeID, 6, 4);
+            const EdgeRecord& edge = builder4.addEdge(0, 6, 4);
             builder4.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
             builder4.addEdgeProperty<types::String>(
@@ -204,7 +206,7 @@ protected:
 
         {
             // Edge 757
-            const EdgeRecord& edge = builder4.addEdge(_edgeTypeID, 6, 8);
+            const EdgeRecord& edge = builder4.addEdge(0, 6, 8);
             builder4.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
             builder4.addEdgeProperty<types::String>(
@@ -213,7 +215,7 @@ protected:
 
         {
             // Edge 867
-            const EdgeRecord& edge = builder4.addEdge(_edgeTypeID, 7, 8);
+            const EdgeRecord& edge = builder4.addEdge(0, 7, 8);
             builder4.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
             builder4.addEdgeProperty<types::String>(
@@ -222,7 +224,7 @@ protected:
 
         {
             // Edge 528
-            const EdgeRecord& edge = builder4.addEdge(_edgeTypeID, 2, 5);
+            const EdgeRecord& edge = builder4.addEdge(0, 2, 5);
             builder4.addEdgeProperty<types::UInt64>(
                 edge, uint64ID, edge._edgeID.getValue());
             builder4.addEdgeProperty<types::String>(
@@ -237,11 +239,11 @@ protected:
         builder4.addEdgeProperty<types::String>(
             *edgeToPatch, stringID, "TmpEdgeID2 patch");
 
-        spdlog::info("Pushing 4");
+        spdlog::info(" -- Pushing 4");
         ASSERT_TRUE(_graph->rebaseAndCommit(std::move(commitBuilder4), *_jobSystem));
     }
 
-    void TearDown() override {
+    void terminate() override {
         _jobSystem->terminate();
     }
 
@@ -249,7 +251,6 @@ protected:
     std::unique_ptr<Graph> _graph = nullptr;
     std::string _outDir;
     FileUtils::Path _logPath;
-    static inline const EdgeTypeID _edgeTypeID {0};
 };
 
 TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
@@ -270,6 +271,7 @@ TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
     auto it = compareSet.begin();
     size_t count = 0;
     for (const EdgeRecord& v : reader.scanOutEdges()) {
+        spdlog::info("Testing edge {}: {} -> {}", v._edgeID, it->_nodeID, it->_otherID);
         ASSERT_EQ(it->_nodeID.getValue(), v._nodeID.getValue());
         ASSERT_EQ(it->_otherID.getValue(), v._otherID.getValue());
         spdlog::info("Node: {} has labelset {}",
@@ -289,6 +291,7 @@ TEST_F(IteratorsTest, ScanNodesIteratorTest) {
     auto it = compareSet.begin();
     size_t count = 0;
     for (const EntityID id : reader.scanNodes()) {
+        fmt::print("node: {}\n", id.getValue());
         ASSERT_EQ(it->getValue(), id.getValue());
         ASSERT_EQ(it->getValue(), id.getValue());
         count++;
@@ -307,7 +310,7 @@ TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
     const auto labelset = LabelSet::fromList({1});
 
     for (const EntityID id : reader.scanNodesByLabel(labelset.handle())) {
-        ASSERT_EQ(it->getValue(), id.getValue());
+        fmt::print("Found node id: {}\n", id.getValue());
         ASSERT_EQ(it->getValue(), id.getValue());
         count++;
         it++;
@@ -361,19 +364,24 @@ TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
     // For each existing labelset compare scanInEdgesByLabel to scanNodesByLabel -> getInEdges
     for (LabelSetID lid = 0; lid != labelsetCount - 1; ++lid) {
         const auto labelset = labelsets.getValue(lid);
-        if (!labelset) {
-            continue;
-        }
+        ASSERT_TRUE(labelset);
 
         ColumnIDs nodeIDs;
+        std::vector<LabelID> labelIDs;
+        labelset.value().decompose(labelIDs);
+        fmt::print("Scanning nodes from labelset {}: [{}]\n", lid, fmt::join(labelIDs, ", "));
         for (const EntityID nodeID : reader.scanNodesByLabel(labelset.value())) {
             nodeIDs = ColumnVector {nodeID};
+            fmt::print("- Expanding in edges from node {}\n", nodeID.getValue());
             for (const EdgeRecord& edge : reader.getInEdges(&nodeIDs)) {
+                fmt::print("   Edge {}: {}->{}\n", edge._edgeID.getValue(), edge._nodeID.getValue(), edge._otherID.getValue());
                 byScanNodesRecords.emplace(edge._edgeID, &edge);
             }
         }
 
+        fmt::print("Scanning nodes from labelset {}: [{}]\n", lid, fmt::join(labelIDs, ", "));
         for (const EdgeRecord& edge : reader.scanInEdgesByLabel(labelset.value())) {
+            fmt::print("   Edge {}: {}->{}\n", edge._edgeID.getValue(), edge._nodeID.getValue(), edge._otherID.getValue());
             byScanEdgesRecords.emplace(edge._edgeID, &edge);
         }
     }
@@ -381,9 +389,10 @@ TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
     ASSERT_EQ(byScanNodesRecords.size(), byScanEdgesRecords.size());
     const size_t count = byScanNodesRecords.size();
     for (EntityID edgeID = 0; edgeID < count; ++edgeID) {
+        fmt::print("- Checking edge {}\n", edgeID);
         const auto& byScanNodes = *byScanNodesRecords.at(edgeID);
         const auto& byScanEdges = *byScanEdgesRecords.at(edgeID);
-        spdlog::info("Comparing [{}:{}->{}] to [{}:{}->{}]",
+        spdlog::info("  Comparing [{}:{}->{}] to [{}:{}->{}]",
                      byScanNodes._edgeID, byScanNodes._nodeID, byScanNodes._otherID,
                      byScanEdges._edgeID, byScanEdges._nodeID, byScanEdges._otherID);
         ASSERT_EQ(byScanNodes._nodeID, byScanEdges._nodeID);
@@ -440,7 +449,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
     const GraphReader reader = transaction.readGraph();
 
     {
-        std::vector<uint64_t> compareSet {0, 1, 2, 1, 0, 6, 7, 8, 5};
+        std::vector<uint64_t> compareSet {0, 1, 2, 4, 3, 6, 7, 8, 5};
         auto it = compareSet.begin();
         size_t count = 0;
         for (const uint64_t v : reader.scanNodeProperties<types::UInt64>(0)) {
@@ -455,8 +464,8 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
         std::vector<std::string_view> compareSet {
             "TmpID0",
             "TmpID1",
-            // "TmpID1", This property is not set for this node
-            "TmpID0",
+            // "TmpID4", This property is not set for this node
+            "TmpID3",
             "TmpID2 patch",
             "TmpID6",
             "TmpID7",
@@ -466,7 +475,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
         auto it = compareSet.begin();
         size_t count = 0;
         for (std::string_view v : reader.scanNodeProperties<types::String>(1)) {
-            ASSERT_TRUE(*it == v);
+            ASSERT_EQ(*it, v);
             count++;
             it++;
         }
@@ -479,10 +488,11 @@ TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
     const GraphReader reader = transaction.readGraph();
 
     {
-        std::vector<uint64_t> compareSet {0, 1, 2, 0, 1, 8, 5, 6, 7};
+        std::vector<uint64_t> compareSet {0, 1, 4, 2, 3, 8, 5, 6, 7};
         auto it = compareSet.begin();
         size_t count = 0;
         for (const uint64_t v : reader.scanEdgeProperties<types::UInt64>(0)) {
+            fmt::print("v = {}\n", v);
             ASSERT_EQ(*it, v);
             count++;
             it++;
@@ -494,8 +504,8 @@ TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
         std::vector<std::string_view> compareSet {
             "TmpEdgeID0",
             "TmpEdgeID1",
-            "TmpEdgeID0",
-            "TmpEdgeID1",
+            "TmpEdgeID2",
+            "TmpEdgeID3",
             "TmpEdgeID2 patch",
             "TmpEdgeID8",
             "TmpEdgeID5",
@@ -505,7 +515,8 @@ TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
         auto it = compareSet.begin();
         size_t count = 0;
         for (std::string_view v : reader.scanEdgeProperties<types::String>(1)) {
-            ASSERT_TRUE(*it == v);
+            fmt::print("v = {}\n", v);
+            ASSERT_EQ(*it, v);
             count++;
             it++;
         }
@@ -520,7 +531,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
     const LabelSetHandle ref {labelset};
 
     {
-        std::vector<uint64_t> compareSet {2, 1, 0, 7, 8, 5};
+        std::vector<uint64_t> compareSet {2, 4, 3, 7, 8, 5};
         auto it = compareSet.begin();
         size_t count = 0;
         for (const uint64_t v : reader.scanNodePropertiesByLabel<types::UInt64>(0, ref)) {
@@ -533,8 +544,8 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
 
     {
         std::vector<std::string_view> compareSet {
-            "TmpID0",
-            // "TmpID1", This property is not set for this node
+            "TmpID3",
+            // "TmpID4", This property is not set for this node
             "TmpID2 patch",
             "TmpID7",
             "TmpID8",
@@ -568,8 +579,8 @@ TEST_F(IteratorsTest, GetNodeViewsIteratorTest) {
             {0, {._tmpID = 0, ._props = 2, ._outs = 2, ._ins = 0}},
             {1, {._tmpID = 1, ._props = 2, ._outs = 0, ._ins = 1}},
             {2, {._tmpID = 2, ._props = 2, ._outs = 1, ._ins = 1}},
-            {3, {._tmpID = 1, ._props = 1, ._outs = 1, ._ins = 2}},
-            {4, {._tmpID = 0, ._props = 2, ._outs = 2, ._ins = 2}},
+            {3, {._tmpID = 4, ._props = 1, ._outs = 1, ._ins = 2}},
+            {4, {._tmpID = 3, ._props = 2, ._outs = 2, ._ins = 2}},
             {5, {._tmpID = 6, ._props = 2, ._outs = 2, ._ins = 0}},
             {6, {._tmpID = 7, ._props = 2, ._outs = 1, ._ins = 0}},
             {7, {._tmpID = 8, ._props = 2, ._outs = 0, ._ins = 2}},
@@ -608,10 +619,11 @@ TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
     ColumnIDs inputNodeIDs = {1, 3, 8};
 
     {
-        std::vector<uint64_t> compareSet {1, 1, 5};
+        std::vector<uint64_t> compareSet {1, 4, 5};
         auto it = compareSet.begin();
         size_t count = 0;
         for (const uint64_t v : reader.getNodeProperties<types::UInt64>(0, &inputNodeIDs)) {
+            fmt::print("v={}\n", v);
             ASSERT_EQ(*it, v);
             count++;
             it++;
@@ -634,4 +646,10 @@ TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
         }
         ASSERT_EQ(count, compareSet.size());
     }
+}
+
+int main(int argc, char** argv) {
+    return turing::test::turingTestMain(argc, argv, [] {
+        testing::GTEST_FLAG(repeat) = 1;
+    });
 }

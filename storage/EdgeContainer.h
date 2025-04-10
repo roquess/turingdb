@@ -13,6 +13,7 @@ class NodeContainer;
 class DataPartLoader;
 class EdgeIndexer;
 class EdgeContainerLoader;
+class DataPartRebaser;
 
 class EdgeContainer {
 public:
@@ -70,6 +71,7 @@ private:
     friend EdgeIndexer;
     friend DataPartLoader;
     friend EdgeContainerLoader;
+    friend DataPartRebaser;
 
     EntityID _firstNodeID = 0;
     EntityID _firstEdgeID = 0;

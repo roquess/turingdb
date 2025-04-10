@@ -31,12 +31,13 @@ EdgeTypeID MetadataBuilder::getOrCreateEdgeType(const std::string& edgeTypeName)
 PropertyType MetadataBuilder::getOrCreatePropertyType(const std::string& propTypeName, ValueType valueType) {
     std::unique_lock lock {_spinLock};
 
-    return _metadata->_propTypeMap.getOrCreate(propTypeName, valueType);
+    return  _metadata->_propTypeMap.getOrCreate(propTypeName, valueType);
 }
 
 std::unique_ptr<MetadataBuilder> MetadataBuilder::create(const CommitMetadata& prevMetadata, CommitMetadata* metadata) {
     auto* ptr = new MetadataBuilder;
     ptr->_metadata = metadata;
+    *ptr->_metadata = prevMetadata;
 
     return std::unique_ptr<MetadataBuilder>(ptr);
 }

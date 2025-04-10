@@ -11,11 +11,10 @@
 #include "PropertyContainerLoader.h"
 #include "PropertyIndexerLoader.h"
 #include "versioning/VersionController.h"
-#include "Panic.h"
 
 using namespace db;
 
-DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
+DumpResult<WeakArc<DataPart>> DataPartLoader::load(const fs::Path& path,
                                                          VersionController& versionController) {
     if (!path.exists()) {
         return DumpError::result(DumpErrorType::DATAPART_DOES_NOT_EXIST);

@@ -21,21 +21,43 @@ bool MetadataRebaser::rebase(const CommitMetadata& theirs, MetadataBuilder& ours
     EdgeTypeMap newEdgeTypes = theirEdgeTypes;
     PropertyTypeMap newPropTypes = theirPropTypes;
 
-    _labelMapping.resize(ourLabels.getCount());
-    _labelsetMapping.resize(ourLabelsets.getCount());
-    _edgeTypeMapping.resize(ourEdgeTypes.getCount());
-    _propTypeMapping.resize(ourPropTypes.getCount());
+    // Initialize mapping
+    for (const auto& [id, value] : newLabels) {
+        _labelMapping[id] = id;
+    }
+
+    for (const auto& [id, value] : newLabelsets) {
+        _labelsetMapping[id] = newLabelsets.getValue(id).value();
+    }
+
+    for (const auto& [id, value] : newEdgeTypes) {
+        _edgeTypeMapping[id] = id;
+    }
+
+    for (const auto& [pt, value] : newPropTypes) {
+        _propTypeMapping[pt._id] = pt;
+    }
 
     // Labels
     for (const auto& [ourID, name] : ourLabels) {
         const auto newID = newLabels.getOrCreate(*name);
-        _labelMapping[ourID.getValue()] = newID;
+        _labelMapping[ourID] = newID;
+
+        if (newID != ourID) {
+            _labelsChanged = true;
+        }
     }
+
+    _labelsetsChanged = _labelsChanged;
 
     // Edge types
     for (const auto& [ourID, name] : ourEdgeTypes) {
         const auto newID = newEdgeTypes.getOrCreate(*name);
-        _edgeTypeMapping[ourID.getValue()] = newID;
+        _edgeTypeMapping[ourID] = newID;
+
+        if (newID != ourID) {
+            _edgeTypesChanged = true;
+        }
     }
 
     // Property types
@@ -48,32 +70,53 @@ bool MetadataRebaser::rebase(const CommitMetadata& theirs, MetadataBuilder& ours
             newPT = newPropTypes.getOrCreate(newName, ourPT._valueType);
         }
 
-        _propTypeMapping[ourPT._id.getValue()] = newPT;
+        _propTypeMapping[ourPT._id] = newPT;
+
+        if (newPT._id != ourPT._id) {
+            _propTypesChanged = true;
+        }
     }
 
     // Labelsets
     LabelSet newLabelset;
     for (const auto& [prevID, prevValue] : ourLabelsets) {
+        std::vector<LabelID> labels;
+        prevValue->decompose(labels);
+
         // Build labelset with patched IDs
         newLabelset = LabelSet {};
 
         for (LabelID a = 0; a < _labelMapping.size(); a++) {
-            const LabelID b = _labelMapping[a.getValue()];
+            const LabelID b = _labelMapping[a];
             if (prevValue->hasLabel(a)) {
                 newLabelset.set(b);
             }
         }
 
-
         const auto newHandle = newLabelsets.getOrCreate(newLabelset);
-        _labelsetMapping[prevID.getValue()] = newHandle;
+        _labelsetMapping[prevID] = newHandle;
+
+        if (newHandle.getID() != prevID) {
+            _labelsetsChanged = true;
+        }
     }
 
 
-    ours._metadata->_labelMap = std::move(newLabels);
-    ours._metadata->_labelsetMap = std::move(newLabelsets);
-    ours._metadata->_edgeTypeMap = std::move(newEdgeTypes);
-    ours._metadata->_propTypeMap = std::move(newPropTypes);
+    if (_labelsChanged) {
+        ours._metadata->_labelMap = std::move(newLabels);
+    }
+
+    if (_labelsetsChanged) {
+        ours._metadata->_labelsetMap = std::move(newLabelsets);
+    }
+
+    if (_edgeTypesChanged) {
+        ours._metadata->_edgeTypeMap = std::move(newEdgeTypes);
+    }
+
+    if (_propTypesChanged) {
+        ours._metadata->_propTypeMap = std::move(newPropTypes);
+    }
 
     return true;
 }

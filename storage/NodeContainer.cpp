@@ -22,7 +22,12 @@ std::unique_ptr<NodeContainer> NodeContainer::create(EntityID firstID,
     auto* ptr = new NodeContainer(firstID, nodeLabelSets.size());
     std::unique_ptr<NodeContainer> container(ptr);
 
-    if (!ranges::is_sorted(nodeLabelSets)) {
+    const bool isSorted = ranges::is_sorted(nodeLabelSets, [](const auto& a,
+                                                              const auto& b) {
+            return a.getID() < b.getID();
+        });
+
+    if (!isSorted) {
         return nullptr;
     }
 

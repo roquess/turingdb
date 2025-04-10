@@ -27,6 +27,7 @@ public:
 
     DataPartSpan allDataparts() const { return _allDataparts; }
     DataPartSpan commitDataparts() const { return _commitDataparts; }
+    DataPartSpan commitDataparts() { return _commitDataparts; }
     std::span<const CommitView> commits() const;
 
     void pushPreviousDataparts(DataPartSpan dataparts) {
@@ -35,7 +36,7 @@ public:
         std::copy(dataparts.begin(), dataparts.end(), _allDataparts.begin() + prevSize);
     }
 
-    void pushCommitDatapart(const WeakArc<const DataPart>& datapart) {
+    void pushCommitDatapart(WeakArc<DataPart>& datapart) {
         _commitDataparts.push_back(datapart);
     }
 
@@ -56,10 +57,10 @@ private:
     friend VersionController;
 
     /// Stores all the data parts that are part of the commit history.
-    std::vector<WeakArc<const DataPart>> _allDataparts;
+    std::vector<WeakArc<DataPart>> _allDataparts;
 
     /// Stores the data parts that belong to the last commit.
-    std::vector<WeakArc<const DataPart>> _commitDataparts;
+    std::vector<WeakArc<DataPart>> _commitDataparts;
 
     /// Stores the whole history up to (including) this commit.
     std::vector<CommitView> _commits;

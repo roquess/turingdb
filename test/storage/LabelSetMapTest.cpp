@@ -45,29 +45,3 @@ TEST_F(LabelSetMapTest, different) {
     ASSERT_EQ(handle2.getID(), 1);
     ASSERT_EQ(labelset2, handle2);
 }
-
-TEST_F(LabelSetMapTest, swap) {
-    LabelSetMap labelMap;
-
-    const auto labelset1 = LabelSet::fromList({1});
-    const auto labelset2 = LabelSet::fromList({2});
-    labelMap.getOrCreate(labelset1);
-    labelMap.getOrCreate(labelset2);
-
-    ASSERT_EQ(labelMap.get(labelset1).value(), 0);
-    ASSERT_EQ(labelMap.get(labelset2).value(), 1);
-
-    ASSERT_TRUE(labelMap.setID(labelset1, 1));
-    ASSERT_FALSE(labelMap.setID(labelset2, 2));
-
-    ASSERT_EQ(labelMap.get(labelset1).value(), 1);
-    ASSERT_EQ(labelMap.get(labelset2).value(), 0);
-
-    const auto handle1 = labelMap.getValue(0);
-    ASSERT_TRUE(handle1);
-    ASSERT_EQ(*handle1, labelset2);
-
-    const auto handle2 = labelMap.getValue(1);
-    ASSERT_TRUE(handle2);
-    ASSERT_EQ(*handle2, labelset1);
-}

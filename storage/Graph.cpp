@@ -19,24 +19,12 @@ WriteTransaction Graph::openWriteTransaction(CommitHash hash) const {
     return _versionController->openWriteTransaction(hash);
 }
 
-CommitResult<void> Graph::rebase(Commit& commit) {
-    return _versionController->rebase(commit);
-}
-
-CommitResult<void> Graph::commit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem) {
+CommitResult<void> Graph::commit(std::unique_ptr<CommitBuilder>& commitBuilder, JobSystem& jobSystem) {
     if (!commitBuilder) {
         return CommitError::result(CommitErrorType::COMMIT_INVALID);
     }
 
-    return _versionController->commit(commitBuilder->build(jobSystem));
-}
-
-CommitResult<void> Graph::commit(std::unique_ptr<Commit> commit, JobSystem& jobSystem) {
-    if (!commit) {
-        return CommitError::result(CommitErrorType::COMMIT_INVALID);
-    }
-
-    return _versionController->commit(std::move(commit));
+    return _versionController->commit(commitBuilder, jobSystem);
 }
 
 CommitResult<void> Graph::rebaseAndCommit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem) {
@@ -44,25 +32,11 @@ CommitResult<void> Graph::rebaseAndCommit(std::unique_ptr<CommitBuilder> commitB
         return CommitError::result(CommitErrorType::COMMIT_INVALID);
     }
 
-    auto commit = commitBuilder->build(jobSystem);
-
-    if (auto res = _versionController->rebase(*commit); !res) {
+    if (auto res = _versionController->rebase(*commitBuilder, jobSystem); !res) {
         return res;
     }
 
-    return _versionController->commit(std::move(commit));
-}
-
-CommitResult<void> Graph::rebaseAndCommit(std::unique_ptr<Commit> commit, JobSystem& jobSystem) {
-    if (!commit) {
-        return CommitError::result(CommitErrorType::COMMIT_INVALID);
-    }
-
-    if (auto res = _versionController->rebase(*commit); !res) {
-        return res;
-    }
-
-    return _versionController->commit(std::move(commit));
+    return _versionController->commit(commitBuilder, jobSystem);
 }
 
 Graph::EntityIDs Graph::getNextFreeIDs() const {

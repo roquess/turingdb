@@ -15,6 +15,7 @@ class EdgeIndexerLoader;
 class EdgeContainer;
 class NodeContainer;
 class NodeEdgeView;
+class DataPartRebaser;
 struct EdgeRecord;
 
 class EdgeIndexer {
@@ -60,6 +61,7 @@ public:
 private:
     friend EdgeIndexerDumper;
     friend EdgeIndexerLoader;
+    friend DataPartRebaser;
 
     EntityID _firstNodeID;
     EntityID _firstEdgeID;

@@ -107,7 +107,7 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
     }
 
     for (auto& [commitIndex, commit] : commits) {
-        graph->_versionController->commit(std::move(commit));
+        graph->_versionController->addCommit(std::move(commit));
     }
 
 

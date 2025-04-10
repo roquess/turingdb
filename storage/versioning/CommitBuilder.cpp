@@ -57,7 +57,6 @@ void CommitBuilder::buildAllPending(JobSystem& jobsystem) {
         firstNodeID += builder->nodeCount();
         firstEdgeID += builder->edgeCount();
 
-        // TODO Use the jobsystem here
         part->load(view, jobsystem, *builder);
         _commit->_data->_history._allDataparts.emplace_back(part);
         _commit->_data->_history._commitDataparts.emplace_back(part);
@@ -82,7 +81,6 @@ void CommitBuilder::initialize() {
     auto reader = _view.read();
     _firstNodeID = reader.getNodeCount();
     _firstEdgeID = reader.getNodeCount();
-
 
     _commit = std::make_unique<Commit>();
     _commit->_graph = _graph;

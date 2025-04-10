@@ -36,7 +36,7 @@ public:
         commit->_data = versionController->createCommitData(hash);
         commit->_data->_hash = hash;
 
-        std::map<uint64_t, WeakArc<const DataPart>> dataparts;
+        std::map<uint64_t, WeakArc<DataPart>> dataparts;
         for (auto& child : files.value()) {
             const auto& childStr = child.get();
 
@@ -61,7 +61,7 @@ public:
                 return res.get_unexpected();
             }
 
-            WeakArc<const DataPart> part = res.value();
+            WeakArc<DataPart> part = res.value();
             dataparts.emplace(partIndex.value(), part);
             graph.allocIDRange(part->getNodeCount(), part->getEdgeCount());
         }

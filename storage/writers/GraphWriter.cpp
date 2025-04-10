@@ -28,7 +28,7 @@ void GraphWriter::commit() {
         return;
     }
 
-    _graph->commit(std::move(_commitBuilder), *_jobSystem);
+    _graph->rebaseAndCommit(std::move(_commitBuilder), *_jobSystem);
     _tx = _graph->openWriteTransaction();
     _commitBuilder = _tx.prepareCommit();
     _dataPartBuilder = &_commitBuilder->newBuilder();

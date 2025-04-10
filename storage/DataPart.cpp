@@ -59,10 +59,13 @@ bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder
              [](const auto& data1, const auto& data2) {
                  const LabelSetHandle& lset1 = std::get<0>(data1);
                  const LabelSetHandle& lset2 = std::get<0>(data2);
-                 return lset1 < lset2;
+                 return lset1.getID() < lset2.getID();
              });
 
     _nodes = NodeContainer::create(_firstNodeID, coreNodeLabelSets);
+    if (!_nodes) {
+        return false;
+    }
 
     // nodeID Mapping
     for (const auto& [i, tmpID] : tmpNodeIDs | rv::enumerate) {

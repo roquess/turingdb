@@ -9,7 +9,14 @@ namespace db {
 template <typename T>
 class LabelSetIndexer {
 public:
-    using InternalContainer = std::map<LabelSetHandle, T>;
+    class LabelSetComparator {
+    public:
+        bool operator()(const LabelSetHandle& a, const LabelSetHandle& b) const {
+            return a.getID() < b.getID();
+        }
+    };
+
+    using InternalContainer = std::map<LabelSetHandle, T, LabelSetComparator>;
 
     class MatchIterator {
     public:

@@ -37,6 +37,7 @@ public:
 
 private:
     friend Graph;
+    friend VersionController;
 
     mutable std::mutex _mutex;
 

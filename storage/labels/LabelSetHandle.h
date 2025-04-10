@@ -225,6 +225,10 @@ public:
     bool isValid() const { return _labelset != nullptr; }
     bool isStored() const { return _id.isValid(); }
 
+    const BaseType& get() const {
+        return *_labelset;
+    }
+
     struct Hash {
         using is_transparent = void; // Enable overload resolution during hashing
 

@@ -16,6 +16,7 @@ class GraphView;
 class GraphReader;
 class EdgeIndexer;
 class DataPartLoader;
+class DataPartRebaser;
 class JobSystem;
 
 class DataPart {
@@ -50,6 +51,7 @@ private:
     friend DataPartInfoLoader;
     friend GraphReader;
     friend DataPartLoader;
+    friend DataPartRebaser;
 
     bool _initialized {false};
     EntityID _firstNodeID {0};
