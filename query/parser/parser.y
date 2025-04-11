@@ -112,6 +112,7 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token CALL         "'CALL'"
 %token LABELS       "'LABELS'"
 %token EDGETYPES    "'EDGETYPES'" 
+%token LABELSETS    "'LABELSETS'"
 
 // Operators
 %token PLUS         "'+'"
@@ -472,6 +473,10 @@ call_cmd: CALL PROPERTIES OPAR CPAR {
                     }
         | CALL EDGETYPES OPAR CPAR {
                     auto callProperties = CallCommand::create(ctxt, CallCommand::Type::EDGETYPES);
+                    $$ = callProperties;
+                    }
+        | CALL LABELSETS OPAR CPAR {
+                    auto callProperties = CallCommand::create(ctxt, CallCommand::Type::LABELSETS);
                     $$ = callProperties;
                     }
 

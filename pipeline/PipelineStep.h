@@ -4,6 +4,7 @@
 
 #include "ChangeOpType.h"
 #include "CallEdgeTypeStep.h"
+#include "CallLabelSetStep.h"
 #include "CallLabelStep.h"
 #include "PipelineOpcode.h"
 
@@ -132,6 +133,9 @@ public:
     PipelineStep(CallEdgeTypeStep::Tag,
                  ColumnVector<EdgeTypeID>* id,
                  ColumnVector<std::string>* name);
+    PipelineStep(CallLabelSetStep::Tag,
+                 ColumnVector<LabelSetID>* id,
+                 ColumnVector<std::string>* name);
 
     PROPERTY_STEPS(Int64)
     PROPERTY_STEPS(UInt64)
@@ -210,8 +214,15 @@ private:
                  CommitStep,
                  CallPropertyStep,
                  CallLabelStep,
+<<<<<<< HEAD
                  CallEdgeTypeStep>
         _impl;
+||||||| parent of eeda04d7e (Add Call LabelSets)
+                 CallEdgeTypeStep> _impl;
+=======
+                 CallEdgeTypeStep,
+                 CallLabelSetStep> _impl;
+>>>>>>> eeda04d7e (Add Call LabelSets)
 };
 
 }

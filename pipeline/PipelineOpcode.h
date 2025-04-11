@@ -59,6 +59,7 @@ enum class PipelineOpcode : uint64_t {
     CALL_PROPERTIES,
     CALL_LABELS,
     CALL_EDGETYPES,
+    CALL_LABELSETS,
     MAX
 };
 }

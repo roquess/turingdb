@@ -23,6 +23,7 @@ set(pipeline_sources
         operations/CallPropertyStep.cpp
         operations/CallLabelStep.cpp
         operations/CallEdgeTypeStep.cpp
+        operations/CallLabelSetStep.cpp
         
         PipelineStep.cpp
         Pipeline.cpp

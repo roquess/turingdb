@@ -85,6 +85,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _activateTbl[(uint64_t)PipelineOpcode::CALL_PROPERTIES] = ACTIVATE_PTR(CallPropertyStep);
         _activateTbl[(uint64_t)PipelineOpcode::CALL_LABELS] = ACTIVATE_PTR(CallLabelStep);
         _activateTbl[(uint64_t)PipelineOpcode::CALL_EDGETYPES] = ACTIVATE_PTR(CallEdgeTypeStep);
+        _activateTbl[(uint64_t)PipelineOpcode::CALL_LABELSETS] = ACTIVATE_PTR(CallLabelSetStep);
         _activateTbl[(uint64_t)PipelineOpcode::END] = ACTIVATE_END_PTR();
 
         // RETURN jump table
@@ -141,6 +142,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _returnTbl[(uint64_t)PipelineOpcode::CALL_PROPERTIES] = RETURN_PTR(CallPropertyStep);
         _returnTbl[(uint64_t)PipelineOpcode::CALL_LABELS] = RETURN_PTR(CallLabelStep);
         _returnTbl[(uint64_t)PipelineOpcode::CALL_EDGETYPES] = RETURN_PTR(CallEdgeTypeStep);
+        _returnTbl[(uint64_t)PipelineOpcode::CALL_LABELSETS] = RETURN_PTR(CallLabelSetStep);
         _returnTbl[(uint64_t)PipelineOpcode::END] = GOTOPTR(StopStep);
 
         checkJumpTables();
@@ -237,6 +239,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     ACTIVATE_STEP(CallPropertyStep)
     ACTIVATE_STEP(CallLabelStep)
     ACTIVATE_STEP(CallEdgeTypeStep)
+    ACTIVATE_STEP(CallLabelSetStep)
     ACTIVATE_END()
 
     // RETURN actions
@@ -292,6 +295,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     RETURN_STEP(CallPropertyStep)
     RETURN_STEP(CallLabelStep)
     RETURN_STEP(CallEdgeTypeStep)
+    RETURN_STEP(CallLabelSetStep)
 
 // Exit execution
 ExecutorExit:

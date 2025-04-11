@@ -1440,8 +1440,16 @@ bool QueryPlanner::planCall(const CallCommand* call) {
 
             break;
         }
-        case CallCommand::Type::LABELSETS:
+        case CallCommand::Type::LABELSETS: {
+            auto* ids = _mem->alloc<ColumnVector<LabelSetID>>();
+            auto* name = _mem->alloc<ColumnVector<std::string>>();
+
+            _pipeline->add<CallLabelSetStep>(ids, name);
+
+            _output->addColumn(ids);
+            _output->addColumn(name);
             break;
+        }
         case CallCommand::Type::PROPERTIES: {
             auto* ids = _mem->alloc<ColumnVector<PropertyTypeID>>();
             auto* name = _mem->alloc<ColumnVector<std::string>>();

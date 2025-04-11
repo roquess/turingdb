@@ -213,6 +213,14 @@ PipelineStep::PipelineStep(CallEdgeTypeStep::Tag,
 {
 }
 
+PipelineStep::PipelineStep(CallLabelSetStep::Tag,
+             ColumnVector<LabelSetID>* id,
+             ColumnVector<std::string>* name)
+    :_opcode(PipelineOpcode::CALL_LABELSETS),
+    _impl(std::in_place_type<CallLabelSetStep>, id, name)
+{
+}
+
 PipelineStep::PipelineStep(LoadGraphStep::Tag, const std::string& graphName)
     : _opcode(PipelineOpcode::LOAD_GRAPH),
     _impl(std::in_place_type<LoadGraphStep>, graphName)
