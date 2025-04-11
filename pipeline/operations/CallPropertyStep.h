@@ -5,7 +5,6 @@
 #include "ExecutionContext.h"
 #include "columns/ColumnVector.h"
 #include "views/GraphView.h"
-#include "reader/GraphReader.h"
 
 namespace db {
 
@@ -16,8 +15,8 @@ public:
     struct Tag {};
 
     explicit CallPropertyStep(ColumnVector<PropertyTypeID>* id,
-                              ColumnVector<std::string>* propName,
-                              ColumnVector<std::string>* propType);
+                              ColumnVector<std::string_view>* propName,
+                              ColumnVector<std::string_view>* propType);
     ~CallPropertyStep();
 
     void prepare(ExecutionContext* ctxt) {
@@ -35,8 +34,8 @@ public:
 private:
     const GraphView* _view {nullptr};
     ColumnVector<PropertyTypeID>* _id {nullptr};
-    ColumnVector<std::string>* _propName {nullptr};
-    ColumnVector<std::string>* _propType {nullptr};
+    ColumnVector<std::string_view>* _propName {nullptr};
+    ColumnVector<std::string_view>* _propType {nullptr};
 };
 
 }

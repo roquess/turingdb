@@ -1,10 +1,13 @@
 #include "CallPropertyStep.h"
 
+#include "GraphMetadata.h"
+#include "types/PropertyTypeMap.h"
+
 using namespace db;
 
 CallPropertyStep::CallPropertyStep(ColumnVector<PropertyTypeID>* id,
-                                   ColumnVector<std::string>* propName,
-                                   ColumnVector<std::string>* propType)
+                                   ColumnVector<std::string_view>* propName,
+                                   ColumnVector<std::string_view>* propType)
     : _id(id),
     _propName(propName),
     _propType(propType)

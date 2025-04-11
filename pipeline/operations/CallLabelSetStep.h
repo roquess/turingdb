@@ -15,7 +15,7 @@ public:
     struct Tag {};
 
     explicit CallLabelSetStep(ColumnVector<LabelSetID>* id,
-                              ColumnVector<std::string>* labelNames);
+                              ColumnVector<std::string_view>* labelNames);
     ~CallLabelSetStep();
 
     void prepare(ExecutionContext* ctxt) {
@@ -33,7 +33,7 @@ public:
 private:
     const GraphView* _view {nullptr};
     ColumnVector<LabelSetID>* _id {nullptr};
-    ColumnVector<std::string>* _labelNames {nullptr};
+    ColumnVector<std::string_view>* _labelNames {nullptr};
 };
 
 }

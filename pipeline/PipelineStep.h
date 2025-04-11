@@ -125,14 +125,14 @@ public:
     PipelineStep(CommitStep::Tag);
     PipelineStep(CallPropertyStep::Tag,
                  ColumnVector<PropertyTypeID>* id,
-                 ColumnVector<std::string>* name,
-                 ColumnVector<std::string>* type);
+                 ColumnVector<std::string_view>* name,
+                 ColumnVector<std::string_view>* type);
     PipelineStep(CallLabelStep::Tag,
                  ColumnVector<LabelID>* id,
-                 ColumnVector<std::string>* name);
+                 ColumnVector<std::string_view>* name);
     PipelineStep(CallEdgeTypeStep::Tag,
                  ColumnVector<EdgeTypeID>* id,
-                 ColumnVector<std::string>* name);
+                 ColumnVector<std::string_view>* name);
     PipelineStep(CallLabelSetStep::Tag,
                  ColumnVector<LabelSetID>* id,
                  ColumnVector<std::string>* name);
@@ -214,15 +214,9 @@ private:
                  CommitStep,
                  CallPropertyStep,
                  CallLabelStep,
-<<<<<<< HEAD
+                 CallLabelSetStep,
                  CallEdgeTypeStep>
         _impl;
-||||||| parent of eeda04d7e (Add Call LabelSets)
-                 CallEdgeTypeStep> _impl;
-=======
-                 CallEdgeTypeStep,
-                 CallLabelSetStep> _impl;
->>>>>>> eeda04d7e (Add Call LabelSets)
 };
 
 }

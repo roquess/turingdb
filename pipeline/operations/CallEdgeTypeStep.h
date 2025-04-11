@@ -5,7 +5,6 @@
 #include "ExecutionContext.h"
 #include "columns/ColumnVector.h"
 #include "views/GraphView.h"
-#include "reader/GraphReader.h"
 
 namespace db {
 
@@ -16,7 +15,7 @@ public:
     struct Tag {};
 
     explicit CallEdgeTypeStep(ColumnVector<EdgeTypeID>* id,
-                              ColumnVector<std::string>* edgeTypeName);
+                              ColumnVector<std::string_view>* edgeTypeName);
     ~CallEdgeTypeStep();
 
     void prepare(ExecutionContext* ctxt) {
@@ -34,7 +33,7 @@ public:
 private:
     const GraphView* _view {nullptr};
     ColumnVector<EdgeTypeID>* _id {nullptr};
-    ColumnVector<std::string>* _edgeTypeName {nullptr};
+    ColumnVector<std::string_view>* _edgeTypeName {nullptr};
 };
 
 }

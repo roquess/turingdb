@@ -190,8 +190,8 @@ PipelineStep::PipelineStep(ChangeStep::Tag,
 
 PipelineStep::PipelineStep(CallPropertyStep::Tag,
              ColumnVector<PropertyTypeID>* id,
-             ColumnVector<std::string>* name,
-             ColumnVector<std::string>* type)
+             ColumnVector<std::string_view>* name,
+             ColumnVector<std::string_view>* type)
     :_opcode(PipelineOpcode::CALL_PROPERTIES),
     _impl(std::in_place_type<CallPropertyStep>, id, name, type)
 {
@@ -199,7 +199,7 @@ PipelineStep::PipelineStep(CallPropertyStep::Tag,
 
 PipelineStep::PipelineStep(CallLabelStep::Tag,
              ColumnVector<LabelID>* id,
-             ColumnVector<std::string>* name)
+             ColumnVector<std::string_view>* name)
     :_opcode(PipelineOpcode::CALL_LABELS),
     _impl(std::in_place_type<CallLabelStep>, id, name)
 {
@@ -207,7 +207,7 @@ PipelineStep::PipelineStep(CallLabelStep::Tag,
 
 PipelineStep::PipelineStep(CallEdgeTypeStep::Tag,
              ColumnVector<EdgeTypeID>* id,
-             ColumnVector<std::string>* name)
+             ColumnVector<std::string_view>* name)
     :_opcode(PipelineOpcode::CALL_EDGETYPES),
     _impl(std::in_place_type<CallEdgeTypeStep>, id, name)
 {
@@ -215,7 +215,7 @@ PipelineStep::PipelineStep(CallEdgeTypeStep::Tag,
 
 PipelineStep::PipelineStep(CallLabelSetStep::Tag,
              ColumnVector<LabelSetID>* id,
-             ColumnVector<std::string>* name)
+             ColumnVector<std::string_view>* name)
     :_opcode(PipelineOpcode::CALL_LABELSETS),
     _impl(std::in_place_type<CallLabelSetStep>, id, name)
 {

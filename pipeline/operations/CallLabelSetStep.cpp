@@ -1,11 +1,12 @@
 #include "CallLabelSetStep.h"
+
 #include "GraphMetadata.h"
 #include "labels/LabelSetMap.h"
 
 using namespace db;
 
 CallLabelSetStep::CallLabelSetStep(ColumnVector<LabelSetID>* id,
-                                   ColumnVector<std::string>* labelNames)
+                                   ColumnVector<std::string_view>* labelNames)
     : _id(id),
     _labelNames(labelNames)
 {

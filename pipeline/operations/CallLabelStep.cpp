@@ -1,9 +1,12 @@
 #include "CallLabelStep.h"
 
+#include "GraphMetadata.h"
+#include "labels/LabelMap.h"
+
 using namespace db;
 
 CallLabelStep::CallLabelStep(ColumnVector<LabelID>* id,
-                                   ColumnVector<std::string>* labelName)
+                                   ColumnVector<std::string_view>* labelName)
     : _id(id),
     _labelName(labelName)
 {

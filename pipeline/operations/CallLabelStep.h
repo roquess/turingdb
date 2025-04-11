@@ -5,7 +5,6 @@
 #include "ExecutionContext.h"
 #include "columns/ColumnVector.h"
 #include "views/GraphView.h"
-#include "reader/GraphReader.h"
 
 namespace db {
 
@@ -16,7 +15,7 @@ public:
     struct Tag {};
 
     explicit CallLabelStep(ColumnVector<LabelID>* id,
-                           ColumnVector<std::string>* labelName);
+                           ColumnVector<std::string_view>* labelName);
     ~CallLabelStep();
 
     void prepare(ExecutionContext* ctxt) {
@@ -34,7 +33,7 @@ public:
 private:
     const GraphView* _view {nullptr};
     ColumnVector<LabelID>* _id {nullptr};
-    ColumnVector<std::string>* _labelName {nullptr};
+    ColumnVector<std::string_view>* _labelName {nullptr};
 };
 
 }

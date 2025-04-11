@@ -1420,7 +1420,7 @@ bool QueryPlanner::planCall(const CallCommand* call) {
     switch (call->getType()) {
         case CallCommand::Type::LABELS: {
             auto* ids = _mem->alloc<ColumnVector<LabelID>>();
-            auto* name = _mem->alloc<ColumnVector<std::string>>();
+            auto* name = _mem->alloc<ColumnVector<std::string_view>>();
 
             _pipeline->add<CallLabelStep>(ids, name);
 
@@ -1431,7 +1431,7 @@ bool QueryPlanner::planCall(const CallCommand* call) {
         }
         case CallCommand::Type::EDGETYPES: {
             auto* ids = _mem->alloc<ColumnVector<EdgeTypeID>>();
-            auto* name = _mem->alloc<ColumnVector<std::string>>();
+            auto* name = _mem->alloc<ColumnVector<std::string_view>>();
 
             _pipeline->add<CallEdgeTypeStep>(ids, name);
 
@@ -1442,7 +1442,7 @@ bool QueryPlanner::planCall(const CallCommand* call) {
         }
         case CallCommand::Type::LABELSETS: {
             auto* ids = _mem->alloc<ColumnVector<LabelSetID>>();
-            auto* name = _mem->alloc<ColumnVector<std::string>>();
+            auto* name = _mem->alloc<ColumnVector<std::string_view>>();
 
             _pipeline->add<CallLabelSetStep>(ids, name);
 
@@ -1452,8 +1452,8 @@ bool QueryPlanner::planCall(const CallCommand* call) {
         }
         case CallCommand::Type::PROPERTIES: {
             auto* ids = _mem->alloc<ColumnVector<PropertyTypeID>>();
-            auto* name = _mem->alloc<ColumnVector<std::string>>();
-            auto* type = _mem->alloc<ColumnVector<std::string>>();
+            auto* name = _mem->alloc<ColumnVector<std::string_view>>();
+            auto* type = _mem->alloc<ColumnVector<std::string_view>>();
 
             _pipeline->add<CallPropertyStep>(ids, name, type);
 

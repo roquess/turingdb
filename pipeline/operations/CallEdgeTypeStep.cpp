@@ -1,9 +1,12 @@
 #include "CallEdgeTypeStep.h"
 
+#include "GraphMetadata.h"
+#include "types/EdgeTypeMap.h"
+
 using namespace db;
 
 CallEdgeTypeStep::CallEdgeTypeStep(ColumnVector<EdgeTypeID>* id,
-                                   ColumnVector<std::string>* edgeTypeName)
+                                   ColumnVector<std::string_view>* edgeTypeName)
     : _id(id),
     _edgeTypeName(edgeTypeName)
 {
