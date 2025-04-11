@@ -8,7 +8,7 @@
 
 namespace db {
 
-class GraphReader;
+class CallEdgeTypeStep;
 
 class EdgeTypeMap {
 public:
@@ -32,7 +32,7 @@ public:
     EdgeTypeID create(std::string name);
 
 private:
-    friend GraphReader;
+    friend CallEdgeTypeStep;
 
     mutable RWSpinLock _lock;
     NameMap _nameMap;

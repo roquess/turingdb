@@ -9,6 +9,8 @@
 namespace db {
 
 class GraphReader;
+class CallLabelStep;
+class CallLabelSetStep;
 
 class LabelMap {
 public:
@@ -33,6 +35,8 @@ public:
 
 private:
     friend GraphReader;
+    friend CallLabelStep;
+    friend CallLabelSetStep;
 
     mutable RWSpinLock _lock;
     NameMap _nameMap;

@@ -10,7 +10,7 @@
 namespace db {
 
 class GraphReport;
-class GraphReader;
+class CallPropertyStep;
 
 class PropertyTypeMap {
 public:
@@ -37,7 +37,7 @@ public:
 
 private:
     friend GraphReport;
-    friend GraphReader;
+    friend CallPropertyStep;
 
     mutable RWSpinLock _lock;
     uint64_t _nextFreeID {0};

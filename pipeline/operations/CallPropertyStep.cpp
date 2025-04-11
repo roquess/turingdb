@@ -19,8 +19,15 @@ void CallPropertyStep::execute() {
     _propName->clear();
     _propType->clear();
 
-    const GraphReader& reader = _view->read();
-    reader.getGraphProperties(_id, _propName, _propType);
+    const PropertyTypeMap& propTypeMap = _view->metadata().propTypes();
+    const std::unordered_map<std::string, size_t>& offsetMap = propTypeMap._offsetMap;
+
+    for (const auto& entry : offsetMap) {
+        _propName->emplace_back(entry.first);
+        const auto propType = propTypeMap.get(entry.first);
+        _id->emplace_back(propType._id);
+        _propType->emplace_back(PropertyValueTypeDescription::value(propType._valueType));
+    };
 }
 
 void CallPropertyStep::describe(std::string& descr) const {
