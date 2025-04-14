@@ -15,7 +15,7 @@
 using namespace db;
 
 DumpResult<WeakArc<DataPart>> DataPartLoader::load(const fs::Path& path,
-                                                   const CommitMetadata& metadata,
+                                                   const GraphMetadata& metadata,
                                                    VersionController& versionController) {
     if (!path.exists()) {
         return DumpError::result(DumpErrorType::DATAPART_DOES_NOT_EXIST);

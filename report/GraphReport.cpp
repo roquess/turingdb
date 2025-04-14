@@ -8,7 +8,7 @@
 namespace db {
 
 void GraphReport::getReport(const GraphReader& reader, std::stringstream& report) {
-    const CommitMetadata& metadata = reader.getMetadata();
+    const GraphMetadata& metadata = reader.getMetadata();
     const auto& labelMap = metadata.labels();
     const auto& labelsetMap = metadata.labelsets();
     const auto& edgeTypeMap = metadata.edgeTypes();

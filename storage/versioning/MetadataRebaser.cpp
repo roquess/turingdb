@@ -5,7 +5,7 @@
 
 using namespace db;
 
-bool MetadataRebaser::rebase(const CommitMetadata& theirs, MetadataBuilder& ours) {
+bool MetadataRebaser::rebase(const GraphMetadata& theirs, MetadataBuilder& ours) {
     const auto& theirLabels = theirs.labels();
     const auto& theirLabelSets = theirs.labelsets();
     const auto& theirEdgeTypes = theirs.edgeTypes();

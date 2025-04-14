@@ -10,12 +10,12 @@ using namespace db;
 
 class MetadataRebaserTest : public ::testing::Test {
 protected:
-    CommitMetadata _emptyData;
+    GraphMetadata _emptyData;
 };
 
 TEST_F(MetadataRebaserTest, labels) {
-    CommitMetadata dataA;
-    CommitMetadata dataB;
+    GraphMetadata dataA;
+    GraphMetadata dataB;
 
     auto builderA = MetadataBuilder::create(_emptyData, &dataA);
     auto builderB = MetadataBuilder::create(_emptyData, &dataB);
@@ -45,8 +45,8 @@ TEST_F(MetadataRebaserTest, labels) {
 }
 
 TEST_F(MetadataRebaserTest, edgeTypes) {
-    CommitMetadata dataA;
-    CommitMetadata dataB;
+    GraphMetadata dataA;
+    GraphMetadata dataB;
 
     auto builderA = MetadataBuilder::create(_emptyData, &dataA);
     auto builderB = MetadataBuilder::create(_emptyData, &dataB);
@@ -81,8 +81,8 @@ TEST_F(MetadataRebaserTest, edgeTypes) {
 }
 
 TEST_F(MetadataRebaserTest, propertyTypes) {
-    CommitMetadata dataA;
-    CommitMetadata dataB;
+    GraphMetadata dataA;
+    GraphMetadata dataB;
 
     auto builderA = MetadataBuilder::create(_emptyData, &dataA);
     auto builderB = MetadataBuilder::create(_emptyData, &dataB);
@@ -117,8 +117,8 @@ TEST_F(MetadataRebaserTest, propertyTypes) {
 }
 
 TEST_F(MetadataRebaserTest, labelsets) {
-    CommitMetadata dataA;
-    CommitMetadata dataB;
+    GraphMetadata dataA;
+    GraphMetadata dataB;
 
     auto builderA = MetadataBuilder::create(_emptyData, &dataA);
     auto builderB = MetadataBuilder::create(_emptyData, &dataB);

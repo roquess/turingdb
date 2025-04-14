@@ -10,7 +10,7 @@
 
 namespace db {
 
-class CommitMetadata;
+class GraphMetadata;
 class MetadataRebaser;
 
 class MetadataBuilder {
@@ -27,13 +27,13 @@ public:
     // PropertyTypes
     PropertyType getOrCreatePropertyType(const std::string& propTypeName, ValueType valueType);
 
-    [[nodiscard]] static std::unique_ptr<MetadataBuilder> create(const CommitMetadata& prevMetadata, CommitMetadata* metadata);
+    [[nodiscard]] static std::unique_ptr<MetadataBuilder> create(const GraphMetadata& prevMetadata, GraphMetadata* metadata);
 
 private:
     friend class MetadataRebaser;
 
     mutable RWSpinLock _spinLock;
-    CommitMetadata* _metadata {nullptr};
+    GraphMetadata* _metadata {nullptr};
 
     MetadataBuilder() = default;
 };

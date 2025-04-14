@@ -18,7 +18,7 @@ public:
     {
     }
 
-    [[nodiscard]] DumpResult<void> load(const CommitMetadata& metadata,
+    [[nodiscard]] DumpResult<void> load(const GraphMetadata& metadata,
                                         PropertyIndexer& indexer) {
         _reader.nextPage();
 

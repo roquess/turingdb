@@ -104,7 +104,7 @@ EntityID GraphReader::getFinalNodeID(size_t partIndex, EntityID tmpID) const {
 }
 
 
-const CommitMetadata& GraphReader::getMetadata() const {
+const GraphMetadata& GraphReader::getMetadata() const {
     return _view.metadata();
 }
 

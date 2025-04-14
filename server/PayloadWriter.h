@@ -48,7 +48,7 @@ enum class EdgeDir : uint8_t {
 
 class PayloadWriter {
 public:
-    explicit PayloadWriter(net::NetWriter* writer, const CommitMetadata* metadata = nullptr)
+    explicit PayloadWriter(net::NetWriter* writer, const GraphMetadata* metadata = nullptr)
         : _writer(writer),
           _metadata(metadata)
     {
@@ -63,7 +63,7 @@ public:
         finish();
     }
 
-    void setMetadata(const CommitMetadata* metadata) {
+    void setMetadata(const GraphMetadata* metadata) {
         _metadata = metadata;
     }
 
@@ -171,7 +171,7 @@ public:
 
 private:
     net::NetWriter* _writer {nullptr};
-    const CommitMetadata* _metadata {nullptr};
+    const GraphMetadata* _metadata {nullptr};
     std::vector<char> _closingTokens;
     bool _comma = false;
 

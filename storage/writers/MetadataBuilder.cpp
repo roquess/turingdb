@@ -34,7 +34,7 @@ PropertyType MetadataBuilder::getOrCreatePropertyType(const std::string& propTyp
     return  _metadata->_propTypeMap.getOrCreate(propTypeName, valueType);
 }
 
-std::unique_ptr<MetadataBuilder> MetadataBuilder::create(const CommitMetadata& prevMetadata, CommitMetadata* metadata) {
+std::unique_ptr<MetadataBuilder> MetadataBuilder::create(const GraphMetadata& prevMetadata, GraphMetadata* metadata) {
     auto* ptr = new MetadataBuilder;
     ptr->_metadata = metadata;
     *ptr->_metadata = prevMetadata;

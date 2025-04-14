@@ -9,12 +9,12 @@ namespace db {
 class DataPart;
 class PropertyManager;
 class VersionController;
-class CommitMetadata;
+class GraphMetadata;
 
 class DataPartLoader {
 public:
     [[nodiscard]] static DumpResult<WeakArc<DataPart>> load(const fs::Path& path,
-                                                            const CommitMetadata& metadata,
+                                                            const GraphMetadata& metadata,
                                                             VersionController& versionController);
 
 private:

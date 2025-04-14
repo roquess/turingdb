@@ -22,7 +22,7 @@ bool GraphComparator::same(const Graph& a, const Graph& b) {
     const GraphReader readerA = txA.readGraph();
     const GraphReader readerB = txB.readGraph();
 
-    if (!CommitMetadataComparator::same(readerA.getMetadata(), readerB.getMetadata())) {
+    if (!GraphMetadataComparator::same(readerA.getMetadata(), readerB.getMetadata())) {
         return false;
     }
 

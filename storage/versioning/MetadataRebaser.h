@@ -6,7 +6,7 @@
 
 namespace db {
 
-class CommitMetadata;
+class GraphMetadata;
 class MetadataBuilder;
 
 class MetadataRebaser {
@@ -19,7 +19,7 @@ public:
     MetadataRebaser& operator=(const MetadataRebaser&) = delete;
     MetadataRebaser& operator=(MetadataRebaser&&) = delete;
 
-    bool rebase(const CommitMetadata& theirs, MetadataBuilder& ours);
+    bool rebase(const GraphMetadata& theirs, MetadataBuilder& ours);
 
     LabelID getLabelMapping(LabelID id) const { return _labelMapping.at(id); }
     LabelSetHandle getLabelSetMapping(LabelSetID id) const { return _labelsetMapping.at(id); }

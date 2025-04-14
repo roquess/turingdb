@@ -29,7 +29,7 @@ public:
         return _view.isValid();
     }
 
-    [[nodiscard]] const CommitMetadata& getMetadata() const;
+    [[nodiscard]] const GraphMetadata& getMetadata() const;
     [[nodiscard]] size_t getNodeCount() const;
     [[nodiscard]] size_t getEdgeCount() const;
     [[nodiscard]] const GraphView& getView() const { return _view; }

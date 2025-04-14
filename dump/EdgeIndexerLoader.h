@@ -21,7 +21,7 @@ public:
     {
     }
 
-    [[nodiscard]] DumpResult<std::unique_ptr<EdgeIndexer>> load(const CommitMetadata& metadata, const EdgeContainer& edges) {
+    [[nodiscard]] DumpResult<std::unique_ptr<EdgeIndexer>> load(const GraphMetadata& metadata, const EdgeContainer& edges) {
         _reader.nextPage();
 
         if (_reader.errorOccured()) {

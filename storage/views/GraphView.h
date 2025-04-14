@@ -23,7 +23,7 @@ public:
     [[nodiscard]] std::span<const CommitView> commits() const { return _data->commits(); }
     [[nodiscard]] DataPartSpan dataparts() const { return _data->allDataparts(); }
     [[nodiscard]] DataPartSpan commitDataparts() const { return _data->commitDataparts(); }
-    [[nodiscard]] const CommitMetadata& metadata() const { return _data->metadata(); }
+    [[nodiscard]] const GraphMetadata& metadata() const { return _data->metadata(); }
 
 private:
     friend GraphReader;

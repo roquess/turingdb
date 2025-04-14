@@ -13,7 +13,7 @@ class GraphMetadata;
 
 class GraphMetadataLoader {
 public:
-    [[nodiscard]] static DumpResult<void> load(const fs::Path& path, CommitMetadata& metadata) {
+    [[nodiscard]] static DumpResult<void> load(const fs::Path& path, GraphMetadata& metadata) {
         // Reading labels
         {
             const fs::Path labelsPath = path / "labels";

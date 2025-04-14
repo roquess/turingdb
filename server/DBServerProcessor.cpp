@@ -513,7 +513,7 @@ void DBServerProcessor::list_nodes() {
 
     const auto reader = transaction.value().readGraph();
 
-    const CommitMetadata& metadata = reader.getMetadata();
+    const GraphMetadata& metadata = reader.getMetadata();
     const LabelMap& labels = metadata.labels();
     const PropertyTypeMap& propTypes = metadata.propTypes();
 
@@ -896,7 +896,7 @@ void DBServerProcessor::get_node_edges() {
     }
 
     const auto reader = transaction.value().readGraph();
-    const CommitMetadata& metadata = reader.getMetadata();
+    const GraphMetadata& metadata = reader.getMetadata();
 
     payload.setMetadata(&metadata);
 
@@ -1088,7 +1088,7 @@ void DBServerProcessor::explore_node_edges() {
     }
 
     const auto reader = transaction.value().readGraph();
-    const CommitMetadata& metadata = reader.getMetadata();
+    const GraphMetadata& metadata = reader.getMetadata();
     const LabelMap& labels = metadata.labels();
     const EdgeTypeMap& edgeTypes = metadata.edgeTypes();
     const PropertyTypeMap& propTypes = metadata.propTypes();
