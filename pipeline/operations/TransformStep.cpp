@@ -168,7 +168,6 @@ void TransformStep::execute() {
 #endif
         }
     }
-
 }
 
 void TransformStep::describe(std::string& descr) const {

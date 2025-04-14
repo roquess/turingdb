@@ -27,7 +27,11 @@ void ScanNodesByPropertyAndLabel<T>::describe(std::string& descr) const {
     ss << " nodes=" << std::hex << _nodes;
     ss << " props=" << std::hex << _propValues;
     ss << " propType Id=" << _propType._id;
-    ss << " labelSet=" << std::hex << _labelSet.getID();
+
+    std::vector<LabelID> labels;
+    _labelSet.decompose(labels);
+    ss << fmt::format(" labelSet={}", fmt::join(labels, ", "));
+
     descr.assign(ss.str());
 }
 

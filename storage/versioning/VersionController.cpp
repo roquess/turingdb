@@ -14,7 +14,11 @@ VersionController::VersionController()
 {
 }
 
-VersionController::~VersionController() = default;
+VersionController::~VersionController() {
+    _commits.clear();
+    _dataManager.reset();
+    _partManager.reset();
+}
 
 void VersionController::createFirstCommit(Graph* graph) {
     auto commit = std::make_unique<Commit>();

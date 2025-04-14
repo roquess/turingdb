@@ -168,7 +168,7 @@ public:
     }
 
 private:
-    DumpErrorType _type {};
+    DumpErrorType _type {DumpErrorType::UNKNOWN};
     std::optional<fs::Error> _fileError;
 };
 

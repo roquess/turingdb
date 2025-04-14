@@ -166,6 +166,7 @@ void TuringShell::startLoop() {
 
         linenoiseHistoryAdd(line);
         shellPrompt = composePrompt();
+        linenoiseFree(line);
     }
 }
 

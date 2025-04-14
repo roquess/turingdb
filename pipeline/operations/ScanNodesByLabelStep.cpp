@@ -17,6 +17,10 @@ void ScanNodesByLabelStep::describe(std::string& descr) const {
     std::stringstream ss;
     ss << "ScanNodesByLabelStep";
     ss << " nodes=" << std::hex << _nodes;
-    ss << " labelSet=" << std::hex << _labelSet.getID();
+
+    std::vector<LabelID> labels;
+    _labelSet.decompose(labels);
+    ss << fmt::format(" labelSet={}", fmt::join(labels, ", "));
+
     descr.assign(ss.str());
 }

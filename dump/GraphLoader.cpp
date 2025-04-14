@@ -72,7 +72,7 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
         auto res = CommitLoader::load(child, *graph, CommitHash {hash});
 
         if (!res) {
-            return suffixRes.get_unexpected();
+            return res.get_unexpected();
         }
 
         commits.emplace(offset, std::move(res.value()));
