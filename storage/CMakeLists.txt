@@ -6,11 +6,10 @@ set(storage_sources
         NodeContainer.cpp
         EdgeContainer.cpp
 
-        types/EdgeTypeMap.cpp
-        types/PropertyTypeMap.cpp
-
-        labels/LabelMap.cpp
-        labels/LabelSetMap.cpp
+        metadata/EdgeTypeMap.cpp
+        metadata/PropertyTypeMap.cpp
+        metadata/LabelMap.cpp
+        metadata/LabelSetMap.cpp
 
         views/GraphView.cpp
         views/NodeEdgeView.cpp

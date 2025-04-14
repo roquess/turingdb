@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types/EdgeTypeMap.h"
+#include "metadata/EdgeTypeMap.h"
 #include "GraphDumpHelper.h"
 
 namespace db {

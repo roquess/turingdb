@@ -6,7 +6,7 @@
 
 #include "columns/ColumnIDs.h"
 #include "columns/ColumnOptVector.h"
-#include "types/SupportedType.h"
+#include "metadata/SupportedType.h"
 #include "iterators/GetPropertiesIterator.h"
 #include "iterators/ChunkConfig.h"
 #include "ExecutionContext.h"

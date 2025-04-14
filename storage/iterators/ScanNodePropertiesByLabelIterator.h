@@ -6,7 +6,7 @@
 #include "columns/ColumnVector.h"
 #include "iterators/PartIterator.h"
 #include "properties/PropertyManager.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 
 namespace db {
 

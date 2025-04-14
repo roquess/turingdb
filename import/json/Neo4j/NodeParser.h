@@ -6,7 +6,7 @@
 #include "writers/MetadataBuilder.h"
 #include "writers/DataPartBuilder.h"
 #include "IDMapper.h"
-#include "labels/LabelSet.h"
+#include "metadata/LabelSet.h"
 #include "Parser.h"
 #include "ControlCharacters.h"
 

@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "labels/LabelMap.h"
+#include "metadata/LabelMap.h"
 
 namespace db {
 

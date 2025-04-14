@@ -4,8 +4,8 @@
 
 #include "EdgeRecord.h"
 #include "EntityID.h"
-#include "labels/LabelSetHandle.h"
-#include "types/SupportedType.h"
+#include "metadata/LabelSetHandle.h"
+#include "metadata/SupportedType.h"
 #include "versioning/Transaction.h"
 
 namespace db {

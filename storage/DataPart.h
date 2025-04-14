@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "EntityID.h"
-#include "labels/LabelSetHandle.h"
+#include "metadata/LabelSetHandle.h"
 
 namespace db {
 

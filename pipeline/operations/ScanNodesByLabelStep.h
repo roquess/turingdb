@@ -5,7 +5,7 @@
 
 #include "iterators/ScanNodesByLabelIterator.h"
 #include "columns/ColumnIDs.h"
-#include "labels/LabelSet.h"
+#include "metadata/LabelSet.h"
 #include "iterators/ChunkConfig.h"
 #include "ExecutionContext.h"
 

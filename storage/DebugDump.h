@@ -4,7 +4,7 @@
 #include <type_traits>
 
 #include "EntityID.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 
 namespace db {
 

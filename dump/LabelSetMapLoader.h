@@ -1,6 +1,6 @@
 #pragma once
 
-#include "labels/LabelSetMap.h"
+#include "metadata/LabelSetMap.h"
 #include "FilePageReader.h"
 #include "GraphDumpHelper.h"
 

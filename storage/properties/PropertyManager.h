@@ -3,7 +3,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 #include "EntityID.h"
 #include "indexers/PropertyIndexer.h"
 #include "PropertyContainer.h"

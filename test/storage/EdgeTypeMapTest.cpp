@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "types/EdgeTypeMap.h"
+#include "metadata/EdgeTypeMap.h"
 
 using namespace db;
 

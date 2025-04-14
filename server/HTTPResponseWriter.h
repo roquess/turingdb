@@ -3,7 +3,7 @@
 #include "Endpoints.h"
 #include "HTTP.h"
 #include "NetWriter.h"
-#include "types/PropertyTypeMap.h"
+#include "metadata/PropertyTypeMap.h"
 #include "views/NodeView.h"
 #include "QueryStatus.h"
 

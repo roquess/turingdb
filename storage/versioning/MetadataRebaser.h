@@ -1,8 +1,8 @@
 #pragma once
 
 #include "EntityID.h"
-#include "labels/LabelSetHandle.h"
-#include "types/PropertyType.h"
+#include "metadata/LabelSetHandle.h"
+#include "metadata/PropertyType.h"
 
 namespace db {
 

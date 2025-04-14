@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "types/PropertyTypeMap.h"
+#include "metadata/PropertyTypeMap.h"
 
 using namespace db;
 

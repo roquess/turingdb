@@ -2,7 +2,7 @@
 
 #include "NodeEdgeView.h"
 #include "EntityPropertyView.h"
-#include "labels/LabelSetHandle.h"
+#include "metadata/LabelSetHandle.h"
 
 namespace db {
 

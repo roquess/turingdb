@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "types/EdgeTypeMap.h"
+#include "metadata/EdgeTypeMap.h"
 
 namespace db {
 

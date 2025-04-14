@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GraphDumpHelper.h"
-#include "labels/LabelMap.h"
+#include "metadata/LabelMap.h"
 
 namespace db {
 

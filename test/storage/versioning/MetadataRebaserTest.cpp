@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
-#include "labels/LabelMap.h"
-#include "labels/LabelSetMap.h"
+#include "metadata/LabelMap.h"
+#include "metadata/LabelSetMap.h"
 #include "versioning/MetadataRebaser.h"
 #include "metadata/GraphMetadata.h"
 #include "writers/MetadataBuilder.h"

@@ -2,7 +2,7 @@
 
 #include <map>
 
-#include "labels/LabelSetHandle.h"
+#include "metadata/LabelSetHandle.h"
 
 namespace db {
 

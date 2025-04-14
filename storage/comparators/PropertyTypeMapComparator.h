@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "types/PropertyTypeMap.h"
+#include "metadata/PropertyTypeMap.h"
 
 namespace db {
 

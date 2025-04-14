@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 
 namespace db {
 

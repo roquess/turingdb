@@ -6,7 +6,7 @@
 #include "metadata/GraphMetadata.h"
 #include "views/NodeView.h"
 #include "views/EdgeView.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 #include "NetWriter.h"
 
 namespace db {

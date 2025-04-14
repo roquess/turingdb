@@ -2,7 +2,7 @@
 #include <unordered_set>
 #include <spdlog/spdlog.h>
 
-#include "labels/LabelSet.h"
+#include "metadata/LabelSet.h"
 #include "LogUtils.h"
 #include "Time.h"
 

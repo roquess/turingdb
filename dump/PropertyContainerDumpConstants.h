@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "EntityID.h"
-#include "types/SupportedType.h"
+#include "metadata/SupportedType.h"
 #include "DumpConfig.h"
 #include "StringBucket.h"
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "labels/LabelSetMap.h"
+#include "metadata/LabelSetMap.h"
 #include "GraphDumpHelper.h"
 
 namespace db {

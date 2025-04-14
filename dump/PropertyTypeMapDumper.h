@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types/PropertyTypeMap.h"
+#include "metadata/PropertyTypeMap.h"
 #include "GraphDumpHelper.h"
 
 namespace db {

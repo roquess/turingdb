@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ExprConstraint.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 
 #include <string>
 

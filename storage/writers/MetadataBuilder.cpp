@@ -2,10 +2,10 @@
 
 #include <mutex>
 
-#include "labels/LabelMap.h"
-#include "labels/LabelSetMap.h"
-#include "types/EdgeTypeMap.h"
-#include "types/PropertyTypeMap.h"
+#include "metadata/LabelMap.h"
+#include "metadata/LabelSetMap.h"
+#include "metadata/EdgeTypeMap.h"
+#include "metadata/PropertyTypeMap.h"
 #include "metadata/GraphMetadata.h"
 
 using namespace db;

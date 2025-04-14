@@ -6,7 +6,7 @@
 #include "NodeRange.h"
 #include "columns/ColumnIDs.h"
 #include "indexers/LabelSetIndexer.h"
-#include "labels/LabelSetHandle.h"
+#include "metadata/LabelSetHandle.h"
 
 namespace db {
 

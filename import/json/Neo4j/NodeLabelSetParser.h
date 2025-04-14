@@ -4,7 +4,7 @@
 
 #include "writers/MetadataBuilder.h"
 #include "Parser.h"
-#include "labels/LabelSet.h"
+#include "metadata/LabelSet.h"
 
 namespace db::json::neo4j {
 

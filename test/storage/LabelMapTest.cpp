@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "labels/LabelMap.h"
+#include "metadata/LabelMap.h"
 
 using namespace db;
 

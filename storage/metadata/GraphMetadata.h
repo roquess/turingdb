@@ -1,9 +1,9 @@
 #pragma once
 
-#include "types/EdgeTypeMap.h"
-#include "labels/LabelMap.h"
-#include "labels/LabelSetMap.h"
-#include "types/PropertyTypeMap.h"
+#include "metadata/EdgeTypeMap.h"
+#include "metadata/LabelMap.h"
+#include "metadata/LabelSetMap.h"
+#include "metadata/PropertyTypeMap.h"
 
 namespace db {
 

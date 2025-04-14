@@ -5,7 +5,7 @@
 #include "columns/ColumnConst.h"
 #include "columns/ColumnKind.h"
 #include "columns/ColumnOperators.h"
-#include "labels/LabelSet.h"
+#include "metadata/LabelSet.h"
 #include "Panic.h"
 
 using namespace db;

@@ -8,10 +8,10 @@
 #include "ExprConstraint.h"
 #include "QueryCommand.h"
 #include "columns/ColumnIDs.h"
-#include "labels/LabelSet.h"
+#include "metadata/LabelSet.h"
 #include "VectorHash.h"
 #include "QueryCallback.h"
-#include "labels/LabelSetHandle.h"
+#include "metadata/LabelSetHandle.h"
 
 namespace db {
 

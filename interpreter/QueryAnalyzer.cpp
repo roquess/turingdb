@@ -2,7 +2,7 @@
 
 #include <range/v3/view.hpp>
 
-#include "types/PropertyTypeMap.h"
+#include "metadata/PropertyTypeMap.h"
 #include "DeclContext.h"
 #include "Expr.h"
 #include "MatchTarget.h"
