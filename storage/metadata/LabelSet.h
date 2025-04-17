@@ -1,12 +1,16 @@
 #pragma once
 
 #include <bit>
+#include <span>
 
 #include "EntityID.h"
 
 namespace db {
 template <std::integral TType, size_t TCount>
 class TemplateLabelSet;
+
+template <std::integral TType, size_t TCount>
+class TemplateLabelSetHandle;
 }
 
 namespace std {
@@ -20,6 +24,7 @@ template <std::integral TType, size_t TCount>
 class TemplateLabelSet {
 public:
     using IntegerType = TType;
+    using Handle = TemplateLabelSetHandle<TType, TCount>;
 
     static constexpr size_t IntegerSize = sizeof(TType) * 8;
     static constexpr size_t IntegerCount = TCount;
@@ -54,6 +59,14 @@ public:
         for (const auto& id : labels) {
             const auto [integerOffset, bitShift] = computeBitShift(id);
             labelset._integers[integerOffset] |= bitShift;
+        }
+        return labelset;
+    }
+
+    static TemplateLabelSet fromIntegers(std::span<const IntegerType, IntegerCount> integers) {
+        TemplateLabelSet labelset;
+        for (size_t i = 0; i < IntegerCount; i++) {
+            labelset._integers[i] = integers[i];
         }
         return labelset;
     }
@@ -149,8 +162,23 @@ public:
         return _integers.data();
     }
 
+    std::span<const TType, IntegerCount> integers() const {
+        return _integers;
+    }
+
     bool empty() const { return size() == 0; }
 
+    static size_t hashIntegers(std::span<const TType, IntegerCount> integers) {
+        size_t seed = TCount;
+        for (auto x : integers) {
+            seed ^= std::hash<TType> {}(x);
+        }
+        return seed;
+    }
+
+    Handle handle() const {
+        return Handle {*this};
+    }
 private:
     friend std::hash<TemplateLabelSet>;
     std::array<TType, TCount> _integers {};
@@ -165,11 +193,7 @@ namespace std {
 template <std::integral TType, size_t TCount>
 struct hash<db::TemplateLabelSet<TType, TCount>> {
     size_t operator()(const db::TemplateLabelSet<TType, TCount>& set) const {
-        size_t seed = TCount;
-        for (auto x : set._integers) {
-            seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        }
-        return seed;
+        return db::TemplateLabelSet<TType, TCount>::hashIntegers(set.integers());
     }
 };
 

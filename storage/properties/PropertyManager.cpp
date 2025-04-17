@@ -6,8 +6,7 @@
 
 using namespace db;
 
-PropertyManager::PropertyManager(const GraphMetadata* graphMetadata)
-    : _graphMetadata(graphMetadata)
+PropertyManager::PropertyManager()
 {
 }
 
@@ -15,9 +14,9 @@ PropertyManager::~PropertyManager() {
 }
 
 void PropertyManager::fillEntityPropertyView(EntityID entityID,
-                                             LabelSetID labelsetID,
+                                             const LabelSetHandle& labelset,
                                              EntityPropertyView& view) const {
-    msgbioassert(labelsetID.isValid(), "LabelsetID must be valid");
+    msgbioassert(labelset.isValid(), "Labelset must be valid");
 
     const auto fill = [&](const auto& container, PropertyTypeID ptID) {
         if (!_indexers.contains(ptID)) {

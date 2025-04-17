@@ -8,7 +8,7 @@ namespace db {
 
 class DataPart;
 
-using DataPartSpan = std::span<const WeakArc<const DataPart>>;
+using DataPartSpan = std::span<const WeakArc<DataPart>>;
 using DataPartIterator = DataPartSpan::iterator;
 
 }

@@ -14,8 +14,8 @@ class EdgeIndexerDumper;
 class EdgeIndexerLoader;
 class EdgeContainer;
 class NodeContainer;
-class GraphMetadata;
 class NodeEdgeView;
+class DataPartRebaser;
 struct EdgeRecord;
 
 class EdgeIndexer {
@@ -34,11 +34,9 @@ public:
     static std::unique_ptr<EdgeIndexer> create(const EdgeContainer& edges,
                                                const NodeContainer& nodeContainer,
                                                size_t patchNodeCount,
-                                               const std::map<EntityID, LabelSetID>& patchNodeLabelSets,
-                                               LabelSetID maxLabelSetID,
+                                               const std::map<EntityID, LabelSetHandle>& patchNodeLabelSets,
                                                size_t patchOutEdgeCount,
-                                               size_t patchInEdgeCount,
-                                               const GraphMetadata& metadata);
+                                               size_t patchInEdgeCount);
 
 
     const LabelSetIndexer<EdgeSpans>& getOutsByLabelSet() const {
@@ -63,6 +61,7 @@ public:
 private:
     friend EdgeIndexerDumper;
     friend EdgeIndexerLoader;
+    friend DataPartRebaser;
 
     EntityID _firstNodeID;
     EntityID _firstEdgeID;
@@ -85,7 +84,7 @@ private:
     LabelSetIndexer<EdgeSpans> _outLabelSetSpans;
     LabelSetIndexer<EdgeSpans> _inLabelSetSpans;
 
-    explicit EdgeIndexer(const GraphMetadata& metadata, const EdgeContainer& edges);
+    explicit EdgeIndexer(const EdgeContainer& edges);
 };
 
 }

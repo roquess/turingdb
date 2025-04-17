@@ -5,7 +5,7 @@
 
 #include "iterators/ScanNodesByLabelIterator.h"
 #include "columns/ColumnIDs.h"
-#include "labels/LabelSet.h"
+#include "metadata/LabelSet.h"
 #include "iterators/ChunkConfig.h"
 #include "ExecutionContext.h"
 
@@ -15,7 +15,7 @@ class ScanNodesByLabelStep {
 public:
     struct Tag {};
 
-    ScanNodesByLabelStep(ColumnIDs* nodes, const LabelSet* labelSet);
+    ScanNodesByLabelStep(ColumnIDs* nodes, const LabelSetHandle& labelSet);
     ScanNodesByLabelStep(ScanNodesByLabelStep&& other) = default;
     ~ScanNodesByLabelStep();
 
@@ -40,7 +40,7 @@ public:
 
 private:
     ColumnIDs* _nodes {nullptr};
-    const LabelSet* _labelSet {nullptr};
+    LabelSetHandle _labelSet;
     std::unique_ptr<ScanNodesByLabelChunkWriter> _it;
 };
 

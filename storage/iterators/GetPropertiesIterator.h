@@ -5,7 +5,7 @@
 #include "PartIterator.h"
 #include "columns/ColumnIDs.h"
 #include "columns/ColumnOptVector.h"
-#include "types/SupportedType.h"
+#include "metadata/SupportedType.h"
 
 namespace db {
 

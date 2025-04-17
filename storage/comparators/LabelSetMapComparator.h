@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "labels/LabelSetMap.h"
+#include "metadata/LabelSetMap.h"
 
 namespace db {
 
@@ -15,9 +15,16 @@ public:
             return false;
         }
 
-        for (size_t i = 0; i < count; i++) {
-            const auto& setA = a.getValue(i);
-            const auto& setB = b.getValue(i);
+        auto itA = a.begin();
+        auto itB = b.begin();
+
+        for (; itA != a.end() && itB != b.end(); ++itA, ++itB) {
+            const auto& [idA, setA] = *itA;
+            const auto& [idB, setB] = *itB;
+
+            if (idA != idB) {
+                return false;
+            }
 
             if (setA != setB) {
                 return false;

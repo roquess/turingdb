@@ -1,11 +1,11 @@
 #pragma once
 
-#include "GraphMetadata.h"
 #include "indexers/PropertyIndexer.h"
 #include "FilePageReader.h"
 #include "DumpConfig.h"
 #include "GraphDumpHelper.h"
 #include "PropertyIndexerDumpConstants.h"
+#include "metadata/GraphMetadata.h"
 
 namespace db {
 
@@ -18,7 +18,8 @@ public:
     {
     }
 
-    [[nodiscard]] DumpResult<void> load(const GraphMetadata& metadata, PropertyIndexer& indexer) {
+    [[nodiscard]] DumpResult<void> load(const GraphMetadata& metadata,
+                                        PropertyIndexer& indexer) {
         _reader.nextPage();
 
         if (_reader.errorOccured()) {
@@ -61,12 +62,18 @@ public:
                 const auto ptID = it.get<PropertyTypeID::Type>();
                 const auto lsetCount = it.get<uint64_t>();
 
-                auto& ptIndexer = indexer.emplace(ptID, &metadata.labelsets()).first->second;
+                auto& ptIndexer = indexer.emplace(ptID, LabelSetPropertyIndexer {}).first->second;
 
                 for (size_t k = 0; k < lsetCount; k++) {
                     const auto lsetID = it.get<LabelSetID::Type>();
 
-                    auto& info = ptIndexer[lsetID];
+                    const auto labelset = metadata.labelsets().getValue(lsetID);
+
+                    if (!labelset) {
+                        return DumpError::result(DumpErrorType::COULD_NOT_READ_PROP_INDEXER);
+                    }
+
+                    auto& info = ptIndexer[labelset.value()];
 
                     info.resize(it.get<uint64_t>());
 

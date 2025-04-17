@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types/PropertyTypeMap.h"
+#include "metadata/PropertyTypeMap.h"
 #include "DumpResult.h"
 #include "FilePageReader.h"
 #include "GraphDumpHelper.h"
@@ -72,7 +72,8 @@ public:
                 }
 
                 const std::string_view name = it.get<char>(strsize);
-                propTypes.create(std::string {name}, valueType);
+                propTypes.getOrCreate(std::string {name},
+                        valueType);
             }
         }
 

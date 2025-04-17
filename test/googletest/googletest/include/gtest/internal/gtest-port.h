@@ -2344,7 +2344,7 @@ const char* StringFromGTestEnv(const char* flag, const char* default_val);
 // Always use absl::any for UniversalPrinter<> specializations if googletest
 // is built with absl support.
 #define GTEST_INTERNAL_HAS_ANY 1
-#include "absl/types/any.h"
+#include "absl/metadata/any.h"
 namespace testing {
 namespace internal {
 using Any = ::absl::any;
@@ -2372,7 +2372,7 @@ using Any = ::std::any;
 // Always use absl::optional for UniversalPrinter<> specializations if
 // googletest is built with absl support.
 #define GTEST_INTERNAL_HAS_OPTIONAL 1
-#include "absl/types/optional.h"
+#include "absl/metadata/optional.h"
 namespace testing {
 namespace internal {
 template <typename T>
@@ -2432,7 +2432,7 @@ using StringView = ::std::string_view;
 // Always use absl::variant for UniversalPrinter<> specializations if googletest
 // is built with absl support.
 #define GTEST_INTERNAL_HAS_VARIANT 1
-#include "absl/types/variant.h"
+#include "absl/metadata/variant.h"
 namespace testing {
 namespace internal {
 template <typename... T>

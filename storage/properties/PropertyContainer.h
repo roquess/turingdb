@@ -6,7 +6,7 @@
 #include <range/v3/view/enumerate.hpp>
 
 #include "StringContainer.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 #include "Panic.h"
 #include "BioAssert.h"
 

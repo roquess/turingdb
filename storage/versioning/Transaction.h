@@ -14,12 +14,11 @@ class CommitBuilder;
 
 class Transaction {
 public:
-    Transaction() = default;
-    ~Transaction() = default;
+    Transaction();
+    ~Transaction();
 
-    Transaction(const Graph& graph, const WeakArc<const CommitData>& data)
-        : _graph(&graph),
-          _data(data)
+    Transaction(const WeakArc<const CommitData>& data)
+        : _data(data)
     {
     }
 
@@ -32,9 +31,9 @@ public:
 
     [[nodiscard]] GraphView viewGraph() const;
     [[nodiscard]] GraphReader readGraph() const;
+    [[nodiscard]] const CommitData& commitData() const { return *_data; }
 
 private:
-    const Graph* _graph {nullptr};
     WeakArc<const CommitData> _data;
 };
 

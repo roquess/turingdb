@@ -5,7 +5,7 @@
 #include "PartIterator.h"
 #include "ChunkWriter.h"
 #include "columns/ColumnVector.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 
 namespace db {
 

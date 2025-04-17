@@ -16,7 +16,6 @@ class GraphInfoLoader;
 class ConcurrentWriter;
 class DataPartBuilder;
 class PartIterator;
-class GraphMetadata;
 class CommitBuilder;
 class CommitLoader;
 class VersionController;
@@ -47,14 +46,9 @@ public:
 
     CommitResult<void> rebase(Commit& commit);
 
-    CommitResult<void> commit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem);
-    CommitResult<void> commit(std::unique_ptr<Commit> commit, JobSystem& jobSystem);
-
+    CommitResult<void> commit(std::unique_ptr<CommitBuilder>& commitBuilder, JobSystem& jobSystem);
     CommitResult<void> rebaseAndCommit(std::unique_ptr<CommitBuilder> commitBuilder, JobSystem& jobSystem);
-    CommitResult<void> rebaseAndCommit(std::unique_ptr<Commit> commit, JobSystem& jobSystem);
 
-    [[nodiscard]] const GraphMetadata* getMetadata() const { return _metadata.get(); }
-    [[nodiscard]] GraphMetadata* getMetadata() { return _metadata.get(); }
     [[nodiscard]] EntityIDs getNextFreeIDs() const;
     [[nodiscard]] CommitHash getHeadHash() const;
 
@@ -74,7 +68,6 @@ private:
     friend GraphLoader;
 
     std::string _graphName;
-    std::unique_ptr<GraphMetadata> _metadata;
 
     mutable std::shared_mutex _entityIDsMutex;
     EntityIDs _nextFreeIDs;

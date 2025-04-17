@@ -5,7 +5,7 @@
 #include "columns/ColumnConst.h"
 #include "columns/ColumnKind.h"
 #include "columns/ColumnOperators.h"
-#include "labels/LabelSet.h"
+#include "metadata/LabelSet.h"
 #include "Panic.h"
 
 using namespace db;
@@ -176,6 +176,8 @@ void FilterStep::generateIndices() {
 
 template <typename T>
 void applyMask(const ColumnMask& mask, const T& src, T& dst) {
+    msgbioassert(mask.size() == src.size(),
+                 "Mask and source must have matching dimensions");
     dst.clear();
     for (size_t i = 0; i < mask.size(); i++) {
         if (mask[i]) {
@@ -233,24 +235,27 @@ void FilterStep::describe(std::string& descr) const {
     std::stringstream ss;
     ss << "FilterStep";
     ss << " indices=" << std::hex << _indices;
-    ss << " expressions={";
+    ss << " expressions={\n";
 
     for (const auto& expr : _expressions) {
-        ss << "(" << ColumnOperatorDescription::value(expr._op) << ",";
-        ss << " mask=" << std::hex << expr._mask << ",";
-        ss << " lhs=" << std::hex << expr._lhs << ",";
-        ss << " rhs=" << std::hex << expr._rhs << ")";
+        const std::string_view op = ColumnOperatorDescription::value(expr._op);
+        ss << fmt::format("     ({} mask={} [lhs={}] [rhs={}])\n",
+                          op,
+                          fmt::ptr(expr._mask),
+                          fmt::ptr(expr._lhs),
+                          fmt::ptr(expr._rhs));
     }
 
-    ss << "}";
+    ss << "}\n";
 
-    ss << " operands={";
+    ss << " operands={\n";
     for (const auto& operand : _operands) {
-        ss << "(mask=" << std::hex << operand._mask << ",";
-        ss << " src=" << std::hex << operand._src << ",";
-        ss << " dest=" << std::hex << operand._dest << ")";
+        ss << fmt::format("     (mask={} [src={}] [dest={}])\n",
+                          fmt::ptr(operand._mask),
+                          fmt::ptr(operand._src),
+                          fmt::ptr(operand._dest));
     }
-    ss << "}";
+    ss << "}\n";
 
     descr.assign(ss.str());
 }

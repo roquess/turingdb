@@ -30,16 +30,14 @@ public:
     }
 
     [[nodiscard]] const GraphMetadata& getMetadata() const;
-    [[nodiscard]] GraphMetadata& getMetadata();
     [[nodiscard]] size_t getNodeCount() const;
     [[nodiscard]] size_t getEdgeCount() const;
     [[nodiscard]] const GraphView& getView() const { return _view; }
     [[nodiscard]] DataPartSpan dataparts() const { return _view.dataparts(); }
     [[nodiscard]] std::span<const CommitView> commits() const { return _view.commits(); }
     [[nodiscard]] const EdgeRecord* getEdge(EntityID edgeID) const;
-    [[nodiscard]] LabelSetID getNodeLabelSetID(EntityID nodeID) const;
-    [[nodiscard]] size_t getNodeCountMatchingLabelset(const LabelSet& labelset) const;
-    [[nodiscard]] const LabelSet* getNodeLabelSet(EntityID nodeID) const;
+    [[nodiscard]] LabelSetHandle getNodeLabelSet(EntityID nodeID) const;
+    [[nodiscard]] size_t getNodeCountMatchingLabelset(const LabelSetHandle& labelset) const;
     [[nodiscard]] size_t getDatapartCount() const;
     [[nodiscard]] size_t getNodePropertyCount(PropertyTypeID ptID) const;
     [[nodiscard]] size_t getNodePropertyCount(size_t datapartIndex, PropertyTypeID ptID) const;
@@ -52,16 +50,14 @@ public:
     [[nodiscard]] GetInEdgesRange getInEdges(const ColumnIDs* inputNodeIDs) const;
     [[nodiscard]] ScanEdgesRange scanOutEdges() const;
     [[nodiscard]] ScanNodesRange scanNodes() const;
-    [[nodiscard]] ScanNodesByLabelRange scanNodesByLabel(const LabelSet* labelset) const;
-    [[nodiscard]] ScanOutEdgesByLabelRange scanOutEdgesByLabel(const LabelSet* labelset) const;
-    [[nodiscard]] ScanInEdgesByLabelRange scanInEdgesByLabel(const LabelSet* labelset) const;
-    [[nodiscard]] MatchLabelSetIterator matchLabelSetIDs(const LabelSet* labelSet) const;
+    [[nodiscard]] ScanNodesByLabelRange scanNodesByLabel(const LabelSetHandle& labelset) const;
+    [[nodiscard]] ScanOutEdgesByLabelRange scanOutEdgesByLabel(const LabelSetHandle& labelset) const;
+    [[nodiscard]] ScanInEdgesByLabelRange scanInEdgesByLabel(const LabelSetHandle& labelset) const;
+    [[nodiscard]] MatchLabelSetIterator matchLabelSets(const LabelSetHandle& labelSet) const;
     [[nodiscard]] bool nodeHasProperty(PropertyTypeID ptID, EntityID nodeID) const;
 
     template <SupportedType T>
     [[nodiscard]] const T::Primitive* tryGetNodeProperty(PropertyTypeID ptID, EntityID nodeID) const;
-
-    [[nodiscard]] PropertyType getPropertyType(const std::string& name) const;
 
     template <SupportedType T>
     [[nodiscard]] ScanNodePropertiesRange<T> scanNodeProperties(PropertyTypeID ptID) const {
@@ -75,7 +71,7 @@ public:
 
     template <SupportedType T>
     [[nodiscard]] ScanNodePropertiesByLabelRange<T> scanNodePropertiesByLabel(PropertyTypeID ptID,
-                                                                       const LabelSet* labelset) const {
+                                                                       const LabelSetHandle& labelset) const {
         return ScanNodePropertiesByLabelRange<T>(_view, ptID, labelset);
     }
 

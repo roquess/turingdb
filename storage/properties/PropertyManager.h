@@ -3,7 +3,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "GraphMetadata.h"
+#include "metadata/PropertyType.h"
 #include "EntityID.h"
 #include "indexers/PropertyIndexer.h"
 #include "PropertyContainer.h"
@@ -12,8 +12,8 @@ namespace db {
 
 class EntityPropertyView;
 class NodeContainer;
-class GraphMetadata;
 class DataPartLoader;
+class DataPartRebaser;
 
 class PropertyManager {
 public:
@@ -22,8 +22,13 @@ public:
     using PropertyContainerReferences = std::unordered_map<PropertyTypeID,
                                                            PropertyContainer*>;
 
-    explicit PropertyManager(const GraphMetadata* graphMetadata);
+    explicit PropertyManager();
     ~PropertyManager();
+
+    PropertyManager(const PropertyManager&) = delete;
+    PropertyManager(PropertyManager&&) = delete;
+    PropertyManager& operator=(const PropertyManager&) = delete;
+    PropertyManager& operator=(PropertyManager&&) = delete;
 
     template <SupportedType T>
     void registerPropertyType(PropertyTypeID ptID) {
@@ -102,7 +107,7 @@ public:
     }
 
     void fillEntityPropertyView(EntityID entityID,
-                                LabelSetID labelsetID,
+                                const LabelSetHandle& labelset,
                                 EntityPropertyView& view) const;
 
     PropertyContainerMap::iterator begin() { return _map.begin(); }
@@ -129,7 +134,7 @@ public:
     }
 
     LabelSetPropertyIndexer& addIndexer(PropertyTypeID ptID) {
-        return _indexers.emplace(ptID, &_graphMetadata->labelsets()).first->second;
+        return _indexers.emplace(ptID, LabelSetPropertyIndexer {}).first->second;
     }
 
     LabelSetPropertyIndexer& getIndexer(PropertyTypeID ptID) {
@@ -144,8 +149,8 @@ public:
 
 private:
     friend DataPartLoader;
+    friend DataPartRebaser;
 
-    const GraphMetadata* _graphMetadata {nullptr};
     PropertyContainerMap _map;
 
     PropertyContainerReferences _uint64s;

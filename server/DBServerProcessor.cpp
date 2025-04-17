@@ -4,7 +4,6 @@
 
 #include "TuringDB.h"
 #include "Graph.h"
-#include "GraphMetadata.h"
 #include "reader/GraphReader.h"
 #include "versioning/Transaction.h"
 #include "views/EdgeView.h"
@@ -29,8 +28,9 @@ using namespace db;
 DBServerProcessor::DBServerProcessor(TuringDB& db,
                                      net::TCPConnection& connection)
     : _writer(&connection.getWriter()),
-      _db(db),
-      _connection(connection) {
+    _db(db),
+    _connection(connection)
+{
 }
 
 DBServerProcessor::~DBServerProcessor() {
@@ -321,12 +321,12 @@ void DBServerProcessor::list_labels() {
             if (labelsIt != json.end()) {
                 for (const auto& label : labelsIt.value()) {
                     const auto& labelName = label.get<std::string>();
-                    const LabelID labelID = labels.get(labelName);
-                    if (!labelID.isValid()) {
+                    const auto labelID = labels.get(labelName);
+                    if (!labelID) {
                         continue;
                     }
 
-                    labelset.set(labelID);
+                    labelset.set(labelID.value());
                 }
             }
         } catch (const std::exception& e) {
@@ -364,7 +364,7 @@ void DBServerProcessor::list_labels() {
         curLabelset = labelset;
         curLabelset.set(remainingLabels[i]);
 
-        payload.value(reader.getNodeCountMatchingLabelset(curLabelset));
+        payload.value(reader.getNodeCountMatchingLabelset(LabelSetHandle {curLabelset}));
     }
 }
 
@@ -529,12 +529,12 @@ void DBServerProcessor::list_nodes() {
         if (labelsIt != json.end()) {
             for (const auto& label : labelsIt.value()) {
                 const auto& labelName = label.get<std::string>();
-                const LabelID labelID = labels.get(labelName);
-                if (!labelID.isValid()) {
+                const auto labelID = labels.get(labelName);
+                if (!labelID) {
                     continue;
                 }
 
-                executor.addLabel(labelID);
+                executor.addLabel(labelID.value());
             }
         }
 
@@ -554,18 +554,18 @@ void DBServerProcessor::list_nodes() {
         const auto propertiesIt = json.find("properties");
         if (propertiesIt != json.end()) {
             for (const auto& [type, expr] : propertiesIt->items()) {
-                const PropertyType pType = propTypes.get(type);
-                if (!pType._id.isValid()) {
+                const auto pType = propTypes.get(type);
+                if (!pType) {
                     continue;
                 }
 
-                if (pType._valueType != ValueType::String) {
+                if (pType.value()._valueType != ValueType::String) {
                     continue;
                 }
 
                 auto str = expr.get<std::string>();
                 std::transform(str.begin(), str.end(), str.begin(), [](char c) { return std::tolower(c); });
-                executor.addPropertyFilter(pType._id, std::move(str));
+                executor.addPropertyFilter(pType.value()._id, std::move(str));
             }
         }
 
@@ -656,7 +656,7 @@ void DBServerProcessor::get_node_properties() {
 
     for (const auto& propName : properties) {
         const auto ptype = propTypes.get(propName);
-        if (!ptype._id.isValid()) {
+        if (!ptype) {
             continue;
         }
 
@@ -664,14 +664,14 @@ void DBServerProcessor::get_node_properties() {
         payload.obj();
 
         const auto treat = [&]<SupportedType TypeT> {
-            const auto range = reader.getNodeProperties<TypeT>(ptype._id, nodeIDs);
+            const auto range = reader.getNodeProperties<TypeT>(ptype.value()._id, nodeIDs);
             for (auto it = range.begin(); it.isValid(); it.next()) {
                 payload.key(it.getCurrentEntityID());
                 payload.value(it.get());
             }
         };
 
-        switch (ptype._valueType) {
+        switch (ptype.value()._valueType) {
             case db::ValueType::UInt64: {
                 treat.template operator()<types::UInt64>();
                 break;
@@ -1121,12 +1121,12 @@ void DBServerProcessor::explore_node_edges() {
         if (it != json.end()) {
             for (const auto& label : it.value()) {
                 const auto& labelName = label.get<std::string>();
-                const LabelID labelID = labels.get(labelName);
-                if (!labelID.isValid()) {
+                const auto labelID = labels.get(labelName);
+                if (!labelID) {
                     continue;
                 }
 
-                executor.addLabel(labelID);
+                executor.addLabel(labelID.value());
             }
         }
 
@@ -1146,18 +1146,18 @@ void DBServerProcessor::explore_node_edges() {
         it = json.find("nodeProperties");
         if (it != json.end()) {
             for (const auto& [type, expr] : it->items()) {
-                const PropertyType pType = propTypes.get(type);
-                if (!pType._id.isValid()) {
+                const auto pType = propTypes.get(type);
+                if (!pType) {
                     continue;
                 }
 
-                if (pType._valueType != ValueType::String) {
+                if (pType.value()._valueType != ValueType::String) {
                     continue;
                 }
 
                 auto str = expr.get<std::string>();
                 std::transform(str.begin(), str.end(), str.begin(), [](char c) { return std::tolower(c); });
-                executor.addNodePropertyFilter(pType._id, std::move(str));
+                executor.addNodePropertyFilter(pType.value()._id, std::move(str));
             }
         }
 
@@ -1165,18 +1165,18 @@ void DBServerProcessor::explore_node_edges() {
         it = json.find("edgeProperties");
         if (it != json.end()) {
             for (const auto& [type, expr] : it->items()) {
-                const PropertyType pType = propTypes.get(type);
-                if (!pType._id.isValid()) {
+                const auto pType = propTypes.get(type);
+                if (!pType) {
                     continue;
                 }
 
-                if (pType._valueType != ValueType::String) {
+                if (pType.value()._valueType != ValueType::String) {
                     continue;
                 }
 
                 auto str = expr.get<std::string>();
                 std::transform(str.begin(), str.end(), str.begin(), [](char c) { return std::tolower(c); });
-                executor.addEdgePropertyFilter(pType._id, std::move(str));
+                executor.addEdgePropertyFilter(pType.value()._id, std::move(str));
             }
         }
 
@@ -1196,12 +1196,12 @@ void DBServerProcessor::explore_node_edges() {
         if (it != json.end()) {
             for (const auto& type : it.value()) {
                 const auto& etName = type.get<std::string>();
-                const EdgeTypeID etID = edgeTypes.get(etName);
-                if (!etID.isValid()) {
+                const auto etID = edgeTypes.get(etName);
+                if (!etID) {
                     continue;
                 }
 
-                executor.addEdgeType(etID);
+                executor.addEdgeType(etID.value());
             }
         }
 

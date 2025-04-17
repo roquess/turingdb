@@ -3,7 +3,7 @@
 #include <string>
 
 #include "columns/ColumnConst.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 
 namespace db {
 

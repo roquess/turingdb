@@ -3,13 +3,8 @@
 #include <range/v3/view/enumerate.hpp>
 
 #include "Graph.h"
-#include "GraphMetadata.h"
 #include "GraphInfoDumper.h"
-#include "LabelMapDumper.h"
 #include "CommitDumper.h"
-#include "LabelSetMapDumper.h"
-#include "EdgeTypeMapDumper.h"
-#include "PropertyTypeMapDumper.h"
 #include "GraphFileType.h"
 #include "FileUtils.h"
 #include "versioning/Transaction.h"
@@ -45,7 +40,7 @@ DumpResult<void> GraphDumper::dump(const Graph& graph, const fs::Path& path) {
     {
         const fs::Path infoPath = path / "info";
 
-        auto writer = fs::FilePageWriter::open(infoPath);
+        auto writer = fs::FilePageWriter::open(infoPath, DumpConfig::PAGE_SIZE);
         if (!writer) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_GRAPH_INFO, writer.error());
         }
@@ -53,72 +48,6 @@ DumpResult<void> GraphDumper::dump(const Graph& graph, const fs::Path& path) {
         GraphInfoDumper dumper {writer.value()};
 
         if (auto res = dumper.dump(graph); !res) {
-            return res;
-        }
-    }
-
-    const auto& metadata = graph.getMetadata();
-
-    // Dumping labels
-    {
-        const fs::Path labelsPath = path / "labels";
-
-        auto writer = fs::FilePageWriter::open(labelsPath);
-        if (!writer) {
-            return DumpError::result(DumpErrorType::CANNOT_OPEN_LABELS, writer.error());
-        }
-
-        LabelMapDumper dumper {writer.value()};
-
-        if (auto res = dumper.dump(metadata->labels()); !res) {
-            return res;
-        }
-    }
-
-    // Dumping edge types
-    {
-        const fs::Path edgetypesPath = path / "edge-types";
-
-        auto writer = fs::FilePageWriter::open(edgetypesPath);
-        if (!writer) {
-            return DumpError::result(DumpErrorType::CANNOT_OPEN_EDGE_TYPES, writer.error());
-        }
-
-        EdgeTypeMapDumper dumper {writer.value()};
-
-        if (auto res = dumper.dump(metadata->edgeTypes()); !res) {
-            return res;
-        }
-    }
-
-    // Dumping property types
-    {
-        const fs::Path proptypesPath = path / "property-types";
-
-        auto writer = fs::FilePageWriter::open(proptypesPath);
-        if (!writer) {
-            return DumpError::result(DumpErrorType::CANNOT_OPEN_PROPERTY_TYPES, writer.error());
-        }
-
-        PropertyTypeMapDumper dumper {writer.value()};
-
-        if (auto res = dumper.dump(metadata->propTypes()); !res) {
-            return res;
-        }
-    }
-
-    // Dumping labelsets
-    {
-        const fs::Path labelsetsPath = path / "labelsets";
-
-        auto writer = fs::FilePageWriter::open(labelsetsPath);
-        if (!writer) {
-            return DumpError::result(DumpErrorType::CANNOT_OPEN_LABELSETS, writer.error());
-        }
-
-        LabelSetMapDumper dumper {writer.value()};
-
-        if (auto res = dumper.dump(metadata->labelsets()); !res) {
             return res;
         }
     }

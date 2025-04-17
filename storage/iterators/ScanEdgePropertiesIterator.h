@@ -6,7 +6,7 @@
 #include "ChunkWriter.h"
 #include "columns/ColumnIDs.h"
 #include "columns/ColumnVector.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 
 namespace db {
 

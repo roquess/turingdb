@@ -2,7 +2,6 @@
 
 #include "CommitLoader.h"
 #include "GraphInfoLoader.h"
-#include "GraphMetadataLoader.h"
 #include "Graph.h"
 #include "versioning/Commit.h"
 #include "versioning/VersionController.h"
@@ -24,7 +23,7 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
     // Loading info
     {
         const fs::Path infoPath = path / "info";
-        auto reader = fs::FilePageReader::open(infoPath);
+        auto reader = fs::FilePageReader::open(infoPath, DumpConfig::PAGE_SIZE);
         if (!reader) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_GRAPH_INFO, reader.error());
         }
@@ -36,15 +35,6 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
             return res.get_unexpected();
         }
     }
-
-    // Loading metadata
-    auto metadata = GraphMetadataLoader::load(path);
-
-    if (!metadata) {
-        return metadata.get_unexpected();
-    }
-
-    graph->_metadata = std::move(metadata.value());
 
     // Listing files in the folder
     auto files = path.listDir();
@@ -82,7 +72,7 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
         auto res = CommitLoader::load(child, *graph, CommitHash {hash});
 
         if (!res) {
-            return suffixRes.get_unexpected();
+            return res.get_unexpected();
         }
 
         commits.emplace(offset, std::move(res.value()));
@@ -108,7 +98,7 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
     }
 
     for (auto& [commitIndex, commit] : commits) {
-        graph->_versionController->commit(std::move(commit));
+        graph->_versionController->addCommit(std::move(commit));
     }
 
 

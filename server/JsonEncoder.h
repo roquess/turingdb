@@ -5,7 +5,7 @@
 #include "columns/Column.h"
 #include "columns/ColumnVector.h"
 #include "columns/ColumnOptVector.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 #include "EntityID.h"
 
 namespace db {

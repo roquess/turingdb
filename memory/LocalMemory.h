@@ -10,7 +10,7 @@
 #include "columns/ColumnConst.h"
 #include "columns/ColumnMask.h"
 #include "columns/ColumnOptVector.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 #include "EntityID.h"
 
 namespace db {

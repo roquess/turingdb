@@ -3,12 +3,12 @@
 #include <memory>
 
 #include "EdgeContainer.h"
-#include "GraphMetadata.h"
 #include "indexers/EdgeIndexer.h"
 #include "FilePageReader.h"
 #include "DumpConfig.h"
 #include "GraphDumpHelper.h"
 #include "EdgeIndexerDumpConstants.h"
+#include "metadata/GraphMetadata.h"
 
 namespace db {
 
@@ -51,7 +51,7 @@ public:
         const uint64_t inSpansPageCount = it.get<uint64_t>();
         const uint64_t nodeCount = coreNodeCount + patchNodeCount;
 
-        EdgeIndexer* indexer = new EdgeIndexer {metadata, edges};
+        EdgeIndexer* indexer = new EdgeIndexer {edges};
         indexer->_firstNodeID = firstNodeID;
         indexer->_firstEdgeID = firstEdgeID;
         indexer->_nodes.resize(nodeCount);
@@ -139,7 +139,13 @@ public:
                     return DumpError::result(DumpErrorType::COULD_NOT_READ_EDGE_INDEXER);
                 }
 
-                auto& spans = indexer->_outLabelSetSpans[labelsetID];
+                const auto labelset = metadata.labelsets().getValue(labelsetID);
+
+                if (!labelset) {
+                    return DumpError::result(DumpErrorType::COULD_NOT_READ_EDGE_INDEXER);
+                }
+
+                auto& spans = indexer->_outLabelSetSpans[labelset.value()];
 
                 for (size_t k = 0; k < spanCount; k++) {
                     const uint64_t offset = it.get<uint64_t>();
@@ -176,7 +182,13 @@ public:
                     return DumpError::result(DumpErrorType::COULD_NOT_READ_EDGE_INDEXER);
                 }
 
-                auto& spans = indexer->_inLabelSetSpans[labelsetID];
+                const auto labelset = metadata.labelsets().getValue(labelsetID);
+
+                if (!labelset) {
+                    return DumpError::result(DumpErrorType::COULD_NOT_READ_EDGE_INDEXER);
+                }
+
+                auto& spans = indexer->_inLabelSetSpans[labelset.value()];
 
                 for (size_t k = 0; k < spanCount; k++) {
                     const uint64_t offset = it.get<uint64_t>();

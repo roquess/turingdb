@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "EntityID.h"
+#include "metadata/LabelSetHandle.h"
 
 namespace db {
 
@@ -15,6 +16,7 @@ class GraphView;
 class GraphReader;
 class EdgeIndexer;
 class DataPartLoader;
+class DataPartRebaser;
 class JobSystem;
 
 class DataPart {
@@ -31,7 +33,7 @@ public:
     bool load(const GraphView&, JobSystem&, DataPartBuilder&);
 
     EntityID getFirstNodeID() const;
-    EntityID getFirstNodeID(const LabelSetID& labelset) const;
+    EntityID getFirstNodeID(const LabelSetHandle& labelset) const;
     EntityID getFirstEdgeID() const;
     size_t getNodeCount() const;
     size_t getEdgeCount() const;
@@ -49,6 +51,7 @@ private:
     friend DataPartInfoLoader;
     friend GraphReader;
     friend DataPartLoader;
+    friend DataPartRebaser;
 
     bool _initialized {false};
     EntityID _firstNodeID {0};

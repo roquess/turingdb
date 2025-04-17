@@ -32,8 +32,26 @@ TEST_F(QueryTest, ReturnNode) {
         .execute();
 
 
-    tester.query("MATCH n--m RETURN n, m")
+    tester.query("MATCH n-[e]-m RETURN e")
+        .expectVector<EntityID>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
+        .execute();
+
+    tester.query("MATCH n-[e]-m RETURN n")
         .expectVector<EntityID>({0, 0, 0, 0, 1, 1, 1, 6, 8, 8, 9, 9, 11})
+        .execute();
+
+    tester.query("MATCH n-[e]-m RETURN m")
+        .expectVector<EntityID>({1, 6, 2, 3, 0, 4, 5, 0, 4, 7, 10, 2, 5})
+        .execute();
+
+    tester.query("MATCH n-[e]-m RETURN n, m")
+        .expectVector<EntityID>({0, 0, 0, 0, 1, 1, 1, 6, 8, 8, 9, 9, 11})
+        .expectVector<EntityID>({1, 6, 2, 3, 0, 4, 5, 0, 4, 7, 10, 2, 5})
+        .execute();
+
+    tester.query("MATCH n-[e]-m RETURN n, e, m")
+        .expectVector<EntityID>({0, 0, 0, 0, 1, 1, 1, 6, 8, 8, 9, 9, 11})
+        .expectVector<EntityID>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
         .expectVector<EntityID>({1, 6, 2, 3, 0, 4, 5, 0, 4, 7, 10, 2, 5})
         .execute();
 

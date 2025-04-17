@@ -94,8 +94,8 @@ public:
 
     ListNodesExecutor(const GraphReader& reader, PayloadWriter& w)
         : _reader(reader),
-          _propTypes(_reader.getMetadata().propTypes()),
-          _writer(w)
+        _propTypes(_reader.getMetadata().propTypes()),
+        _writer(w)
     {
     }
 
@@ -264,7 +264,7 @@ private:
 
     void processLabelFiltered() {
         size_t i = 0;
-        for (const auto nodeID : _reader.scanNodesByLabel(&_labelset)) {
+        for (const auto nodeID : _reader.scanNodesByLabel(LabelSetHandle {_labelset})) {
             if (i == _limit + _skip) {
                 return;
             }
@@ -287,7 +287,7 @@ private:
     template <ExecType type>
     auto getScanIterator(PropertyTypeID pID) const {
         if constexpr (type == ExecType::LabelFiltered || type == ExecType::PropertyAndLabelFiltered) {
-            return _reader.scanNodePropertiesByLabel<types::String>(pID, &_labelset).begin();
+            return _reader.scanNodePropertiesByLabel<types::String>(pID, LabelSetHandle {_labelset}).begin();
         } else {
             return _reader.scanNodeProperties<types::String>(pID).begin();
         }

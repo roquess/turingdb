@@ -7,7 +7,7 @@
 #include <optional>
 
 #include "EntityID.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 
 namespace db {
 

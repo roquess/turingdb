@@ -1,7 +1,6 @@
 #include "DataPartLoader.h"
 
 #include "DataPart.h"
-#include "GraphMetadata.h"
 #include "Graph.h"
 #include "properties/PropertyManager.h"
 #include "indexers/EdgeIndexer.h"
@@ -12,13 +11,12 @@
 #include "PropertyContainerLoader.h"
 #include "PropertyIndexerLoader.h"
 #include "versioning/VersionController.h"
-#include "Panic.h"
 
 using namespace db;
 
-DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
-                                                         const GraphMetadata& metadata,
-                                                         VersionController& versionController) {
+DumpResult<WeakArc<DataPart>> DataPartLoader::load(const fs::Path& path,
+                                                   const GraphMetadata& metadata,
+                                                   VersionController& versionController) {
     if (!path.exists()) {
         return DumpError::result(DumpErrorType::DATAPART_DOES_NOT_EXIST);
     }
@@ -28,7 +26,7 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
     // Loading info
     {
         const fs::Path infoPath = path / "info";
-        auto reader = fs::FilePageReader::open(infoPath);
+        auto reader = fs::FilePageReader::open(infoPath, DumpConfig::PAGE_SIZE);
         if (!reader) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_DATAPART_INFO, reader.error());
         }
@@ -44,7 +42,7 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
     // Loading nodes
     const fs::Path nodesPath = path / "nodes";
     if (nodesPath.exists()) {
-        auto reader = fs::FilePageReader::open(nodesPath);
+        auto reader = fs::FilePageReader::open(nodesPath, DumpConfig::PAGE_SIZE);
         if (!reader) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_DATAPART_NODES, reader.error());
         }
@@ -58,21 +56,21 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
 
         part->_nodes = std::move(res.value());
     } else {
-        auto* ptr = new NodeContainer(part->_firstNodeID, 0, metadata);
+        auto* ptr = new NodeContainer(part->_firstNodeID, 0);
         part->_nodes = std::unique_ptr<NodeContainer> {ptr};
     }
 
     // Loading edges
     const fs::Path edgesPath = path / "edges";
     if (edgesPath.exists()) {
-        auto reader = fs::FilePageReader::open(edgesPath);
+        auto reader = fs::FilePageReader::open(edgesPath, DumpConfig::PAGE_SIZE);
         if (!reader) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_DATAPART_EDGES, reader.error());
         }
 
         EdgeContainerLoader loader {reader.value()};
 
-        auto res = loader.load(metadata);
+        auto res = loader.load();
         if (!res) {
             return res.get_unexpected();
         }
@@ -87,7 +85,7 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
     // Loading edge indexer
     const fs::Path edgeIndexerPath = path / "edge-indexer";
     if (edgeIndexerPath.exists()) {
-        auto reader = fs::FilePageReader::open(edgeIndexerPath);
+        auto reader = fs::FilePageReader::open(edgeIndexerPath, DumpConfig::PAGE_SIZE);
         if (!reader) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_DATAPART_EDGE_INDEXER, reader.error());
         }
@@ -108,8 +106,8 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
         return DumpError::result(DumpErrorType::CANNOT_LIST_DATAPART_FILES, files.error());
     }
 
-    part->_nodeProperties = std::make_unique<PropertyManager>(&metadata);
-    part->_edgeProperties = std::make_unique<PropertyManager>(&metadata);
+    part->_nodeProperties = std::make_unique<PropertyManager>();
+    part->_edgeProperties = std::make_unique<PropertyManager>();
 
     // Loading properties
     const auto loadProperties = [&](PropertyManager& manager, std::string_view filename) -> DumpResult<void> {
@@ -118,12 +116,15 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
             return DumpError::result(DumpErrorType::INCORRECT_PROPERTY_TYPE_ID);
         }
 
-        auto reader = fs::FilePageReader::open(path / filename);
+        auto reader = fs::FilePageReader::open(path / filename, DumpConfig::PAGE_SIZE);
         if (!reader) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_DATAPART_NODE_PROPS, reader.error());
         }
 
-        const PropertyType pt = metadata.propTypes().get(ptID.value());
+        const auto pt = metadata.propTypes().get(ptID.value());
+        if (!pt) {
+            return DumpError::result(DumpErrorType::INCORRECT_PROPERTY_TYPE_ID);
+        }
 
         // Lambda to store trivial properties
         const auto storeTrivialContainer = [&]<TrivialSupportedType T>(PropertyManager& manager) -> DumpResult<void> {
@@ -135,16 +136,18 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
             }
 
             auto* ptr = props.value().release();
-            manager._map.emplace(pt._id, static_cast<PropertyContainer*>(ptr));
+            manager._map.emplace(pt->_id, static_cast<PropertyContainer*>(ptr));
 
             if constexpr (std::is_same_v<T, types::UInt64>) {
-                manager._uint64s.emplace(pt._id, static_cast<PropertyContainer*>(ptr));
+                manager._uint64s.emplace(pt->_id, static_cast<PropertyContainer*>(ptr));
             } else if constexpr (std::is_same_v<T, types::Int64>) {
-                manager._int64s.emplace(pt._id, static_cast<PropertyContainer*>(ptr));
+                manager._int64s.emplace(pt->_id, static_cast<PropertyContainer*>(ptr));
             } else if constexpr (std::is_same_v<T, types::Double>) {
-                manager._doubles.emplace(pt._id, static_cast<PropertyContainer*>(ptr));
+                manager._doubles.emplace(pt->_id, static_cast<PropertyContainer*>(ptr));
             } else if constexpr (std::is_same_v<T, types::Bool>) {
-                manager._bools.emplace(pt._id, static_cast<PropertyContainer*>(ptr));
+                manager._bools.emplace(pt->_id, static_cast<PropertyContainer*>(ptr));
+            } else {
+                COMPILE_ERROR("Missing trivial property type");
             }
 
             return {};
@@ -160,14 +163,14 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
             }
 
             auto* ptr = props.value().release();
-            manager._map.emplace(pt._id, static_cast<PropertyContainer*>(ptr));
+            manager._map.emplace(pt->_id, static_cast<PropertyContainer*>(ptr));
 
-            manager._strings.emplace(pt._id, static_cast<PropertyContainer*>(ptr));
+            manager._strings.emplace(pt->_id, static_cast<PropertyContainer*>(ptr));
 
             return {};
         };
 
-        switch (pt._valueType) {
+        switch (pt->_valueType) {
             case ValueType::UInt64: {
                 if (auto res = storeTrivialContainer.operator()<types::UInt64>(manager); !res) {
                     return res.get_unexpected();
@@ -210,7 +213,7 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
     const fs::Path nodePropertyIndexerPath = path / "node-prop-indexer";
 
     if (nodePropertyIndexerPath.exists()) {
-        auto reader = fs::FilePageReader::open(nodePropertyIndexerPath);
+        auto reader = fs::FilePageReader::open(nodePropertyIndexerPath, DumpConfig::PAGE_SIZE);
         if (!reader) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_DATAPART_NODE_PROP_INDEXER, reader.error());
         }
@@ -227,7 +230,7 @@ DumpResult<WeakArc<const DataPart>> DataPartLoader::load(const fs::Path& path,
     const fs::Path edgePropertyIndexerPath = path / "edge-prop-indexer";
 
     if (edgePropertyIndexerPath.exists()) {
-        auto reader = fs::FilePageReader::open(edgePropertyIndexerPath);
+        auto reader = fs::FilePageReader::open(edgePropertyIndexerPath, DumpConfig::PAGE_SIZE);
         if (!reader) {
             return DumpError::result(DumpErrorType::CANNOT_OPEN_DATAPART_EDGE_PROP_INDEXER, reader.error());
         }

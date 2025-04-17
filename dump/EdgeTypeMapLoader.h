@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types/EdgeTypeMap.h"
+#include "metadata/EdgeTypeMap.h"
 #include "FilePageReader.h"
 #include "GraphDumpHelper.h"
 
@@ -70,7 +70,7 @@ public:
                 }
 
                 const std::string_view name = it.get<char>(strsize);
-                edgeTypes.create(std::string {name});
+                edgeTypes.getOrCreate(std::string {name});
             }
         }
 

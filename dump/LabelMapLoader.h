@@ -1,6 +1,6 @@
 #pragma once
 
-#include "labels/LabelMap.h"
+#include "metadata/LabelMap.h"
 #include "FilePageReader.h"
 #include "GraphDumpHelper.h"
 
@@ -64,7 +64,7 @@ public:
                 }
 
                 const std::string_view name = it.get<char>(strsize);
-                labels.create(std::string {name});
+                labels.getOrCreate(std::string {name});
             }
         }
 

@@ -138,7 +138,8 @@ void unquietCommand(const TuringShell::Command::Words& args, TuringShell& shell)
 
 TuringShell::TuringShell(TuringDB& turingDB, LocalMemory* mem)
     : _turingDB(turingDB),
-      _mem(mem) {
+    _mem(mem)
+{
     _localCommands.emplace("q", Command {quitCommand});
     _localCommands.emplace("quit", Command {quitCommand});
     _localCommands.emplace("exit", Command {quitCommand});
@@ -166,6 +167,7 @@ void TuringShell::startLoop() {
 
         linenoiseHistoryAdd(line);
         shellPrompt = composePrompt();
+        linenoiseFree(line);
     }
 }
 

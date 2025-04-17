@@ -3,10 +3,10 @@
 #include <vector>
 
 #include "EntityID.h"
-#include "GraphMetadata.h"
+#include "metadata/GraphMetadata.h"
 #include "views/NodeView.h"
 #include "views/EdgeView.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 #include "NetWriter.h"
 
 namespace db {
@@ -50,7 +50,7 @@ class PayloadWriter {
 public:
     explicit PayloadWriter(net::NetWriter* writer, const GraphMetadata* metadata = nullptr)
         : _writer(writer),
-          _metadata(metadata)
+        _metadata(metadata)
     {
     }
 
@@ -207,15 +207,13 @@ private:
     void write(const NodeView& n) {
         bioassert(_metadata);
         const auto& propTypes = _metadata->propTypes();
-        const auto& labelsets = _metadata->labelsets();
         const auto& labels = _metadata->labels();
 
         std::vector<LabelID> labelIDs;
 
         const auto& edges = n.edges();
         const auto& props = n.properties();
-        const LabelSet& labelset = labelsets.getValue(n.labelset());
-        labelset.decompose(labelIDs);
+        n.labelset().decompose(labelIDs);
 
         this->obj();
 
@@ -248,7 +246,7 @@ private:
             for (const auto& [ptID, variant] : props) {
                 std::visit(
                     [&](const auto& v) {
-                        this->key(propTypes.getName(ptID));
+                        this->key(propTypes.getName(ptID).value());
                         this->value(*v);
                     },
                     variant);

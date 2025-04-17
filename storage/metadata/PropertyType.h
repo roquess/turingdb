@@ -2,11 +2,11 @@
 
 #include "EntityID.h"
 #include "SupportedType.h"
+#include "EnumToString.h"
 
 #include <map>
 #include <optional>
 #include <span>
-#include <string>
 
 namespace db {
 
@@ -20,6 +20,14 @@ enum class ValueType : uint8_t {
 
     _SIZE,
 };
+
+using ValueTypeName = EnumToString<ValueType>::Create<
+    EnumStringPair<ValueType::Invalid, "Invalid">,
+    EnumStringPair<ValueType::Int64, "Int64">,
+    EnumStringPair<ValueType::UInt64, "UInt64">,
+    EnumStringPair<ValueType::Double, "Double">,
+    EnumStringPair<ValueType::String, "String">,
+    EnumStringPair<ValueType::Bool, "Bool">>;
 
 struct CustomBool {
     CustomBool() = default;

@@ -4,7 +4,7 @@
 
 using namespace db;
 
-ScanNodesByLabelStep::ScanNodesByLabelStep(ColumnIDs* nodes, const LabelSet* labelSet)
+ScanNodesByLabelStep::ScanNodesByLabelStep(ColumnIDs* nodes, const LabelSetHandle& labelSet)
     : _nodes(nodes),
     _labelSet(labelSet)
 {
@@ -17,6 +17,10 @@ void ScanNodesByLabelStep::describe(std::string& descr) const {
     std::stringstream ss;
     ss << "ScanNodesByLabelStep";
     ss << " nodes=" << std::hex << _nodes;
-    ss << " labelSet=" << std::hex << _labelSet;
+
+    std::vector<LabelID> labels;
+    _labelSet.decompose(labels);
+    ss << fmt::format(" labelSet={}", fmt::join(labels, ", "));
+
     descr.assign(ss.str());
 }

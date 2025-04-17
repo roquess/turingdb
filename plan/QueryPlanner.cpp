@@ -21,8 +21,6 @@
 #include "columns/ColumnIDs.h"
 #include "columns/ColumnMask.h"
 
-#include "Graph.h"
-#include "GraphMetadata.h"
 #include "reader/GraphReader.h"
 #include "PlannerException.h"
 
@@ -33,7 +31,7 @@ namespace rv = ranges::views;
 QueryPlanner::QueryPlanner(const GraphView& view, LocalMemory* mem, QueryCallback callback)
     : _view(view),
     _mem(mem),
-    _queryCallback(callback),
+    _queryCallback(std::move(callback)),
     _pipeline(std::make_unique<Pipeline>()),
     _output(std::make_unique<Block>()),
     _transformData(std::make_unique<TransformData>(mem))
@@ -41,9 +39,6 @@ QueryPlanner::QueryPlanner(const GraphView& view, LocalMemory* mem, QueryCallbac
 }
 
 QueryPlanner::~QueryPlanner() {
-    for (LabelSet* labelSet : _labelSets) {
-        delete labelSet;
-    }
 }
 
 bool QueryPlanner::plan(const QueryCommand* query) {
@@ -140,19 +135,19 @@ void QueryPlanner::planPath(const std::vector<EntityPattern*>& path) {
 }
 
 void QueryPlanner::planScanNodes(const EntityPattern* entity) {
-    const auto nodes = _mem->alloc<ColumnIDs>();
+    auto* nodes = _mem->alloc<ColumnIDs>();
 
     const TypeConstraint* typeConstr = entity->getTypeConstraint();
     const ExprConstraint* exprConstr = entity->getExprConstraint();
 
     if (exprConstr && typeConstr) {
-        const LabelSet* labelSet = getLabelSet(typeConstr);
+        const LabelSet* labelSet = getOrCreateLabelSet(typeConstr);
         planScanNodesWithPropertyAndLabelConstraints(nodes, labelSet, exprConstr);
     } else if (exprConstr) {
         planScanNodesWithPropertyConstraints(nodes, exprConstr);
     } else if (typeConstr) {
-        const LabelSet* labelSet = getLabelSet(typeConstr);
-        _pipeline->add<ScanNodesByLabelStep>(nodes, labelSet);
+        const LabelSet* labelSet = getOrCreateLabelSet(typeConstr);
+        _pipeline->add<ScanNodesByLabelStep>(nodes, labelSet->handle());
     } else {
         _pipeline->add<ScanNodesStep>(nodes);
     }
@@ -176,7 +171,7 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                                                                                                      \
         auto propValues = _mem->alloc<ColumnVector<valType>>();                                      \
         const valType constVal = static_cast<Type##ExprConst*>(rightExpr)->getVal();                 \
-        const auto filterConstVal = _mem->alloc<ColumnConst<valType>>();                             \
+        auto* filterConstVal = _mem->alloc<ColumnConst<valType>>();                                  \
         filterConstVal->set(constVal);                                                               \
                                                                                                      \
         _pipeline->add<StepType>(scannedNodes,                                                       \
@@ -185,7 +180,7 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
         /* Checking whether we are in the multi-expression constraint case so we can appropriately   \
            assign the outputNodes column to the correct step */                                      \
         if (expressions.size() > 1) {                                                                \
-            const auto scannedMatchingNodes = _mem->alloc<ColumnIDs>();                              \
+            auto* scannedMatchingNodes = _mem->alloc<ColumnIDs>();                                   \
             std::vector<ColumnMask*> masks(expressions.size() - 1);                                  \
             for (auto& mask : masks) {                                                               \
                 mask = _mem->alloc<ColumnMask>();                                                    \
@@ -196,11 +191,13 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                 ._op = ColumnOperator::OP_EQUAL,                                                     \
                 ._mask = filterMask,                                                                 \
                 ._lhs = propValues,                                                                  \
-                ._rhs = filterConstVal});                                                            \
+                ._rhs = filterConstVal                                                               \
+            });                                                                                      \
             filterScannedNodes.addOperand(FilterStep::Operand {                                      \
                 ._mask = filterMask,                                                                 \
                 ._src = scannedNodes,                                                                \
-                ._dest = scannedMatchingNodes});                                                     \
+                ._dest = scannedMatchingNodes                                                        \
+            });                                                                                      \
                                                                                                      \
             generateNodePropertyFilterMasks(masks,                                                   \
                                             std::span<const BinExpr* const>(expressions.data() + 1,  \
@@ -215,23 +212,27 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                     ._op = ColumnOperator::OP_AND,                                                   \
                     ._mask = masks[0],                                                               \
                     ._lhs = masks[0],                                                                \
-                    ._rhs = mask});                                                                  \
+                    ._rhs = mask                                                                     \
+                });                                                                                  \
             }                                                                                        \
             filter.addOperand(FilterStep::Operand {                                                  \
                 ._mask = masks[0],                                                                   \
                 ._src = scannedMatchingNodes,                                                        \
-                ._dest = outputNodes});                                                              \
+                ._dest = outputNodes                                                                 \
+            });                                                                                      \
         } else {                                                                                     \
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();                           \
             filter.addExpression(FilterStep::Expression {                                            \
                 ._op = ColumnOperator::OP_EQUAL,                                                     \
                 ._mask = filterMask,                                                                 \
                 ._lhs = propValues,                                                                  \
-                ._rhs = filterConstVal});                                                            \
+                ._rhs = filterConstVal                                                               \
+            });                                                                                      \
             filter.addOperand(FilterStep::Operand {                                                  \
                 ._mask = filterMask,                                                                 \
                 ._src = scannedNodes,                                                                \
-                ._dest = outputNodes});                                                              \
+                ._dest = outputNodes                                                                 \
+            });                                                                                      \
         }                                                                                            \
                                                                                                      \
         break;                                                                                       \
@@ -249,11 +250,11 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                                                                                                      \
         _pipeline->add<StepType>(scannedNodes,                                                       \
                                  propType,                                                           \
-                                 labelSet,                                                           \
+                                 LabelSetHandle {*labelSet},                                         \
                                  propValues);                                                        \
                                                                                                      \
         if (expressions.size() > 1) {                                                                \
-            const auto scannedMatchingNodes = _mem->alloc<ColumnIDs>();                              \
+            auto* scannedMatchingNodes = _mem->alloc<ColumnIDs>();                              \
             std::vector<ColumnMask*> masks(expressions.size() - 1);                                  \
             for (auto& mask : masks) {                                                               \
                 mask = _mem->alloc<ColumnMask>();                                                    \
@@ -264,11 +265,13 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                 ._op = ColumnOperator::OP_EQUAL,                                                     \
                 ._mask = filterMask,                                                                 \
                 ._lhs = propValues,                                                                  \
-                ._rhs = filterConstVal});                                                            \
+                ._rhs = filterConstVal                                                               \
+            });                                                                                      \
             filterScannedNodes.addOperand(FilterStep::Operand {                                      \
                 ._mask = filterMask,                                                                 \
                 ._src = scannedNodes,                                                                \
-                ._dest = scannedMatchingNodes});                                                     \
+                ._dest = scannedMatchingNodes                                                        \
+            });                                                                                      \
                                                                                                      \
             generateNodePropertyFilterMasks(masks,                                                   \
                                             std::span<const BinExpr* const>(expressions.data() + 1,  \
@@ -281,23 +284,27 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                     ._op = ColumnOperator::OP_AND,                                                   \
                     ._mask = masks[0],                                                               \
                     ._lhs = masks[0],                                                                \
-                    ._rhs = mask});                                                                  \
+                    ._rhs = mask                                                                     \
+                });                                                                                  \
             }                                                                                        \
             filter.addOperand(FilterStep::Operand {                                                  \
                 ._mask = masks[0],                                                                   \
                 ._src = scannedMatchingNodes,                                                        \
-                ._dest = outputNodes});                                                              \
+                ._dest = outputNodes                                                                 \
+            });                                                                                      \
         } else {                                                                                     \
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();                           \
             filter.addExpression(FilterStep::Expression {                                            \
                 ._op = ColumnOperator::OP_EQUAL,                                                     \
                 ._mask = filterMask,                                                                 \
                 ._lhs = propValues,                                                                  \
-                ._rhs = filterConstVal});                                                            \
+                ._rhs = filterConstVal                                                               \
+            });                                                                                      \
             filter.addOperand(FilterStep::Operand {                                                  \
                 ._mask = filterMask,                                                                 \
                 ._src = scannedNodes,                                                                \
-                ._dest = outputNodes});                                                              \
+                ._dest = outputNodes                                                                 \
+            });                                                                                      \
         }                                                                                            \
                                                                                                      \
         break;                                                                                       \
@@ -305,7 +312,7 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
 
 void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* const& outputNodes, const ExprConstraint* exprConstraint) {
     const auto reader = _view.read();
-    const auto scannedNodes = _mem->alloc<ColumnIDs>();
+    auto* scannedNodes = _mem->alloc<ColumnIDs>();
 
     const auto& expressions = exprConstraint->getExpressions();
 
@@ -313,8 +320,14 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* const& output
     ExprConst* rightExpr = static_cast<ExprConst*>(expressions[0]->getRightExpr());
     const std::string& varExprName = leftExpr->getName();
 
-    const PropertyType propType = reader.getPropertyType(varExprName);
-    const auto filterMask = _mem->alloc<ColumnMask>();
+    const auto propTypeRes = reader.getMetadata().propTypes().get(varExprName);
+    if (!propTypeRes) {
+        throw PlannerException("Property type does not exist");
+    }
+
+    const PropertyType propType = propTypeRes.value();
+
+    auto* filterMask = _mem->alloc<ColumnMask>();
 
     switch (propType._valueType) {
         CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(Int64)
@@ -330,7 +343,7 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* const& output
 
 void QueryPlanner::planScanNodesWithPropertyAndLabelConstraints(ColumnIDs* const& outputNodes, const LabelSet* labelSet, const ExprConstraint* exprConstraint) {
     const auto reader = _view.read();
-    const auto scannedNodes = _mem->alloc<ColumnIDs>();
+    auto* scannedNodes = _mem->alloc<ColumnIDs>();
 
     const auto& expressions = exprConstraint->getExpressions();
 
@@ -338,8 +351,13 @@ void QueryPlanner::planScanNodesWithPropertyAndLabelConstraints(ColumnIDs* const
     ExprConst* rightExpr = static_cast<ExprConst*>(expressions[0]->getRightExpr());
     const std::string& varExprName = leftExpr->getName();
 
-    const PropertyType propType = reader.getPropertyType(varExprName);
-    const auto filterMask = _mem->alloc<ColumnMask>();
+    const auto propTypeRes = reader.getMetadata().propTypes().get(varExprName);
+    if (!propTypeRes) {
+        throw PlannerException("Property type does not exist");
+    }
+
+    const PropertyType propType = propTypeRes.value();
+    auto* filterMask = _mem->alloc<ColumnMask>();
 
     switch (propType._valueType) {
         CASE_SCAN_NODES_PROPERTY_AND_LABEL_VALUE_TYPE(Int64)
@@ -377,12 +395,14 @@ void QueryPlanner::planScanNodesWithPropertyAndLabelConstraints(ColumnIDs* const
             ._op = ColumnOperator::OP_EQUAL,                                   \
             ._mask = propValFilterMask,                                        \
             ._lhs = propValues,                                                \
-            ._rhs = filterConstVal});                                          \
+            ._rhs = filterConstVal                                             \
+        });                                                                    \
         filter.addExpression(FilterStep::Expression {                          \
             ._op = ColumnOperator::OP_PROJECT,                                 \
             ._mask = filterMasks[i],                                           \
             ._lhs = indices,                                                   \
-            ._rhs = propValFilterMask});                                       \
+            ._rhs = propValFilterMask                                          \
+        });                                                                    \
                                                                                \
         break;                                                                 \
     }
@@ -393,13 +413,18 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
     const auto reader = _view.read();
 
     for (size_t i = 0; i < filterMasks.size(); i++) {
-        const auto indices = _mem->alloc<ColumnVector<size_t>>();
+        auto* indices = _mem->alloc<ColumnVector<size_t>>();
 
         const VarExpr* leftExpr = static_cast<VarExpr*>(expressions[i]->getLeftExpr());
         ExprConst* rightExpr = static_cast<ExprConst*>(expressions[i]->getRightExpr());
 
         const std::string& varExprName = leftExpr->getName();
-        const PropertyType propType = reader.getPropertyType(varExprName);
+        const auto propTypeRes = reader.getMetadata().propTypes().get(varExprName);
+        if (!propTypeRes) {
+            throw PlannerException("Property type does not exist");
+        }
+
+        const PropertyType propType = propTypeRes.value();
 
         switch (propType._valueType) {
             CASE_GET_FILTERED_PROPERTY_VALUE_TYPE(Node, Int64)
@@ -420,13 +445,18 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
     const auto reader = _view.read();
 
     for (size_t i = 0; i < filterMasks.size(); i++) {
-        const auto indices = _mem->alloc<ColumnVector<size_t>>();
+        auto* indices = _mem->alloc<ColumnVector<size_t>>();
 
         const VarExpr* leftExpr = static_cast<VarExpr*>(expressions[i]->getLeftExpr());
         ExprConst* rightExpr = static_cast<ExprConst*>(expressions[i]->getRightExpr());
 
         const std::string& varExprName = leftExpr->getName();
-        const PropertyType propType = reader.getPropertyType(varExprName);
+        const auto propTypeRes = reader.getMetadata().propTypes().get(varExprName);
+        if (!propTypeRes) {
+            throw PlannerException("Property type does not exist");
+        }
+
+        const PropertyType propType = propTypeRes.value();
 
         switch (propType._valueType) {
             CASE_GET_FILTERED_PROPERTY_VALUE_TYPE(Edge, Int64)
@@ -479,7 +509,7 @@ void QueryPlanner::planScanEdges(const EntityPattern* source,
 
     // Add target node IDs to writer
     EdgeWriteInfo edgeWriteInfo;
-    auto targets = _mem->alloc<ColumnIDs>();
+    auto* targets = _mem->alloc<ColumnIDs>();
     edgeWriteInfo._targetNodes = targets;
 
     const VarExpr* targetVar = target->getVar();
@@ -495,7 +525,7 @@ void QueryPlanner::planScanEdges(const EntityPattern* source,
     if (sourceVar) {
         VarDecl* sourceDecl = sourceVar->getDecl();
         if (sourceDecl->isReturned()) {
-            const auto sources = _mem->alloc<ColumnIDs>();
+            auto* sources = _mem->alloc<ColumnIDs>();
             edgeWriteInfo._sourceNodes = sources;
             _transformData->addColumn(sources, sourceDecl);
         }
@@ -506,7 +536,7 @@ void QueryPlanner::planScanEdges(const EntityPattern* source,
     if (edgeVar) {
         VarDecl* edgeDecl = edgeVar->getDecl();
         if (edgeDecl->isReturned()) {
-            const auto edges = _mem->alloc<ColumnIDs>();
+            auto* edges = _mem->alloc<ColumnIDs>();
             edgeWriteInfo._edges = edges;
             _transformData->addColumn(edges, edgeDecl);
         }
@@ -515,17 +545,17 @@ void QueryPlanner::planScanEdges(const EntityPattern* source,
     if (!sourceTypeConstr && !targetTypeConstr) {
         _pipeline->add<ScanEdgesStep>(edgeWriteInfo);
     } else if (!sourceTypeConstr) {
-        const LabelSet* labelSet = getLabelSet(targetTypeConstr);
-        _pipeline->add<ScanInEdgesByLabelStep>(edgeWriteInfo, labelSet);
+        const LabelSet* labelSet = getOrCreateLabelSet(targetTypeConstr);
+        _pipeline->add<ScanInEdgesByLabelStep>(edgeWriteInfo, LabelSetHandle {*labelSet});
     } else {
-        const LabelSet* labelSet = getLabelSet(sourceTypeConstr);
-        _pipeline->add<ScanOutEdgesByLabelStep>(edgeWriteInfo, labelSet);
+        const LabelSet* labelSet = getOrCreateLabelSet(sourceTypeConstr);
+        _pipeline->add<ScanOutEdgesByLabelStep>(edgeWriteInfo, LabelSetHandle {*labelSet});
     }
 
     _result = targets;
 }
 
-LabelSet* QueryPlanner::getLabelSet(const TypeConstraint* typeConstr) {
+const LabelSet* QueryPlanner::getOrCreateLabelSet(const TypeConstraint* typeConstr) {
     LabelNames labelStrings;
 
     // Collect strings of all label names in typeConstr
@@ -537,28 +567,38 @@ LabelSet* QueryPlanner::getLabelSet(const TypeConstraint* typeConstr) {
     if (labelSetCacheIt != _labelSetCache.end()) {
         return labelSetCacheIt->second;
     }
-    
-    LabelSet* labelSet = buildLabelSet(labelStrings);
+
+    const LabelSet* labelSet = buildLabelSet(labelStrings);
     _labelSetCache[labelStrings] = labelSet;
 
     return labelSet;
 }
 
-LabelSet* QueryPlanner::buildLabelSet(const LabelNames& labelNames) {
-    LabelSet* labelSet = new LabelSet();
+const LabelSet* QueryPlanner::buildLabelSet(const LabelNames& labelNames) {
+    auto labelSet = std::make_unique<LabelSet>();
     for (const std::string* labelName : labelNames) {
         const LabelID labelID = getLabel(*labelName);
+
+        if (!labelID.isValid()) {
+            throw PlannerException("Unsupported node label: " + *labelName);
+        }
+
         labelSet->set(labelID);
     }
 
-    _labelSets.push_back(labelSet);
+    auto* ptr = labelSet.get();
+    _labelSets.push_back(std::move(labelSet));
 
-    return labelSet;
+    return ptr;
 }
 
 LabelID QueryPlanner::getLabel(const std::string& labelName) {
-    GraphMetadata& metadata = _view.metadata();
-    return metadata.labels().getOrCreate(labelName);
+    auto res = _view.metadata().labels().get(labelName);
+    if (!res) {
+        return LabelID {};
+    }
+
+    return res.value();
 }
 
 bool QueryPlanner::planCreateGraph(const CreateGraphCommand* createCmd) {
@@ -569,7 +609,7 @@ bool QueryPlanner::planCreateGraph(const CreateGraphCommand* createCmd) {
 }
 
 bool QueryPlanner::planListGraph(const ListGraphCommand* listCmd) {
-    const auto graphNames = _mem->alloc<ColumnVector<std::string_view>>();
+    auto* graphNames = _mem->alloc<ColumnVector<std::string_view>>();
 
     _pipeline->add<StopStep>();
     _pipeline->add<ListGraphStep>(graphNames);
@@ -583,17 +623,16 @@ void QueryPlanner::getMatchingLabelSets(std::vector<LabelSetID>& labelSets,
                                         const LabelSet* targetLabelSet) {
     labelSets.clear();
 
-    const auto reader = _view.read();
-
-    auto it = reader.matchLabelSetIDs(targetLabelSet);
-    for (; it.isValid(); ++it) {
-        labelSets.emplace_back(*it);
+    for (const auto& [id, labelset] : _view.metadata().labelsets()) {
+        if (labelset->hasAtLeastLabels(*targetLabelSet)) {
+            labelSets.emplace_back(id);
+        }
     }
 }
 
 void QueryPlanner::planExpandEdgeWithNoConstraint(const EntityPattern* edge,
                                                   const EntityPattern* target) {
-    const auto indices = _mem->alloc<ColumnVector<size_t>>();
+    auto* indices = _mem->alloc<ColumnVector<size_t>>();
 
     const ExprConstraint* targetExprConstr = target->getExprConstraint();
     const VarExpr* targetVar = target->getVar();
@@ -611,11 +650,11 @@ void QueryPlanner::planExpandEdgeWithNoConstraint(const EntityPattern* edge,
     _transformData->createStep(indices);
 
     // We always need target node IDs
-    const auto targets = _mem->alloc<ColumnIDs>();
+    auto* targets = _mem->alloc<ColumnIDs>();
     edgeWriteInfo._targetNodes = targets;
 
     if (mustWriteEdges || edgeExprConstr) {
-        const auto edges = _mem->alloc<ColumnIDs>();
+        auto* edges = _mem->alloc<ColumnIDs>();
         edgeWriteInfo._edges = edges;
     }
 
@@ -641,8 +680,8 @@ void QueryPlanner::planExpandEdgeWithNoConstraint(const EntityPattern* edge,
 void QueryPlanner::planExpressionConstraintFilters(const ExprConstraint* edgeExprConstr, const ExprConstraint* targetExprConstr,
                                                    const ColumnIDs* edges, const ColumnIDs* targetNodes, VarDecl* edgeDecl, VarDecl* targetDecl,
                                                    const bool mustWriteEdges, const bool mustWriteTargetNodes) {
-    const auto filteredIndices = _mem->alloc<ColumnVector<size_t>>();
-    auto filteredNodes = _mem->alloc<ColumnIDs>();
+    auto* filteredIndices = _mem->alloc<ColumnVector<size_t>>();
+    auto* filteredNodes = _mem->alloc<ColumnIDs>();
 
     std::vector<std::vector<ColumnMask*>> filterMasks;
 
@@ -676,24 +715,27 @@ void QueryPlanner::planExpressionConstraintFilters(const ExprConstraint* edgeExp
                 ._op = ColumnOperator::OP_AND,
                 ._mask = filterMasks[0][0],
                 ._lhs = filterMasks[0][0],
-                ._rhs = filterMasks[i][j]});
+                ._rhs = filterMasks[i][j],
+            });
         }
     }
 
     filter.addOperand(FilterStep::Operand {
         ._mask = filterMasks[0][0],
         ._src = targetNodes,
-        ._dest = filteredNodes});
+        ._dest = filteredNodes,
+    });
 
     _transformData->createStep(filteredIndices);
 
     // Generate edgeIDs only if the edge is returned by projection
     if (mustWriteEdges) {
-        auto filteredEdges = _mem->alloc<ColumnIDs>();
+        auto* filteredEdges = _mem->alloc<ColumnIDs>();
         filter.addOperand(FilterStep::Operand {
             ._mask = filterMasks[0][0],
             ._src = edges,
-            ._dest = filteredEdges});
+            ._dest = filteredEdges,
+        });
         _transformData->addColumn(filteredEdges, edgeDecl);
     }
     // Add targets to the writeSet
@@ -708,10 +750,10 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
                                                     const EntityPattern* target) {
     const TypeConstraint* edgeTypeConstr = edge->getTypeConstraint();
 
-    const auto indices = _mem->alloc<ColumnVector<size_t>>();
-    const auto targets = _mem->alloc<ColumnIDs>();
-    const auto edges = _mem->alloc<ColumnIDs>();
-    const auto edgeTypeIDs = _mem->alloc<ColumnVector<EdgeTypeID>>();
+    auto* indices = _mem->alloc<ColumnVector<size_t>>();
+    auto* targets = _mem->alloc<ColumnIDs>();
+    auto* edges = _mem->alloc<ColumnIDs>();
+    auto* edgeTypeIDs = _mem->alloc<ColumnVector<EdgeTypeID>>();
 
     _transformData->createStep(indices);
 
@@ -722,7 +764,7 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
     // Search edge type IDs
     const auto& edgeTypeMap = _view.metadata().edgeTypes();
     const auto edgeTypeID = edgeTypeMap.get(edgeTypeName);
-    if (!edgeTypeID.isValid()) {
+    if (!edgeTypeID) {
         _result = targets;
         return;
     }
@@ -737,34 +779,36 @@ void QueryPlanner::planExpandEdgeWithEdgeConstraint(const EntityPattern* edge,
     _pipeline->add<GetOutEdgesStep>(_result, edgeWriteInfo);
 
     // Filter out edges that do not match the edge type ID
-    const auto filterEdgeTypeID = _mem->alloc<ColumnConst<EdgeTypeID>>();
-    filterEdgeTypeID->set(edgeTypeID);
+    auto* filterEdgeTypeID = _mem->alloc<ColumnConst<EdgeTypeID>>();
+    filterEdgeTypeID->set(edgeTypeID.value());
 
-    const auto filterIndices = _mem->alloc<ColumnVector<size_t>>();
+    auto* filterIndices = _mem->alloc<ColumnVector<size_t>>();
     auto& filter = _pipeline->add<FilterStep>(filterIndices).get<FilterStep>();
 
-    const auto filterMask = _mem->alloc<ColumnMask>();
+    auto* filterMask = _mem->alloc<ColumnMask>();
     filter.addExpression(FilterStep::Expression {
         ._op = ColumnOperator::OP_EQUAL,
         ._mask = filterMask,
         ._lhs = edgeTypeIDs,
-        ._rhs = filterEdgeTypeID
+        ._rhs = filterEdgeTypeID,
     });
 
     _transformData->createStep(filterIndices);
 
     // Apply filter to target node IDs
-    const auto filterOutNodes = _mem->alloc<ColumnIDs>();
+    auto* filterOutNodes = _mem->alloc<ColumnIDs>();
     filter.addOperand(FilterStep::Operand {
         ._mask = filterMask,
         ._src = targets,
-        ._dest = filterOutNodes});
+        ._dest = filterOutNodes,
+    });
 
-    const auto filterOutEdges = _mem->alloc<ColumnIDs>();
+    auto* filterOutEdges = _mem->alloc<ColumnIDs>();
     filter.addOperand(FilterStep::Operand {
         ._mask = filterMask,
         ._src = edgeWriteInfo._edges,
-        ._dest = filterOutEdges});
+        ._dest = filterOutEdges,
+    });
 
     const VarExpr* targetVar = target->getVar();
     VarDecl* targetDecl = targetVar ? targetVar->getDecl() : nullptr;
@@ -799,10 +843,10 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     const TypeConstraint* edgeTypeConstr = edge->getTypeConstraint();
     const TypeConstraint* targetTypeConstr = target->getTypeConstraint();
 
-    const auto indices = _mem->alloc<ColumnVector<size_t>>();
-    const auto targets = _mem->alloc<ColumnIDs>();
-    const auto edges = _mem->alloc<ColumnIDs>();
-    const auto edgeTypeIDs = _mem->alloc<ColumnVector<EdgeTypeID>>();
+    auto* indices = _mem->alloc<ColumnVector<size_t>>();
+    auto* targets = _mem->alloc<ColumnIDs>();
+    auto* edges = _mem->alloc<ColumnIDs>();
+    auto* edgeTypeIDs = _mem->alloc<ColumnVector<EdgeTypeID>>();
 
     _transformData->createStep(indices);
 
@@ -813,13 +857,14 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     // Search edge type IDs
     const auto& edgeTypeMap = _view.metadata().edgeTypes();
     const auto edgeTypeID = edgeTypeMap.get(edgeTypeName);
-    if (!edgeTypeID.isValid()) {
+
+    if (!edgeTypeID) {
         _result = targets;
         return;
     }
 
     // Search label set IDs
-    const LabelSet* targetLabelSet = getLabelSet(targetTypeConstr);
+    const LabelSet* targetLabelSet = getOrCreateLabelSet(targetTypeConstr);
     getMatchingLabelSets(_tmpLabelSetIDs, targetLabelSet);
     if (_tmpLabelSetIDs.empty()) {
         _result = targets;
@@ -836,14 +881,14 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     _pipeline->add<GetOutEdgesStep>(_result, edgeWriteInfo);
 
     // Get label set IDs of target nodes
-    const auto nodesLabelSetIDs = _mem->alloc<ColumnVector<LabelSetID>>();
+    auto* nodesLabelSetIDs = _mem->alloc<ColumnVector<LabelSetID>>();
     _pipeline->add<GetLabelSetIDStep>(targets, nodesLabelSetIDs);
 
     // Filter out edges that do not match the edge type ID
-    const auto filterEdgeTypeID = _mem->alloc<ColumnConst<EdgeTypeID>>();
-    filterEdgeTypeID->set(edgeTypeID);
+    auto* filterEdgeTypeID = _mem->alloc<ColumnConst<EdgeTypeID>>();
+    filterEdgeTypeID->set(edgeTypeID.value());
 
-    const auto filterIndices = _mem->alloc<ColumnVector<size_t>>();
+    auto* filterIndices = _mem->alloc<ColumnVector<size_t>>();
     auto& filter = _pipeline->add<FilterStep>(filterIndices).get<FilterStep>();
 
     ColumnMask* filterMaskEdges = _mem->alloc<ColumnMask>();
@@ -851,21 +896,21 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
         ._op = ColumnOperator::OP_EQUAL,
         ._mask = filterMaskEdges,
         ._lhs = edgeTypeIDs,
-        ._rhs = filterEdgeTypeID
+        ._rhs = filterEdgeTypeID,
     });
 
     ColumnMask* filterMaskNodes = nullptr;
     for (LabelSetID labelSetID : _tmpLabelSetIDs) {
-        const auto targetLabelSetID = _mem->alloc<ColumnConst<LabelSetID>>();
+        auto* targetLabelSetID = _mem->alloc<ColumnConst<LabelSetID>>();
         targetLabelSetID->set(labelSetID);
 
-        const auto newMask = _mem->alloc<ColumnMask>();
+        auto* newMask = _mem->alloc<ColumnMask>();
 
         filter.addExpression(FilterStep::Expression {
             ._op = ColumnOperator::OP_EQUAL,
             ._mask = newMask,
             ._lhs = nodesLabelSetIDs,
-            ._rhs = targetLabelSetID
+            ._rhs = targetLabelSetID,
         });
 
         if (filterMaskNodes) {
@@ -873,7 +918,7 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
                 ._op = ColumnOperator::OP_OR,
                 ._mask = newMask,
                 ._lhs = filterMaskNodes,
-                ._rhs = newMask
+                ._rhs = newMask,
             });
         }
 
@@ -881,28 +926,30 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
     }
 
     // Combine filter masks
-    const auto filterMask = _mem->alloc<ColumnMask>();
+    auto* filterMask = _mem->alloc<ColumnMask>();
     filter.addExpression(FilterStep::Expression {
         ._op = ColumnOperator::OP_AND,
         ._mask = filterMask,
         ._lhs = filterMaskEdges,
-        ._rhs = filterMaskNodes
+        ._rhs = filterMaskNodes,
     });
 
     _transformData->createStep(filterIndices);
 
     // Apply filter to target node IDs
-    const auto filterOutNodes = _mem->alloc<ColumnIDs>();
+    auto* filterOutNodes = _mem->alloc<ColumnIDs>();
     filter.addOperand(FilterStep::Operand {
         ._mask = filterMask,
         ._src = targets,
-        ._dest = filterOutNodes});
+        ._dest = filterOutNodes,
+    });
 
-    const auto filterOutEdges = _mem->alloc<ColumnIDs>();
+    auto* filterOutEdges = _mem->alloc<ColumnIDs>();
     filter.addOperand(FilterStep::Operand {
         ._mask = filterMask,
         ._src = edgeWriteInfo._edges,
-        ._dest = filterOutEdges});
+        ._dest = filterOutEdges,
+    });
 
     const VarExpr* targetVar = target->getVar();
     VarDecl* targetDecl = targetVar ? targetVar->getDecl() : nullptr;
@@ -936,12 +983,12 @@ void QueryPlanner::planExpandEdgeWithEdgeAndTargetConstraint(const EntityPattern
 void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
                                                       const EntityPattern* target) {
     const TypeConstraint* targetTypeConstr = target->getTypeConstraint();
-    const auto indices = _mem->alloc<ColumnVector<size_t>>();
-    const auto targets = _mem->alloc<ColumnIDs>();
+    auto* indices = _mem->alloc<ColumnVector<size_t>>();
+    auto* targets = _mem->alloc<ColumnIDs>();
 
     _transformData->createStep(indices);
 
-    const LabelSet* targetLabelSet = getLabelSet(targetTypeConstr);
+    const LabelSet* targetLabelSet = getOrCreateLabelSet(targetTypeConstr);
 
     getMatchingLabelSets(_tmpLabelSetIDs, targetLabelSet);
 
@@ -962,33 +1009,33 @@ void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
     const bool mustWriteEdges = edgeDecl && edgeDecl->isReturned();
 
     if (mustWriteEdges || edgeExprConstr) {
-        const auto edges = _mem->alloc<ColumnIDs>();
+        auto* edges = _mem->alloc<ColumnIDs>();
         edgeWriteInfo._edges = edges;
     }
 
     _pipeline->add<GetOutEdgesStep>(_result, edgeWriteInfo);
 
     // Get labels of target nodes
-    const auto nodesLabelSetIDs = _mem->alloc<ColumnVector<LabelSetID>>();
+    auto* nodesLabelSetIDs = _mem->alloc<ColumnVector<LabelSetID>>();
     _pipeline->add<GetLabelSetIDStep>(targets, nodesLabelSetIDs);
 
     // Create filter to filter target nodes based on target label set
-    const auto filterIndices = _mem->alloc<ColumnVector<size_t>>();
+    auto* filterIndices = _mem->alloc<ColumnVector<size_t>>();
     auto& filter = _pipeline->add<FilterStep>(filterIndices).get<FilterStep>();
 
     // Build filter expression to compute filter for each LabelSetID
     ColumnMask* filterMask {nullptr};
     for (LabelSetID labelSetID : _tmpLabelSetIDs) {
-        const auto targetLabelSetID = _mem->alloc<ColumnConst<LabelSetID>>();
+        auto* targetLabelSetID = _mem->alloc<ColumnConst<LabelSetID>>();
         targetLabelSetID->set(labelSetID);
 
-        const auto newMask = _mem->alloc<ColumnMask>();
+        auto* newMask = _mem->alloc<ColumnMask>();
 
         filter.addExpression(FilterStep::Expression {
             ._op = ColumnOperator::OP_EQUAL,
             ._mask = newMask,
             ._lhs = nodesLabelSetIDs,
-            ._rhs = targetLabelSetID
+            ._rhs = targetLabelSetID,
         });
 
         if (filterMask) {
@@ -996,7 +1043,7 @@ void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
                 ._op = ColumnOperator::OP_OR,
                 ._mask = newMask,
                 ._lhs = filterMask,
-                ._rhs = newMask
+                ._rhs = newMask,
             });
         }
 
@@ -1006,11 +1053,12 @@ void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
     _transformData->createStep(filterIndices);
 
     // Apply filter to target node IDs
-    const auto filterOutNodes = _mem->alloc<ColumnIDs>();
+    auto* filterOutNodes = _mem->alloc<ColumnIDs>();
     filter.addOperand(FilterStep::Operand {
         ._mask = filterMask,
         ._src = targets,
-        ._dest = filterOutNodes});
+        ._dest = filterOutNodes,
+    });
 
     // Apply filter to edge IDs if necessary
     ColumnIDs* outputEdges {nullptr};
@@ -1019,7 +1067,8 @@ void QueryPlanner::planExpandEdgeWithTargetConstraint(const EntityPattern* edge,
         filter.addOperand(FilterStep::Operand {
             ._mask = filterMask,
             ._src = edgeWriteInfo._edges,
-            ._dest = outputEdges});
+            ._dest = outputEdges,
+        });
     }
 
     const ExprConstraint* targetExprConstr = target->getExprConstraint();
@@ -1089,40 +1138,40 @@ void QueryPlanner::planProjection(const MatchCommand* matchCmd) {
     }
 }
 
-#define CASE_PLAN_VALUE_TYPE(Type)                                                 \
-    case ValueType::Type: {                                                        \
-        auto propValues = _mem->alloc<ColumnOptVector<types::Type::Primitive>>();  \
-        if (declKind == DeclKind::NODE_DECL) {                                     \
-            using StepType = GetNodeProperty##Type##Step;                          \
-            _pipeline->add<StepType>(columnIDs,                                    \
-                                     propType,                                     \
-                                     propValues);                                  \
-        } else if (declKind == DeclKind::EDGE_DECL) {                              \
-            using StepType = GetEdgeProperty##Type##Step;                          \
-            _pipeline->add<StepType>(columnIDs,                                    \
-                                     propType,                                     \
-                                     propValues);                                  \
-        } else {                                                                   \
-            throw PlannerException("Unsupported declaration kind for variable \""  \
-                                   + parentDecl->getName() + "\"");                \
-        }                                                                          \
-        _output->addColumn(propValues);                                            \
-    } break;                                                                       \
+#define CASE_PLAN_VALUE_TYPE(Type)                                                \
+    case ValueType::Type: {                                                       \
+        auto propValues = _mem->alloc<ColumnOptVector<types::Type::Primitive>>(); \
+        if (declKind == DeclKind::NODE_DECL) {                                    \
+            using StepType = GetNodeProperty##Type##Step;                         \
+            _pipeline->add<StepType>(columnIDs,                                   \
+                                     propType,                                    \
+                                     propValues);                                 \
+        } else if (declKind == DeclKind::EDGE_DECL) {                             \
+            using StepType = GetEdgeProperty##Type##Step;                         \
+            _pipeline->add<StepType>(columnIDs,                                   \
+                                     propType,                                    \
+                                     propValues);                                 \
+        } else {                                                                  \
+            throw PlannerException("Unsupported declaration kind for variable \"" \
+                                   + parentDecl->getName() + "\"");               \
+        }                                                                         \
+        _output->addColumn(propValues);                                           \
+    } break;
 
 
 void QueryPlanner::planPropertyProjection(ColumnIDs* columnIDs, const VarDecl* parentDecl, const std::string& memberName) {
-    const auto reader = _view.read();
-
     // Get property type information
-    const PropertyType propType = reader.getPropertyType(memberName);
-    if (!propType.isValid()) {
+    const auto propTypeRes = _view.metadata().propTypes().get(memberName);
+    if (!propTypeRes) {
         throw PlannerException("Property type not found for property member \""
                                + memberName + "\"");
     }
 
+    const auto propType = propTypeRes.value();
+
     const DeclKind declKind = parentDecl->getKind();
 
-    switch (propType._valueType) {
+    switch (propTypeRes.value()._valueType) {
         CASE_PLAN_VALUE_TYPE(Int64)
         CASE_PLAN_VALUE_TYPE(UInt64)
         CASE_PLAN_VALUE_TYPE(Double)
@@ -1151,7 +1200,7 @@ bool QueryPlanner::planExplain(const ExplainCommand* explain) {
     // Plan query
     plan(explain->getQuery());
 
-    auto pipeDescr = _mem->alloc<ColumnVector<std::string>>();
+    auto* pipeDescr = _mem->alloc<ColumnVector<std::string>>();
 
     std::string stepDescr;
     for (const auto& step : _pipeline->steps()) {

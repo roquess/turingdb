@@ -6,6 +6,7 @@
 #include "DumpConfig.h"
 #include "GraphDumpHelper.h"
 #include "NodeContainer.h"
+#include "metadata/GraphMetadata.h"
 #include "NodeContainerDumpConstants.h"
 
 namespace db {
@@ -45,7 +46,7 @@ public:
         const uint64_t recordPageCount = it.get<uint64_t>();
         const uint64_t rangePageCount = it.get<uint64_t>();
 
-        NodeContainer* container = new NodeContainer {firstID, nodeCount, metadata};
+        NodeContainer* container = new NodeContainer {firstID, nodeCount};
 
         auto& ranges = container->_ranges;
         auto& nodes = container->_nodes;
@@ -70,7 +71,13 @@ public:
 
             for (size_t j = 0; j < countInPage; j++) {
                 const auto lsetID = it.get<LabelSetID::Type>();
-                auto& r = ranges[lsetID];
+                const auto& lset = metadata.labelsets().getValue(lsetID);
+
+                if (!lset) {
+                    return DumpError::result(DumpErrorType::COULD_NOT_READ_NODES);
+                }
+
+                auto& r = ranges[lset.value()];
                 r._first = it.get<EntityID::Type>();
                 r._count = it.get<uint64_t>();
             }
@@ -96,8 +103,14 @@ public:
 
             // Copy content of page into node records vector
             for (size_t j = 0; j < countInPage; j++) {
-                nodes[j + recordOffset]._labelsetID = it.get<LabelSetID::Type>();
+                const LabelSetID labelsetID = it.get<LabelSetID::Type>();
+                const auto labelset = metadata.labelsets().getValue(labelsetID);
 
+                if (!labelset) {
+                    return DumpError::result(DumpErrorType::COULD_NOT_READ_NODES);
+                }
+
+                nodes[j + recordOffset]._labelset = labelset.value();
             }
 
             recordOffset += countInPage;

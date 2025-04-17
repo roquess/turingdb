@@ -1,6 +1,6 @@
 #pragma once
 
-#include "labels/LabelSetMap.h"
+#include "metadata/LabelSetMap.h"
 #include "GraphDumpHelper.h"
 
 namespace db {
@@ -25,7 +25,7 @@ public:
     static constexpr size_t LABELSET_STRIDE = LabelSet::IntegerSize * LabelSet::IntegerCount;
 
     // Avail space in data page
-    static constexpr size_t PAGE_AVAIL = fs::FilePageWriter::PAGE_SIZE - PAGE_HEADER_STRIDE;
+    static constexpr size_t PAGE_AVAIL = DumpConfig::PAGE_SIZE - PAGE_HEADER_STRIDE;
 
     // Count per page
     static constexpr size_t COUNT_PER_PAGE = PAGE_AVAIL / LABELSET_STRIDE;
@@ -61,7 +61,7 @@ public:
             // Page data
             for (size_t j = 0; j < countInPage; j++) {
                 const auto& labelset = labelsets.getValue(offset);
-                const auto* integers = labelset.data();
+                const auto* integers = labelset->data();
                 for (size_t k = 0; k < LabelSet::IntegerCount; k++) {
                     _writer.writeToCurrentPage(integers[k]);
                 }

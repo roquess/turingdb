@@ -4,7 +4,7 @@
 #include "Graph.h"
 #include "EntityID.h"
 #include "reader/GraphReader.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 #include "writers/GraphWriter.h"
 
 using namespace db;

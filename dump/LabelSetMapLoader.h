@@ -1,6 +1,6 @@
 #pragma once
 
-#include "labels/LabelSetMap.h"
+#include "metadata/LabelSetMap.h"
 #include "FilePageReader.h"
 #include "GraphDumpHelper.h"
 
@@ -76,7 +76,7 @@ public:
                 for (size_t k = 0; k < LabelSet::IntegerCount; k++) {
                     labelsetData[k] = it.get<LabelSet::IntegerType>();
                 }
-                labelsets.create(labelset);
+                labelsets.getOrCreate(labelset);
             }
         }
 

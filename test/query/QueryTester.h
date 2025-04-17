@@ -16,14 +16,15 @@ namespace db {
         EXPECT_EQ(col->getKind(), expectedCol->getKind());            \
         const auto* c = static_cast<const Type*>(col);                \
         const auto* ec = static_cast<const Type*>(expectedCol.get()); \
-        EXPECT_TRUE(c->getRaw() == ec->getRaw());                     \
+        EXPECT_EQ(c->getRaw(), ec->getRaw());                         \
     } break;
 
 class QueryTester {
 public:
     QueryTester(LocalMemory& mem, QueryInterpreter& interp)
         : _mem(mem),
-          _interp(interp) {
+        _interp(interp)
+    {
     }
 
     QueryTester& query(const std::string& query) {

@@ -2,22 +2,28 @@
 
 #include "Graph.h"
 #include "CommitView.h"
+#include "versioning/CommitBuilder.h"
+#include "versioning/DataPartRebaser.h"
+#include "versioning/MetadataRebaser.h"
 
 using namespace db;
 
 VersionController::VersionController()
     : _dataManager(std::make_unique<ArcManager<CommitData>>()),
-      _partManager(std::make_unique<ArcManager<DataPart>>())
+    _partManager(std::make_unique<ArcManager<DataPart>>())
 {
 }
 
-VersionController::~VersionController() = default;
+VersionController::~VersionController() {
+    _commits.clear();
+    _dataManager.reset();
+    _partManager.reset();
+}
 
 void VersionController::createFirstCommit(Graph* graph) {
     auto commit = std::make_unique<Commit>();
     commit->_graph = graph;
     commit->_data = _dataManager->create(commit->hash());
-    commit->_data->_graphMetadata = graph->getMetadata();
 
     auto* ptr = commit.get();
     _offsets.emplace(commit->hash(), _commits.size());
@@ -67,13 +73,24 @@ CommitHash VersionController::getHeadHash() const {
     return head->_hash;
 }
 
-CommitResult<void> VersionController::rebase(Commit& commit) {
+CommitResult<void> VersionController::rebase(CommitBuilder& commitBuilder, JobSystem& jobSystem) {
     std::scoped_lock lock {_mutex};
 
-    auto& history = commit._data->_history;
-    auto& headHistory = _head.load()->_data->_history;
+    Transaction headTransaction = openTransaction();
+    const auto& headData = headTransaction.commitData();
+    const auto& headHistory = headData.history();
+    const auto& headMetadata = headData.metadata();
 
     size_t commitIndex = 0;
+    commitBuilder.buildAllPending(jobSystem);
+
+    MetadataRebaser metadataRebaser;
+    metadataRebaser.rebase(headMetadata, commitBuilder.metadata());
+    auto& commit = commitBuilder._commit;
+
+    size_t partIndex = 0;
+
+    auto& history = commit->_data->_history;
     auto& currentCommits = history._commits;
 
     for (const auto& c : headHistory.commits()) {
@@ -83,7 +100,6 @@ CommitResult<void> VersionController::rebase(Commit& commit) {
         commitIndex++;
     }
 
-    size_t partIndex = 0;
     auto& currentDataparts = history._allDataparts;
 
     for (const auto& p : headHistory.allDataparts()) {
@@ -93,20 +109,33 @@ CommitResult<void> VersionController::rebase(Commit& commit) {
         partIndex++;
     }
 
+    DataPartRebaser partRebaser;
+
+    if (headData.allDataparts().empty()) {
+        return {};
+    }
+
+    const DataPart* prevPart = headData.allDataparts().back().get();
+    for (auto& part : history._commitDataparts) {
+        partRebaser.rebase(metadataRebaser, *prevPart, *part);
+        prevPart = part.get();
+    }
+
     return {};
 }
 
 
-CommitResult<void> VersionController::commit(std::unique_ptr<Commit> commit) {
+CommitResult<void> VersionController::commit(std::unique_ptr<CommitBuilder>& commitBuilder,
+                                             JobSystem& jobSystem) {
     std::scoped_lock lock {_mutex};
 
-    auto* ptr = commit.get();
+    commitBuilder->buildAllPending(jobSystem);
 
-    if (_offsets.contains(commit->hash())) {
+    if (_offsets.contains(commitBuilder->_commit->hash())) {
         return CommitError::result(CommitErrorType::COMMIT_HASH_EXISTS);
     }
 
-    const std::span commitDataparts = commit->_data->_history.allDataparts();
+    const std::span commitDataparts = commitBuilder->_commit->_data->_history.allDataparts();
     if (_head.load()) {
         const std::span headDataparts = _head.load()->_data->_history.allDataparts();
 
@@ -117,9 +146,8 @@ CommitResult<void> VersionController::commit(std::unique_ptr<Commit> commit) {
         }
     }
 
-    _offsets.emplace(commit->hash(), _commits.size());
-    _commits.emplace_back(std::move(commit));
-    _head.store(ptr);
+    auto commit = commitBuilder->build(jobSystem);
+    this->addCommit(std::move(commit));
 
     return {};
 }
@@ -132,3 +160,10 @@ void VersionController::unlock() {
     _mutex.unlock();
 }
 
+void  VersionController::addCommit(std::unique_ptr<Commit> commit) {
+    auto* ptr = commit.get();
+
+    _offsets.emplace(commit->hash(), _commits.size());
+    _commits.emplace_back(std::move(commit));
+    _head.store(ptr);
+}

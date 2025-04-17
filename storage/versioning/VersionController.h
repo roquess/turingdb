@@ -17,6 +17,7 @@ namespace db {
 class Graph;
 class GraphLoader;
 class GraphDumper;
+class JobSystem;
 
 class VersionController {
 public:
@@ -32,8 +33,8 @@ public:
     VersionController& operator=(VersionController&&) = delete;
 
     void createFirstCommit(Graph*);
-    CommitResult<void> rebase(Commit& commit);
-    CommitResult<void> commit(std::unique_ptr<Commit> commit);
+    CommitResult<void> rebase(CommitBuilder& commitBuilder, JobSystem&);
+    CommitResult<void> commit(std::unique_ptr<CommitBuilder>& commitBuilder, JobSystem&);
 
     [[nodiscard]] Transaction openTransaction(CommitHash hash = CommitHash::head()) const;
     [[nodiscard]] WriteTransaction openWriteTransaction(CommitHash hash = CommitHash::head()) const;
@@ -61,6 +62,8 @@ private:
 
     void lock();
     void unlock();
+
+    void addCommit(std::unique_ptr<Commit> commit);
 };
 
 }

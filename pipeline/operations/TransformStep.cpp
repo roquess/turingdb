@@ -72,7 +72,7 @@ inline void copyTransformedChunk(const ColumnVector<size_t>& transform,
 
 TransformData::TransformData(LocalMemory* mem)
     : _mem(mem),
-      _colInfo(1)
+    _colInfo(1)
 {
 }
 
@@ -168,7 +168,6 @@ void TransformStep::execute() {
 #endif
         }
     }
-
 }
 
 void TransformStep::describe(std::string& descr) const {

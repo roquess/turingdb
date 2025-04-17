@@ -3,16 +3,17 @@
 #include <range/v3/view/enumerate.hpp>
 
 #include "Graph.h"
-#include "GraphMetadata.h"
 #include "views/GraphView.h"
 #include "reader/GraphReader.h"
 #include "properties/PropertyManager.h"
+#include "writers/MetadataBuilder.h"
 
 using namespace db;
 
 DataPartBuilder::~DataPartBuilder() = default;
 
-std::unique_ptr<DataPartBuilder> DataPartBuilder::prepare(Graph& graph,
+std::unique_ptr<DataPartBuilder> DataPartBuilder::prepare(MetadataBuilder& metadata,
+                                                          Graph& graph,
                                                           const GraphView& view,
                                                           size_t partIndex) {
     const auto reader = view.read();
@@ -20,26 +21,33 @@ std::unique_ptr<DataPartBuilder> DataPartBuilder::prepare(Graph& graph,
 
     ptr->_view = view;
     ptr->_graph = &graph;
+    ptr->_metadata = &metadata;
     ptr->_firstNodeID = reader.getNodeCount();
     ptr->_firstEdgeID = reader.getEdgeCount();
     ptr->_nextNodeID = ptr->_firstNodeID;
     ptr->_nextEdgeID = ptr->_firstEdgeID;
-    ptr->_nodeProperties = std::make_unique<PropertyManager>(graph.getMetadata());
-    ptr->_edgeProperties = std::make_unique<PropertyManager>(graph.getMetadata());
+    ptr->_nodeProperties = std::make_unique<PropertyManager>();
+    ptr->_edgeProperties = std::make_unique<PropertyManager>();
     ptr->_partIndex = partIndex;
 
     return std::unique_ptr<DataPartBuilder> {ptr};
 }
 
-EntityID DataPartBuilder::addNode(const LabelSetID& labelset) {
-    _coreNodeLabelSets.emplace_back(labelset);
+EntityID DataPartBuilder::addNode(const LabelSetHandle& labelset) {
+    if (!labelset.isStored()) {
+        const LabelSet toBeStored = LabelSet::fromIntegers(labelset.integers());
+        LabelSetHandle stored = _metadata->getOrCreateLabelSet(toBeStored);
+        _coreNodeLabelSets.emplace_back(stored);
+    } else {
+        _coreNodeLabelSets.emplace_back(labelset);
+    }
 
     return _nextNodeID++;
 }
 
 EntityID DataPartBuilder::addNode(const LabelSet& labelset) {
-    const LabelSetID id = _graph->getMetadata()->labelsets().getOrCreate(labelset);
-    _coreNodeLabelSets.emplace_back(id);
+    LabelSetHandle ref = _metadata->getOrCreateLabelSet(labelset);
+    _coreNodeLabelSets.emplace_back(ref);
 
     return _nextNodeID++;
 }
@@ -53,7 +61,7 @@ void DataPartBuilder::addNodeProperty(EntityID nodeID,
     }
 
     if (nodeID < _firstNodeID) {
-        _patchNodeLabelSets.emplace(nodeID, LabelSetID {});
+        _patchNodeLabelSets.emplace(nodeID, LabelSetHandle {});
     }
     _nodeProperties->add<T>(ptID, nodeID, std::move(value));
 }
@@ -67,7 +75,7 @@ void DataPartBuilder::addEdgeProperty(const EdgeRecord& edge,
     }
     if (edge._edgeID < _firstEdgeID) {
         _patchedEdges.emplace(edge._edgeID, &edge);
-        _patchNodeLabelSets.emplace(edge._nodeID, LabelSetID {});
+        _patchNodeLabelSets.emplace(edge._nodeID, LabelSetHandle {});
     }
     _edgeProperties->add<T>(ptID, edge._edgeID, std::move(value));
 }
@@ -82,13 +90,13 @@ const EdgeRecord& DataPartBuilder::addEdge(EdgeTypeID typeID, EntityID srcID, En
 
     if (edge._nodeID < _firstNodeID) {
         _nodeHasPatchEdges.emplace(edge._nodeID);
-        _patchNodeLabelSets.emplace(edge._nodeID, LabelSetID {});
+        _patchNodeLabelSets.emplace(edge._nodeID, LabelSetHandle {});
         _outPatchEdgeCount += 1;
     }
 
     if (edge._otherID < _firstNodeID) {
         _nodeHasPatchEdges.emplace(edge._otherID);
-        _patchNodeLabelSets.emplace(edge._otherID, LabelSetID {});
+        _patchNodeLabelSets.emplace(edge._otherID, LabelSetHandle {});
         _inPatchEdgeCount += 1;
     }
 

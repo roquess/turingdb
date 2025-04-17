@@ -6,10 +6,10 @@ set(storage_sources
         NodeContainer.cpp
         EdgeContainer.cpp
 
-        types/EdgeTypeMap.cpp
-        types/PropertyTypeMap.cpp
-
-        labels/LabelMap.cpp
+        metadata/EdgeTypeMap.cpp
+        metadata/PropertyTypeMap.cpp
+        metadata/LabelMap.cpp
+        metadata/LabelSetMap.cpp
 
         views/GraphView.cpp
         views/NodeEdgeView.cpp
@@ -40,6 +40,7 @@ set(storage_sources
 
         writers/DataPartBuilder.cpp
         writers/GraphWriter.cpp
+        writers/MetadataBuilder.cpp
 
         versioning/CommitResult.cpp
         versioning/VersionController.cpp
@@ -48,6 +49,8 @@ set(storage_sources
         versioning/Commit.cpp
         versioning/CommitView.cpp
         versioning/CommitBuilder.cpp
+        versioning/MetadataRebaser.cpp
+        versioning/DataPartRebaser.cpp
         versioning/Transaction.cpp
         versioning/CommitHistory.cpp
 

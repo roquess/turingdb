@@ -1,7 +1,7 @@
 #pragma once
 
 #include "EntityID.h"
-#include "types/PropertyType.h"
+#include "metadata/PropertyType.h"
 #include "PropertyView.h"
 #include "Panic.h"
 

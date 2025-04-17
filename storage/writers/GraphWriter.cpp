@@ -4,13 +4,13 @@
 #include "JobSystem.h"
 #include "versioning/CommitBuilder.h"
 #include "DataPartBuilder.h"
-#include "reader/GraphReader.h"
+#include "writers/MetadataBuilder.h"
 
 using namespace db;
 
 GraphWriter::GraphWriter(Graph* graph)
     : _graph(graph),
-      _jobSystem(JobSystem::create())
+    _jobSystem(JobSystem::create())
 {
 
     if (_graph) {
@@ -28,7 +28,7 @@ void GraphWriter::commit() {
         return;
     }
 
-    _graph->commit(std::move(_commitBuilder), *_jobSystem);
+    _graph->rebaseAndCommit(std::move(_commitBuilder), *_jobSystem);
     _tx = _graph->openWriteTransaction();
     _commitBuilder = _tx.prepareCommit();
     _dataPartBuilder = &_commitBuilder->newBuilder();
@@ -39,20 +39,15 @@ EntityID GraphWriter::addNode(std::initializer_list<std::string_view> labels) {
         return {};
     }
 
-    auto reader = _tx.readGraph();
-
-    auto& metadata = reader.getMetadata();
-    auto& labelMap = metadata.labels();
+    auto& metadata = _commitBuilder->metadata();
 
     LabelSet labelset;
     for (auto label : labels) {
-        const LabelID id = labelMap.getOrCreate(std::string {label});
+        const LabelID id = metadata.getOrCreateLabel(std::string {label});
         labelset.set(id);
     }
 
-    const LabelSetID labelsetID = metadata.labelsets().getOrCreate(labelset);
-
-    return _dataPartBuilder->addNode(labelsetID);
+    return _dataPartBuilder->addNode(labelset);
 }
 
 EntityID GraphWriter::addNode(std::initializer_list<LabelID> labels) {
@@ -60,18 +55,12 @@ EntityID GraphWriter::addNode(std::initializer_list<LabelID> labels) {
         return {};
     }
 
-    auto reader = _tx.readGraph();
-
-    auto& metadata = reader.getMetadata();
-
     LabelSet labelset;
     for (auto label : labels) {
         labelset.set(label);
     }
 
-    const LabelSetID labelsetID = metadata.labelsets().getOrCreate(labelset);
-
-    return _dataPartBuilder->addNode(labelsetID);
+    return _dataPartBuilder->addNode(labelset);
 }
 
 EntityID GraphWriter::addNode(const LabelSet& labelset) {
@@ -79,20 +68,15 @@ EntityID GraphWriter::addNode(const LabelSet& labelset) {
         return {};
     }
 
-    auto reader = _tx.readGraph();
-    auto& metadata = reader.getMetadata();
-
-    const LabelSetID labelsetID = metadata.labelsets().getOrCreate(labelset);
-
-    return _dataPartBuilder->addNode(labelsetID);
+    return _dataPartBuilder->addNode(labelset);
 }
 
-EntityID GraphWriter::addNode(LabelSetID labelsetID) {
+EntityID GraphWriter::addNode(const LabelSetHandle& labelset) {
     if (!_dataPartBuilder) {
         return {};
     }
 
-    return _dataPartBuilder->addNode(labelsetID);
+    return _dataPartBuilder->addNode(labelset);
 }
 
 EdgeRecord GraphWriter::addEdge(std::string_view edgeType, EntityID src, EntityID tgt) {
@@ -100,10 +84,9 @@ EdgeRecord GraphWriter::addEdge(std::string_view edgeType, EntityID src, EntityI
         return {};
     }
 
-    auto reader = _tx.readGraph();
-    auto& metadata = reader.getMetadata();
+    auto& metadata = _commitBuilder->metadata();
 
-    const EdgeTypeID edgeTypeID = metadata.edgeTypes().getOrCreate(std::string {edgeType});
+    const EdgeTypeID edgeTypeID = metadata.getOrCreateEdgeType(std::string {edgeType});
 
     return _dataPartBuilder->addEdge(edgeTypeID, src, tgt);
 }
@@ -122,9 +105,8 @@ void GraphWriter::addNodeProperty(EntityID nodeID, std::string_view propertyType
         return;
     }
 
-    auto reader = _tx.readGraph();
-    auto& metadata = reader.getMetadata();
-    const PropertyType propertyType = metadata.propTypes().getOrCreate(std::string {propertyTypeName}, T::_valueType);
+    auto& metadata = _commitBuilder->metadata();
+    const PropertyType propertyType = metadata.getOrCreatePropertyType(std::string {propertyTypeName}, T::_valueType);
 
     _dataPartBuilder->addNodeProperty<T>(nodeID, propertyType._id, std::move(value));
 }
@@ -144,9 +126,8 @@ void GraphWriter::addEdgeProperty(const EdgeRecord& edge, std::string_view prope
         return;
     }
 
-    auto reader = _tx.readGraph();
-    auto& metadata = reader.getMetadata();
-    const PropertyType propertyType = metadata.propTypes().getOrCreate(std::string {propertyTypeName}, T::_valueType);
+    auto& metadata = _commitBuilder->metadata();
+    const PropertyType propertyType = metadata.getOrCreatePropertyType(std::string {propertyTypeName}, T::_valueType);
 
     _dataPartBuilder->addEdgeProperty<T>(edge, propertyType._id, std::move(value));
 }
