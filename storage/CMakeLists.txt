@@ -43,6 +43,7 @@ set(storage_sources
         writers/MetadataBuilder.cpp
 
         versioning/CommitResult.cpp
+        versioning/ChangeResult.cpp
         versioning/VersionController.cpp
         versioning/CommitHash.cpp
         versioning/CommitData.cpp

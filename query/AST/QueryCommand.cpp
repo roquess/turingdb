@@ -2,6 +2,7 @@
 
 #include "ASTContext.h"
 #include "DeclContext.h"
+#include "ChangeCommand.h"
 
 using namespace db;
 
@@ -90,3 +91,17 @@ HistoryCommand* HistoryCommand::create(ASTContext* ctxt) {
     cmd->registerCmd(ctxt);
     return cmd;
 }
+
+// ChangeCommand
+
+ChangeCommand::ChangeCommand(ChangeOpType type)
+    : _type(type)
+{
+}
+
+ChangeCommand* ChangeCommand::create(ASTContext* ctxt, ChangeOpType type) {
+    ChangeCommand* cmd = new ChangeCommand(type);
+    cmd->registerCmd(ctxt);
+    return cmd;
+}
+

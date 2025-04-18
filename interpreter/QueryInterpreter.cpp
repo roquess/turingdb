@@ -68,7 +68,7 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
     }
 
     // Execute
-    ExecutionContext execCtxt(_sysMan, view);
+    ExecutionContext execCtxt(_sysMan, view, graphName, hash);
     try {
         _executor->run(&execCtxt, planner.getPipeline());
     } catch (const PipelineException& e) {

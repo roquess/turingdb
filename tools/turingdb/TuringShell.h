@@ -40,6 +40,7 @@ private:
 
     void processLine(std::string& line);
     std::string composePrompt();
+    void checkShellContext();
 };
 
 }

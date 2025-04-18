@@ -2,6 +2,7 @@
 
 #include <variant>
 
+#include "ChangeOpType.h"
 #include "PipelineOpcode.h"
 
 #include "operations/ScanNodesStep.h"
@@ -25,6 +26,7 @@
 #include "operations/GetPropertyStep.h"
 #include "operations/GetFilteredPropertyStep.h"
 #include "operations/HistoryStep.h"
+#include "operations/ChangeStep.h"
 
 #include "FastGet.h"
 
@@ -104,6 +106,7 @@ public:
     PipelineStep(StopStep::Tag);
     PipelineStep(EndStep::Tag);
     PipelineStep(HistoryStep::Tag, ColumnVector<std::string>*);
+    PipelineStep(ChangeStep::Tag, ChangeOpType, ColumnVector<const CommitBuilder*>*);
     PipelineStep(LoadGraphStep::Tag, const std::string& graphName);
 
     PROPERTY_STEPS(Int64)
@@ -176,7 +179,8 @@ private:
                  GetFilteredEdgePropertyDoubleStep,
                  GetFilteredEdgePropertyStringStep,
                  GetFilteredEdgePropertyBoolStep,
-                 HistoryStep> _impl;
+                 HistoryStep,
+                 ChangeStep> _impl;
 };
 
 }

@@ -12,6 +12,7 @@
 {
 
 #include <string>
+#include "ChangeOpType.h"
 
 namespace db {
 class YScanner;
@@ -41,6 +42,7 @@ class ReturnProjection;
 
 #include "ASTContext.h"
 #include "QueryCommand.h"
+#include "ChangeCommand.h"
 #include "ReturnField.h"
 #include "MatchTarget.h"
 #include "PathPattern.h"
@@ -89,6 +91,10 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token LOAD
 %token EXPLAIN
 %token HISTORY
+%token CHANGE
+%token NEW
+%token SUBMIT
+%token DELETE
 
 // Operators
 %token PLUS
@@ -140,6 +146,10 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 
 %type<db::QueryCommand*> history_cmd
 
+%type<db::QueryCommand*> change_cmd
+
+%type <db::ChangeOpType> change_subcmd
+
 %start query_unit
 
 %%
@@ -154,6 +164,7 @@ cmd: match_cmd { ctxt->setRoot($1); }
    | load_graph_cmd { ctxt->setRoot($1); }
    | explain_cmd { ctxt->setRoot($1); }
    | history_cmd { ctxt->setRoot($1); }
+   | change_cmd { ctxt->setRoot($1); }
    ;
 
 match_cmd: MATCH match_target RETURN return_fields {
@@ -344,6 +355,19 @@ history_cmd: HISTORY {
                             $$ = history;
                          }
            ;
+
+// CHANGE
+change_subcmd: NEW { $$ = ChangeOpType::NEW; }
+             | SUBMIT { $$ = ChangeOpType::SUBMIT; }
+             | DELETE { $$ = ChangeOpType::DELETE; }
+             | LIST { $$ = ChangeOpType::LIST; }
+             ;
+
+change_cmd: CHANGE change_subcmd {
+                                    auto change = ChangeCommand::create(ctxt, $2);
+                                    $$ = change;
+                                 }
+          ;
 
 %%
 

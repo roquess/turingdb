@@ -21,7 +21,8 @@ public:
         LIST_GRAPH_COMMAND,
         LOAD_GRAPH_COMMAND,
         EXPLAIN_COMMAND,
-        HISTORY_COMMAND
+        HISTORY_COMMAND,
+        CHANGE_COMMAND
     };
 
     virtual Kind getKind() const = 0;

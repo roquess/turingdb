@@ -26,10 +26,13 @@ using namespace db;
 "load"|"LOAD" { return YParser::make_LOAD(); }
 "explain"|"EXPLAIN" { return YParser::make_EXPLAIN(); }
 "history"|"HISTORY" { return YParser::make_HISTORY(); }
-
+"change"|"CHANGE" { return YParser::make_CHANGE(); }
 "or"|"OR" { return YParser::make_OR(); }
 "and"|"AND" { return YParser::make_AND(); }
 "like"|"LIKE" { return YParser::make_LIKE(); }
+"new"|"NEW" { return YParser::make_NEW(); }
+"submit"|"SUBMIT" { return YParser::make_SUBMIT(); }
+"delete"|"DELETE" { return YParser::make_DELETE(); }
 
 "." { return YParser::make_POINT(); }
 "," { return YParser::make_COMMA(); }

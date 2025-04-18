@@ -1,5 +1,6 @@
 set(system_sources
     GraphLoadStatus.cpp
+    ChangeManager.cpp
     SystemManager.cpp)
 
 add_library(turing_db_system_s STATIC ${system_sources})

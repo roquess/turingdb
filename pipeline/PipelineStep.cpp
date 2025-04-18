@@ -180,6 +180,12 @@ PipelineStep::PipelineStep(HistoryStep::Tag,
 {
 }
 
+PipelineStep::PipelineStep(ChangeStep::Tag, ChangeOpType type, ColumnVector<const CommitBuilder*>* changes)
+    : _opcode(PipelineOpcode::CHANGE),
+    _impl(std::in_place_type<ChangeStep>, type, changes)
+{
+}
+
 PipelineStep::PipelineStep(LoadGraphStep::Tag, const std::string& graphName)
     : _opcode(PipelineOpcode::LOAD_GRAPH),
     _impl(std::in_place_type<LoadGraphStep>, graphName)

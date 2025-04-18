@@ -66,6 +66,7 @@ bool QueryAnalyzer::analyze(QueryCommand* cmd) {
         break;
 
         case QueryCommand::Kind::HISTORY_COMMAND:
+        case QueryCommand::Kind::CHANGE_COMMAND:
             return true;
         break;
 

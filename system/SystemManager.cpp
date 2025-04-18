@@ -4,6 +4,7 @@
 #include <mutex>
 #include <spdlog/spdlog.h>
 
+#include "ChangeManager.h"
 #include "Graph.h"
 #include "Neo4j/Neo4JParserConfig.h"
 #include "Neo4jImporter.h"
@@ -16,7 +17,9 @@
 
 using namespace db;
 
-SystemManager::SystemManager() {
+SystemManager::SystemManager()
+    : _changes(std::make_unique<ChangeManager>())
+{
     const char* home = std::getenv("HOME");
     if (!home) {
         panic("HOME environment variable not set");
@@ -246,13 +249,12 @@ BasicResult<Transaction, std::string_view> SystemManager::openTransaction(const 
     return tr;
 }
 
-
-BasicResult<CommitHash, std::string_view> SystemManager::newChange(const std::string& graphName) {
+ChangeResult<CommitHash> SystemManager::newChange(const std::string& graphName) {
     std::shared_lock graphGuard(_graphsLock);
 
     const auto it = _graphs.find(graphName);
     if (it == _graphs.end()) {
-        return BadResult<std::string_view> {"Graph does not exist"};
+        return ChangeError::result(ChangeErrorType::GRAPH_NOT_FOUND);
     }
 
     const auto* graph = it->second.get();
@@ -260,40 +262,5 @@ BasicResult<CommitHash, std::string_view> SystemManager::newChange(const std::st
     auto tx = graph->openWriteTransaction();
     auto builder = tx.prepareCommit();
 
-    std::unique_lock guard(_changesLock);
-    const auto hash = builder->hash();
-    _changes.emplace(hash, std::move(builder));
-
-    return hash;
-}
-
-BasicResult<CommitBuilder*, std::string_view> SystemManager::getChange(CommitHash changeHash) {
-    std::shared_lock guard(_changesLock);
-
-    const auto it = _changes.find(changeHash);
-    if (it == _changes.end()) {
-        return BadResult<std::string_view> {"Change does not exist"};
-    }
-
-    return it->second.get();
-}
-
-bool SystemManager::acceptChange(CommitHash changeHash) {
-    std::unique_lock guard(_changesLock);
-
-    const auto it = _changes.find(changeHash);
-    if (it == _changes.end()) {
-        return false;
-    }
-
-    std::unique_ptr<CommitBuilder> builder = std::move(it->second);
-    _changes.erase(it);
-
-    auto jobsystem = JobSystem::create();
-
-    if (!builder->rebaseAndCommit(*jobsystem)) {
-        return false;
-    }
-
-    return true;
+    return _changes->storeChange(std::move(builder));
 }

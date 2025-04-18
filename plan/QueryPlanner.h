@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "ChangeCommand.h"
 #include "ExprConstraint.h"
 #include "QueryCommand.h"
 #include "columns/ColumnIDs.h"
@@ -124,5 +125,6 @@ private:
     void planOutputLambda();
     bool planExplain(const ExplainCommand* explain);
     bool planHistory(const HistoryCommand* history);
+    bool planChange(const ChangeCommand* cmd);
 };
 }
