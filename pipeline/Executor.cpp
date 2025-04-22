@@ -76,6 +76,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _activateTbl[(uint64_t)PipelineOpcode::HISTORY] = ACTIVATE_PTR(HistoryStep);
         _activateTbl[(uint64_t)PipelineOpcode::CHANGE] = ACTIVATE_PTR(ChangeStep);
         _activateTbl[(uint64_t)PipelineOpcode::CREATE_NODE] = ACTIVATE_PTR(CreateNodeStep);
+        _activateTbl[(uint64_t)PipelineOpcode::CREATE_EDGE] = ACTIVATE_PTR(CreateEdgeStep);
         _activateTbl[(uint64_t)PipelineOpcode::END] = ACTIVATE_END_PTR();
 
         // RETURN jump table
@@ -127,6 +128,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _returnTbl[(uint64_t)PipelineOpcode::HISTORY] = RETURN_PTR(HistoryStep);
         _returnTbl[(uint64_t)PipelineOpcode::CHANGE] = RETURN_PTR(ChangeStep);
         _returnTbl[(uint64_t)PipelineOpcode::CREATE_NODE] = RETURN_PTR(CreateNodeStep);
+        _returnTbl[(uint64_t)PipelineOpcode::CREATE_EDGE] = RETURN_PTR(CreateEdgeStep);
         _returnTbl[(uint64_t)PipelineOpcode::END] = GOTOPTR(StopStep);
 
         checkJumpTables();
@@ -218,6 +220,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     ACTIVATE_STEP(HistoryStep)
     ACTIVATE_STEP(ChangeStep)
     ACTIVATE_STEP(CreateNodeStep)
+    ACTIVATE_STEP(CreateEdgeStep)
     ACTIVATE_END()
 
     // RETURN actions
@@ -268,6 +271,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     RETURN_STEP(HistoryStep)
     RETURN_STEP(ChangeStep)
     RETURN_STEP(CreateNodeStep)
+    RETURN_STEP(CreateEdgeStep)
 
 // Exit execution
 ExecutorExit:

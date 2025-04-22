@@ -1,13 +1,13 @@
-#include "CreateNodeStep.h"
+#include "CreateEdgeStep.h"
 #include "ChangeManager.h"
 #include "Expr.h"
 #include "ExprConstraint.h"
 #include "PathPattern.h"
 #include "SystemManager.h"
 #include "TypeConstraint.h"
+#include "CreateNodeStep.h"
 #include "PipelineException.h"
 #include "VarDecl.h"
-#include "metadata/LabelSet.h"
 #include "versioning/Transaction.h"
 #include "versioning/CommitBuilder.h"
 #include "writers/DataPartBuilder.h"
@@ -15,14 +15,18 @@
 
 using namespace db;
 
-CreateNodeStep::CreateNodeStep(const EntityPattern* data)
-    : _data(data) {
+CreateEdgeStep::CreateEdgeStep(const EntityPattern* src,
+                               const EntityPattern* edge,
+                               const EntityPattern* tgt)
+    : _src(src),
+      _edge(edge),
+      _tgt(tgt) {
 }
 
-CreateNodeStep::~CreateNodeStep() {
+CreateEdgeStep::~CreateEdgeStep() {
 }
 
-void CreateNodeStep::prepare(ExecutionContext* ctxt) {
+void CreateEdgeStep::prepare(ExecutionContext* ctxt) {
     auto changeRes = ctxt->getSystemManager()->getChangeManager().getChange(ctxt->getCommitHash());
     if (!changeRes) {
         throw PipelineException("No active change matches the requested hash");
@@ -36,36 +40,30 @@ void CreateNodeStep::prepare(ExecutionContext* ctxt) {
     _builder = &change.getCurrentBuilder();
 }
 
-void CreateNodeStep::execute() {
-    fmt::print("Creating node\n");
-    createNode(_builder, _data);
-}
+void CreateEdgeStep::execute() {
+    auto& metadata = _builder->getMetadata();
 
-void CreateNodeStep::describe(std::string& descr) const {
-    descr.clear();
-    descr += "CreateNodeStep";
-}
+    const auto* srcID = static_cast<ColumnID*>(_src->getVar()->getDecl()->getColumn());
+    auto* edgeID = static_cast<ColumnID*>(_edge->getVar()->getDecl()->getColumn());
+    auto* tgtID = static_cast<ColumnID*>(_tgt->getVar()->getDecl()->getColumn());
 
-void CreateNodeStep::createNode(DataPartBuilder* builder, const EntityPattern* data) {
-    auto& metadata = builder->getMetadata();
-
-    const TypeConstraint* type = data->getTypeConstraint();
-    const ExprConstraint* expr = data->getExprConstraint();
-    auto* col = data->getVar()->getDecl()->getColumn();
-
-    LabelSet labelSet;
-    if (type) {
-        for (const auto& name : type->getTypeNames()) {
-            labelSet.set(metadata.getOrCreateLabel(name->getName()));
-        }
+    if (!tgtID->getRaw().isValid()) {
+        CreateNodeStep::createNode(_builder, _tgt);
     }
 
-    if (labelSet.empty()) {
-        throw PipelineException("Nodes must have at least one label");
+
+    const TypeConstraint* type = _edge->getTypeConstraint();
+    const ExprConstraint* expr = _edge->getExprConstraint();
+
+    if (!type) {
+        throw PipelineException("Edges must have a type constraint");
     }
 
-    auto nodeID = builder->addNode(labelSet);
-    static_cast<ColumnID*>(col)->set(nodeID);
+    const std::string& edgeTypeName = type->getTypeNames().front()->getName();
+
+    const EdgeTypeID edgeTypeID = metadata.getOrCreateEdgeType(edgeTypeName);
+    const auto& edge = _builder->addEdge(edgeTypeID, srcID->getRaw(), tgtID->getRaw());
+    edgeID->set(edge._edgeID);
 
     if (!expr) {
         return;
@@ -85,27 +83,27 @@ void CreateNodeStep::createNode(DataPartBuilder* builder, const EntityPattern* d
         switch (valueType) {
             case ValueType::Int64: {
                 const auto* casted = static_cast<const Int64ExprConst*>(right);
-                builder->addNodeProperty<types::Int64>(nodeID, propType._id, casted->getVal());
+                _builder->addEdgeProperty<types::Int64>(edge, propType._id, casted->getVal());
                 break;
             }
             case ValueType::UInt64: {
                 const auto* casted = static_cast<const UInt64ExprConst*>(right);
-                builder->addNodeProperty<types::UInt64>(nodeID, propType._id, casted->getVal());
+                _builder->addEdgeProperty<types::UInt64>(edge, propType._id, casted->getVal());
                 break;
             }
             case ValueType::Double: {
                 const auto* casted = static_cast<const DoubleExprConst*>(right);
-                builder->addNodeProperty<types::Double>(nodeID, propType._id, casted->getVal());
+                _builder->addEdgeProperty<types::Double>(edge, propType._id, casted->getVal());
                 break;
             }
             case ValueType::String: {
                 const auto* casted = static_cast<const StringExprConst*>(right);
-                builder->addNodeProperty<types::String>(nodeID, propType._id, casted->getVal());
+                _builder->addEdgeProperty<types::String>(edge, propType._id, casted->getVal());
                 break;
             }
             case ValueType::Bool: {
                 const auto* casted = static_cast<const BoolExprConst*>(right);
-                builder->addNodeProperty<types::Bool>(nodeID, propType._id, casted->getVal());
+                _builder->addEdgeProperty<types::Bool>(edge, propType._id, casted->getVal());
                 break;
             }
             default: {
@@ -115,3 +113,7 @@ void CreateNodeStep::createNode(DataPartBuilder* builder, const EntityPattern* d
     }
 }
 
+void CreateEdgeStep::describe(std::string& descr) const {
+    descr.clear();
+    descr += "CreateEdgeStep";
+}

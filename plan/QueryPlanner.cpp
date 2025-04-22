@@ -122,7 +122,6 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
     _pipeline->add<StopStep>();
 
     for (const auto& target : targets) {
-        spdlog::info("Treating target");
         const PathPattern* path = target->getPattern();
         std::span pathElements {path->elements()};
 
@@ -131,16 +130,41 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
             return false;
         }
 
-        // Create first node
-        _pipeline->add<CreateNodeStep>(pathElements[0]);
+        auto* src = pathElements[0];
+        auto* srcDcl = src->getVar()->getDecl();
 
-        // for (auto step : pathElements | rv::chunk(3)) {
-        //     // Create the target + the edge (the source is already created)
-        //     //const EntityPattern* source = step[0];
-        //     //const EntityPattern* edge = step[0];
-        //     //const EntityPattern* target = step[1];
-        //     //_pipeline->add<CreateEdgeStep>(source, edge, target);
-        // }
+        if (!srcDcl->getColumn()) {
+            auto* nodeID = _mem->alloc<ColumnID>();
+            srcDcl->setColumn(nodeID);
+
+            // Create first node
+            _pipeline->add<CreateNodeStep>(src);
+        }
+
+        if (pathElements.size() == 1) {
+            continue;
+        }
+
+        for (auto step : pathElements | rv::chunk(3)) {
+            // Create the target + the edge (the source is already created)
+            const auto* src = step[0];
+            const auto* edge = step[1];
+            const auto* tgt = step[2];
+            auto* edgeDecl = edge->getVar()->getDecl();
+            auto* tgtDecl = tgt->getVar()->getDecl();
+
+            auto* edgeID = _mem->alloc<ColumnID>();
+            edgeDecl->setColumn(edgeID);
+
+            if (!tgtDecl->getColumn()) {
+                auto* tgtID = _mem->alloc<ColumnID>();
+                tgtID->set(EntityID {});
+
+                tgtDecl->setColumn(tgtID);
+            }
+
+            _pipeline->add<CreateEdgeStep>(src, edge, tgt);
+        }
     }
 
     // Add END step

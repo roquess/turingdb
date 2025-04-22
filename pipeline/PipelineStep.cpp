@@ -198,6 +198,15 @@ PipelineStep::PipelineStep(CreateNodeStep::Tag, const EntityPattern* data)
 {
 }
 
+PipelineStep::PipelineStep(CreateEdgeStep::Tag,
+                           const EntityPattern* src,
+                           const EntityPattern* edge,
+                           const EntityPattern* tgt)
+    : _opcode(PipelineOpcode::CREATE_EDGE),
+    _impl(std::in_place_type<CreateEdgeStep>, src, edge, tgt)
+{
+}
+
 SCAN_NODE_PROPERTIES_IMPL(SCAN_NODE_PROPERTY_INT64, Int64)
 SCAN_NODE_PROPERTIES_IMPL(SCAN_NODE_PROPERTY_UINT64, UInt64)
 SCAN_NODE_PROPERTIES_IMPL(SCAN_NODE_PROPERTY_DOUBLE, Double)

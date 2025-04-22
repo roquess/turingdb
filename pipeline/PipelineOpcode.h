@@ -53,6 +53,7 @@ enum class PipelineOpcode : uint64_t {
     HISTORY,
     CHANGE,
     CREATE_NODE,
+    CREATE_EDGE,
     END,
     MAX
 };

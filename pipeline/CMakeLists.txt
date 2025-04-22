@@ -18,6 +18,7 @@ set(pipeline_sources
         operations/HistoryStep.cpp
         operations/ChangeStep.cpp
         operations/CreateNodeStep.cpp
+        operations/CreateEdgeStep.cpp
         
         PipelineStep.cpp
         Pipeline.cpp

@@ -183,8 +183,6 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
             return false;
         }
 
-        fmt::print("Will create node\n");
-
         if (elements.size() >= 2) {
             bioassert(elements.size() >= 3);
             for (auto triple : elements | rv::drop(1) | rv::chunk(2)) {
@@ -195,12 +193,10 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
                 target->setKind(DeclKind::NODE_DECL);
 
                 if (!analyzeEntityPattern(declContext, edge)) {
-                    fmt::print("Will create edge\n");
                     return false;
                 }
 
                 if (!analyzeEntityPattern(declContext, target)) {
-                    fmt::print("Will create node\n");
                     return false;
                 }
             }
@@ -221,7 +217,8 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
     // Create the variable declaration in the scope of the command
     VarDecl* decl = VarDecl::create(_ctxt, declContext, var->getName(), entity->getKind());
     if (!decl) {
-        return false;
+        // decl already exists from prev targets
+        decl = declContext->getDecl(var->getName());
     }
 
     if (auto* exprConstraint = entity->getExprConstraint()) {
@@ -275,3 +272,5 @@ bool QueryAnalyzer::analyzeLoadGraph(LoadGraphCommand* cmd) {
 
     return true;
 }
+
+// create (n:Person,Founder { name: "Remy" })-[e:KNOWS_WELL { name: "Remy -> Adam" }]-(m:Person,Founder { name: "Adam"}), (p:Person {name: "Maxime"})
