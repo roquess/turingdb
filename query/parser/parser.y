@@ -126,7 +126,9 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %type<db::ReturnProjection*> return_fields
 %type<db::ReturnField*> return_field
 %type<db::MatchTarget*> match_target
+%type<db::PathPattern*> create_path_pattern
 %type<db::PathPattern*> path_pattern
+%type<db::EntityPattern*> create_node_pattern
 %type<db::EntityPattern*> node_pattern
 %type<db::EntityPattern*> edge_pattern
 %type<db::EntityPattern*> entity_pattern
@@ -181,7 +183,7 @@ match_cmd: MATCH match_target RETURN return_fields {
 create_targets: create_targets COMMA create_target {}
               | create_target {};
 
-create_target: path_pattern { ctxt->addCreateTarget(new CreateTarget($1)); }
+create_target: create_path_pattern { ctxt->addCreateTarget(new CreateTarget($1)); }
 
 create_cmd: CREATE create_targets { $$ = CreateCommand::create(ctxt); } ;
 
@@ -220,6 +222,27 @@ match_target: path_pattern {
                           }
            ;
 
+create_path_pattern: create_node_pattern
+                   {
+                       auto pattern = PathPattern::create(ctxt);
+                       pattern->addElement($1);
+                       $$ = pattern;
+                   }
+                   | create_path_pattern MINUS MINUS create_node_pattern
+                   {
+                       auto edge = EntityPattern::create(ctxt, nullptr, nullptr, nullptr);
+                       $1->addElement(edge);
+                       $1->addElement($4);
+                       $$ = $1;
+                   }
+                   | create_path_pattern MINUS edge_pattern MINUS create_node_pattern 
+                   {
+                       $1->addElement($3);
+                       $1->addElement($5);
+                       $$ = $1;
+                   }
+                   ;
+
 path_pattern: node_pattern
             {
                 auto pattern = PathPattern::create(ctxt);
@@ -241,7 +264,11 @@ path_pattern: node_pattern
             }
             ;
 
+create_node_pattern: OPAR entity_pattern CPAR { $$ = $2; }
+            ;
+
 node_pattern: OPAR entity_pattern CPAR { $$ = $2; }
+            | entity_pattern { $$ = $1; }
             ;
 
 edge_pattern: OSBRACK edge_entity_pattern CSBRACK { $$ = $2; }
