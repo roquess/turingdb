@@ -166,6 +166,7 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
             _pipeline->add<CreateEdgeStep>(src, edge, tgt);
         }
     }
+    _pipeline->add<BuildDataPartsStep>();
 
     // Add END step
     _pipeline->add<EndStep>();

@@ -69,11 +69,8 @@ public:
 
     Kind getKind() const override { return Kind::CREATE_COMMAND; }
 
-    void addMatchTarget(MatchTarget* matchTarget);
-
 private:
     std::unique_ptr<DeclContext> _declContext;
-    MatchTargets _matchTargets;
 
     CreateCommand();
     ~CreateCommand() override;

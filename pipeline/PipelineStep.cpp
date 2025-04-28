@@ -207,6 +207,12 @@ PipelineStep::PipelineStep(CreateEdgeStep::Tag,
 {
 }
 
+PipelineStep::PipelineStep(BuildDataPartsStep::Tag)
+    : _opcode(PipelineOpcode::BUILD_DATA_PARTS),
+    _impl(std::in_place_type<BuildDataPartsStep>)
+{
+}
+
 SCAN_NODE_PROPERTIES_IMPL(SCAN_NODE_PROPERTY_INT64, Int64)
 SCAN_NODE_PROPERTIES_IMPL(SCAN_NODE_PROPERTY_UINT64, UInt64)
 SCAN_NODE_PROPERTIES_IMPL(SCAN_NODE_PROPERTY_DOUBLE, Double)

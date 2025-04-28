@@ -29,6 +29,7 @@
 #include "operations/ChangeStep.h"
 #include "operations/CreateNodeStep.h"
 #include "operations/CreateEdgeStep.h"
+#include "operations/BuildDataPartsStep.h"
 
 #include "FastGet.h"
 
@@ -115,6 +116,7 @@ public:
                  const EntityPattern*,
                  const EntityPattern*,
                  const EntityPattern*);
+    PipelineStep(BuildDataPartsStep::Tag);
 
     PROPERTY_STEPS(Int64)
     PROPERTY_STEPS(UInt64)
@@ -189,7 +191,8 @@ private:
                  HistoryStep,
                  ChangeStep,
                  CreateNodeStep,
-                 CreateEdgeStep>
+                 CreateEdgeStep,
+                 BuildDataPartsStep>
         _impl;
 };
 

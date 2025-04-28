@@ -41,13 +41,9 @@ CreateCommand::~CreateCommand() {
 }
 
 CreateCommand* CreateCommand::create(ASTContext* ctxt) {
-    CreateCommand* matchCmd = new CreateCommand();
-    matchCmd->registerCmd(ctxt);
-    return matchCmd;
-}
-
-void CreateCommand::addMatchTarget(MatchTarget* matchTarget) {
-    _matchTargets.push_back(matchTarget);
+    CreateCommand* cmd = new CreateCommand();
+    cmd->registerCmd(ctxt);
+    return cmd;
 }
 
 // CreateGraphCommand

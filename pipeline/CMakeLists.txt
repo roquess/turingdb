@@ -19,6 +19,7 @@ set(pipeline_sources
         operations/ChangeStep.cpp
         operations/CreateNodeStep.cpp
         operations/CreateEdgeStep.cpp
+        operations/BuildDataPartsStep.cpp
         
         PipelineStep.cpp
         Pipeline.cpp
