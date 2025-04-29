@@ -223,27 +223,8 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
 
     if (auto* exprConstraint = entity->getExprConstraint()) {
         for (auto* binExpr : exprConstraint->getExpressions()) {
-            const VarExpr* lexpr = static_cast<VarExpr*>(binExpr->getLeftExpr());
-            const std::string& varName = lexpr->getName();
-
-            const ExprConst* rexpr = static_cast<ExprConst*>(binExpr->getRightExpr());
-            switch (binExpr->getOpType()) {
-                case BinExpr::OP_EQUAL:
-                {
-                    const auto propType = _propTypeMap.get(varName);
-                    if (!propType) {
-                        spdlog::error("Property not found: {}", varName);
-                    } else {
-                        if (propType->_valueType != rexpr->getType()) {
-                            spdlog::error("Type Error for variable {}", varName);
-                            return false;
-                        }
-                    }
-                    break;
-                }
-                default:
-                    spdlog::error("Optype not supported");
-                    return false;
+            if (binExpr->getOpType() != BinExpr::OP_EQUAL) {
+                return false;
             }
         }
     }
@@ -272,5 +253,3 @@ bool QueryAnalyzer::analyzeLoadGraph(LoadGraphCommand* cmd) {
 
     return true;
 }
-
-// create (n:Person,Founder { name: "Remy" })-[e:KNOWS_WELL { name: "Remy -> Adam" }]-(m:Person,Founder { name: "Adam"}), (p:Person {name: "Maxime"})

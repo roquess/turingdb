@@ -436,6 +436,9 @@ TEST_F(QueryTest, ChangeQuery) {
                         (p:Interest { name: "Interest 3" }))")
         .execute();
 
+    tester.query("CREATE (n:9)-[e:INTERESTED_IN { name: \"Luc -> Video games\" }]-(m:Interest { name: \"Video games\" })")
+        .execute();
+
     tester.query("MATCH n:Person RETURN n.name")
         .expectOptVector<types::String::Primitive>({
             "Remy",
@@ -461,6 +464,7 @@ TEST_F(QueryTest, ChangeQuery) {
             "Interest 1",
             "Interest 2",
             "Interest 3",
+            "Video games",
         })
         .execute();
 
@@ -480,6 +484,7 @@ TEST_F(QueryTest, ChangeQuery) {
             "Luc -> Computers",
             "Martina -> Cooking",
             "New edge",
+            "Luc -> Video games",
         })
         .execute();
 

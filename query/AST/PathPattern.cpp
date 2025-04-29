@@ -1,17 +1,20 @@
 #include "PathPattern.h"
 
 #include "ASTContext.h"
+#include "Expr.h"
+#include "spdlog/fmt/bundled/core.h"
 
 using namespace db;
 
 // EntityPattern
 EntityPattern::EntityPattern(VarExpr* var,
                              TypeConstraint* typeConstr,
-                             ExprConstraint* exprConstr)
+                             ExprConstraint* exprConstr,
+                             uint64_t entityID)
     : _var(var),
-    _typeConstr(typeConstr),
-    _exprConstr(exprConstr)
-{
+      _typeConstr(typeConstr),
+      _exprConstr(exprConstr),
+      _entityID(entityID) {
 }
 
 EntityPattern::~EntityPattern() {
@@ -23,14 +26,25 @@ EntityPattern* EntityPattern::create(ASTContext* ctxt,
                                      ExprConstraint* exprConstr) {
     EntityPattern* pattern = new EntityPattern(var,
                                                typeConstr,
-                                               exprConstr);
+                                               exprConstr,
+                                               UINT64_MAX);
+    ctxt->addEntityPattern(pattern);
+    return pattern;
+}
+
+EntityPattern* EntityPattern::create(ASTContext* ctxt,
+                                     VarExpr* var,
+                                     uint64_t entityID) {
+    EntityPattern* pattern = new EntityPattern(var,
+                                               nullptr,
+                                               nullptr,
+                                               entityID);
     ctxt->addEntityPattern(pattern);
     return pattern;
 }
 
 // PathPattern
-PathPattern::PathPattern()
-{
+PathPattern::PathPattern() {
 }
 
 PathPattern::~PathPattern() {

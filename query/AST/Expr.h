@@ -146,6 +146,30 @@ public:
     ~DoubleExprConst() = default;
 };
 
+template <SupportedType T>
+struct PropertyTypeExprConst {};
+
+template <> struct PropertyTypeExprConst<types::Int64> {
+    using ExprConstType = Int64ExprConst;
+};
+
+template <> struct PropertyTypeExprConst<types::UInt64> {
+    using ExprConstType = UInt64ExprConst;
+};
+
+template <> struct PropertyTypeExprConst<types::Double> {
+    using ExprConstType = DoubleExprConst;
+};
+
+template <> struct PropertyTypeExprConst<types::String> {
+    using ExprConstType = StringExprConst;
+};
+
+template <> struct PropertyTypeExprConst<types::Bool> {
+    using ExprConstType = BoolExprConst;
+};
+
+
 class BinExpr : public Expr {
 public:
     enum OpType {

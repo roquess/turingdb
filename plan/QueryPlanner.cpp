@@ -137,8 +137,14 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
             auto* nodeID = _mem->alloc<ColumnID>();
             srcDcl->setColumn(nodeID);
 
-            // Create first node
-            _pipeline->add<CreateNodeStep>(src);
+            const EntityID srcID = src->getEntityID();
+
+            if (!srcID.isValid()) {
+                // Create first node
+                _pipeline->add<CreateNodeStep>(src);
+            } else {
+                nodeID->set(srcID);
+            }
         }
 
         if (pathElements.size() == 1) {
@@ -158,7 +164,9 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
 
             if (!tgtDecl->getColumn()) {
                 auto* tgtID = _mem->alloc<ColumnID>();
-                tgtID->set(EntityID {});
+
+                // If target ID is invalid, it will be created
+                tgtID->set(EntityID {tgt->getEntityID()});
 
                 tgtDecl->setColumn(tgtID);
             }
@@ -420,12 +428,105 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* const& output
 
     auto* filterMask = _mem->alloc<ColumnMask>();
 
+    const auto caseScanNodesPropertyValueType = [&]<SupportedType T>() {
+        using Step = ScanNodesByPropertyStep<T>;
+        using Val = typename T::Primitive;
+
+        auto* propValues = _mem->alloc<ColumnVector<Val>>();
+        const auto valueType = rightExpr->getType();
+        if (valueType != T::_valueType) {
+            throw PlannerException("Invalid value type for property member \""
+                                   + varExprName + "\"");
+        }
+        const Val constVal = static_cast<PropertyTypeExprConst<T>::ExprConstType*>(rightExpr)->getVal();
+        auto* filterConstVal = _mem->alloc<ColumnConst<Val>>();
+        filterConstVal->set(constVal);
+
+        _pipeline->add<Step>(scannedNodes,
+                             propType,
+                             propValues);
+
+        /* Checking whether we are in the multi-expression
+         * constraint case so we can appropriately
+         * assign the outputNodes column to the correct step */
+        if (expressions.size() > 1) {
+            auto* scannedMatchingNodes = _mem->alloc<ColumnIDs>();
+            std::vector<ColumnMask*> masks(expressions.size() - 1);
+            for (auto& mask : masks) {
+                mask = _mem->alloc<ColumnMask>();
+            }
+
+            auto& filterScannedNodes = _pipeline->add<FilterStep>().get<FilterStep>();
+            filterScannedNodes.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_EQUAL,
+                ._mask = filterMask,
+                ._lhs = propValues,
+                ._rhs = filterConstVal});
+            filterScannedNodes.addOperand(FilterStep::Operand {
+                ._mask = filterMask,
+                ._src = scannedNodes,
+                ._dest = scannedMatchingNodes});
+
+            generateNodePropertyFilterMasks(masks,
+                                            std::span<const BinExpr* const>(expressions.data() + 1,
+                                                                            expressions.size() - 1),
+                                            scannedMatchingNodes);
+
+            auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+
+            /* Loop over the mask columns, combinig all the masks onto the first mask column*/
+            for (auto* mask : masks | rv::drop(1)) {
+                filter.addExpression(FilterStep::Expression {
+                    ._op = ColumnOperator::OP_AND,
+                    ._mask = masks[0],
+                    ._lhs = masks[0],
+                    ._rhs = mask});
+            }
+            filter.addOperand(FilterStep::Operand {
+                ._mask = masks[0],
+                ._src = scannedMatchingNodes,
+                ._dest = outputNodes});
+        } else {
+            auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+            filter.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_EQUAL,
+                ._mask = filterMask,
+                ._lhs = propValues,
+                ._rhs = filterConstVal});
+            filter.addOperand(FilterStep::Operand {
+                ._mask = filterMask,
+                ._src = scannedNodes,
+                ._dest = outputNodes});
+        }
+    };
+
     switch (propType._valueType) {
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(Int64)
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(UInt64)
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(Double)
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(String)
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(Bool)
+        case ValueType::Int64: {
+            caseScanNodesPropertyValueType.operator()<types::Int64>();
+            break;
+        }
+
+        case ValueType::UInt64: {
+            caseScanNodesPropertyValueType.operator()<types::UInt64>();
+            break;
+        }
+
+        case ValueType::Double: {
+            caseScanNodesPropertyValueType.operator()<types::Double>();
+            break;
+        }
+
+        case ValueType::Bool: {
+            caseScanNodesPropertyValueType.operator()<types::Bool>();
+            break;
+        }
+                                
+        case ValueType::String: {
+            caseScanNodesPropertyValueType.operator()<types::String>();
+            break;
+        }
+
+
         default: {
             throw PlannerException("Unsupported property type for property member");
         }

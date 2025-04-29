@@ -59,7 +59,7 @@ using namespace db;
 
 [a-zA-Z]+[a-zA-Z0-9_]* { return YParser::make_ID(std::string(yytext)); }
 
--?[0-9]+ { return YParser::make_INT_CONSTANT(yytext); }
+[0-9]+ { return YParser::make_INT_CONSTANT(yytext); }
 
 -?[0-9]+("."[0-9]+)? { return YParser::make_DECIMAL_CONSTANT(yytext); }
 
