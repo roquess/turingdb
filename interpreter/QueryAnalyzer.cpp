@@ -14,8 +14,6 @@
 #include "VarDecl.h"
 #include "BioAssert.h"
 
-#include "spdlog/spdlog.h"
-
 using namespace db;
 namespace rv = ranges::views;
 
@@ -38,7 +36,8 @@ void returnAllVariables(MatchCommand* cmd) {
 
 QueryAnalyzer::QueryAnalyzer(ASTContext* ctxt, const PropertyTypeMap& propTypeMap)
     : _ctxt(ctxt),
-      _propTypeMap(propTypeMap) {
+    _propTypeMap(propTypeMap)
+{
 }
 
 QueryAnalyzer::~QueryAnalyzer() {
@@ -47,35 +46,35 @@ bool QueryAnalyzer::analyze(QueryCommand* cmd) {
     switch (cmd->getKind()) {
         case QueryCommand::Kind::MATCH_COMMAND:
             return analyzeMatch(static_cast<MatchCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::CREATE_COMMAND:
             return analyzeCreate(static_cast<CreateCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::CREATE_GRAPH_COMMAND:
             return analyzeCreateGraph(static_cast<CreateGraphCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::LIST_GRAPH_COMMAND:
             return true;
-            break;
+        break;
 
         case QueryCommand::Kind::LOAD_GRAPH_COMMAND:
             return analyzeLoadGraph(static_cast<LoadGraphCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::EXPLAIN_COMMAND:
             return analyzeExplain(static_cast<ExplainCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::HISTORY_COMMAND:
         case QueryCommand::Kind::CHANGE_COMMAND:
             return true;
-            break;
+        break;
 
         default:
-            return false;
+        return false;
     }
 
     return true;
@@ -215,10 +214,10 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
 
     // Create the variable declaration in the scope of the command
     VarDecl* decl = VarDecl::create(_ctxt,
-                                    declContext,
-                                    var->getName(),
-                                    entity->getKind(),
-                                    entity->getEntityID());
+            declContext,
+            var->getName(),
+            entity->getKind(),
+            entity->getEntityID());
     if (!decl) {
         // decl already exists from prev targets
         decl = declContext->getDecl(var->getName());
