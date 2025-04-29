@@ -12,8 +12,9 @@
 #include "columns/Block.h"
 #include "columns/Column.h"
 #include "columns/ColumnVector.h"
-#include "versioning/CommitBuilder.h"
+#include "columns/ColumnConst.h"
 #include "columns/ColumnOptVector.h"
+#include "versioning/CommitBuilder.h"
 #include "Panic.h"
 
 using namespace db;
@@ -205,6 +206,12 @@ void tabulateWrite(tabulate::RowStream& rs, const CommitBuilder* commit) {
         tabulateWrite(rs, src[i]);                        \
     } break;
 
+#define TABULATE_COL_CONST_CASE(Type)                     \
+    case Type::staticKind(): {                            \
+        const Type& src = *static_cast<const Type*>(col); \
+        tabulateWrite(rs, src.getRaw());                  \
+    } break;
+
 
 void TuringShell::processLine(std::string& line) {
     // Remove leading whitespace
@@ -243,6 +250,12 @@ void TuringShell::processLine(std::string& line) {
                     TABULATE_COL_CASE(ColumnOptVector<types::Bool::Primitive>, i)
                     TABULATE_COL_CASE(ColumnVector<std::string>, i)
                     TABULATE_COL_CASE(ColumnVector<const CommitBuilder*>, i)
+                    TABULATE_COL_CONST_CASE(ColumnConst<EntityID>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::UInt64::Primitive>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::Int64::Primitive>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::Double::Primitive>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::String::Primitive>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::Bool::Primitive>)
 
                     default: {
                         panic("can not print columns of kind {}", col->getKind());

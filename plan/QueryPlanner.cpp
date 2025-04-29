@@ -1324,13 +1324,24 @@ bool QueryPlanner::planHistory(const HistoryCommand* history) {
 bool QueryPlanner::planChange(const ChangeCommand* cmd) {
     _pipeline->add<StopStep>();
 
-    if (cmd->getChangeOpType() != ChangeOpType::LIST) {
-        _pipeline->add<ChangeStep>(cmd->getChangeOpType(), nullptr);
-    } else {
-        auto* changeList = _mem->alloc<ColumnVector<const CommitBuilder*>>();
-        _pipeline->add<ChangeStep>(cmd->getChangeOpType(), changeList);
-        _output->addColumn(changeList);
-        planOutputLambda();
+    switch (cmd->getChangeOpType()) {
+        case ChangeOpType::LIST:
+        case ChangeOpType::NEW: {
+            auto* output = _mem->alloc<ColumnVector<const CommitBuilder*>>();
+            _pipeline->add<ChangeStep>(cmd->getChangeOpType(), output);
+            _output->addColumn(output);
+            planOutputLambda();
+            break;
+        }
+
+        case ChangeOpType::SUBMIT:
+        case ChangeOpType::DELETE: {
+            _pipeline->add<ChangeStep>(cmd->getChangeOpType(), nullptr);
+            break;
+        }
+
+        case ChangeOpType::_SIZE:
+            throw PlannerException("Unsupported change operation");
     }
 
     _pipeline->add<EndStep>();

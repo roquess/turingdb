@@ -37,7 +37,6 @@ void CreateNodeStep::prepare(ExecutionContext* ctxt) {
 }
 
 void CreateNodeStep::execute() {
-    fmt::print("Creating node\n");
     createNode(_builder, _data);
 }
 

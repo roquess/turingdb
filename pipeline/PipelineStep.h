@@ -109,7 +109,9 @@ public:
     PipelineStep(StopStep::Tag);
     PipelineStep(EndStep::Tag);
     PipelineStep(HistoryStep::Tag, ColumnVector<std::string>*);
-    PipelineStep(ChangeStep::Tag, ChangeOpType, ColumnVector<const CommitBuilder*>*);
+    PipelineStep(ChangeStep::Tag,
+                 ChangeOpType,
+                 ColumnVector<const CommitBuilder*>*);
     PipelineStep(LoadGraphStep::Tag, const std::string& graphName);
     PipelineStep(CreateNodeStep::Tag, const EntityPattern*);
     PipelineStep(CreateEdgeStep::Tag,

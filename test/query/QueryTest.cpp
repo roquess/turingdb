@@ -303,7 +303,8 @@ TEST_F(QueryTest, EdgePropertyProjection) {
             "Cooking",
             "Bio",
             "Paddle",
-            "Animals", "Computers",
+            "Animals",
+            "Computers",
             "Cooking",
         })
         .execute();
@@ -311,47 +312,47 @@ TEST_F(QueryTest, EdgePropertyProjection) {
     tester.query("MATCH n-[e]-m RETURN e.doesnotexist")
         .expectError();
 
-     tester.query("MATCH n-[e:INTERESTED_IN]-m RETURN n, n.name, e, e.name, m, m.name")
-         .expectVector<EntityID>({0, 0, 0, 1, 1, 8, 8, 9, 9, 11})
-         .expectOptVector<types::String::Primitive>({
-             "Remy",
-             "Remy",
-             "Remy",
-             "Adam",
-             "Adam",
-             "Maxime",
-             "Maxime",
-             "Luc",
-             "Luc",
-             "Martina",
-         })
-         .expectVector<EntityID>({1, 2, 3, 5, 6, 8, 9, 10, 11, 12})
-         .expectOptVector<types::String::Primitive>({
-             "Remy -> Ghosts",
-             "Remy -> Computers",
-             "Remy -> Eighties",
-             "Adam -> Bio",
-             "Adam -> Cooking",
-             "Maxime -> Bio",
-             "Maxime -> Paddle",
-             "Luc -> Animals",
-             "Luc -> Computers",
-             "Martina -> Cooking",
-         })
-         .expectVector<EntityID>({6, 2, 3, 4, 5, 4, 7, 10, 2, 5})
-         .expectOptVector<types::String::Primitive>({
-             "Ghosts",
-             "Computers",
-             "Eighties",
-             "Bio",
-             "Cooking",
-             "Bio",
-             "Paddle",
-             "Animals",
-             "Computers",
-             "Cooking",
-         })
-         .execute();
+    tester.query("MATCH n-[e:INTERESTED_IN]-m RETURN n, n.name, e, e.name, m, m.name")
+        .expectVector<EntityID>({0, 0, 0, 1, 1, 8, 8, 9, 9, 11})
+        .expectOptVector<types::String::Primitive>({
+            "Remy",
+            "Remy",
+            "Remy",
+            "Adam",
+            "Adam",
+            "Maxime",
+            "Maxime",
+            "Luc",
+            "Luc",
+            "Martina",
+        })
+        .expectVector<EntityID>({1, 2, 3, 5, 6, 8, 9, 10, 11, 12})
+        .expectOptVector<types::String::Primitive>({
+            "Remy -> Ghosts",
+            "Remy -> Computers",
+            "Remy -> Eighties",
+            "Adam -> Bio",
+            "Adam -> Cooking",
+            "Maxime -> Bio",
+            "Maxime -> Paddle",
+            "Luc -> Animals",
+            "Luc -> Computers",
+            "Martina -> Cooking",
+        })
+        .expectVector<EntityID>({6, 2, 3, 4, 5, 4, 7, 10, 2, 5})
+        .expectOptVector<types::String::Primitive>({
+            "Ghosts",
+            "Computers",
+            "Eighties",
+            "Bio",
+            "Cooking",
+            "Bio",
+            "Paddle",
+            "Animals",
+            "Computers",
+            "Cooking",
+        })
+        .execute();
 
     tester.query("MATCH n-[e]-m RETURN e.doesnotexist")
         .expectError();
@@ -405,4 +406,19 @@ TEST_F(QueryTest, PropertyConstraints) {
         .expectOptVector<types::String::Primitive>({"Remy"})
         .expectOptVector<types::String::Primitive>({"Ghosts"})
         .execute();
+}
+
+TEST_F(QueryTest, ChangeQuery) {
+    QueryTester tester {_mem, *_interp};
+
+    tester.query("CHANGE NEW")
+        .expectVector<const CommitBuilder*>({}, false)
+        .execute();
+
+    const auto changes = tester.query("CHANGE LIST")
+        .expectVector<const CommitBuilder*>({}, false)
+        .execute()
+        .outputColumnVector<const CommitBuilder*>(0);
+
+    ASSERT_TRUE(changes);
 }

@@ -6,13 +6,13 @@
 #include "ExecutionContext.h"
 #include "SystemManager.h"
 #include "PipelineException.h"
-#include "ChangeCommand.h"
 
 using namespace db;
 
-ChangeStep::ChangeStep(ChangeOpType type, ColumnVector<const CommitBuilder*>* list)
+ChangeStep::ChangeStep(ChangeOpType type,
+                       ColumnVector<const CommitBuilder*>* output)
     : _type(type),
-      _changeList(list)
+      _output(output)
 {
 }
 
@@ -24,7 +24,7 @@ void ChangeStep::prepare(ExecutionContext* ctxt) {
     _view = ctxt->getGraphView();
 
     if (_type == ChangeOpType::NEW) {
-        _changeInfo = std::string{ctxt->getGraphName()};
+        _changeInfo = std::string {ctxt->getGraphName()};
     } else {
         _changeInfo = ctxt->getCommitHash();
     }
@@ -64,11 +64,18 @@ void ChangeStep::describe(std::string& descr) const {
 
 ChangeResult<CommitHash> ChangeStep::createChange() const {
     if (!std::holds_alternative<std::string>(_changeInfo)) {
-        throw PipelineException("ChangeStep: Change info must contain the grpah name");
+        throw PipelineException("ChangeStep: Change info must contain the graph name");
     }
 
     const auto& graphName = std::get<std::string>(_changeInfo);
-    return _sysMan->newChange(graphName);
+
+    auto res = _sysMan->newChange(graphName);
+    if (res) {
+        const auto& change = _sysMan->getChangeManager().getChange(res.value());
+        _output->push_back(change.value());
+    }
+
+    return res;
 }
 
 ChangeResult<void> ChangeStep::acceptChange() const {
@@ -90,9 +97,9 @@ ChangeResult<void> ChangeStep::deleteChange() const {
 }
 
 void ChangeStep::listChanges() const {
-    if (!_changeList) {
+    if (!_output) {
         throw PipelineException("ChangeStep: List changes requires an allocated column of changes");
     }
 
-    _sysMan->getChangeManager().listChanges(_changeList->getRaw());
+    _sysMan->getChangeManager().listChanges(_output->getRaw());
 }

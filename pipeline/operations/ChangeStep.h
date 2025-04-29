@@ -21,7 +21,8 @@ class ChangeStep {
 public:
     struct Tag {};
 
-    ChangeStep(ChangeOpType type, ColumnVector<const CommitBuilder*>* list);
+    ChangeStep(ChangeOpType type,
+               ColumnVector<const CommitBuilder*>* output);
     ~ChangeStep();
 
     void prepare(ExecutionContext* ctxt);
@@ -39,12 +40,12 @@ private:
     GraphView _view;
     ChangeOpType _type {};
     ChangeInfo _changeInfo;
-    ColumnVector<const CommitBuilder*>* _changeList {nullptr};
+    ColumnVector<const CommitBuilder*>* _output {nullptr};
 
-    ChangeResult<CommitHash> createChange() const; 
+    ChangeResult<CommitHash> createChange() const;
     ChangeResult<void> acceptChange() const;
     ChangeResult<void> deleteChange() const;
     void listChanges() const;
 };
 
-} 
+}
