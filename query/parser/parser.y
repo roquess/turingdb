@@ -12,7 +12,9 @@
 {
 
 #include <string>
+#include <memory>
 #include "ChangeOpType.h"
+#include "CreateTarget.h"
 
 namespace db {
 class YScanner;
@@ -128,6 +130,8 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %type<db::ReturnProjection*> return_fields
 %type<db::ReturnField*> return_field
 %type<db::MatchTarget*> match_target
+%type<db::CreateTarget> create_target
+%type<std::unique_ptr<std::vector<db::CreateTarget>>> create_targets
 %type<db::PathPattern*> create_path_pattern
 %type<db::PathPattern*> path_pattern
 %type<db::EntityPattern*> create_node_pattern
@@ -183,12 +187,27 @@ match_cmd: MATCH match_target RETURN return_fields {
                                                    }
                                                    ;
 
-create_targets: create_targets COMMA create_target {}
-              | create_target {};
+create_targets: create_targets COMMA create_target
+              {
+                  $$ = std::move($1);
+                  $$->push_back($3);
+              }
 
-create_target: create_path_pattern { ctxt->addCreateTarget(new CreateTarget($1)); }
+              | create_target
+              {
+                  $$ = std::make_unique<std::vector<CreateTarget>>();
+                  $$->push_back($1);
+              }
+              ;
 
-create_cmd: CREATE create_targets { $$ = CreateCommand::create(ctxt); } ;
+create_target: create_path_pattern { $$ = CreateTarget($1); }
+             ;
+
+create_cmd: CREATE create_targets
+          {
+              $$ = CreateCommand::create(ctxt, std::move($2));
+          }
+          ;
 
 return_field: STAR {
                         auto field = ReturnField::create(ctxt);

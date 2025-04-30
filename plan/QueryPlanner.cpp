@@ -120,7 +120,7 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
     _pipeline->add<StopStep>();
 
     for (const auto& target : targets) {
-        const PathPattern* path = target->getPattern();
+        const PathPattern* path = target.getPattern();
         std::span pathElements {path->elements()};
 
         if (pathElements.empty()) {

@@ -62,9 +62,9 @@ private:
 
 class CreateCommand : public QueryCommand {
 public:
-    using CreateTargets = std::vector<CreateTarget*>;
+    using CreateTargets = std::vector<CreateTarget>;
 
-    static CreateCommand* create(ASTContext* ctxt);
+    static CreateCommand* create(ASTContext* ctxt, std::unique_ptr<CreateTargets>&& targets);
 
     DeclContext* getDeclContext() const { return _declContext.get(); }
     const CreateTargets& createTargets() const { return _createTargets; }
@@ -75,7 +75,7 @@ private:
     std::unique_ptr<DeclContext> _declContext;
     CreateTargets _createTargets;
 
-    explicit CreateCommand(std::vector<CreateTarget*>&& targets);
+    explicit CreateCommand(std::unique_ptr<CreateTargets>&& targets);
     ~CreateCommand() override;
 };
 

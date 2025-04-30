@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <span>
 
 #include "CreateTarget.h"
 
@@ -45,24 +44,13 @@ public:
 
     bool hasError() const { return _isError; }
     void setError(bool hasError) { _isError = hasError; }
-    void addCreateTarget(CreateTarget* target);
-
-    std::span<CreateTarget* const> getCreateTargets() const {
-        return _createTargets;
-    }
-
-    bool isWriteRequested() const { return _writeRequested; }
-
-    std::vector<CreateTarget*>& getCurrentCreateTargets() { return _currentCreateTargets; }
 
 private:
     bool _isError {false};
-    bool _writeRequested {false};
     QueryCommand* _root {nullptr};
     std::vector<QueryCommand*> _cmds;
     std::vector<ReturnField*> _returnFields;
     std::vector<MatchTarget*> _matchTargets;
-    std::vector<CreateTarget*> _createTargets;
     std::vector<PathPattern*> _pathPatterns;
     std::vector<EntityPattern*> _entityPatterns;
     std::vector<TypeConstraint*> _typeConstraints;
@@ -70,8 +58,6 @@ private:
     std::vector<Expr*> _expr;
     std::vector<VarDecl*> _varDecls;
     std::vector<ReturnProjection*> _returnProjections;
-
-    std::vector<CreateTarget*> _currentCreateTargets;
 
     void addCmd(QueryCommand* cmd);
     void addReturnField(ReturnField* field);

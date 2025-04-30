@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace db {
 
 class ASTContext;
@@ -7,6 +9,8 @@ class PathPattern;
 
 class CreateTarget {
 public:
+    CreateTarget() = default;
+
     explicit CreateTarget(PathPattern* pattern)
         : _pattern(pattern)
     {
@@ -18,5 +22,7 @@ public:
 private:
     PathPattern* _pattern {nullptr};
 };
+
+using CreateTargets = std::vector<CreateTarget>;
 
 }

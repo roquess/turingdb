@@ -29,10 +29,6 @@ ASTContext::~ASTContext() {
         delete target;
     }
 
-    for (CreateTarget* target : _createTargets) {
-        delete target;
-    }
-
     for (PathPattern* pattern : _pathPatterns) {
         delete pattern;
     }
@@ -68,12 +64,6 @@ void ASTContext::addCmd(QueryCommand* cmd) {
 
 void ASTContext::addReturnField(ReturnField* field) {
     _returnFields.push_back(field);
-}
-
-void ASTContext::addCreateTarget(CreateTarget* target) {
-    _writeRequested = true;
-    _currentCreateTargets.push_back(target);
-    _createTargets.push_back(target);
 }
 
 void ASTContext::addMatchTarget(MatchTarget* target) {

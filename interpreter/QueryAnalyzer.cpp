@@ -170,9 +170,9 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
 
 bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
     DeclContext* declContext = cmd->getDeclContext();
-    const auto& targets = _ctxt->getCreateTargets();
-    for (const CreateTarget* target : targets) {
-        const PathPattern* pattern = target->getPattern();
+    const auto& targets = cmd->createTargets();
+    for (const CreateTarget& target : targets) {
+        const PathPattern* pattern = target.getPattern();
         const auto& elements = pattern->elements();
 
         EntityPattern* entityPattern = elements[0];
