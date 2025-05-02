@@ -83,7 +83,6 @@ private:
     bool planMatch(const MatchCommand* matchCmd);
     bool planCreate(const CreateCommand* createCmd);
     void planPath(const std::vector<EntityPattern*>& path);
-    void planCreatePath(const std::vector<EntityPattern*>& path);
 
     void planScanNodes(const EntityPattern* entity);
     void planScanNodesWithPropertyConstraints(ColumnIDs* const& outputNodes,

@@ -12,7 +12,7 @@ using namespace db;
 ChangeStep::ChangeStep(ChangeOpType type,
                        ColumnVector<const CommitBuilder*>* output)
     : _type(type),
-      _output(output)
+    _output(output)
 {
 }
 

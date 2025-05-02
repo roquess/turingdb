@@ -1,8 +1,6 @@
 #include "PathPattern.h"
 
 #include "ASTContext.h"
-#include "Expr.h"
-#include "spdlog/fmt/bundled/core.h"
 
 using namespace db;
 
@@ -12,9 +10,9 @@ EntityPattern::EntityPattern(VarExpr* var,
                              ExprConstraint* exprConstr,
                              uint64_t entityID)
     : _var(var),
-      _typeConstr(typeConstr),
-      _exprConstr(exprConstr),
-      _entityID(entityID) {
+    _typeConstr(typeConstr),
+    _exprConstr(exprConstr),
+    _entityID(entityID) {
 }
 
 EntityPattern::~EntityPattern() {
@@ -44,7 +42,8 @@ EntityPattern* EntityPattern::create(ASTContext* ctxt,
 }
 
 // PathPattern
-PathPattern::PathPattern() {
+PathPattern::PathPattern()
+{
 }
 
 PathPattern::~PathPattern() {

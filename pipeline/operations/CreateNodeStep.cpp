@@ -16,7 +16,8 @@
 using namespace db;
 
 CreateNodeStep::CreateNodeStep(const EntityPattern* data)
-    : _data(data) {
+    : _data(data)
+{
 }
 
 CreateNodeStep::~CreateNodeStep() {

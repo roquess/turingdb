@@ -214,36 +214,6 @@ void QueryPlanner::planPath(const std::vector<EntityPattern*>& path) {
     }
 }
 
-void QueryPlanner::planCreatePath(const std::vector<EntityPattern*>& path) {
-    const auto pathSize = path.size();
-    if (pathSize >= 3) {
-        const EntityPattern* source = path[0];
-        const EntityPattern* edge = path[1];
-        const EntityPattern* target = path[2];
-        const TypeConstraint* sourceTypeConstr = source->getTypeConstraint();
-        const TypeConstraint* edgeTypeConstr = edge->getTypeConstraint();
-        const TypeConstraint* targetTypeConstr = target->getTypeConstraint();
-        const ExprConstraint* sourceExprConstr = source->getExprConstraint();
-        const ExprConstraint* targetExprConstr = target->getExprConstraint();
-        const ExprConstraint* edgeExprConstr = edge->getExprConstraint();
-
-        if (!(edgeTypeConstr || edgeExprConstr) && (!sourceTypeConstr || !targetTypeConstr)
-            && !(sourceExprConstr || targetExprConstr)) {
-            return planPathUsingScanEdges(path);
-        }
-    }
-
-    // General case: scan nodes for the origin and expand edges afterward
-    planScanNodes(path[0]);
-
-    const auto expandSteps = path | rv::drop(1) | rv::chunk(2);
-    for (auto step : expandSteps) {
-        const EntityPattern* edge = step[0];
-        const EntityPattern* target = step[1];
-        planExpandEdge(edge, target);
-    }
-}
-
 void QueryPlanner::planScanNodes(const EntityPattern* entity) {
     auto* nodes = _mem->alloc<ColumnIDs>();
 
