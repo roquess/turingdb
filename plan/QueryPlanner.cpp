@@ -34,11 +34,12 @@ QueryPlanner::QueryPlanner(const GraphView& view,
                            LocalMemory* mem,
                            QueryCallback callback)
     : _view(view),
-      _mem(mem),
-      _queryCallback(std::move(callback)),
-      _pipeline(std::make_unique<Pipeline>()),
-      _output(std::make_unique<Block>()),
-      _transformData(std::make_unique<TransformData>(mem)) {
+    _mem(mem),
+    _queryCallback(std::move(callback)),
+    _pipeline(std::make_unique<Pipeline>()),
+    _output(std::make_unique<Block>()),
+    _transformData(std::make_unique<TransformData>(mem))
+{
 }
 
 QueryPlanner::~QueryPlanner() {
@@ -120,7 +121,7 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
     _pipeline->add<StopStep>();
 
     for (const auto& target : targets) {
-        const PathPattern* path = target.getPattern();
+        const PathPattern* path = target->getPattern();
         std::span pathElements {path->elements()};
 
         if (pathElements.empty()) {
@@ -300,11 +301,13 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                 ._op = ColumnOperator::OP_EQUAL,                                                     \
                 ._mask = filterMask,                                                                 \
                 ._lhs = propValues,                                                                  \
-                ._rhs = filterConstVal});                                                            \
+                ._rhs = filterConstVal                                                               \
+            });                                                                                      \
             filterScannedNodes.addOperand(FilterStep::Operand {                                      \
                 ._mask = filterMask,                                                                 \
                 ._src = scannedNodes,                                                                \
-                ._dest = scannedMatchingNodes});                                                     \
+                ._dest = scannedMatchingNodes                                                        \
+            });                                                                                      \
                                                                                                      \
             generateNodePropertyFilterMasks(masks,                                                   \
                                             std::span<const BinExpr* const>(expressions.data() + 1,  \
@@ -319,23 +322,27 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                     ._op = ColumnOperator::OP_AND,                                                   \
                     ._mask = masks[0],                                                               \
                     ._lhs = masks[0],                                                                \
-                    ._rhs = mask});                                                                  \
+                    ._rhs = mask                                                                     \
+                });                                                                                  \
             }                                                                                        \
             filter.addOperand(FilterStep::Operand {                                                  \
                 ._mask = masks[0],                                                                   \
                 ._src = scannedMatchingNodes,                                                        \
-                ._dest = outputNodes});                                                              \
+                ._dest = outputNodes                                                                 \
+            });                                                                                      \
         } else {                                                                                     \
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();                           \
             filter.addExpression(FilterStep::Expression {                                            \
                 ._op = ColumnOperator::OP_EQUAL,                                                     \
                 ._mask = filterMask,                                                                 \
                 ._lhs = propValues,                                                                  \
-                ._rhs = filterConstVal});                                                            \
+                ._rhs = filterConstVal                                                               \
+            });                                                                                      \
             filter.addOperand(FilterStep::Operand {                                                  \
                 ._mask = filterMask,                                                                 \
                 ._src = scannedNodes,                                                                \
-                ._dest = outputNodes});                                                              \
+                ._dest = outputNodes                                                                 \
+            });                                                                                      \
         }                                                                                            \
                                                                                                      \
         break;                                                                                       \
@@ -368,11 +375,13 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                 ._op = ColumnOperator::OP_EQUAL,                                                     \
                 ._mask = filterMask,                                                                 \
                 ._lhs = propValues,                                                                  \
-                ._rhs = filterConstVal});                                                            \
+                ._rhs = filterConstVal                                                               \
+            });                                                                                      \
             filterScannedNodes.addOperand(FilterStep::Operand {                                      \
                 ._mask = filterMask,                                                                 \
                 ._src = scannedNodes,                                                                \
-                ._dest = scannedMatchingNodes});                                                     \
+                ._dest = scannedMatchingNodes                                                        \
+            });                                                                                      \
                                                                                                      \
             generateNodePropertyFilterMasks(masks,                                                   \
                                             std::span<const BinExpr* const>(expressions.data() + 1,  \
@@ -385,23 +394,27 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
                     ._op = ColumnOperator::OP_AND,                                                   \
                     ._mask = masks[0],                                                               \
                     ._lhs = masks[0],                                                                \
-                    ._rhs = mask});                                                                  \
+                    ._rhs = mask                                                                     \
+                });                                                                                  \
             }                                                                                        \
             filter.addOperand(FilterStep::Operand {                                                  \
                 ._mask = masks[0],                                                                   \
                 ._src = scannedMatchingNodes,                                                        \
-                ._dest = outputNodes});                                                              \
+                ._dest = outputNodes                                                                 \
+            });                                                                                      \
         } else {                                                                                     \
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();                           \
             filter.addExpression(FilterStep::Expression {                                            \
                 ._op = ColumnOperator::OP_EQUAL,                                                     \
                 ._mask = filterMask,                                                                 \
                 ._lhs = propValues,                                                                  \
-                ._rhs = filterConstVal});                                                            \
+                ._rhs = filterConstVal                                                               \
+            });                                                                                      \
             filter.addOperand(FilterStep::Operand {                                                  \
                 ._mask = filterMask,                                                                 \
                 ._src = scannedNodes,                                                                \
-                ._dest = outputNodes});                                                              \
+                ._dest = outputNodes                                                                 \
+            });                                                                                      \
         }                                                                                            \
                                                                                                      \
         break;                                                                                       \
@@ -459,11 +472,13 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* const& output
                 ._op = ColumnOperator::OP_EQUAL,
                 ._mask = filterMask,
                 ._lhs = propValues,
-                ._rhs = filterConstVal});
+                ._rhs = filterConstVal
+            });
             filterScannedNodes.addOperand(FilterStep::Operand {
                 ._mask = filterMask,
                 ._src = scannedNodes,
-                ._dest = scannedMatchingNodes});
+                ._dest = scannedMatchingNodes
+            });
 
             generateNodePropertyFilterMasks(masks,
                                             std::span<const BinExpr* const>(expressions.data() + 1,
@@ -478,23 +493,27 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* const& output
                     ._op = ColumnOperator::OP_AND,
                     ._mask = masks[0],
                     ._lhs = masks[0],
-                    ._rhs = mask});
+                    ._rhs = mask
+                });
             }
             filter.addOperand(FilterStep::Operand {
                 ._mask = masks[0],
                 ._src = scannedMatchingNodes,
-                ._dest = outputNodes});
+                ._dest = outputNodes
+            });
         } else {
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
             filter.addExpression(FilterStep::Expression {
                 ._op = ColumnOperator::OP_EQUAL,
                 ._mask = filterMask,
                 ._lhs = propValues,
-                ._rhs = filterConstVal});
+                ._rhs = filterConstVal
+            });
             filter.addOperand(FilterStep::Operand {
                 ._mask = filterMask,
                 ._src = scannedNodes,
-                ._dest = outputNodes});
+                ._dest = outputNodes
+            });
         }
     };
 
@@ -585,12 +604,14 @@ void QueryPlanner::planScanNodesWithPropertyAndLabelConstraints(ColumnIDs* const
             ._op = ColumnOperator::OP_EQUAL,                                   \
             ._mask = propValFilterMask,                                        \
             ._lhs = propValues,                                                \
-            ._rhs = filterConstVal});                                          \
+            ._rhs = filterConstVal                                             \
+        });                                                                    \
         filter.addExpression(FilterStep::Expression {                          \
             ._op = ColumnOperator::OP_PROJECT,                                 \
             ._mask = filterMasks[i],                                           \
             ._lhs = indices,                                                   \
-            ._rhs = propValFilterMask});                                       \
+            ._rhs = propValFilterMask                                          \
+        });                                                                    \
                                                                                \
         break;                                                                 \
     }

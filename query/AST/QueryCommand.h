@@ -11,6 +11,7 @@ class DeclContext;
 class ReturnProjection;
 class MatchTarget;
 class CreateTarget;
+class CreateTargets;
 
 class QueryCommand {
 public:
@@ -62,20 +63,18 @@ private:
 
 class CreateCommand : public QueryCommand {
 public:
-    using CreateTargets = std::vector<CreateTarget>;
-
-    static CreateCommand* create(ASTContext* ctxt, std::unique_ptr<CreateTargets>&& targets);
+    static CreateCommand* create(ASTContext* ctxt, CreateTargets* targets);
 
     DeclContext* getDeclContext() const { return _declContext.get(); }
-    const CreateTargets& createTargets() const { return _createTargets; }
+    const CreateTargets& createTargets() const { return *_createTargets; }
 
     Kind getKind() const override { return Kind::CREATE_COMMAND; }
 
 private:
     std::unique_ptr<DeclContext> _declContext;
-    CreateTargets _createTargets;
+    CreateTargets* _createTargets {nullptr};
 
-    explicit CreateCommand(std::unique_ptr<CreateTargets>&& targets);
+    explicit CreateCommand(CreateTargets* targets);
     ~CreateCommand() override;
 };
 

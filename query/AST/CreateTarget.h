@@ -12,8 +12,7 @@ public:
     CreateTarget() = default;
 
     explicit CreateTarget(PathPattern* pattern)
-        : _pattern(pattern)
-    {
+        : _pattern(pattern) {
     }
 
     const PathPattern* getPattern() const { return _pattern; }
@@ -23,6 +22,6 @@ private:
     PathPattern* _pattern {nullptr};
 };
 
-using CreateTargets = std::vector<CreateTarget>;
+class CreateTargets : public std::vector<CreateTarget*> {};
 
 }

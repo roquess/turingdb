@@ -9,6 +9,8 @@ namespace db {
 class QueryCommand;
 class ReturnField;
 class MatchTarget;
+class CreateTarget;
+class CreateTargets;
 class PathPattern;
 class EntityPattern;
 class TypeConstraint;
@@ -45,6 +47,9 @@ public:
     bool hasError() const { return _isError; }
     void setError(bool hasError) { _isError = hasError; }
 
+    void addCreateTarget(CreateTarget* target);
+    void addCreateTargets(CreateTargets* targets);
+
 private:
     bool _isError {false};
     QueryCommand* _root {nullptr};
@@ -55,6 +60,8 @@ private:
     std::vector<EntityPattern*> _entityPatterns;
     std::vector<TypeConstraint*> _typeConstraints;
     std::vector<ExprConstraint*> _exprConstraints;
+    std::vector<CreateTarget*> _createTargets;
+    std::vector<CreateTargets*> _createTargetVectors;
     std::vector<Expr*> _expr;
     std::vector<VarDecl*> _varDecls;
     std::vector<ReturnProjection*> _returnProjections;

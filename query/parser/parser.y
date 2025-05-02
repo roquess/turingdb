@@ -23,6 +23,7 @@ class QueryCommand;
 class ReturnField;
 class MatchTarget;
 class CreateTarget;
+class CreateTargets;
 class PathPattern;
 class EntityPattern;
 class TypeConstraint;
@@ -130,8 +131,8 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %type<db::ReturnProjection*> return_fields
 %type<db::ReturnField*> return_field
 %type<db::MatchTarget*> match_target
-%type<db::CreateTarget> create_target
-%type<std::unique_ptr<std::vector<db::CreateTarget>>> create_targets
+%type<db::CreateTarget*> create_target
+%type<db::CreateTargets*> create_targets
 %type<db::PathPattern*> create_path_pattern
 %type<db::PathPattern*> path_pattern
 %type<db::EntityPattern*> create_node_pattern
@@ -189,23 +190,23 @@ match_cmd: MATCH match_target RETURN return_fields {
 
 create_targets: create_targets COMMA create_target
               {
-                  $$ = std::move($1);
+                  $$ = $1;
                   $$->push_back($3);
               }
-
               | create_target
               {
-                  $$ = std::make_unique<std::vector<CreateTarget>>();
+                  $$ = new CreateTargets;
+                  ctxt->addCreateTargets($$);
                   $$->push_back($1);
               }
               ;
 
-create_target: create_path_pattern { $$ = CreateTarget($1); }
+create_target: create_path_pattern { $$ = new CreateTarget($1); ctxt->addCreateTarget($$); }
              ;
 
 create_cmd: CREATE create_targets
           {
-              $$ = CreateCommand::create(ctxt, std::move($2));
+              $$ = CreateCommand::create(ctxt, $2);
           }
           ;
 

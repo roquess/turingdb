@@ -32,17 +32,17 @@ void MatchCommand::addMatchTarget(MatchTarget* matchTarget) {
 
 // CreateCommand
 
-CreateCommand::CreateCommand(std::unique_ptr<CreateTargets>&& targets)
+CreateCommand::CreateCommand(CreateTargets* targets)
     : _declContext(std::make_unique<DeclContext>()),
-     _createTargets(std::move(*targets))
+     _createTargets(targets)
 {
 }
 
 CreateCommand::~CreateCommand() {
 }
 
-CreateCommand* CreateCommand::create(ASTContext* ctxt, std::unique_ptr<CreateTargets>&& targets) {
-    CreateCommand* cmd = new CreateCommand(std::move(targets));
+CreateCommand* CreateCommand::create(ASTContext* ctxt, CreateTargets* targets) {
+    CreateCommand* cmd = new CreateCommand(targets);
     cmd->registerCmd(ctxt);
     return cmd;
 }
