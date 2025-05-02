@@ -6,12 +6,15 @@
 #include <spdlog/spdlog.h>
 #include <termcolor/termcolor.hpp>
 
+#include "ChangeManager.h"
 #include "Graph.h"
 #include "TuringDB.h"
 #include "columns/Block.h"
 #include "columns/Column.h"
 #include "columns/ColumnVector.h"
+#include "columns/ColumnConst.h"
 #include "columns/ColumnOptVector.h"
+#include "versioning/CommitBuilder.h"
 #include "Panic.h"
 
 using namespace db;
@@ -193,10 +196,20 @@ void tabulateWrite(tabulate::RowStream& rs, const std::optional<T>& value) {
     }
 }
 
+void tabulateWrite(tabulate::RowStream& rs, const CommitBuilder* commit) {
+    rs << fmt::format("{:x}", commit->hash().get());
+}
+
 #define TABULATE_COL_CASE(Type, i)                        \
     case Type::staticKind(): {                            \
         const Type& src = *static_cast<const Type*>(col); \
         tabulateWrite(rs, src[i]);                        \
+    } break;
+
+#define TABULATE_COL_CONST_CASE(Type)                     \
+    case Type::staticKind(): {                            \
+        const Type& src = *static_cast<const Type*>(col); \
+        tabulateWrite(rs, src.getRaw());                  \
     } break;
 
 
@@ -236,6 +249,13 @@ void TuringShell::processLine(std::string& line) {
                     TABULATE_COL_CASE(ColumnOptVector<types::String::Primitive>, i)
                     TABULATE_COL_CASE(ColumnOptVector<types::Bool::Primitive>, i)
                     TABULATE_COL_CASE(ColumnVector<std::string>, i)
+                    TABULATE_COL_CASE(ColumnVector<const CommitBuilder*>, i)
+                    TABULATE_COL_CONST_CASE(ColumnConst<EntityID>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::UInt64::Primitive>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::Int64::Primitive>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::Double::Primitive>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::String::Primitive>)
+                    TABULATE_COL_CONST_CASE(ColumnConst<types::Bool::Primitive>)
 
                     default: {
                         panic("can not print columns of kind {}", col->getKind());
@@ -247,7 +267,11 @@ void TuringShell::processLine(std::string& line) {
         }
     };
 
-    const auto res = _quiet ? _turingDB.query(line, _graphName, _mem, [](const Block&) {}, _hash) : _turingDB.query(line, _graphName, _mem, queryCallback, _hash);
+    const auto res = _quiet 
+        ? _turingDB.query(line, _graphName, _mem, [](const Block&) {}, _hash) 
+        : _turingDB.query(line, _graphName, _mem, queryCallback, _hash);
+
+    checkShellContext();
 
     if (!res.isOk()) {
         if (res.hasErrorMessage()) {
@@ -282,11 +306,18 @@ bool TuringShell::setCommitHash(CommitHash hash) {
     }
 
     Transaction transaction = graph->openTransaction(hash);
-    if (!transaction.isValid()) {
+    if (transaction.isValid()) {
+        _hash = hash;
+        return true;
+    }
+
+    auto res =_turingDB.getSystemManager().getChangeManager().getChange(hash);
+    if (!res) {
         return false;
     }
 
-    _hash = hash;
+    _hash = res.value()->hash();
+
     return true;
 }
 
@@ -297,3 +328,25 @@ void TuringShell::printHelp() const {
 
     std::cout << "\n";
 }
+
+void TuringShell::checkShellContext() {
+    const auto* graph = _turingDB.getSystemManager().getGraph(_graphName);
+    if (graph == nullptr) {
+        fmt::print("Graph '{}' does not exist anymore, switching back to default graph\n", _graphName);
+        setGraphName("default");
+        return;
+    }
+
+    Transaction transaction = graph->openTransaction(_hash);
+    if (transaction.isValid()) {
+        return;
+    }
+
+    auto res = _turingDB.getSystemManager().getChangeManager().getChange(_hash);
+    if (!res) {
+        fmt::print("Change '{:x}' does not exist anymore, switching back to head\n", _hash.get());
+        setCommitHash(CommitHash::head());
+        return;
+    }
+}
+

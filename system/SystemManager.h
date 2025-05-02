@@ -8,11 +8,13 @@
 #include "GraphLoadStatus.h"
 #include "Path.h"
 #include "GraphFileType.h"
+#include "versioning/ChangeResult.h"
 #include "versioning/Transaction.h"
 
 namespace db {
 
 class Graph;
+class ChangeManager;
 
 class SystemManager {
 public:
@@ -47,11 +49,17 @@ public:
     BasicResult<Transaction, std::string_view> openTransaction(const std::string& graphName,
                                                                const CommitHash& commit) const;
 
+    ChangeManager& getChangeManager() { return *_changes; }
+    const ChangeManager& getChangeManager() const { return *_changes; }
+
+    ChangeResult<CommitHash> newChange(const std::string& graphName);
+
 private:
-    mutable RWSpinLock _lock;
+    mutable RWSpinLock _graphsLock;
     fs::Path _graphsDir;
     Graph* _defaultGraph {nullptr};
     std::unordered_map<std::string, std::unique_ptr<Graph>> _graphs;
+    std::unique_ptr<ChangeManager> _changes;
     GraphLoadStatus _graphLoadStatus;
 
     bool loadNeo4jJsonDB(const std::string& graphName, const fs::Path& dbPath);

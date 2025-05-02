@@ -180,9 +180,38 @@ PipelineStep::PipelineStep(HistoryStep::Tag,
 {
 }
 
+PipelineStep::PipelineStep(ChangeStep::Tag,
+                           ChangeOpType type,
+                           ColumnVector<const CommitBuilder*>* changes)
+    : _opcode(PipelineOpcode::CHANGE),
+    _impl(std::in_place_type<ChangeStep>, type, changes)
+{
+}
+
 PipelineStep::PipelineStep(LoadGraphStep::Tag, const std::string& graphName)
     : _opcode(PipelineOpcode::LOAD_GRAPH),
     _impl(std::in_place_type<LoadGraphStep>, graphName)
+{
+}
+
+PipelineStep::PipelineStep(CreateNodeStep::Tag, const EntityPattern* data)
+    : _opcode(PipelineOpcode::CREATE_NODE),
+    _impl(std::in_place_type<CreateNodeStep>, data)
+{
+}
+
+PipelineStep::PipelineStep(CreateEdgeStep::Tag,
+                           const EntityPattern* src,
+                           const EntityPattern* edge,
+                           const EntityPattern* tgt)
+    : _opcode(PipelineOpcode::CREATE_EDGE),
+    _impl(std::in_place_type<CreateEdgeStep>, src, edge, tgt)
+{
+}
+
+PipelineStep::PipelineStep(BuildDataPartsStep::Tag)
+    : _opcode(PipelineOpcode::BUILD_DATA_PARTS),
+    _impl(std::in_place_type<BuildDataPartsStep>)
 {
 }
 

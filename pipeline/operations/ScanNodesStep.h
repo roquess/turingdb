@@ -10,8 +10,6 @@
 
 namespace db {
 
-class ColumnID;
-
 class ScanNodesStep {
 public:
     struct Tag {};

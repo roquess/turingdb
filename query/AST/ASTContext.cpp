@@ -3,6 +3,7 @@
 #include "Expr.h"
 #include "ExprConstraint.h"
 #include "MatchTarget.h"
+#include "CreateTarget.h"
 #include "PathPattern.h"
 #include "QueryCommand.h"
 #include "ReturnField.h"
@@ -27,6 +28,14 @@ ASTContext::~ASTContext() {
 
     for (MatchTarget* target : _matchTargets) {
         delete target;
+    }
+
+    for (CreateTarget* target : _createTargets) {
+        delete target;
+    }
+
+    for (CreateTargets* targets : _createTargetVectors) {
+        delete targets;
     }
 
     for (PathPattern* pattern : _pathPatterns) {
@@ -56,6 +65,14 @@ ASTContext::~ASTContext() {
     for (ReturnProjection* proj : _returnProjections) {
         delete proj;
     }
+}
+
+void ASTContext::addCreateTarget(CreateTarget* target) {
+    _createTargets.push_back(target);
+}
+
+void ASTContext::addCreateTargets(CreateTargets* targets) {
+    _createTargetVectors.push_back(targets);
 }
 
 void ASTContext::addCmd(QueryCommand* cmd) {

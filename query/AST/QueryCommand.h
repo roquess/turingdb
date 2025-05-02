@@ -10,6 +10,8 @@ class ASTContext;
 class DeclContext;
 class ReturnProjection;
 class MatchTarget;
+class CreateTarget;
+class CreateTargets;
 
 class QueryCommand {
 public:
@@ -17,11 +19,13 @@ public:
 
     enum class Kind {
         MATCH_COMMAND = 0,
+        CREATE_COMMAND,
         CREATE_GRAPH_COMMAND,
         LIST_GRAPH_COMMAND,
         LOAD_GRAPH_COMMAND,
         EXPLAIN_COMMAND,
-        HISTORY_COMMAND
+        HISTORY_COMMAND,
+        CHANGE_COMMAND
     };
 
     virtual Kind getKind() const = 0;
@@ -55,6 +59,23 @@ private:
 
     MatchCommand();
     ~MatchCommand() override;
+};
+
+class CreateCommand : public QueryCommand {
+public:
+    static CreateCommand* create(ASTContext* ctxt, CreateTargets* targets);
+
+    DeclContext* getDeclContext() const { return _declContext.get(); }
+    const CreateTargets& createTargets() const { return *_createTargets; }
+
+    Kind getKind() const override { return Kind::CREATE_COMMAND; }
+
+private:
+    std::unique_ptr<DeclContext> _declContext;
+    CreateTargets* _createTargets {nullptr};
+
+    explicit CreateCommand(CreateTargets* targets);
+    ~CreateCommand() override;
 };
 
 class CreateGraphCommand : public QueryCommand {

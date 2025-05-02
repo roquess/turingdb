@@ -15,6 +15,8 @@
 
 namespace db {
 
+class CommitBuilder;
+
 class LocalMemory {
 public:
     template <typename T>
@@ -43,6 +45,7 @@ public:
         MakeMemoryPool<ColumnVector<types::Double::Primitive>>::type,
         MakeMemoryPool<ColumnVector<types::String::Primitive>>::type,
         MakeMemoryPool<ColumnVector<types::Bool::Primitive>>::type,
+        MakeMemoryPool<ColumnVector<const CommitBuilder*>>::type,
         MakeMemoryPool<ColumnOptVector<types::Int64::Primitive>>::type,
         MakeMemoryPool<ColumnOptVector<types::UInt64::Primitive>>::type,
         MakeMemoryPool<ColumnOptVector<types::Double::Primitive>>::type,
@@ -69,6 +72,7 @@ public:
         _pools.get<ColumnConst<EdgeTypeID>>().clear();
         _pools.get<ColumnVector<std::string>>().clear();
         _pools.get<ColumnVector<std::string_view>>().clear();
+        _pools.get<ColumnVector<const CommitBuilder*>>().clear();
     }
 
 private:

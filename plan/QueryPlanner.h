@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "ChangeCommand.h"
 #include "ExprConstraint.h"
 #include "QueryCommand.h"
 #include "columns/ColumnIDs.h"
@@ -80,6 +81,7 @@ private:
 
     // Planning functions
     bool planMatch(const MatchCommand* matchCmd);
+    bool planCreate(const CreateCommand* createCmd);
     void planPath(const std::vector<EntityPattern*>& path);
 
     void planScanNodes(const EntityPattern* entity);
@@ -124,5 +126,6 @@ private:
     void planOutputLambda();
     bool planExplain(const ExplainCommand* explain);
     bool planHistory(const HistoryCommand* history);
+    bool planChange(const ChangeCommand* cmd);
 };
 }

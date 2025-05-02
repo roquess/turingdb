@@ -1,5 +1,6 @@
 #include "QueryPlanner.h"
 
+#include <span>
 #include <spdlog/spdlog.h>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/chunk.hpp>
@@ -13,6 +14,7 @@
 #include "Pipeline.h"
 #include "QueryCommand.h"
 #include "ReturnField.h"
+#include "ASTContext.h"
 #include "ReturnProjection.h"
 #include "TypeConstraint.h"
 #include "VarDecl.h"
@@ -28,7 +30,9 @@ using namespace db;
 
 namespace rv = ranges::views;
 
-QueryPlanner::QueryPlanner(const GraphView& view, LocalMemory* mem, QueryCallback callback)
+QueryPlanner::QueryPlanner(const GraphView& view,
+                           LocalMemory* mem,
+                           QueryCallback callback)
     : _view(view),
     _mem(mem),
     _queryCallback(std::move(callback)),
@@ -48,6 +52,9 @@ bool QueryPlanner::plan(const QueryCommand* query) {
         case QueryCommand::Kind::MATCH_COMMAND:
             return planMatch(static_cast<const MatchCommand*>(query));
 
+        case QueryCommand::Kind::CREATE_COMMAND:
+            return planCreate(static_cast<const CreateCommand*>(query));
+
         case QueryCommand::Kind::CREATE_GRAPH_COMMAND:
             return planCreateGraph(static_cast<const CreateGraphCommand*>(query));
 
@@ -63,10 +70,11 @@ bool QueryPlanner::plan(const QueryCommand* query) {
         case QueryCommand::Kind::HISTORY_COMMAND:
             return planHistory(static_cast<const HistoryCommand*>(query));
 
-        default:
-            spdlog::error("Unsupported query of kind {}", (unsigned)kind);
-            return false;
+        case QueryCommand::Kind::CHANGE_COMMAND:
+            return planChange(static_cast<const ChangeCommand*>(query));
     }
+
+    panic("Unsupported query command");
 }
 
 bool QueryPlanner::planMatch(const MatchCommand* matchCmd) {
@@ -94,6 +102,78 @@ bool QueryPlanner::planMatch(const MatchCommand* matchCmd) {
     planTransformStep();
     planProjection(matchCmd);
     planOutputLambda();
+
+    // Add END step
+    _pipeline->add<EndStep>();
+
+    return true;
+}
+
+bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
+    const auto& targets = createCmd->createTargets();
+    if (targets.size() == 0) {
+        spdlog::error("Unsupported CREATE queries without targets");
+        return false;
+    }
+
+    // Add STOP step in front of the pipeline
+    // This is necessary by convention for Executor
+    _pipeline->add<StopStep>();
+
+    for (const auto& target : targets) {
+        const PathPattern* path = target->getPattern();
+        std::span pathElements {path->elements()};
+
+        if (pathElements.empty()) {
+            spdlog::error("Unsupported path pattern with zero elements");
+            return false;
+        }
+
+        auto* src = pathElements[0];
+        auto* srcDcl = src->getVar()->getDecl();
+
+        if (!srcDcl->getColumn()) {
+            auto* nodeID = _mem->alloc<ColumnID>();
+            srcDcl->setColumn(nodeID);
+
+            const EntityID srcID = src->getEntityID();
+
+            if (!srcID.isValid()) {
+                // Create first node
+                _pipeline->add<CreateNodeStep>(src);
+            } else {
+                nodeID->set(srcID);
+            }
+        }
+
+        if (pathElements.size() == 1) {
+            continue;
+        }
+
+        for (auto step : pathElements | rv::chunk(3)) {
+            // Create the target + the edge (the source is already created)
+            const auto* src = step[0];
+            const auto* edge = step[1];
+            const auto* tgt = step[2];
+            auto* edgeDecl = edge->getVar()->getDecl();
+            auto* tgtDecl = tgt->getVar()->getDecl();
+
+            auto* edgeID = _mem->alloc<ColumnID>();
+            edgeDecl->setColumn(edgeID);
+
+            if (!tgtDecl->getColumn()) {
+                auto* tgtID = _mem->alloc<ColumnID>();
+
+                // If target ID is invalid, it will be created
+                tgtID->set(EntityID {tgt->getEntityID()});
+
+                tgtDecl->setColumn(tgtID);
+            }
+
+            _pipeline->add<CreateEdgeStep>(src, edge, tgt);
+        }
+    }
+    _pipeline->add<BuildDataPartsStep>();
 
     // Add END step
     _pipeline->add<EndStep>();
@@ -174,6 +254,11 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
         auto* filterConstVal = _mem->alloc<ColumnConst<valType>>();                                  \
         filterConstVal->set(constVal);                                                               \
                                                                                                      \
+        if (propType._valueType != T::_valueType) {                                                  \
+            throw PlannerException("Invalid value type for property member \""                       \
+                                   + varExprName + "\"");                                            \
+        }                                                                                            \
+                                                                                                     \
         _pipeline->add<StepType>(scannedNodes,                                                       \
                                  propType,                                                           \
                                  propValues);                                                        \
@@ -248,13 +333,18 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
         const auto filterConstVal = _mem->alloc<ColumnConst<valType>>();                             \
         filterConstVal->set(constVal);                                                               \
                                                                                                      \
+        if (propType._valueType != types::Type::_valueType) {                                        \
+            throw PlannerException("Invalid value type for property member \""                       \
+                                   + varExprName + "\"");                                            \
+        }                                                                                            \
+                                                                                                     \
         _pipeline->add<StepType>(scannedNodes,                                                       \
                                  propType,                                                           \
                                  LabelSetHandle {*labelSet},                                         \
                                  propValues);                                                        \
                                                                                                      \
         if (expressions.size() > 1) {                                                                \
-            auto* scannedMatchingNodes = _mem->alloc<ColumnIDs>();                              \
+            auto* scannedMatchingNodes = _mem->alloc<ColumnIDs>();                                   \
             std::vector<ColumnMask*> masks(expressions.size() - 1);                                  \
             for (auto& mask : masks) {                                                               \
                 mask = _mem->alloc<ColumnMask>();                                                    \
@@ -329,12 +419,111 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnIDs* const& output
 
     auto* filterMask = _mem->alloc<ColumnMask>();
 
+    const auto caseScanNodesPropertyValueType = [&]<SupportedType T>() {
+        using Step = ScanNodesByPropertyStep<T>;
+        using Val = typename T::Primitive;
+
+        auto* propValues = _mem->alloc<ColumnVector<Val>>();
+        const auto valueType = rightExpr->getType();
+        if (valueType != T::_valueType) {
+            throw PlannerException("Invalid value type for property member \""
+                                   + varExprName + "\"");
+        }
+        const Val constVal = static_cast<PropertyTypeExprConst<T>::ExprConstType*>(rightExpr)->getVal();
+        auto* filterConstVal = _mem->alloc<ColumnConst<Val>>();
+        filterConstVal->set(constVal);
+
+        _pipeline->add<Step>(scannedNodes,
+                             propType,
+                             propValues);
+
+        /* Checking whether we are in the multi-expression
+         * constraint case so we can appropriately
+         * assign the outputNodes column to the correct step */
+        if (expressions.size() > 1) {
+            auto* scannedMatchingNodes = _mem->alloc<ColumnIDs>();
+            std::vector<ColumnMask*> masks(expressions.size() - 1);
+            for (auto& mask : masks) {
+                mask = _mem->alloc<ColumnMask>();
+            }
+
+            auto& filterScannedNodes = _pipeline->add<FilterStep>().get<FilterStep>();
+            filterScannedNodes.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_EQUAL,
+                ._mask = filterMask,
+                ._lhs = propValues,
+                ._rhs = filterConstVal
+            });
+            filterScannedNodes.addOperand(FilterStep::Operand {
+                ._mask = filterMask,
+                ._src = scannedNodes,
+                ._dest = scannedMatchingNodes
+            });
+
+            generateNodePropertyFilterMasks(masks,
+                                            std::span<const BinExpr* const>(expressions.data() + 1,
+                                                                            expressions.size() - 1),
+                                            scannedMatchingNodes);
+
+            auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+
+            /* Loop over the mask columns, combinig all the masks onto the first mask column*/
+            for (auto* mask : masks | rv::drop(1)) {
+                filter.addExpression(FilterStep::Expression {
+                    ._op = ColumnOperator::OP_AND,
+                    ._mask = masks[0],
+                    ._lhs = masks[0],
+                    ._rhs = mask
+                });
+            }
+            filter.addOperand(FilterStep::Operand {
+                ._mask = masks[0],
+                ._src = scannedMatchingNodes,
+                ._dest = outputNodes
+            });
+        } else {
+            auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+            filter.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_EQUAL,
+                ._mask = filterMask,
+                ._lhs = propValues,
+                ._rhs = filterConstVal
+            });
+            filter.addOperand(FilterStep::Operand {
+                ._mask = filterMask,
+                ._src = scannedNodes,
+                ._dest = outputNodes
+            });
+        }
+    };
+
     switch (propType._valueType) {
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(Int64)
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(UInt64)
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(Double)
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(String)
-        CASE_SCAN_NODES_PROPERTY_VALUE_TYPE(Bool)
+        case ValueType::Int64: {
+            caseScanNodesPropertyValueType.operator()<types::Int64>();
+            break;
+        }
+
+        case ValueType::UInt64: {
+            caseScanNodesPropertyValueType.operator()<types::UInt64>();
+            break;
+        }
+
+        case ValueType::Double: {
+            caseScanNodesPropertyValueType.operator()<types::Double>();
+            break;
+        }
+
+        case ValueType::Bool: {
+            caseScanNodesPropertyValueType.operator()<types::Bool>();
+            break;
+        }
+
+        case ValueType::String: {
+            caseScanNodesPropertyValueType.operator()<types::String>();
+            break;
+        }
+
+
         default: {
             throw PlannerException("Unsupported property type for property member");
         }
@@ -383,6 +572,11 @@ void QueryPlanner::planScanNodesWithPropertyAndLabelConstraints(ColumnIDs* const
                                                                                \
         valType constVal = static_cast<Type##ExprConst*>(rightExpr)->getVal(); \
         filterConstVal->set(constVal);                                         \
+                                                                               \
+        if (propType._valueType != types::Type::_valueType) {                  \
+            throw PlannerException("Invalid value type for property member \"" \
+                                   + varExprName + "\"");                      \
+        }                                                                      \
                                                                                \
         _pipeline->add<StepType>(entities,                                     \
                                  propType,                                     \
@@ -1227,6 +1421,34 @@ bool QueryPlanner::planHistory(const HistoryCommand* history) {
     _pipeline->add<HistoryStep>(historyLog);
     planOutputLambda();
     _output->addColumn(historyLog);
+    _pipeline->add<EndStep>();
+
+    return true;
+}
+
+bool QueryPlanner::planChange(const ChangeCommand* cmd) {
+    _pipeline->add<StopStep>();
+
+    switch (cmd->getChangeOpType()) {
+        case ChangeOpType::LIST:
+        case ChangeOpType::NEW: {
+            auto* output = _mem->alloc<ColumnVector<const CommitBuilder*>>();
+            _pipeline->add<ChangeStep>(cmd->getChangeOpType(), output);
+            _output->addColumn(output);
+            planOutputLambda();
+            break;
+        }
+
+        case ChangeOpType::SUBMIT:
+        case ChangeOpType::DELETE: {
+            _pipeline->add<ChangeStep>(cmd->getChangeOpType(), nullptr);
+            break;
+        }
+
+        case ChangeOpType::_SIZE:
+            throw PlannerException("Unsupported change operation");
+    }
+
     _pipeline->add<EndStep>();
 
     return true;

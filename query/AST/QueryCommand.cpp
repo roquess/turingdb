@@ -2,6 +2,7 @@
 
 #include "ASTContext.h"
 #include "DeclContext.h"
+#include "ChangeCommand.h"
 
 using namespace db;
 
@@ -27,6 +28,23 @@ MatchCommand* MatchCommand::create(ASTContext* ctxt) {
 
 void MatchCommand::addMatchTarget(MatchTarget* matchTarget) {
     _matchTargets.push_back(matchTarget);
+}
+
+// CreateCommand
+
+CreateCommand::CreateCommand(CreateTargets* targets)
+    : _declContext(std::make_unique<DeclContext>()),
+     _createTargets(targets)
+{
+}
+
+CreateCommand::~CreateCommand() {
+}
+
+CreateCommand* CreateCommand::create(ASTContext* ctxt, CreateTargets* targets) {
+    CreateCommand* cmd = new CreateCommand(targets);
+    cmd->registerCmd(ctxt);
+    return cmd;
 }
 
 // CreateGraphCommand
@@ -90,3 +108,17 @@ HistoryCommand* HistoryCommand::create(ASTContext* ctxt) {
     cmd->registerCmd(ctxt);
     return cmd;
 }
+
+// ChangeCommand
+
+ChangeCommand::ChangeCommand(ChangeOpType type)
+    : _type(type)
+{
+}
+
+ChangeCommand* ChangeCommand::create(ASTContext* ctxt, ChangeOpType type) {
+    ChangeCommand* cmd = new ChangeCommand(type);
+    cmd->registerCmd(ctxt);
+    return cmd;
+}
+

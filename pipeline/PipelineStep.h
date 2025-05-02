@@ -2,6 +2,7 @@
 
 #include <variant>
 
+#include "ChangeOpType.h"
 #include "PipelineOpcode.h"
 
 #include "operations/ScanNodesStep.h"
@@ -25,6 +26,10 @@
 #include "operations/GetPropertyStep.h"
 #include "operations/GetFilteredPropertyStep.h"
 #include "operations/HistoryStep.h"
+#include "operations/ChangeStep.h"
+#include "operations/CreateNodeStep.h"
+#include "operations/CreateEdgeStep.h"
+#include "operations/BuildDataPartsStep.h"
 
 #include "FastGet.h"
 
@@ -60,7 +65,7 @@
                  ColumnMask* projectedMask);
 
 namespace net {
-    class NetWriter;
+class NetWriter;
 }
 
 namespace db {
@@ -104,7 +109,16 @@ public:
     PipelineStep(StopStep::Tag);
     PipelineStep(EndStep::Tag);
     PipelineStep(HistoryStep::Tag, ColumnVector<std::string>*);
+    PipelineStep(ChangeStep::Tag,
+                 ChangeOpType,
+                 ColumnVector<const CommitBuilder*>*);
     PipelineStep(LoadGraphStep::Tag, const std::string& graphName);
+    PipelineStep(CreateNodeStep::Tag, const EntityPattern*);
+    PipelineStep(CreateEdgeStep::Tag,
+                 const EntityPattern*,
+                 const EntityPattern*,
+                 const EntityPattern*);
+    PipelineStep(BuildDataPartsStep::Tag);
 
     PROPERTY_STEPS(Int64)
     PROPERTY_STEPS(UInt64)
@@ -176,7 +190,12 @@ private:
                  GetFilteredEdgePropertyDoubleStep,
                  GetFilteredEdgePropertyStringStep,
                  GetFilteredEdgePropertyBoolStep,
-                 HistoryStep> _impl;
+                 HistoryStep,
+                 ChangeStep,
+                 CreateNodeStep,
+                 CreateEdgeStep,
+                 BuildDataPartsStep>
+        _impl;
 };
 
 }

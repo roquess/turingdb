@@ -12,6 +12,9 @@
 {
 
 #include <string>
+#include <memory>
+#include "ChangeOpType.h"
+#include "CreateTarget.h"
 
 namespace db {
 class YScanner;
@@ -19,6 +22,8 @@ class ASTContext;
 class QueryCommand;
 class ReturnField;
 class MatchTarget;
+class CreateTarget;
+class CreateTargets;
 class PathPattern;
 class EntityPattern;
 class TypeConstraint;
@@ -41,6 +46,7 @@ class ReturnProjection;
 
 #include "ASTContext.h"
 #include "QueryCommand.h"
+#include "ChangeCommand.h"
 #include "ReturnField.h"
 #include "MatchTarget.h"
 #include "PathPattern.h"
@@ -89,6 +95,10 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token LOAD
 %token EXPLAIN
 %token HISTORY
+%token CHANGE
+%token NEW
+%token SUBMIT
+%token DELETE
 
 // Operators
 %token PLUS
@@ -114,14 +124,22 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %type<db::QueryCommand*> query_unit
 %type<db::QueryCommand*> cmd
 
+%type<uint64_t> unsigned_integer
+%type<int64_t> signed_integer
 %type<db::QueryCommand*> match_cmd
+%type<db::QueryCommand*> create_cmd
 %type<db::ReturnProjection*> return_fields
 %type<db::ReturnField*> return_field
 %type<db::MatchTarget*> match_target
+%type<db::CreateTarget*> create_target
+%type<db::CreateTargets*> create_targets
+%type<db::PathPattern*> create_path_pattern
 %type<db::PathPattern*> path_pattern
+%type<db::EntityPattern*> create_node_pattern
 %type<db::EntityPattern*> node_pattern
 %type<db::EntityPattern*> edge_pattern
 %type<db::EntityPattern*> entity_pattern
+%type<db::EntityPattern*> known_entity_pattern
 %type<db::EntityPattern*> edge_entity_pattern
 %type<db::TypeConstraint*> type_constraint
 %type<db::BinExpr*> prop_equals_expr
@@ -140,6 +158,10 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 
 %type<db::QueryCommand*> history_cmd
 
+%type<db::QueryCommand*> change_cmd
+
+%type <db::ChangeOpType> change_subcmd
+
 %start query_unit
 
 %%
@@ -149,11 +171,13 @@ query_unit: cmd { $$ = $1; }
           ;
           
 cmd: match_cmd { ctxt->setRoot($1); }
+   | create_cmd { ctxt->setRoot($1); }
    | create_graph_cmd { ctxt->setRoot($1); }
    | list_graph_cmd { ctxt->setRoot($1); }
    | load_graph_cmd { ctxt->setRoot($1); }
    | explain_cmd { ctxt->setRoot($1); }
    | history_cmd { ctxt->setRoot($1); }
+   | change_cmd { ctxt->setRoot($1); }
    ;
 
 match_cmd: MATCH match_target RETURN return_fields {
@@ -161,7 +185,28 @@ match_cmd: MATCH match_target RETURN return_fields {
                                                        cmd->setProjection($4);
                                                        cmd->addMatchTarget($2);
                                                        $$ = cmd;
-                                                  }
+                                                   }
+                                                   ;
+
+create_targets: create_targets COMMA create_target
+              {
+                  $$ = $1;
+                  $$->push_back($3);
+              }
+              | create_target
+              {
+                  $$ = CreateTargets::create(ctxt);
+                  $$->push_back($1);
+              }
+              ;
+
+create_target: create_path_pattern { $$ = CreateTarget::create(ctxt, $1); }
+             ;
+
+create_cmd: CREATE create_targets
+          {
+              $$ = CreateCommand::create(ctxt, $2);
+          }
           ;
 
 return_field: STAR {
@@ -199,6 +244,27 @@ match_target: path_pattern {
                           }
            ;
 
+create_path_pattern: create_node_pattern
+                   {
+                       auto pattern = PathPattern::create(ctxt);
+                       pattern->addElement($1);
+                       $$ = pattern;
+                   }
+                   | create_path_pattern MINUS MINUS create_node_pattern
+                   {
+                       auto edge = EntityPattern::create(ctxt, nullptr, nullptr, nullptr);
+                       $1->addElement(edge);
+                       $1->addElement($4);
+                       $$ = $1;
+                   }
+                   | create_path_pattern MINUS edge_pattern MINUS create_node_pattern 
+                   {
+                       $1->addElement($3);
+                       $1->addElement($5);
+                       $$ = $1;
+                   }
+                   ;
+
 path_pattern: node_pattern
             {
                 auto pattern = PathPattern::create(ctxt);
@@ -219,6 +285,10 @@ path_pattern: node_pattern
                 $$ = $1;
             }
             ;
+
+create_node_pattern: OPAR entity_pattern CPAR { $$ = $2; }
+                   | OPAR known_entity_pattern CPAR { $$ = $2; }
+                   ;
 
 node_pattern: OPAR entity_pattern CPAR { $$ = $2; }
             | entity_pattern { $$ = $1; }
@@ -265,6 +335,12 @@ entity_pattern: entity_var COLON type_constraint OBRACK prop_expr_constraint CBR
               { $$ = EntityPattern::create(ctxt, nullptr, $2, nullptr); }
               ;
 
+known_entity_pattern: entity_var COLON unsigned_integer
+                    { $$ = EntityPattern::create(ctxt, $1, $3); }
+                    | COLON unsigned_integer
+                    { $$ = EntityPattern::create(ctxt, nullptr, $2); }
+                    ;
+
 entity_var: ID { $$ = VarExpr::create(ctxt, $1); }
           ;
 
@@ -295,16 +371,13 @@ prop_equals_expr: prop_ID EQUAL prop_expr_constant { $$ = BinExpr::create(ctxt, 
           | prop_ID COLON prop_expr_constant { $$ = BinExpr::create(ctxt, VarExpr::create(ctxt,$1),$3, BinExpr::OpType::OP_EQUAL); }
           ;
 
+signed_integer: MINUS INT_CONSTANT { $$ = - std::stoul($2); }
+unsigned_integer: INT_CONSTANT { $$ = std::stoull($1); }
+
 prop_expr_constant: STRING_CONSTANT  { $$ = StringExprConst::create(ctxt, $1); }
                      | DECIMAL_CONSTANT { $$ =  DoubleExprConst::create(ctxt, std::stod($1));}
-                     | INT_CONSTANT     { 
-                                if($1[0] == '-'){
-                                    $$ = UInt64ExprConst::create(ctxt, static_cast<uint64_t>(std::stoul($1))); 
-                                }
-                                else{
-                                    $$ = Int64ExprConst::create(ctxt, std::stoi($1)); 
-                                }
-                              }
+                     | signed_integer     { $$ = Int64ExprConst::create(ctxt, $1); }
+                     | unsigned_integer   { $$ = UInt64ExprConst::create(ctxt, $1); }
                      | BOOLEAN_CONSTANT { 
                                 if($1[0] == 't' || $1[0] == 'T'){
                                     $$ = BoolExprConst::create(ctxt, true); 
@@ -344,6 +417,19 @@ history_cmd: HISTORY {
                             $$ = history;
                          }
            ;
+
+// CHANGE
+change_subcmd: NEW { $$ = ChangeOpType::NEW; }
+             | SUBMIT { $$ = ChangeOpType::SUBMIT; }
+             | DELETE { $$ = ChangeOpType::DELETE; }
+             | LIST { $$ = ChangeOpType::LIST; }
+             ;
+
+change_cmd: CHANGE change_subcmd {
+                                    auto change = ChangeCommand::create(ctxt, $2);
+                                    $$ = change;
+                                 }
+          ;
 
 %%
 

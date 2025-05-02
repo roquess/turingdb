@@ -4,9 +4,11 @@
 #include <mutex>
 #include <spdlog/spdlog.h>
 
+#include "ChangeManager.h"
 #include "Graph.h"
 #include "Neo4j/Neo4JParserConfig.h"
 #include "Neo4jImporter.h"
+#include "versioning/CommitBuilder.h"
 #include "GMLImporter.h"
 #include "JobSystem.h"
 #include "GraphLoader.h"
@@ -15,7 +17,9 @@
 
 using namespace db;
 
-SystemManager::SystemManager() {
+SystemManager::SystemManager()
+    : _changes(std::make_unique<ChangeManager>())
+{
     const char* home = std::getenv("HOME");
     if (!home) {
         panic("HOME environment variable not set");
@@ -48,7 +52,7 @@ Graph* SystemManager::createGraph(const std::string& name) {
 }
 
 bool SystemManager::addGraph(std::unique_ptr<Graph> graph, const std::string& name) {
-    std::unique_lock guard(_lock);
+    std::unique_lock guard(_graphsLock);
 
     // Search if a graph with the same name exists
     const auto it = _graphs.find(name);
@@ -61,12 +65,12 @@ bool SystemManager::addGraph(std::unique_ptr<Graph> graph, const std::string& na
 }
 
 Graph* SystemManager::getDefaultGraph() const {
-    std::shared_lock guard(_lock);
+    std::shared_lock guard(_graphsLock);
     return _defaultGraph;
 }
 
 void SystemManager::setDefaultGraph(const std::string& name) {
-    std::unique_lock guard(_lock);
+    std::unique_lock guard(_graphsLock);
 
     const auto it = _graphs.find(name);
     if (it != _graphs.end()) {
@@ -75,7 +79,7 @@ void SystemManager::setDefaultGraph(const std::string& name) {
 }
 
 Graph* SystemManager::getGraph(const std::string& graphName) const {
-    std::shared_lock guard(_lock);
+    std::shared_lock guard(_graphsLock);
 
     const auto it = _graphs.find(graphName);
     if (it == _graphs.end()) {
@@ -86,7 +90,7 @@ Graph* SystemManager::getGraph(const std::string& graphName) const {
 }
 
 void SystemManager::listGraphs(std::vector<std::string_view>& names) {
-    std::shared_lock guard(_lock);
+    std::shared_lock guard(_graphsLock);
 
     for (const auto& [name, graph] : _graphs) {
         names.push_back(name);
@@ -243,4 +247,20 @@ BasicResult<Transaction, std::string_view> SystemManager::openTransaction(const 
     }
 
     return tr;
+}
+
+ChangeResult<CommitHash> SystemManager::newChange(const std::string& graphName) {
+    std::shared_lock graphGuard(_graphsLock);
+
+    const auto it = _graphs.find(graphName);
+    if (it == _graphs.end()) {
+        return ChangeError::result(ChangeErrorType::GRAPH_NOT_FOUND);
+    }
+
+    const auto* graph = it->second.get();
+
+    auto tx = graph->openWriteTransaction();
+    auto builder = tx.prepareCommit();
+
+    return _changes->storeChange(std::move(builder));
 }

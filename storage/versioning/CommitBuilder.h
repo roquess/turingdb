@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "EntityID.h"
+#include "versioning/CommitResult.h"
 #include "views/GraphView.h"
 
 namespace db {
@@ -27,13 +28,20 @@ public:
 
     [[nodiscard]] static std::unique_ptr<CommitBuilder> prepare(Graph& graph, const GraphView& view);
 
+    [[nodiscard]] CommitHash hash() const;
     [[nodiscard]] GraphView viewGraph() const;
     [[nodiscard]] GraphReader readGraph() const;
-    [[nodiscard]] DataPartBuilder& newBuilder();
     [[nodiscard]] MetadataBuilder& metadata() { return *_metadata; }
+    [[nodiscard]] size_t pendingCount() const { return _builders.size(); }
+    [[nodiscard]] DataPartBuilder& getCurrentBuilder() { return *_builders.back(); }
+
+    DataPartBuilder& newBuilder();
 
     [[nodiscard]] std::unique_ptr<Commit> build(JobSystem& jobsystem);
     void buildAllPending(JobSystem& jobsystem);
+
+    CommitResult<void> commit(JobSystem& jobsystem);
+    CommitResult<void> rebaseAndCommit(JobSystem& jobsystem);
 
 private:
     friend Graph;

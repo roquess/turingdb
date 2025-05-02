@@ -9,11 +9,10 @@
 #include "PathPattern.h"
 #include "QueryCommand.h"
 #include "ReturnField.h"
+#include "ASTContext.h"
 #include "ReturnProjection.h"
 #include "VarDecl.h"
 #include "BioAssert.h"
-
-#include "spdlog/spdlog.h"
 
 using namespace db;
 namespace rv = ranges::views;
@@ -49,6 +48,10 @@ bool QueryAnalyzer::analyze(QueryCommand* cmd) {
             return analyzeMatch(static_cast<MatchCommand*>(cmd));
         break;
 
+        case QueryCommand::Kind::CREATE_COMMAND:
+            return analyzeCreate(static_cast<CreateCommand*>(cmd));
+        break;
+
         case QueryCommand::Kind::CREATE_GRAPH_COMMAND:
             return analyzeCreateGraph(static_cast<CreateGraphCommand*>(cmd));
         break;
@@ -66,6 +69,7 @@ bool QueryAnalyzer::analyze(QueryCommand* cmd) {
         break;
 
         case QueryCommand::Kind::HISTORY_COMMAND:
+        case QueryCommand::Kind::CHANGE_COMMAND:
             return true;
         break;
 
@@ -164,6 +168,46 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
     return true;
 }
 
+bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
+    DeclContext* declContext = cmd->getDeclContext();
+    const auto& targets = cmd->createTargets();
+    for (const CreateTarget* target : targets) {
+        const PathPattern* pattern = target->getPattern();
+        const auto& elements = pattern->elements();
+
+        EntityPattern* entityPattern = elements[0];
+        if (elements.empty()) {
+            return false;
+        }
+
+        entityPattern->setKind(DeclKind::NODE_DECL);
+        if (!analyzeEntityPattern(declContext, entityPattern)) {
+            return false;
+        }
+
+        if (elements.size() >= 2) {
+            bioassert(elements.size() >= 3);
+            for (auto triple : elements | rv::drop(1) | rv::chunk(2)) {
+                EntityPattern* edge = triple[0];
+                EntityPattern* target = triple[1];
+
+                edge->setKind(DeclKind::EDGE_DECL);
+                target->setKind(DeclKind::NODE_DECL);
+
+                if (!analyzeEntityPattern(declContext, edge)) {
+                    return false;
+                }
+
+                if (!analyzeEntityPattern(declContext, target)) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
                                          EntityPattern* entity) {
     VarExpr* var = entity->getVar();
@@ -173,34 +217,23 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
     }
 
     // Create the variable declaration in the scope of the command
-    VarDecl* decl = VarDecl::create(_ctxt, declContext, var->getName(), entity->getKind());
+    VarDecl* decl = VarDecl::create(_ctxt,
+            declContext,
+            var->getName(),
+            entity->getKind(),
+            entity->getEntityID());
     if (!decl) {
-        return false;
+        // decl already exists from prev targets
+        decl = declContext->getDecl(var->getName());
+        if (decl->getEntityID() != entity->getEntityID()) {
+            return false;
+        }
     }
 
     if (auto* exprConstraint = entity->getExprConstraint()) {
         for (auto* binExpr : exprConstraint->getExpressions()) {
-            const VarExpr* lexpr = static_cast<VarExpr*>(binExpr->getLeftExpr());
-            const std::string& varName = lexpr->getName();
-
-            const ExprConst* rexpr = static_cast<ExprConst*>(binExpr->getRightExpr());
-            switch (binExpr->getOpType()) {
-                case BinExpr::OP_EQUAL:
-                {
-                    const auto propType = _propTypeMap.get(varName);
-                    if (!propType) {
-                        spdlog::error("Property not found: {}", varName);
-                    } else {
-                        if (propType->_valueType != rexpr->getType()) {
-                            spdlog::error("Type Error for variable {}", varName);
-                            return false;
-                        }
-                    }
-                    break;
-                }
-                default:
-                    spdlog::error("Optype not supported");
-                    return false;
+            if (binExpr->getOpType() != BinExpr::OP_EQUAL) {
+                return false;
             }
         }
     }
