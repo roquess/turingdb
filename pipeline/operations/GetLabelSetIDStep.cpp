@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "Profiler.h"
 #include "views/GraphView.h"
 #include "reader/GraphReader.h"
 
@@ -18,6 +19,8 @@ GetLabelSetIDStep::~GetLabelSetIDStep() {
 }
 
 void GetLabelSetIDStep::execute() {
+    Profile profile {"GetLabelSetIDStep::execute"};
+
     const auto& nodeIDs = *_nodeIDs;
     ColumnVector<LabelSetID>& labelsetIDs = *_labelsetIDs;
     const auto reader = _view->read();

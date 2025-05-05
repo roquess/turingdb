@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "Profiler.h"
 #include "iterators/GetOutEdgesIterator.h"
 #include "EdgeWriteInfo.h"
 #include "columns/ColumnIDs.h"
@@ -39,6 +40,8 @@ public:
     }
 
     inline void execute() {
+        Profile profile {"GetOutEdgesStep::execute"};
+
         _it->fill(ChunkConfig::CHUNK_SIZE);
     }
 

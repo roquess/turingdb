@@ -37,6 +37,7 @@ public:
 
 private:
     SystemManager* _sysMan {nullptr};
+    JobSystem* _jobSystem {nullptr};
     GraphView _view;
     ChangeOpType _type {};
     ChangeInfo _changeInfo;

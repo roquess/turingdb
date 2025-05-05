@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "ExecutionContext.h"
+#include "Profiler.h"
 #include "SystemManager.h"
 
 using namespace db;
@@ -17,6 +18,8 @@ void ListGraphStep::prepare(ExecutionContext* ctxt) {
 }
 
 void ListGraphStep::execute() {
+    Profile profile {"ListGraphStep::execute"};
+
     _graphNames->clear();
     _sysMan->listGraphs(_graphNames->getRaw());
 }

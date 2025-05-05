@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 
+#include "Profiler.h"
 #include "columns/ColumnIDs.h"
 #include "columns/ColumnMask.h"
 #include "metadata/SupportedType.h"
@@ -50,6 +51,7 @@ public:
     inline bool isFinished() const { return !_it->isValid(); }
 
     void execute() {
+        Profile profile {"GetFilteredPropertyStep::execute"};
         _projectedMask->resize(_entityIDs->size());
         _it->fill(ChunkConfig::CHUNK_SIZE);
     }

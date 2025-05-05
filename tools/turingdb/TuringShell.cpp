@@ -17,6 +17,7 @@
 #include "versioning/CommitBuilder.h"
 #include "FileUtils.h"
 #include "Panic.h"
+#include "Profiler.h"
 
 using namespace db;
 
@@ -241,6 +242,15 @@ void tabulateWrite(tabulate::RowStream& rs, const CommitBuilder* commit) {
 
 
 void TuringShell::processLine(std::string& line) {
+
+    {
+        std::string profilerOutput;
+        Profiler::dumpAndClear(profilerOutput);
+        if (!profilerOutput.empty()) {
+            fmt::print("{}\n", profilerOutput);
+        }
+    }
+
     // Remove leading whitespace
     trim(line);
 
@@ -318,6 +328,14 @@ void TuringShell::processLine(std::string& line) {
 
     if (!_quiet) {
         std::cout << table << "\n";
+    }
+
+    {
+        std::string profilerOutput;
+        Profiler::dumpAndClear(profilerOutput);
+        if (!profilerOutput.empty()) {
+            fmt::print("{}\n", profilerOutput);
+        }
     }
 }
 

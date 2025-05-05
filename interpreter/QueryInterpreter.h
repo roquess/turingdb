@@ -10,12 +10,13 @@
 namespace db {
 
 class SystemManager;
+class JobSystem;
 class LocalMemory;
 class Executor;
 
 class QueryInterpreter {
 public:
-    QueryInterpreter(SystemManager* sysMan);
+    QueryInterpreter(SystemManager* sysMan, JobSystem* jobSystem);
     ~QueryInterpreter();
 
     QueryStatus execute(std::string_view query,
@@ -26,6 +27,7 @@ public:
 
 private:
     SystemManager* _sysMan {nullptr};
+    JobSystem* _jobSystem {nullptr};
     std::unique_ptr<Executor> _executor;
 };
 

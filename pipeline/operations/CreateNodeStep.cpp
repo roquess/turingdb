@@ -3,6 +3,7 @@
 #include "Expr.h"
 #include "ExprConstraint.h"
 #include "PathPattern.h"
+#include "Profiler.h"
 #include "SystemManager.h"
 #include "TypeConstraint.h"
 #include "PipelineException.h"
@@ -38,6 +39,8 @@ void CreateNodeStep::prepare(ExecutionContext* ctxt) {
 }
 
 void CreateNodeStep::execute() {
+    Profile profile {"CreateNodeStep::execute"};
+
     createNode(_builder, _data);
 }
 

@@ -6,6 +6,7 @@ namespace db {
 
 class ExecutionContext;
 class SystemManager;
+class JobSystem;
 
 class LoadGraphStep {
 public:
@@ -27,6 +28,7 @@ public:
 private:
     std::string _graphName;
     SystemManager* _sysMan {nullptr};
+    JobSystem* _jobSystem {nullptr};
 };
 
 } 

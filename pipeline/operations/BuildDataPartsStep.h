@@ -30,6 +30,7 @@ public:
 
 private:
     CommitBuilder* _change {nullptr};
+    JobSystem* _jobSystem {nullptr};
 };
 
 }

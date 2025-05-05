@@ -3,6 +3,7 @@
 #include "Pipeline.h"
 #include "PipelineException.h"
 #include "PipelineMacros.h"
+#include "Profiler.h"
 
 using namespace db;
 
@@ -19,6 +20,7 @@ void Executor::init() {
 }
 
 void Executor::run(ExecutionContext* ctxt, Pipeline* pipeline) {
+    Profile profile {"Executor::run"};
     runImpl(ctxt, pipeline);
 }
 

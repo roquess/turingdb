@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "ExecutionContext.h"
+#include "Profiler.h"
 #include "SystemManager.h"
 #include "PipelineException.h"
 
@@ -18,10 +19,13 @@ LoadGraphStep::~LoadGraphStep() {
 
 void LoadGraphStep::prepare(ExecutionContext* ctxt) {
     _sysMan = ctxt->getSystemManager();
+    _jobSystem = ctxt->getJobSystem();
 }
 
 void LoadGraphStep::execute() {
-    if (!_sysMan->loadGraph(_graphName)) {
+    Profile profile {"LoadGraphStep::execute"};
+
+    if (!_sysMan->loadGraph(_graphName, *_jobSystem)) {
         throw PipelineException("Failed to load graph " + _graphName);
     }
 } 

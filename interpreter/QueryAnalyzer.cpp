@@ -2,6 +2,7 @@
 
 #include <range/v3/view.hpp>
 
+#include "Profiler.h"
 #include "metadata/PropertyTypeMap.h"
 #include "DeclContext.h"
 #include "Expr.h"
@@ -43,6 +44,8 @@ QueryAnalyzer::QueryAnalyzer(ASTContext* ctxt, const PropertyTypeMap& propTypeMa
 QueryAnalyzer::~QueryAnalyzer() {
 }
 bool QueryAnalyzer::analyze(QueryCommand* cmd) {
+    Profile profile {"QueryAnalyzer::analyze"};
+
     switch (cmd->getKind()) {
         case QueryCommand::Kind::MATCH_COMMAND:
             return analyzeMatch(static_cast<MatchCommand*>(cmd));

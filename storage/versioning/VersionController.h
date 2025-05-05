@@ -7,6 +7,7 @@
 #include <ArcManager.h>
 
 #include "EntityID.h"
+#include "Profiler.h"
 #include "versioning/CommitResult.h"
 #include "versioning/Commit.h"
 #include "versioning/CommitHash.h"
@@ -41,10 +42,12 @@ public:
     [[nodiscard]] CommitHash getHeadHash() const;
 
     WeakArc<CommitData> createCommitData(CommitHash hash) {
+        Profile profile("VersionController::createCommitData");
         return _dataManager->create(hash);
     }
 
     WeakArc<DataPart> createDataPart(EntityID firstNodeID, EntityID firstEdgeID) {
+        Profile profile("VersionController::createDataPart");
         return _partManager->create(firstNodeID, firstEdgeID);
     }
 

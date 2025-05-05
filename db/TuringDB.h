@@ -10,6 +10,7 @@
 namespace db {
 
 class LocalMemory;
+class JobSystem;
 class Block;
 
 class TuringDB {
@@ -19,6 +20,10 @@ public:
 
     SystemManager& getSystemManager() {
         return _systemManager;
+    }
+
+    JobSystem& getJobSystem() {
+        return *_jobSystem;
     }
 
     QueryStatus query(std::string_view query,
@@ -34,6 +39,7 @@ public:
 
 private:
     SystemManager _systemManager;
+    std::unique_ptr<JobSystem> _jobSystem;
 };
 
 }

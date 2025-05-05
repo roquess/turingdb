@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "Profiler.h"
 #include "iterators/ScanNodesByLabelIterator.h"
 #include "columns/ColumnIDs.h"
 #include "metadata/LabelSet.h"
@@ -33,6 +34,8 @@ public:
     }
 
     inline void execute() {
+        Profile profile {"ScanNodesByLabelStep::execute"};
+
         _it->fill(ChunkConfig::CHUNK_SIZE);
     }
 

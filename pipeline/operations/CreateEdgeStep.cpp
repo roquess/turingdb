@@ -3,6 +3,7 @@
 #include "Expr.h"
 #include "ExprConstraint.h"
 #include "PathPattern.h"
+#include "Profiler.h"
 #include "SystemManager.h"
 #include "TypeConstraint.h"
 #include "CreateNodeStep.h"
@@ -41,6 +42,8 @@ void CreateEdgeStep::prepare(ExecutionContext* ctxt) {
 }
 
 void CreateEdgeStep::execute() {
+    Profile profile {"CreateEdgeStep::execute"};
+
     auto& metadata = _builder->getMetadata();
 
     const auto* srcID = static_cast<ColumnID*>(_src->getVar()->getDecl()->getColumn());

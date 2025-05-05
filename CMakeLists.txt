@@ -63,6 +63,12 @@ if (${TURING_DEV})
     add_definitions(-DTURING_DEV)
 endif()
 
+# Detect TURING_PROFILE
+set(TURING_PROFILE FALSE)
+if (DEFINED ENV{TURING_PROFILE})
+    set(TURING_PROFILE TRUE)
+endif()
+
 # Debug settings
 if (${DEBUG_BUILD})
     message(STATUS "Debug build")

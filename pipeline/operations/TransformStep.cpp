@@ -4,6 +4,7 @@
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/reverse.hpp>
 
+#include "Profiler.h"
 #include "columns/ColumnOperators.h"
 #include "columns/Block.h"
 #include "LocalMemory.h"
@@ -111,6 +112,7 @@ TransformStep::~TransformStep() {
 }
 
 void TransformStep::execute() {
+    Profile profile {"TransformStep::execute"};
     auto& output = _transformData->_output;
     const auto& indices = _transformData->_indices;
     const auto& colInfo = _transformData->_colInfo;

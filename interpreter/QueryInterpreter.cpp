@@ -17,12 +17,14 @@
 #include "PlannerException.h"
 #include "PipelineException.h"
 
+#include "Profiler.h"
 #include "Time.h"
 
 using namespace db;
 
-QueryInterpreter::QueryInterpreter(SystemManager* sysMan)
+QueryInterpreter::QueryInterpreter(SystemManager* sysMan, JobSystem* jobSystem)
     : _sysMan(sysMan),
+    _jobSystem(jobSystem),
     _executor(std::make_unique<Executor>())
 {
 }
@@ -35,6 +37,8 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
                                       LocalMemory* mem,
                                       QueryCallback callback,
                                       CommitHash hash) {
+    Profile profile {"QueryInterpreter::execute"};
+    
     const auto start = Clock::now();
 
     Graph* graph = graphName.empty() ? _sysMan->getDefaultGraph() 
@@ -78,7 +82,7 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
     }
 
     // Execute
-    ExecutionContext execCtxt(_sysMan, view, graphName, hash);
+    ExecutionContext execCtxt(_sysMan, _jobSystem, view, graphName, hash);
     try {
         _executor->run(&execCtxt, planner.getPipeline());
     } catch (const PipelineException& e) {

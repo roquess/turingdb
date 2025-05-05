@@ -13,7 +13,8 @@ public:
     void SetUp() override {
         Graph* graph = _db.getSystemManager().getDefaultGraph();
         SimpleGraph::createSimpleGraph(graph);
-        _interp = std::make_unique<QueryInterpreter>(&_db.getSystemManager());
+        _interp = std::make_unique<QueryInterpreter>(&_db.getSystemManager(),
+                                                     &_db.getJobSystem());
     }
 
     void TearDown() override {}

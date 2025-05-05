@@ -10,6 +10,7 @@
 namespace db {
 
 class CommitBuilder;
+class JobSystem;
 
 class ChangeManager {
 public:
@@ -23,7 +24,7 @@ public:
 
     CommitHash storeChange(std::unique_ptr<CommitBuilder> builder);
     ChangeResult<CommitBuilder*> getChange(CommitHash changeHash);
-    ChangeResult<void> acceptChange(CommitHash changeHash);
+    ChangeResult<void> acceptChange(CommitHash changeHash, JobSystem&);
     ChangeResult<void> deleteChange(CommitHash changeHash);
 
     void listChanges(std::vector<const CommitBuilder*>& list) const;

@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 
+#include "Profiler.h"
 #include "columns/ColumnIDs.h"
 #include "columns/ColumnOptVector.h"
 #include "metadata/SupportedType.h"
@@ -45,6 +46,7 @@ public:
     inline bool isFinished() const { return !_it->isValid(); }
 
     void execute() {
+        Profile profile {"GetPropertyStep::execute"};
         _it->fill(ChunkConfig::CHUNK_SIZE);
     }
 

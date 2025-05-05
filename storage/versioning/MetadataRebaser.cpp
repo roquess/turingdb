@@ -1,11 +1,14 @@
 #include "MetadataRebaser.h"
 
+#include "Profiler.h"
 #include "metadata/GraphMetadata.h"
 #include "writers/MetadataBuilder.h"
 
 using namespace db;
 
 bool MetadataRebaser::rebase(const GraphMetadata& theirs, MetadataBuilder& ours) {
+    Profile profile {"MetadataRebaser::rebase"};
+
     const auto& theirLabels = theirs.labels();
     const auto& theirLabelSets = theirs.labelsets();
     const auto& theirEdgeTypes = theirs.edgeTypes();

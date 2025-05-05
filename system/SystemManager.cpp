@@ -97,7 +97,7 @@ void SystemManager::listGraphs(std::vector<std::string_view>& names) {
     }
 }
 
-bool SystemManager::loadGraph(const std::string& graphName) {
+bool SystemManager::loadGraph(const std::string& graphName, JobSystem& jobSystem) {
     const fs::Path graphPath = fs::Path(_graphsDir) / graphName;
 
     // Check if graph was already loaded || is already loading
@@ -113,16 +113,16 @@ bool SystemManager::loadGraph(const std::string& graphName) {
     if (!fileType) {
         // If we can not determine the file type, assume it is a Neo4j JSON graph
         // to be changed in the future
-        return loadNeo4jJsonDB(graphName, graphPath);
+        return loadNeo4jJsonDB(graphName, graphPath, jobSystem);
     }
 
     switch (*fileType) {
         case GraphFileType::GML:
-            return loadGmlDB(graphName, graphPath);
+            return loadGmlDB(graphName, graphPath, jobSystem);
         case GraphFileType::NEO4J_JSON:
-            return loadNeo4jJsonDB(graphName, graphPath);
+            return loadNeo4jJsonDB(graphName, graphPath, jobSystem);
         case GraphFileType::BINARY:
-            return loadBinaryDB(graphName, graphPath);
+            return loadBinaryDB(graphName, graphPath, jobSystem);
         default:
             return false;
     }
@@ -149,7 +149,8 @@ std::optional<GraphFileType> SystemManager::getGraphFileType(const fs::Path& gra
 }
 
 bool SystemManager::loadBinaryDB(const std::string& graphName,
-                                 const fs::Path& dbPath) {
+                                 const fs::Path& dbPath,
+                                 JobSystem& jobsystem) {
     if (!_graphLoadStatus.addLoadingGraph(graphName)) {
         return false;
     }
@@ -172,18 +173,18 @@ bool SystemManager::isGraphLoading(const std::string& graphName) const {
 }
 
 bool SystemManager::loadNeo4jJsonDB(const std::string& graphName,
-                                    const fs::Path& dbPath) {
+                                    const fs::Path& dbPath,
+                                    JobSystem& jobsystem) {
     if (!_graphLoadStatus.addLoadingGraph(graphName)) {
         return false;
     }
 
     auto graph = Graph::create();
-    auto jobsystem = JobSystem::create();
 
     Neo4jImporter::ImportJsonDirArgs args;
     args._jsonDir = FileUtils::Path {dbPath.c_str()};
 
-    if (!Neo4jImporter::importJsonDir(*jobsystem,
+    if (!Neo4jImporter::importJsonDir(jobsystem,
                                       graph.get(),
                                       db::json::neo4j::Neo4JParserConfig::nodeCountLimit,
                                       db::json::neo4j::Neo4JParserConfig::edgeCountLimit,
@@ -194,31 +195,29 @@ bool SystemManager::loadNeo4jJsonDB(const std::string& graphName,
 
     addGraph(std::move(graph), graphName);
     _graphLoadStatus.removeLoadingGraph(graphName);
-    jobsystem->terminate();
     return true;
 }
 
 bool SystemManager::loadGmlDB(const std::string& graphName,
-                              const fs::Path& dbPath) {
+                              const fs::Path& dbPath,
+                              JobSystem& jobsystem) {
     if (!_graphLoadStatus.addLoadingGraph(graphName)) {
         return false;
     }
 
     // Load graph
     auto graph = Graph::create();
-    auto jobsystem = JobSystem::create();
 
     // load GMLs
     GMLImporter importer;
 
-    if (!importer.importFile(*jobsystem, graph.get(), FileUtils::Path {dbPath.c_str()})) {
+    if (!importer.importFile(jobsystem, graph.get(), FileUtils::Path {dbPath.c_str()})) {
         _graphLoadStatus.removeLoadingGraph(graphName);
         return false;
     }
 
     addGraph(std::move(graph), graphName);
     _graphLoadStatus.removeLoadingGraph(graphName);
-    jobsystem->terminate();
     return true;
 }
 
