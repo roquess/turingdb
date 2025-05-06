@@ -15,6 +15,7 @@ namespace db {
 
 class Graph;
 class ChangeManager;
+class JobSystem;
 
 class SystemManager {
 public:
@@ -42,7 +43,7 @@ public:
 
     void setGraphsDir(const fs::Path& dir);
 
-    bool loadGraph(const std::string& graphName);
+    bool loadGraph(const std::string& graphName, JobSystem& jobsystem);
 
     bool isGraphLoading(const std::string& graphName) const;
 
@@ -62,9 +63,9 @@ private:
     std::unique_ptr<ChangeManager> _changes;
     GraphLoadStatus _graphLoadStatus;
 
-    bool loadNeo4jJsonDB(const std::string& graphName, const fs::Path& dbPath);
-    bool loadGmlDB(const std::string& graphName, const fs::Path& dbPath);
-    bool loadBinaryDB(const std::string& graphName, const fs::Path& dbPath);
+    bool loadNeo4jJsonDB(const std::string& graphName, const fs::Path& dbPath, JobSystem&);
+    bool loadGmlDB(const std::string& graphName, const fs::Path& dbPath, JobSystem&);
+    bool loadBinaryDB(const std::string& graphName, const fs::Path& dbPath, JobSystem&);
     bool addGraph(std::unique_ptr<Graph> graph, const std::string& name);
     std::optional<GraphFileType> getGraphFileType(const fs::Path& graphPath);
 };

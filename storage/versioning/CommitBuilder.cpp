@@ -1,6 +1,7 @@
 #include "CommitBuilder.h"
 
 #include "reader/GraphReader.h"
+#include "Profiler.h"
 #include "Graph.h"
 #include "versioning/Commit.h"
 #include "versioning/VersionController.h"
@@ -43,6 +44,8 @@ DataPartBuilder& CommitBuilder::newBuilder() {
 }
 
 void CommitBuilder::buildAllPending(JobSystem& jobsystem) {
+    Profile profile {"CommitBuilder::buildAllPending"};
+
     std::scoped_lock lock {_mutex};
     size_t nodeCount = 0;
     size_t edgeCount = 0;
@@ -82,6 +85,8 @@ CommitBuilder::CommitBuilder(Graph& graph, const GraphView& view)
 }
 
 void CommitBuilder::initialize() {
+    Profile profile {"CommitBuilder::initialize"};
+
     auto reader = _view.read();
     _firstNodeID = reader.getNodeCount();
     _firstEdgeID = reader.getNodeCount();

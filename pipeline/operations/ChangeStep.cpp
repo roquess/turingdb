@@ -4,6 +4,7 @@
 
 #include "ChangeManager.h"
 #include "ExecutionContext.h"
+#include "Profiler.h"
 #include "SystemManager.h"
 #include "PipelineException.h"
 
@@ -21,6 +22,7 @@ ChangeStep::~ChangeStep() {
 
 void ChangeStep::prepare(ExecutionContext* ctxt) {
     _sysMan = ctxt->getSystemManager();
+    _jobSystem = ctxt->getJobSystem();
     _view = ctxt->getGraphView();
 
     if (_type == ChangeOpType::NEW) {
@@ -63,6 +65,9 @@ void ChangeStep::describe(std::string& descr) const {
 }
 
 ChangeResult<CommitHash> ChangeStep::createChange() const {
+    Profile profile {"ChangeStep::createChange"};
+
+
     if (!std::holds_alternative<std::string>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the graph name");
     }
@@ -79,15 +84,19 @@ ChangeResult<CommitHash> ChangeStep::createChange() const {
 }
 
 ChangeResult<void> ChangeStep::acceptChange() const {
+    Profile profile {"ChangeStep::acceptChange"};
+
     if (!std::holds_alternative<CommitHash>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the change hash");
     }
 
     CommitHash changeHash = std::get<CommitHash>(_changeInfo);
-    return _sysMan->getChangeManager().acceptChange(changeHash);
+    return _sysMan->getChangeManager().acceptChange(changeHash, *_jobSystem);
 }
 
 ChangeResult<void> ChangeStep::deleteChange() const {
+    Profile profile {"ChangeStep::deleteChange"};
+
     if (!std::holds_alternative<CommitHash>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the change hash");
     }
@@ -97,6 +106,8 @@ ChangeResult<void> ChangeStep::deleteChange() const {
 }
 
 void ChangeStep::listChanges() const {
+    Profile profile {"ChangeStep::listChanges"};
+
     if (!_output) {
         throw PipelineException("ChangeStep: List changes requires an allocated column of changes");
     }

@@ -5,6 +5,8 @@
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 
+#include "Profiler.h"
+
 namespace rv = ranges::views;
 namespace rg = ranges;
 
@@ -18,6 +20,8 @@ std::unique_ptr<EdgeContainer> EdgeContainer::create(EntityID firstNodeID,
                                                      EntityID firstEdgeID,
                                                      std::vector<EdgeRecord>&& outs) {
     std::unordered_map<EntityID, EntityID> tmpToFinalEdgeIDs;
+
+    Profile profile {"EdgeContainer::create"};
 
     // Sort out edges based on the source node
     rg::sort(outs, [&](const EdgeRecord& a, const EdgeRecord& b) {

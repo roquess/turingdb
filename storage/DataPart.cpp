@@ -13,6 +13,7 @@
 #include "writers/DataPartBuilder.h"
 #include "JobSystem.h"
 #include "JobGroup.h"
+#include "Profiler.h"
 
 using namespace db;
 
@@ -29,6 +30,8 @@ DataPart::DataPart(EntityID firstNodeID,
 DataPart::~DataPart() = default;
 
 bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder& builder) {
+    Profile profile {"DataPart::load"};
+
     JobGroup jobs = jobSystem.newGroup();
     const auto reader = view.read();
 
@@ -188,6 +191,7 @@ bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder
     jobs.wait();
 
     _initialized = true;
+
     return true;
 }
 

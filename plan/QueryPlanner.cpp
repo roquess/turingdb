@@ -12,6 +12,7 @@
 #include "LocalMemory.h"
 #include "PathPattern.h"
 #include "Pipeline.h"
+#include "Profiler.h"
 #include "QueryCommand.h"
 #include "ReturnField.h"
 #include "ASTContext.h"
@@ -46,6 +47,8 @@ QueryPlanner::~QueryPlanner() {
 }
 
 bool QueryPlanner::plan(const QueryCommand* query) {
+    Profile profile {"QueryPlanner::plan"};
+
     const auto kind = query->getKind();
 
     switch (kind) {

@@ -3,6 +3,8 @@
 #include <range/v3/algorithm/is_sorted.hpp>
 #include <range/v3/view/enumerate.hpp>
 
+#include "Profiler.h"
+
 namespace rv = ranges::views;
 
 using namespace db;
@@ -19,6 +21,8 @@ NodeContainer::~NodeContainer() {
 
 std::unique_ptr<NodeContainer> NodeContainer::create(EntityID firstID,
                                                      const std::vector<LabelSetHandle>& nodeLabelSets) {
+    Profile profile {"NodeContainer::create"};
+
     auto* ptr = new NodeContainer(firstID, nodeLabelSets.size());
     std::unique_ptr<NodeContainer> container(ptr);
 

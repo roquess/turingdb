@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "Profiler.h"
 #include "YScanner.h"
 #include "parser.hpp"
 #include "ASTContext.h"
@@ -14,6 +15,8 @@ QueryParser::QueryParser(ASTContext* astCtxt)
 }
 
 QueryCommand* QueryParser::parse(std::string_view query) {
+    Profile profile {"QueryParser::parse"};
+
     YScanner yscanner;
     YParser yparser(yscanner, _astCtxt);
 

@@ -1,5 +1,6 @@
 #include "VersionController.h"
 
+#include "Profiler.h"
 #include "Graph.h"
 #include "CommitView.h"
 #include "versioning/CommitBuilder.h"
@@ -74,6 +75,8 @@ CommitHash VersionController::getHeadHash() const {
 }
 
 CommitResult<void> VersionController::rebase(CommitBuilder& commitBuilder, JobSystem& jobSystem) {
+    Profile profile {"VersionController::rebase"};
+
     std::scoped_lock lock {_mutex};
 
     Transaction headTransaction = openTransaction();

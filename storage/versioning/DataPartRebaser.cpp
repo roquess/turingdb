@@ -1,5 +1,6 @@
 #include "DataPartRebaser.h"
 
+#include "Profiler.h"
 #include "DataPart.h"
 #include "EdgeContainer.h"
 #include "MetadataRebaser.h"
@@ -13,6 +14,8 @@ using namespace db;
 bool DataPartRebaser::rebase(const MetadataRebaser& metadata,
                              const DataPart& prevPart,
                              DataPart& part) {
+    Profile profile {"DataPartRebaser::rebase"};
+
     auto& nodes = part._nodes;
     auto& edges = part._edges;
     auto& edgeIndexer = part._edgeIndexer;

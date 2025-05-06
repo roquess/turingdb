@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Profiler.h"
 #include <functional>
 #include <string>
 
@@ -29,7 +30,11 @@ public:
 
     inline void reset() { _func(this, Operation::RESET); }
 
-    inline void execute() { _func(this, Operation::EXECUTE); }
+    inline void execute() {
+        Profile profile {"LambdaStep::execute"};
+
+        _func(this, Operation::EXECUTE);
+    }
 
     void setFinished(bool finished) { _finished = finished; }
 

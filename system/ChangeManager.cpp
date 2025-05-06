@@ -3,6 +3,7 @@
 
 #include "ChangeManager.h"
 #include "JobSystem.h"
+#include "Profiler.h"
 #include "versioning/CommitBuilder.h"
 
 using namespace db;
@@ -30,7 +31,7 @@ ChangeResult<CommitBuilder*> ChangeManager::getChange(CommitHash changeHash) {
     return it->second.get();
 }
 
-ChangeResult<void> ChangeManager::acceptChange(CommitHash changeHash) {
+ChangeResult<void> ChangeManager::acceptChange(CommitHash changeHash, JobSystem& jobsystem) {
     std::unique_lock guard(_changesLock);
 
     const auto it = _changes.find(changeHash);
@@ -41,9 +42,7 @@ ChangeResult<void> ChangeManager::acceptChange(CommitHash changeHash) {
     std::unique_ptr<CommitBuilder> builder = std::move(it->second);
     _changes.erase(it);
 
-    auto jobsystem = JobSystem::create();
-
-    if (auto res = builder->rebaseAndCommit(*jobsystem); !res) {
+    if (auto res = builder->rebaseAndCommit(jobsystem); !res) {
         return ChangeError::result(ChangeErrorType::COULD_NOT_ACCEPT_CHANGE, res.error());
     }
 

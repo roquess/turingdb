@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "Profiler.h"
 #include "iterators/ScanEdgesIterator.h"
 #include "iterators/ChunkConfig.h"
 #include "EdgeWriteInfo.h"
@@ -37,6 +38,8 @@ public:
     }
 
     inline void execute() {
+        Profile profile {"ScanEdgesStep::execute"};
+
         _it->fill(ChunkConfig::CHUNK_SIZE);
     }
 

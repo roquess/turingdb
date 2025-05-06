@@ -28,7 +28,8 @@ protected:
 TEST_F(MultiDatapartQueryTest, MultiDatapartTest) {
     Graph* graph = _db.getSystemManager().getDefaultGraph();
     GraphWriter writer {graph};
-    _interp = std::make_unique<QueryInterpreter>(&_db.getSystemManager());
+    _interp = std::make_unique<QueryInterpreter>(&_db.getSystemManager(),
+                                                 &_db.getJobSystem());
     QueryTester tester {_mem, *_interp};
 
     const auto node1 = writer.addNode({"label1", "label2", "label3"});

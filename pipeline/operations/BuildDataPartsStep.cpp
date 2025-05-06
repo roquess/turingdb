@@ -1,6 +1,7 @@
 #include "BuildDataPartsStep.h"
 #include "ChangeManager.h"
 #include "JobSystem.h"
+#include "Profiler.h"
 #include "SystemManager.h"
 #include "PipelineException.h"
 #include "versioning/Transaction.h"
@@ -26,12 +27,14 @@ void BuildDataPartsStep::prepare(ExecutionContext* ctxt) {
         throw PipelineException("Build datapart failed: no pending changes");
     }
 
+    _jobSystem = ctxt->getJobSystem();
     _change = &change;
 }
 
 void BuildDataPartsStep::execute() {
-    auto jobs = JobSystem::create();
-    _change->buildAllPending(*jobs);
+    Profile profile {"BuildDataPartsStep::execute"};
+
+    _change->buildAllPending(*_jobSystem);
 }
 
 void BuildDataPartsStep::describe(std::string& descr) const {

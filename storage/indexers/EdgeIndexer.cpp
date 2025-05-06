@@ -6,6 +6,7 @@
 #include "EdgeRecord.h"
 #include "NodeContainer.h"
 #include "views/NodeEdgeView.h"
+#include "Profiler.h"
 
 namespace rv = ranges::views;
 
@@ -24,6 +25,7 @@ std::unique_ptr<EdgeIndexer> EdgeIndexer::create(const EdgeContainer& edges,
                                                  const std::map<EntityID, LabelSetHandle>& patchNodeLabelSets,
                                                  size_t patchOutEdgeCount,
                                                  size_t patchInEdgeCount) {
+    Profile profile {"EdgeIndexer::create"};
     auto* ptr = new EdgeIndexer(edges);
     std::unique_ptr<EdgeIndexer> indexer(ptr);
 
@@ -205,7 +207,6 @@ std::unique_ptr<EdgeIndexer> EdgeIndexer::create(const EdgeContainer& edges,
             spans.push_back(coreInEdges.subspan(rangeFirst, rangeCount));
         }
     }
-
 
     return indexer;
 }

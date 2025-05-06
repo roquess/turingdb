@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "Profiler.h"
 #include "columns/ColumnConst.h"
 #include "columns/ColumnKind.h"
 #include "columns/ColumnOperators.h"
@@ -220,6 +221,8 @@ void FilterStep::reset() {
 }
 
 void FilterStep::execute() {
+    Profile profile {"FilterStep::execute"};
+
     compute();
 
     if (_indices) {

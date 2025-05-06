@@ -166,7 +166,7 @@ void DBServerProcessor::load_graph() {
     PayloadWriter payload(_writer.getWriter());
     payload.obj();
 
-    if (!sys.loadGraph(transactionInfo.graphName)) {
+    if (!sys.loadGraph(transactionInfo.graphName, _db.getJobSystem())) {
         payload.key("error");
         // Try to determine the specific error
         if (sys.getGraph(transactionInfo.graphName)) {

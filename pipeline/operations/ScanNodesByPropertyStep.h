@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "Profiler.h"
 #include "iterators/ScanNodePropertiesIterator.h"
 #include "columns/ColumnIDs.h"
 #include "EntityID.h"
@@ -37,6 +38,8 @@ public:
     }
 
     inline void execute() {
+        Profile profile {"ScanNodesByPropertyStep::execute"};
+
         _it->fill(ChunkConfig::CHUNK_SIZE);
     }
 

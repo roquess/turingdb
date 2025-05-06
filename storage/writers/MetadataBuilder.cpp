@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include "Profiler.h"
 #include "metadata/LabelMap.h"
 #include "metadata/LabelSetMap.h"
 #include "metadata/EdgeTypeMap.h"
@@ -35,6 +36,8 @@ PropertyType MetadataBuilder::getOrCreatePropertyType(const std::string& propTyp
 }
 
 std::unique_ptr<MetadataBuilder> MetadataBuilder::create(const GraphMetadata& prevMetadata, GraphMetadata* metadata) {
+    Profile profile {"MetadataBuilder::create"};
+
     auto* ptr = new MetadataBuilder;
     ptr->_metadata = metadata;
     *ptr->_metadata = prevMetadata;

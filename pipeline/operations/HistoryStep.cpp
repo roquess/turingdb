@@ -1,6 +1,7 @@
 #include "HistoryStep.h"
 
 #include "DataPart.h"
+#include "Profiler.h"
 #include "versioning/CommitView.h"
 
 using namespace db;
@@ -14,6 +15,8 @@ HistoryStep::~HistoryStep() {
 }
 
 void HistoryStep::execute() {
+    Profile profile {"HistoryStep::execute"};
+
     _log->clear();
     for (const auto& commit : _view->commits()) {
         auto& str = _log->emplace_back();
