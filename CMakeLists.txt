@@ -64,9 +64,10 @@ if (${TURING_DEV})
 endif()
 
 # Detect TURING_PROFILE
-set(TURING_PROFILE FALSE)
-if (DEFINED ENV{TURING_PROFILE})
-    set(TURING_PROFILE TRUE)
+set(TURING_PROFILE 0)
+if ($ENV{TURING_PROFILE})
+    set(TURING_PROFILE 1)
+    message(STATUS "Turing profile mode enabled")
 endif()
 
 # Debug settings

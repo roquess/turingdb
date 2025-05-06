@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef TURING_PROFILE
+#define TURING_PROFILE false
+#endif
+
 #include <string_view>
 
 class Profiler {
@@ -44,7 +48,7 @@ public:
     }
 
 private:
-    static inline constexpr bool _profiling = TURING_PROFILE;
+    static constexpr bool _profiling = TURING_PROFILE;
 
     static ProfileID startImpl(std::string_view message);
     static void stopImpl(ProfileID);

@@ -61,11 +61,7 @@ set(storage_sources
 
 
 add_library(turing_db_storage_s STATIC ${storage_sources})
-if (${TURING_PROFILE})
-    target_compile_definitions(turing_db_storage_s PUBLIC -DTURING_PROFILE=${TURING_PROFILE})
-else()
-    target_compile_definitions(turing_db_storage_s PUBLIC -DTURING_PROFILE=0)
-endif()
+target_compile_definitions(turing_db_storage_s PUBLIC -DTURING_PROFILE=${TURING_PROFILE})
 
 target_include_directories(turing_db_storage_s PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
