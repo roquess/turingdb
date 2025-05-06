@@ -5,7 +5,6 @@ set(storage_sources
         DebugDump.cpp
         NodeContainer.cpp
         EdgeContainer.cpp
-        Profiler.cpp
 
         metadata/EdgeTypeMap.cpp
         metadata/PropertyTypeMap.cpp
@@ -61,7 +60,6 @@ set(storage_sources
 
 
 add_library(turing_db_storage_s STATIC ${storage_sources})
-target_compile_definitions(turing_db_storage_s PUBLIC -DTURING_PROFILE=${TURING_PROFILE})
 
 target_include_directories(turing_db_storage_s PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

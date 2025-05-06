@@ -63,13 +63,6 @@ if (${TURING_DEV})
     add_definitions(-DTURING_DEV)
 endif()
 
-# Detect TURING_PROFILE
-set(TURING_PROFILE 0)
-if ($ENV{TURING_PROFILE})
-    set(TURING_PROFILE 1)
-    message(STATUS "Turing profile mode enabled")
-endif()
-
 # Debug settings
 if (${DEBUG_BUILD})
     message(STATUS "Debug build")
