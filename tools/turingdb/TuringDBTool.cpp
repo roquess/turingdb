@@ -33,6 +33,11 @@ int main(int argc, const char** argv) {
 
     toolInit.init(argc, argv);
 
+
+    if (!nodemon) {
+        Demonology::demonize();
+    }
+
     TuringDB turingDB;
     LocalMemory mem;
 
@@ -55,10 +60,6 @@ int main(int argc, const char** argv) {
     } else {
         DBServerConfig config;
         config.setPort(port);
-
-        if (!nodemon) {
-            Demonology::demonize();
-        }
 
         TuringServer server(config, turingDB);
         server.start();
