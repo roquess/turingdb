@@ -3,6 +3,7 @@ add_turing_test(test_io_filewriter FileWriterTest.cpp)
 add_turing_test(test_io_filepagewriter FilePageWriterTest.cpp)
 add_turing_test(test_io_filepagereader FilePageReaderTest.cpp)
 add_turing_test(test_io_fileresult FileResultTest.cpp)
+add_turing_test(test_io_s3 S3Test.cpp)
 
 target_link_libraries(test_io_bytebufferiterator
     PRIVATE turing_db_io_fs_s)
@@ -18,3 +19,6 @@ target_link_libraries(test_io_filepagewriter
 
 target_link_libraries(test_io_fileresult
     PRIVATE turing_db_io_fs_s)
+
+target_link_libraries(test_io_s3
+    PRIVATE turing_db_io_s3_s)
