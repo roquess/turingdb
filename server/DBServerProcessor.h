@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HTTPResponseWriter.h"
+#include "versioning/ChangeID.h"
 #include "versioning/CommitHash.h"
 
 namespace net {
@@ -65,6 +66,7 @@ private:
     struct TransactionInfo {
         std::string graphName;
         CommitHash commit;
+        ChangeID change;
     };
 
     TransactionInfo getTransactionInfo() const;

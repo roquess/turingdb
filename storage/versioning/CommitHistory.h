@@ -14,6 +14,7 @@ class CommitLoader;
 class GraphLoader;
 class VersionController;
 class CommitView;
+class Change;
 
 class CommitHistory {
 public:
@@ -55,6 +56,7 @@ private:
     friend CommitLoader;
     friend GraphLoader;
     friend VersionController;
+    friend Change;
 
     /// Stores all the data parts that are part of the commit history.
     std::vector<WeakArc<DataPart>> _allDataparts;

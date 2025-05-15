@@ -126,9 +126,16 @@ void checkoutCommand(const TuringShell::Command::Words& args, TuringShell& shell
         return;
     }
 
-    if (!shell.setCommitHash(hash.value())) {
-        spdlog::error("Commit {} is not part of the graph's history", hashStr);
+    if (shell.setCommitHash(hash.value())) {
+        return;
     }
+    
+    if (shell.setChangeID(ChangeID::fromString(hashStr).value())) {
+        return;
+    }
+
+
+    spdlog::error("Not commit/change was found matching hash {}", hashStr);
 }
 
 void quietCommand(const TuringShell::Command::Words& args, TuringShell& shell, std::string& line) {
@@ -168,8 +175,7 @@ void readCommand(const TuringShell::Command::Words& args, TuringShell& shell, st
 
 TuringShell::TuringShell(TuringDB& turingDB, LocalMemory* mem)
     : _turingDB(turingDB),
-    _mem(mem)
-{
+      _mem(mem) {
     _localCommands.emplace("q", Command {quitCommand});
     _localCommands.emplace("quit", Command {quitCommand});
     _localCommands.emplace("exit", Command {quitCommand});
@@ -204,10 +210,15 @@ void TuringShell::startLoop() {
 
 std::string TuringShell::composePrompt() {
     const std::string basePrompt = "turing";
+    if (_changeID == ChangeID::head()) {
+        return _hash == CommitHash::head()
+                 ? fmt::format("{}:{}> ", basePrompt, _graphName)
+                 : fmt::format("{}:{}(detached {:x})> ", basePrompt, _graphName, _hash.get());
+    }
 
-    return _hash == CommitHash::head() 
-        ? fmt::format("{}:{}> ", basePrompt, _graphName)
-        : fmt::format("{}:{}@{:x}> ", basePrompt, _graphName, _hash.get());
+    return _hash == CommitHash::head()
+             ? fmt::format("{}:{}@{:x}> ", basePrompt, _graphName, _changeID.get())
+             : fmt::format("{}:{}@{:x}(detached {:x})> ", basePrompt, _graphName, _changeID.get(), _hash.get());
 }
 
 template <typename T>
@@ -226,6 +237,10 @@ void tabulateWrite(tabulate::RowStream& rs, const std::optional<T>& value) {
 
 void tabulateWrite(tabulate::RowStream& rs, const CommitBuilder* commit) {
     rs << fmt::format("{:x}", commit->hash().get());
+}
+
+void tabulateWrite(tabulate::RowStream& rs, const Change* change) {
+    rs << fmt::format("{:x}", change->id().get());
 }
 
 #define TABULATE_COL_CASE(Type, i)                        \
@@ -292,6 +307,7 @@ void TuringShell::processLine(std::string& line) {
                     TABULATE_COL_CASE(ColumnOptVector<types::Bool::Primitive>, i)
                     TABULATE_COL_CASE(ColumnVector<std::string>, i)
                     TABULATE_COL_CASE(ColumnVector<const CommitBuilder*>, i)
+                    TABULATE_COL_CASE(ColumnVector<const Change*>, i)
                     TABULATE_COL_CONST_CASE(ColumnConst<EntityID>)
                     TABULATE_COL_CONST_CASE(ColumnConst<types::UInt64::Primitive>)
                     TABULATE_COL_CONST_CASE(ColumnConst<types::Int64::Primitive>)
@@ -309,9 +325,9 @@ void TuringShell::processLine(std::string& line) {
         }
     };
 
-    const auto res = _quiet 
-        ? _turingDB.query(line, _graphName, _mem, [](const Block&) {}, _hash) 
-        : _turingDB.query(line, _graphName, _mem, queryCallback, _hash);
+    const auto res = _quiet
+                       ? _turingDB.query(line, _graphName, _mem, [](const Block&) {}, _hash)
+                       : _turingDB.query(line, _graphName, _mem, queryCallback, _hash);
 
     checkShellContext();
 
@@ -356,18 +372,22 @@ bool TuringShell::setCommitHash(CommitHash hash) {
     }
 
     Transaction transaction = graph->openTransaction(hash);
-    if (transaction.isValid()) {
-        _hash = hash;
-        return true;
+    if (!transaction.isValid()) {
+        return false;
     }
 
-    auto res =_turingDB.getSystemManager().getChangeManager().getChange(hash);
+    _hash = hash;
+
+    return true;
+}
+
+bool TuringShell::setChangeID(ChangeID changeID) {
+    auto res = _turingDB.getSystemManager().getChangeManager().getChange(changeID);
     if (!res) {
         return false;
     }
 
-    _hash = res.value()->hash();
-
+    _changeID = changeID;
     return true;
 }
 

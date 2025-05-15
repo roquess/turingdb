@@ -8,6 +8,7 @@
 #include "GraphLoadStatus.h"
 #include "Path.h"
 #include "GraphFileType.h"
+#include "versioning/ChangeID.h"
 #include "versioning/ChangeResult.h"
 #include "versioning/Transaction.h"
 
@@ -52,12 +53,13 @@ public:
     bool isGraphLoading(const std::string& graphName) const;
 
     BasicResult<Transaction, std::string_view> openTransaction(const std::string& graphName,
-                                                               const CommitHash& commit) const;
+                                                               const CommitHash& commitID,
+                                                               const ChangeID& changeID) const;
 
     ChangeManager& getChangeManager() { return *_changes; }
     const ChangeManager& getChangeManager() const { return *_changes; }
 
-    ChangeResult<CommitHash> newChange(const std::string& graphName);
+    ChangeResult<CommitHash> newChange(const std::string& graphName, CommitHash baseHash = CommitHash::head());
 
 private:
     mutable RWSpinLock _graphsLock;

@@ -2,8 +2,8 @@
 #include <shared_mutex>
 
 #include "ChangeManager.h"
+#include "Graph.h"
 #include "JobSystem.h"
-#include "Profiler.h"
 #include "versioning/CommitBuilder.h"
 
 using namespace db;
@@ -12,15 +12,15 @@ ChangeManager::ChangeManager() = default;
 
 ChangeManager::~ChangeManager() = default;
 
-CommitHash ChangeManager::storeChange(std::unique_ptr<CommitBuilder> builder) {
+CommitHash ChangeManager::storeChange(std::unique_ptr<Change> change) {
     std::unique_lock guard(_changesLock);
-    const auto hash = builder->hash();
-    _changes.emplace(hash, std::move(builder));
+    const auto hash = change->id();
+    _changes.emplace(hash, std::move(change));
 
     return hash;
 }
 
-ChangeResult<CommitBuilder*> ChangeManager::getChange(CommitHash changeHash) {
+ChangeResult<Change*> ChangeManager::getChange(ChangeID changeHash) {
     std::shared_lock guard(_changesLock);
 
     const auto it = _changes.find(changeHash);
@@ -28,10 +28,10 @@ ChangeResult<CommitBuilder*> ChangeManager::getChange(CommitHash changeHash) {
         return ChangeError::result(ChangeErrorType::CHANGE_NOT_EXISTS);
     }
 
-    return it->second.get();
+    return it->second._change.get();
 }
 
-ChangeResult<void> ChangeManager::acceptChange(CommitHash changeHash, JobSystem& jobsystem) {
+ChangeResult<void> ChangeManager::acceptChange(ChangeID changeHash, JobSystem& jobsystem) {
     std::unique_lock guard(_changesLock);
 
     const auto it = _changes.find(changeHash);
@@ -39,12 +39,12 @@ ChangeResult<void> ChangeManager::acceptChange(CommitHash changeHash, JobSystem&
         return ChangeError::result(ChangeErrorType::CHANGE_NOT_EXISTS);
     }
 
-    std::unique_ptr<CommitBuilder> builder = std::move(it->second);
-    _changes.erase(it);
-
-    if (auto res = builder->rebaseAndCommit(jobsystem); !res) {
+    auto& pair = it->second;
+    if (auto res = pair._graph->submitChange(std::move(pair._change), jobsystem); !res) {
         return ChangeError::result(ChangeErrorType::COULD_NOT_ACCEPT_CHANGE, res.error());
     }
+
+    _changes.erase(it);
 
     return {};
 }
@@ -62,11 +62,11 @@ ChangeResult<void> ChangeManager::deleteChange(CommitHash changeHash) {
     return {};
 }
 
-void ChangeManager::listChanges(std::vector<const CommitBuilder*>& list) const {
+void ChangeManager::listChanges(std::vector<const Change*>& list) const {
     std::shared_lock guard(_changesLock);
 
     list.clear();
-    for (const auto& [hash, builder] : _changes) {
-        list.emplace_back(builder.get());
+    for (const auto& [hash, change] : _changes) {
+        list.emplace_back(change._change.get());
     }
 }

@@ -182,7 +182,7 @@ PipelineStep::PipelineStep(HistoryStep::Tag,
 
 PipelineStep::PipelineStep(ChangeStep::Tag,
                            ChangeOpType type,
-                           ColumnVector<const CommitBuilder*>* changes)
+                           ColumnVector<const Change*>* changes)
     : _opcode(PipelineOpcode::CHANGE),
     _impl(std::in_place_type<ChangeStep>, type, changes)
 {
@@ -209,9 +209,9 @@ PipelineStep::PipelineStep(CreateEdgeStep::Tag,
 {
 }
 
-PipelineStep::PipelineStep(BuildDataPartsStep::Tag)
-    : _opcode(PipelineOpcode::BUILD_DATA_PARTS),
-    _impl(std::in_place_type<BuildDataPartsStep>)
+PipelineStep::PipelineStep(CommitStep::Tag)
+    : _opcode(PipelineOpcode::COMMIT),
+    _impl(std::in_place_type<CommitStep>)
 {
 }
 

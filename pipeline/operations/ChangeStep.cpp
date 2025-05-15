@@ -11,7 +11,7 @@
 using namespace db;
 
 ChangeStep::ChangeStep(ChangeOpType type,
-                       ColumnVector<const CommitBuilder*>* output)
+                       ColumnVector<const Change*>* output)
     : _type(type),
     _output(output)
 {
@@ -28,7 +28,7 @@ void ChangeStep::prepare(ExecutionContext* ctxt) {
     if (_type == ChangeOpType::NEW) {
         _changeInfo = std::string {ctxt->getGraphName()};
     } else {
-        _changeInfo = ctxt->getCommitHash();
+        _changeInfo = ctxt->getChangeID();
     }
 }
 
@@ -64,7 +64,7 @@ void ChangeStep::describe(std::string& descr) const {
     descr.assign(ss.str());
 }
 
-ChangeResult<CommitHash> ChangeStep::createChange() const {
+ChangeResult<ChangeID> ChangeStep::createChange() const {
     Profile profile {"ChangeStep::createChange"};
 
 
@@ -86,23 +86,23 @@ ChangeResult<CommitHash> ChangeStep::createChange() const {
 ChangeResult<void> ChangeStep::acceptChange() const {
     Profile profile {"ChangeStep::acceptChange"};
 
-    if (!std::holds_alternative<CommitHash>(_changeInfo)) {
+    if (!std::holds_alternative<ChangeID>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the change hash");
     }
 
-    CommitHash changeHash = std::get<CommitHash>(_changeInfo);
-    return _sysMan->getChangeManager().acceptChange(changeHash, *_jobSystem);
+    ChangeID changeID = std::get<ChangeID>(_changeInfo);
+    return _sysMan->getChangeManager().acceptChange(changeID, *_jobSystem);
 }
 
 ChangeResult<void> ChangeStep::deleteChange() const {
     Profile profile {"ChangeStep::deleteChange"};
 
-    if (!std::holds_alternative<CommitHash>(_changeInfo)) {
+    if (!std::holds_alternative<ChangeID>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the change hash");
     }
 
-    CommitHash changeHash = std::get<CommitHash>(_changeInfo);
-    return _sysMan->getChangeManager().deleteChange(changeHash);
+    ChangeID changeID = std::get<ChangeID>(_changeInfo);
+    return _sysMan->getChangeManager().deleteChange(changeID);
 }
 
 void ChangeStep::listChanges() const {

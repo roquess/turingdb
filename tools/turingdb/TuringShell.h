@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "versioning/CommitHash.h"
+#include "versioning/Change.h"
 
 namespace db {
 
@@ -25,6 +26,7 @@ public:
 
     bool setGraphName(const std::string& graphName);
     bool setCommitHash(CommitHash hash);
+    bool setChangeID(ChangeID changeID);
     void setQuiet(bool quiet) { _quiet = quiet; }
     void startLoop();
 
@@ -35,6 +37,7 @@ private:
     LocalMemory* _mem {nullptr};
     std::string _graphName {"default"};
     CommitHash _hash {CommitHash::head()};
+    ChangeID _changeID {ChangeID::head()};
     bool _quiet {false};
     std::unordered_map<std::string_view, Command> _localCommands;
 

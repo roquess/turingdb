@@ -14,23 +14,12 @@ bool GraphComparator::same(const Graph& a, const Graph& b) {
         return false;
     }
 
-    const Graph::EntityIDs idsA = a.getNextFreeIDs();
-    const Graph::EntityIDs idsB = b.getNextFreeIDs();
-
     const Transaction txA = a.openTransaction();
     const Transaction txB = b.openTransaction();
     const GraphReader readerA = txA.readGraph();
     const GraphReader readerB = txB.readGraph();
 
     if (!GraphMetadataComparator::same(readerA.getMetadata(), readerB.getMetadata())) {
-        return false;
-    }
-
-    if (idsA._node != idsB._node) {
-        return false;
-    }
-
-    if (idsA._edge != idsB._edge) {
         return false;
     }
 

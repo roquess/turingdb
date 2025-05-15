@@ -10,7 +10,10 @@ namespace db {
 enum class CommitErrorType : uint8_t {
     COMMIT_INVALID,
     COMMIT_HASH_EXISTS,
+    COMMIT_HASH_NOT_EXISTS,
     COMMIT_NEEDS_REBASE,
+    CHANGE_NEEDS_REBASE,
+    BUILD_DATAPART_FAILED,
 
     _SIZE,
 };
@@ -18,7 +21,10 @@ enum class CommitErrorType : uint8_t {
 using CommitErrorTypeDescription = EnumToString<CommitErrorType>::Create<
     EnumStringPair<CommitErrorType::COMMIT_INVALID, "Commit is invalid (is not built are was already commited)">,
     EnumStringPair<CommitErrorType::COMMIT_HASH_EXISTS, "Commit hash is already registered">,
-    EnumStringPair<CommitErrorType::COMMIT_NEEDS_REBASE, "Commit needs rebase">>;
+    EnumStringPair<CommitErrorType::COMMIT_HASH_NOT_EXISTS, "Commit hash does not exist">,
+    EnumStringPair<CommitErrorType::COMMIT_NEEDS_REBASE, "Commit needs rebase">,
+    EnumStringPair<CommitErrorType::CHANGE_NEEDS_REBASE, "Change needs rebase">,
+    EnumStringPair<CommitErrorType::BUILD_DATAPART_FAILED, "Could not build datapart">>;
 
 class CommitError {
 public:

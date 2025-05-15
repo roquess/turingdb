@@ -75,6 +75,9 @@ bool QueryPlanner::plan(const QueryCommand* query) {
 
         case QueryCommand::Kind::CHANGE_COMMAND:
             return planChange(static_cast<const ChangeCommand*>(query));
+
+        case QueryCommand::Kind::COMMIT_COMMAND:
+            return planCommit(static_cast<const CommitCommand*>(query));
     }
 
     panic("Unsupported query command");
@@ -176,7 +179,7 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
             _pipeline->add<CreateEdgeStep>(src, edge, tgt);
         }
     }
-    _pipeline->add<BuildDataPartsStep>();
+    _pipeline->add<CommitStep>();
 
     // Add END step
     _pipeline->add<EndStep>();
@@ -1435,7 +1438,7 @@ bool QueryPlanner::planChange(const ChangeCommand* cmd) {
     switch (cmd->getChangeOpType()) {
         case ChangeOpType::LIST:
         case ChangeOpType::NEW: {
-            auto* output = _mem->alloc<ColumnVector<const CommitBuilder*>>();
+            auto* output = _mem->alloc<ColumnVector<const Change*>>();
             _pipeline->add<ChangeStep>(cmd->getChangeOpType(), output);
             _output->addColumn(output);
             planOutputLambda();
@@ -1452,6 +1455,14 @@ bool QueryPlanner::planChange(const ChangeCommand* cmd) {
             throw PlannerException("Unsupported change operation");
     }
 
+    _pipeline->add<EndStep>();
+
+    return true;
+}
+
+bool QueryPlanner::planCommit(const CommitCommand* commit) {
+    _pipeline->add<StopStep>();
+    _pipeline->add<CommitStep>();
     _pipeline->add<EndStep>();
 
     return true;

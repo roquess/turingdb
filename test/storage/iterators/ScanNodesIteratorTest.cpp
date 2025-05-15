@@ -8,6 +8,7 @@
 #include "versioning/Transaction.h"
 #include "views/GraphView.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "reader/GraphReader.h"
 #include "writers/DataPartBuilder.h"
 #include "FileUtils.h"
@@ -47,10 +48,10 @@ TEST_F(ScanNodesIteratorTest, emptyGraph) {
 
 TEST_F(ScanNodesIteratorTest, oneEmptyCommit) {
     auto graph = Graph::create();
-    const auto tx = graph->openWriteTransaction();
-    auto commitBuilder = tx.prepareCommit();
+    auto change = graph->newChange();
+    auto* commitBuilder = change->newCommit();
     [[maybe_unused]] auto& builder = commitBuilder->newBuilder();
-    const auto res = graph->rebaseAndCommit(*commitBuilder, *_jobSystem);
+    const auto res = graph->submitChange(std::move(change), *_jobSystem);
     if (!res) {
         spdlog::info(res.error().fmtMessage());
     }
@@ -69,16 +70,16 @@ TEST_F(ScanNodesIteratorTest, oneEmptyCommit) {
 TEST_F(ScanNodesIteratorTest, threeEmptyCommits) {
     auto graph = Graph::create();
 
-    const auto tx = graph->openWriteTransaction();
+    auto change = graph->newChange();
     for (auto i = 0; i < 3; i++) {
-        auto commitBuilder = tx.prepareCommit();
+        auto* commitBuilder = change->newCommit();
         [[maybe_unused]] auto& builder = commitBuilder->newBuilder();
-        const auto res = graph->rebaseAndCommit(*commitBuilder, *_jobSystem);
-        if (!res) {
-            spdlog::info(res.error().fmtMessage());
-        }
-        ASSERT_TRUE(res);
     }
+    const auto res = graph->submitChange(std::move(change), *_jobSystem);
+    if (!res) {
+        spdlog::info(res.error().fmtMessage());
+    }
+    ASSERT_TRUE(res);
 
     const Transaction transaction = graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
@@ -96,15 +97,15 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
     LabelSet labelset = LabelSet::fromList({0});
 
     {
-        const auto tx = graph->openWriteTransaction();
-        auto commitBuilder = tx.prepareCommit();
+        auto change = graph->newChange();
+        auto* commitBuilder = change->newCommit();
         auto& builder = commitBuilder->newBuilder();
         for (size_t i = 0; i < ChunkConfig::CHUNK_SIZE; i++) {
             builder.addNode(labelset);
         }
 
         ASSERT_EQ(builder.nodeCount(), ChunkConfig::CHUNK_SIZE);
-        const auto res = graph->rebaseAndCommit(*commitBuilder, *_jobSystem);
+        const auto res = graph->submitChange(std::move(change), *_jobSystem);
         if (!res) {
             spdlog::info(res.error().fmtMessage());
         }
@@ -145,21 +146,24 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
 
     LabelSet labelset = LabelSet::fromList({0});
 
-    const auto tx = graph->openWriteTransaction();
+    auto change = graph->newChange();
+
     for (auto i = 0; i < 8; i++) {
-        auto commitBuilder = tx.prepareCommit();
+        auto* commitBuilder = change->newCommit();
         auto& builder = commitBuilder->newBuilder();
         for (size_t j = 0; j < ChunkConfig::CHUNK_SIZE; j++) {
             builder.addNode(labelset);
         }
 
         ASSERT_EQ(builder.nodeCount(), ChunkConfig::CHUNK_SIZE);
-        const auto res = graph->rebaseAndCommit(*commitBuilder, *_jobSystem);
-        if (!res) {
-            spdlog::info(res.error().fmtMessage());
-        }
-        ASSERT_TRUE(res);
+        ASSERT_TRUE(change->commitAllPending(*_jobSystem));
     }
+
+    const auto res = graph->submitChange(std::move(change), *_jobSystem);
+    if (!res) {
+        spdlog::info(res.error().fmtMessage());
+    }
+    ASSERT_TRUE(res);
 
     const Transaction transaction = graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
@@ -201,18 +205,22 @@ TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
     LabelSet labelset = LabelSet::fromList({0});
 
     {
-        const auto tx = graph->openWriteTransaction();
-        auto commitBuilder = tx.prepareCommit();
+        auto change = graph->newChange();
+        auto* commitBuilder = change->newCommit();
         auto& builder = commitBuilder->newBuilder();
+
         for (size_t i = 0; i < nodeCount; i++) {
             builder.addNode(labelset);
         }
-        const auto res = graph->rebaseAndCommit(*commitBuilder, *_jobSystem);
+
+        const auto res = graph->submitChange(std::move(change), *_jobSystem);
         if (!res) {
             spdlog::info(res.error().fmtMessage());
         }
+
         ASSERT_TRUE(res);
     }
+
 
     const Transaction transaction = graph->openTransaction();
     const GraphReader reader = transaction.readGraph();

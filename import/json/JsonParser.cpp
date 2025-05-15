@@ -4,6 +4,7 @@
 
 #include "Graph.h"
 #include "writers/DataPartBuilder.h"
+#include "versioning/Change.h"
 #include "versioning/CommitBuilder.h"
 #include "IDMapper.h"
 #include "Neo4j/EdgeParser.h"
@@ -21,16 +22,16 @@ namespace db {
 
 JsonParser::JsonParser(Graph* graph)
     : _graph(graph),
-    _transaction(graph->openWriteTransaction()),
-    _commitBuilder(_transaction.prepareCommit()),
+    _change(graph->newChange()),
+    _commitBuilder(_change->newCommit()),
     _nodeIDMapper(new IDMapper)
 {
 }
 
 JsonParser::~JsonParser() = default;
 
-void JsonParser::buildPending(JobSystem& jobsystem) {
-    _commitBuilder->buildAllPending(jobsystem);
+CommitResult<void> JsonParser::buildPending(JobSystem& jobsystem) {
+    return _commitBuilder->buildAllPending(jobsystem);
 }
 
 GraphStats JsonParser::parseStats(const std::string& data) {
@@ -110,9 +111,9 @@ DataPartBuilder& JsonParser::newDataBuffer() {
     return _commitBuilder->newBuilder();
 }
 
-void JsonParser::commit(Graph& graph, JobSystem& jobSystem) {
+CommitResult<void> JsonParser::commit(Graph& graph, JobSystem& jobSystem) {
     TimerStat timer("Committing dataparts");
-    _graph->rebaseAndCommit(*_commitBuilder, jobSystem);
+    return _graph->submitChange(std::move(_change), jobSystem);
 }
 
 }

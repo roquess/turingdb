@@ -96,6 +96,7 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token EXPLAIN
 %token HISTORY
 %token CHANGE
+%token COMMIT
 %token NEW
 %token SUBMIT
 %token DELETE
@@ -159,6 +160,8 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %type<db::QueryCommand*> history_cmd
 
 %type<db::QueryCommand*> change_cmd
+
+%type<db::QueryCommand*> commit_cmd
 
 %type <db::ChangeOpType> change_subcmd
 
@@ -429,6 +432,10 @@ change_cmd: CHANGE change_subcmd {
                                     auto change = ChangeCommand::create(ctxt, $2);
                                     $$ = change;
                                  }
+          ;
+
+// COMMIT
+commit_cmd: COMMIT { $$ = CommitCommand::create(ctxt); }
           ;
 
 %%

@@ -313,7 +313,10 @@ bool Neo4jImporter::importJsonDir(JobSystem& jobSystem,
 
     {
         TimerStat t {"Build and push DataPart for nodes"};
-        parser.buildPending(jobSystem);
+        if (auto res = parser.buildPending(jobSystem); !res) {
+            spdlog::error("Could not build pending dataparts: {}", res.error().fmtMessage());
+            return false;
+        }
     }
 
     // Query and parse edges
@@ -361,7 +364,10 @@ bool Neo4jImporter::importJsonDir(JobSystem& jobSystem,
 
     {
         TimerStat t {"Build and push DataPart for edges"};
-        parser.commit(*graph, jobSystem);
+        if (auto res = parser.commit(*graph, jobSystem); !res) {
+            spdlog::error("Could not commit changes: {}", res.error().fmtMessage());
+            return false;
+        }
     }
 
     return true;

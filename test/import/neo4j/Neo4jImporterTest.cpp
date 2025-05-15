@@ -5,6 +5,7 @@
 #include "views/GraphView.h"
 #include "reader/GraphReader.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "writers/DataPartBuilder.h"
 #include "views/EdgeView.h"
 #include "Neo4j/Neo4JParserConfig.h"
@@ -57,8 +58,8 @@ protected:
 
 TEST_F(Neo4jImporterTest, Simple) {
     {
-        const auto tx = _graph->openWriteTransaction();
-        auto commitBuilder = tx.prepareCommit();
+        auto change = _graph->newChange();
+        auto* commitBuilder = change->newCommit();
         auto& builder1 = commitBuilder->newBuilder();
         builder1.addNode(LabelSet::fromList({1})); // 0
         builder1.addNode(LabelSet::fromList({0})); // 1
@@ -85,7 +86,7 @@ TEST_F(Neo4jImporterTest, Simple) {
         builder2.addNode(LabelSet::fromList({1}));
         builder2.addNode(LabelSet::fromList({1}));
         builder2.addEdge(0, 3, 4);
-        _graph->rebaseAndCommit(*commitBuilder, *_jobSystem);
+        ASSERT_TRUE(_graph->submitChange(std::move(change), *_jobSystem));
     }
 
     const Transaction transaction = _graph->openTransaction();

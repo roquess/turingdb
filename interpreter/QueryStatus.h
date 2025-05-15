@@ -16,6 +16,8 @@ public:
         ANALYZE_ERROR,
         PLAN_ERROR,
         EXEC_ERROR,
+        COMMIT_NOT_FOUND,
+        CHANGE_NOT_FOUND,
         _SIZE
     };
 
@@ -53,7 +55,9 @@ using QueryStatusDescription = EnumToString<QueryStatus::Status>::Create<
     EnumStringPair<QueryStatus::Status::PARSE_ERROR, "PARSE_ERROR">,
     EnumStringPair<QueryStatus::Status::ANALYZE_ERROR, "ANALYZE_ERROR">,
     EnumStringPair<QueryStatus::Status::PLAN_ERROR, "PLAN_ERROR">,
-    EnumStringPair<QueryStatus::Status::EXEC_ERROR, "EXEC_ERROR">
+    EnumStringPair<QueryStatus::Status::EXEC_ERROR, "EXEC_ERROR">,
+    EnumStringPair<QueryStatus::Status::COMMIT_NOT_FOUND, "COMMIT_NOT_FOUND">,
+    EnumStringPair<QueryStatus::Status::CHANGE_NOT_FOUND, "CHANGE_NOT_FOUND">
 >;
 
 }

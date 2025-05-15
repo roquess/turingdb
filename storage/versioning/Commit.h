@@ -33,10 +33,6 @@ public:
         return {_data};
     }
 
-    [[nodiscard]] WriteTransaction openWriteTransaction() const {
-        return {*_graph, _data};
-    }
-
     [[nodiscard]] CommitHash hash() const { return _hash; }
 
     [[nodiscard]] const CommitData& data() const { return *_data; }
@@ -51,7 +47,7 @@ private:
     friend GraphLoader;
     friend VersionController;
 
-    Graph* _graph {nullptr};
+    VersionController* _controller {nullptr};
     CommitHash _hash = CommitHash::create();
     WeakArc<CommitData> _data;
 };

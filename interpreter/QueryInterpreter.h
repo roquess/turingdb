@@ -6,6 +6,8 @@
 #include "QueryStatus.h"
 #include "QueryCallback.h"
 #include "versioning/CommitHash.h"
+#include "versioning/ChangeID.h"
+#include "views/GraphView.h"
 
 namespace db {
 
@@ -13,6 +15,7 @@ class SystemManager;
 class JobSystem;
 class LocalMemory;
 class Executor;
+class Transaction;
 
 class QueryInterpreter {
 public:
@@ -23,12 +26,17 @@ public:
                         std::string_view graphName,
                         LocalMemory* mem,
                         QueryCallback callback,
-                        CommitHash hash = CommitHash::head());
+                        CommitHash commitHash = CommitHash::head(),
+                        ChangeID changeID = ChangeID::head());
 
 private:
     SystemManager* _sysMan {nullptr};
     JobSystem* _jobSystem {nullptr};
     std::unique_ptr<Executor> _executor;
+
+    BasicResult<Transaction, QueryStatus> openTransaction(std::string_view graphName,
+                                                          CommitHash commitHash,
+                                                          ChangeID changeID);
 };
 
 }

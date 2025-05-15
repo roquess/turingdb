@@ -1,15 +1,12 @@
 #include "CreateEdgeStep.h"
-#include "ChangeManager.h"
 #include "Expr.h"
 #include "ExprConstraint.h"
 #include "PathPattern.h"
 #include "Profiler.h"
-#include "SystemManager.h"
 #include "TypeConstraint.h"
 #include "CreateNodeStep.h"
 #include "PipelineException.h"
 #include "VarDecl.h"
-#include "versioning/Transaction.h"
 #include "versioning/CommitBuilder.h"
 #include "writers/DataPartBuilder.h"
 #include "writers/MetadataBuilder.h"
@@ -28,17 +25,7 @@ CreateEdgeStep::~CreateEdgeStep() {
 }
 
 void CreateEdgeStep::prepare(ExecutionContext* ctxt) {
-    auto changeRes = ctxt->getSystemManager()->getChangeManager().getChange(ctxt->getCommitHash());
-    if (!changeRes) {
-        throw PipelineException("No active change matches the requested hash");
-    }
-
-    auto& change = *changeRes.value();
-    if (change.pendingCount() == 0) {
-        change.newBuilder();
-    }
-
-    _builder = &change.getCurrentBuilder();
+    _builder = ctxt->getPartBuilder();
 }
 
 void CreateEdgeStep::execute() {

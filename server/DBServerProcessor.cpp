@@ -28,9 +28,8 @@ using namespace db;
 DBServerProcessor::DBServerProcessor(TuringDB& db,
                                      net::TCPConnection& connection)
     : _writer(&connection.getWriter()),
-    _db(db),
-    _connection(connection)
-{
+      _db(db),
+      _connection(connection) {
 }
 
 DBServerProcessor::~DBServerProcessor() {
@@ -111,7 +110,6 @@ const Graph* DBServerProcessor::getRequestedGraph() const {
     const auto& sysMan = _db.getSystemManager();
     const auto& httpInfo = parser.getHttpInfo();
     const std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
-
     return graphNameView.empty()
              ? sysMan.getDefaultGraph()
              : sysMan.getGraph(std::string(graphNameView));
@@ -141,7 +139,8 @@ void DBServerProcessor::query() {
         transactionInfo.graphName,
         &mem,
         [&](const Block& block) { JsonEncoder::writeBlock(payload, block); },
-        transactionInfo.commit);
+        transactionInfo.commit,
+        transactionInfo.change);
 
     payload.end();
 
@@ -300,7 +299,9 @@ void DBServerProcessor::list_labels() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -379,7 +380,9 @@ void DBServerProcessor::list_property_types() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -441,7 +444,9 @@ void DBServerProcessor::list_edge_types() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -503,7 +508,9 @@ void DBServerProcessor::list_nodes() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -600,7 +607,9 @@ void DBServerProcessor::get_node_properties() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -712,7 +721,9 @@ void DBServerProcessor::get_neighbors() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -829,7 +840,9 @@ void DBServerProcessor::get_nodes() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -887,7 +900,9 @@ void DBServerProcessor::get_node_edges() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -1079,7 +1094,9 @@ void DBServerProcessor::explore_node_edges() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -1230,7 +1247,9 @@ void DBServerProcessor::get_edges() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+                                                                    info.commit,
+                                                                    info.change);
 
     if (!transaction) {
         payload.key("error");
@@ -1279,6 +1298,7 @@ DBServerProcessor::TransactionInfo DBServerProcessor::getTransactionInfo() const
     const auto& httpInfo = parser.getHttpInfo();
     std::string_view graphNameView = httpInfo._params[(size_t)DBHTTPParams::graph];
     std::string_view commitHashStr = httpInfo._params[(size_t)DBHTTPParams::commit];
+    std::string_view changeHashStr = httpInfo._params[(size_t)DBHTTPParams::change];
 
     if (graphNameView.empty()) {
         graphNameView = "default";
@@ -1288,17 +1308,33 @@ DBServerProcessor::TransactionInfo DBServerProcessor::getTransactionInfo() const
         commitHashStr = "head";
     }
 
+    if (changeHashStr.empty()) {
+        changeHashStr = "head";
+    }
+
     auto commitHashRes = CommitHash::fromString(commitHashStr);
 
     if (!commitHashRes) {
         return {
             .graphName = std::string {graphNameView},
             .commit = CommitHash::head(),
+            .change = ChangeID::head(),
+        };
+    }
+
+    auto changeHashRes = ChangeID::fromString(changeHashStr);
+
+    if (!changeHashRes) {
+        return {
+            .graphName = std::string {graphNameView},
+            .commit = commitHashRes.value(),
+            .change = ChangeID::head(),
         };
     }
 
     return {
         .graphName = std::string {graphNameView},
         .commit = commitHashRes.value(),
+        .change = changeHashRes.value(),
     };
 }

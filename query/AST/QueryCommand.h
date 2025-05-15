@@ -20,6 +20,7 @@ public:
     enum class Kind {
         MATCH_COMMAND = 0,
         CREATE_COMMAND,
+        COMMIT_COMMAND,
         CREATE_GRAPH_COMMAND,
         LIST_GRAPH_COMMAND,
         LOAD_GRAPH_COMMAND,
@@ -76,6 +77,17 @@ private:
 
     explicit CreateCommand(CreateTargets* targets);
     ~CreateCommand() override;
+};
+
+class CommitCommand : public QueryCommand {
+public:
+    static CommitCommand* create(ASTContext* ctxt);
+
+    Kind getKind() const override { return Kind::COMMIT_COMMAND; }
+
+private:
+    CommitCommand();
+    ~CommitCommand() override;
 };
 
 class CreateGraphCommand : public QueryCommand {

@@ -7,6 +7,7 @@
 #include "Graph.h"
 #include "versioning/Transaction.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Commit.h"
 #include "views/GraphView.h"
 #include "ASTContext.h"
 #include "QueryParser.h"
@@ -24,9 +25,8 @@ using namespace db;
 
 QueryInterpreter::QueryInterpreter(SystemManager* sysMan, JobSystem* jobSystem)
     : _sysMan(sysMan),
-    _jobSystem(jobSystem),
-    _executor(std::make_unique<Executor>())
-{
+      _jobSystem(jobSystem),
+      _executor(std::make_unique<Executor>()) {
 }
 
 QueryInterpreter::~QueryInterpreter() {
@@ -36,26 +36,18 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
                                       std::string_view graphName,
                                       LocalMemory* mem,
                                       QueryCallback callback,
-                                      CommitHash hash) {
+                                      CommitHash commitHash,
+                                      ChangeID changeID) {
     Profile profile {"QueryInterpreter::execute"};
-    
+
     const auto start = Clock::now();
 
-    Graph* graph = graphName.empty() ? _sysMan->getDefaultGraph() 
-            : _sysMan->getGraph(std::string(graphName));
-    if (!graph) {
-        return QueryStatus(QueryStatus::Status::GRAPH_NOT_FOUND);
+    const auto transaction = openTransaction(graphName, commitHash, changeID);
+    if (!transaction) {
+        return transaction.error();
     }
 
-    // Open either:
-    //   - Transaction to requested commit
-    //   - Requested change
-    const Transaction transaction = graph->openTransaction(hash);
-    auto change = _sysMan->getChangeManager().getChange(hash);
-
-    const GraphView view = transaction.isValid() 
-        ? transaction.viewGraph() 
-        : change.value()->viewGraph();
+    auto view = transaction.value().viewGraph();
 
     // Parsing query
     ASTContext astCtxt;
@@ -82,7 +74,7 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
     }
 
     // Execute
-    ExecutionContext execCtxt(_sysMan, _jobSystem, view, graphName, hash);
+    ExecutionContext execCtxt(_sysMan, _jobSystem, view, graphName, commitHash);
     try {
         _executor->run(&execCtxt, planner.getPipeline());
     } catch (const PipelineException& e) {
@@ -90,8 +82,40 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
     }
 
     const auto end = Clock::now();
-    
+
     auto res = QueryStatus(QueryStatus::Status::OK);
-    res.setTotalTime(end-start);
+    res.setTotalTime(end - start);
     return res;
+}
+
+BasicResult<Transaction, QueryStatus> QueryInterpreter::openTransaction(std::string_view graphName,
+                                                                   CommitHash commitHash,
+                                                                   ChangeID changeID) {
+    Graph* graph = graphName.empty() ? _sysMan->getDefaultGraph()
+                                     : _sysMan->getGraph(std::string(graphName));
+    if (!graph) {
+        return BadResult<QueryStatus>(QueryStatus::Status::GRAPH_NOT_FOUND);
+    }
+
+    // Open either:
+    //   - Transaction to requested commit
+    //   - Requested change
+
+    Transaction transaction = graph->openTransaction(commitHash);
+    if (transaction.isValid()) {
+        return transaction;
+    }
+
+    auto change = _sysMan->getChangeManager().getChange(changeID);
+    if (!change) {
+        return BadResult<QueryStatus>(QueryStatus::Status::CHANGE_NOT_FOUND);
+    }
+
+    transaction = change.value()->openTransaction(commitHash);
+
+    if (!transaction.isValid()) {
+        return BadResult<QueryStatus>(QueryStatus::Status::COMMIT_NOT_FOUND);
+    }
+
+    return transaction;
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "versioning/Transaction.h"
+#include "versioning/CommitResult.h"
 #include "writers/DataPartBuilder.h"
 
 namespace db {
@@ -34,7 +34,7 @@ public:
     JsonParser& operator=(JsonParser&&) = delete;
     ~JsonParser();
 
-    void buildPending(JobSystem& jobSystem);
+    CommitResult<void> buildPending(JobSystem& jobSystem);
     GraphStats parseStats(const std::string& data);
     bool parseNodeLabels(const std::string& data);
     bool parseNodeLabelSets(const std::string& data);
@@ -45,12 +45,12 @@ public:
     bool parseEdges(const std::string& data, DataPartBuilder&);
 
     DataPartBuilder& newDataBuffer();
-    void commit(Graph& graph, JobSystem& jobSystem);
+    CommitResult<void> commit(Graph& graph, JobSystem& jobSystem);
 
 private:
     Graph* _graph {nullptr};
-    WriteTransaction _transaction;
-    std::unique_ptr<CommitBuilder> _commitBuilder;
+    std::unique_ptr<Change> _change;
+    CommitBuilder* _commitBuilder {nullptr};
     std::unique_ptr<IDMapper> _nodeIDMapper;
 };
 

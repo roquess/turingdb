@@ -2,7 +2,9 @@
 
 #include "Graph.h"
 #include "JobSystem.h"
+#include "spdlog/spdlog.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "DataPartBuilder.h"
 #include "writers/MetadataBuilder.h"
 
@@ -14,8 +16,8 @@ GraphWriter::GraphWriter(Graph* graph)
 {
 
     if (_graph) {
-        _tx = _graph->openWriteTransaction();
-        _commitBuilder = _tx.prepareCommit();
+        _change = _graph->newChange();
+        _commitBuilder = _change->newCommit();
         _dataPartBuilder = &_commitBuilder->newBuilder();
     }
 }
@@ -23,15 +25,21 @@ GraphWriter::GraphWriter(Graph* graph)
 GraphWriter::~GraphWriter() {
 }
 
-void GraphWriter::commit() {
+bool GraphWriter::commit() {
     if (!_commitBuilder) {
-        return;
+        spdlog::error("Could not commit, no commit pending");
+        return false;
     }
 
-    _graph->rebaseAndCommit(*_commitBuilder, *_jobSystem);
-    _tx = _graph->openWriteTransaction();
-    _commitBuilder = _tx.prepareCommit();
+    if (auto res = _change->commitAllPending(*_jobSystem); !res) {
+        spdlog::error("Could not commit changes: {}", res.error().fmtMessage());
+        return false;
+    }
+
+    _commitBuilder = _change->newCommit();
     _dataPartBuilder = &_commitBuilder->newBuilder();
+
+    return {};
 }
 
 EntityID GraphWriter::addNode(std::initializer_list<std::string_view> labels) {

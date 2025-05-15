@@ -278,13 +278,26 @@ void SystemManager::listAvailableGraphs(std::vector<fs::Path>& names) {
 }
 
 BasicResult<Transaction, std::string_view> SystemManager::openTransaction(const std::string& graphName,
-                                                                          const CommitHash& commit) const {
+                                                                          const CommitHash& commitID,
+                                                                          const ChangeID& changeID) const {
     const auto* graph = getGraph(graphName);
     if (!graph) {
         return BadResult<std::string_view> {"Graph does not exist"};
     }
 
-    Transaction tr = graph->openTransaction(commit);
+    Transaction tr = graph->openTransaction(commitID);
+    if (tr.isValid()) {
+        return tr;
+    }
+
+    auto changeRes = _changes->getChange(changeID);
+    if (!changeRes) {
+        return BadResult<std::string_view> {"Invalid change ID"};
+    }
+
+    auto* change = changeRes.value();
+
+    tr = change->openTransaction(commitID);
     if (!tr.isValid()) {
         return BadResult<std::string_view> {"Invalid commit hash"};
     }
@@ -292,7 +305,7 @@ BasicResult<Transaction, std::string_view> SystemManager::openTransaction(const 
     return tr;
 }
 
-ChangeResult<CommitHash> SystemManager::newChange(const std::string& graphName) {
+ChangeResult<CommitHash> SystemManager::newChange(const std::string& graphName, CommitHash baseHash) {
     std::shared_lock graphGuard(_graphsLock);
 
     const auto it = _graphs.find(graphName);
@@ -300,10 +313,8 @@ ChangeResult<CommitHash> SystemManager::newChange(const std::string& graphName) 
         return ChangeError::result(ChangeErrorType::GRAPH_NOT_FOUND);
     }
 
-    const auto* graph = it->second.get();
+    auto* graph = it->second.get();
+    auto change = graph->newChange(baseHash);
 
-    auto tx = graph->openWriteTransaction();
-    auto builder = tx.prepareCommit();
-
-    return _changes->storeChange(std::move(builder));
+    return _changes->storeChange(std::move(change));
 }

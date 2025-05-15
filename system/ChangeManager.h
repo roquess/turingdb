@@ -3,17 +3,23 @@
 #include <unordered_map>
 
 #include "RWSpinLock.h"
-#include "columns/ColumnVector.h"
 #include "versioning/ChangeResult.h"
 #include "versioning/CommitHash.h"
+#include "versioning/Change.h"
 
 namespace db {
 
-class CommitBuilder;
+class Graph;
+
 class JobSystem;
 
 class ChangeManager {
 public:
+    struct GraphChangePair {
+        std::unique_ptr<Change> _change;
+        Graph* _graph {nullptr};
+    };
+
     ChangeManager();
     ~ChangeManager();
 
@@ -22,16 +28,16 @@ public:
     ChangeManager& operator=(const ChangeManager&) = delete;
     ChangeManager& operator=(ChangeManager&&) = delete;
 
-    CommitHash storeChange(std::unique_ptr<CommitBuilder> builder);
-    ChangeResult<CommitBuilder*> getChange(CommitHash changeHash);
-    ChangeResult<void> acceptChange(CommitHash changeHash, JobSystem&);
-    ChangeResult<void> deleteChange(CommitHash changeHash);
+    CommitHash storeChange(std::unique_ptr<Change> change);
+    ChangeResult<Change*> getChange(ChangeID changeHash);
+    ChangeResult<void> acceptChange(ChangeID changeHash, JobSystem&);
+    ChangeResult<void> deleteChange(ChangeID changeHash);
 
-    void listChanges(std::vector<const CommitBuilder*>& list) const;
+    void listChanges(std::vector<const Change*>& list) const;
 
 private:
     mutable RWSpinLock _changesLock;
-    std::unordered_map<CommitHash, std::unique_ptr<CommitBuilder>> _changes;
+    std::unordered_map<ChangeID, GraphChangePair> _changes;
 };
 
 }

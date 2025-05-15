@@ -30,7 +30,6 @@ public:
 
     [[nodiscard]] static std::unique_ptr<DataPartBuilder> prepare(
         MetadataBuilder& metadata,
-        Graph& graph,
         const GraphView& view,
         size_t partIndex);
 
@@ -69,7 +68,6 @@ private:
     EntityID _firstEdgeID {0};
     EntityID _nextNodeID {0};
     EntityID _nextEdgeID {0};
-    Graph* _graph {nullptr};
     GraphView _view;
     MetadataBuilder* _metadata {nullptr};
     size_t _outPatchEdgeCount {0};

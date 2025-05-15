@@ -35,8 +35,6 @@ bool GMLImporter::importContent(JobSystem& jobs, Graph* graph, std::string_view 
         return false;
     }
 
-    sax.finish(jobs);
-
-    return true;
+    return sax.finish(jobs);
 }
 

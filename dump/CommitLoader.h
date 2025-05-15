@@ -33,7 +33,7 @@ public:
         auto& versionController = graph._versionController;
 
         auto commit = std::make_unique<Commit>();
-        commit->_graph = &graph;
+        commit->_controller = graph._versionController.get();
         commit->_data = versionController->createCommitData(hash);
         commit->_data->_hash = hash;
 
@@ -75,7 +75,6 @@ public:
 
             WeakArc<DataPart> part = res.value();
             dataparts.emplace(partIndex.value(), part);
-            graph.allocIDRange(part->getNodeCount(), part->getEdgeCount());
         }
 
         auto& history = commit->history();

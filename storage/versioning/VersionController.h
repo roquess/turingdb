@@ -8,10 +8,12 @@
 
 #include "EntityID.h"
 #include "Profiler.h"
+#include "versioning/Change.h"
 #include "versioning/CommitResult.h"
 #include "versioning/Commit.h"
 #include "versioning/CommitHash.h"
 #include "versioning/Transaction.h"
+#include "DataPart.h"
 
 namespace db {
 
@@ -19,6 +21,11 @@ class Graph;
 class GraphLoader;
 class GraphDumper;
 class JobSystem;
+
+struct EntityIDPair {
+    EntityID _nodeID;
+    EntityID _edgeID;
+};
 
 class VersionController {
 public:
@@ -34,11 +41,10 @@ public:
     VersionController& operator=(VersionController&&) = delete;
 
     void createFirstCommit(Graph*);
-    CommitResult<void> rebase(CommitBuilder& commitBuilder, JobSystem&);
-    CommitResult<void> commit(CommitBuilder& commitBuilder, JobSystem&);
+    CommitResult<void> submitChange(std::unique_ptr<Change> change, JobSystem&);
+    [[nodiscard]] std::unique_ptr<Change> newChange(CommitHash base = CommitHash::head());
 
     [[nodiscard]] Transaction openTransaction(CommitHash hash = CommitHash::head()) const;
-    [[nodiscard]] WriteTransaction openWriteTransaction(CommitHash hash = CommitHash::head()) const;
     [[nodiscard]] CommitHash getHeadHash() const;
 
     WeakArc<CommitData> createCommitData(CommitHash hash) {

@@ -5,6 +5,7 @@
 #include "reader/GraphReader.h"
 #include "metadata/GraphMetadata.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "writers/DataPartBuilder.h"
 #include "FileUtils.h"
 #include "JobSystem.h"
@@ -28,8 +29,8 @@ protected:
         _graph = Graph::create();
 
         /* FIRST BUFFER */
-        const auto tx1 = _graph->openWriteTransaction();
-        auto commitBuilder1 = tx1.prepareCommit();
+        auto change = _graph->newChange();
+        auto* commitBuilder1 = change->newCommit();
         auto& builder1 = commitBuilder1->newBuilder();
         PropertyTypeID uint64ID = 0;
         PropertyTypeID stringID = 1;
@@ -87,11 +88,10 @@ protected:
         }
 
         spdlog::info(" -- Pushing 1");
-        ASSERT_TRUE(_graph->rebaseAndCommit(*commitBuilder1, *_jobSystem));
+        ASSERT_TRUE(change->commitAllPending(*_jobSystem));
 
         /* SECOND BUFFER */
-        const auto tx2 = _graph->openWriteTransaction();
-        auto commitBuilder2 = tx2.prepareCommit();
+        auto* commitBuilder2 = change->newCommit();
         auto& builder2 = commitBuilder2->newBuilder();
 
         {
@@ -145,18 +145,16 @@ protected:
         }
 
         spdlog::info(" -- Pushing 2");
-        ASSERT_TRUE(_graph->rebaseAndCommit(*commitBuilder2, *_jobSystem));
+        ASSERT_TRUE(change->commitAllPending(*_jobSystem));
 
         /* THIRD BUFFER (Empty) */
-        const auto tx3 = _graph->openWriteTransaction();
-        auto commitBuilder3 = tx3.prepareCommit();
+        auto* commitBuilder3 = change->newCommit();
         [[maybe_unused]] auto& builder3 = commitBuilder3->newBuilder();
-        ASSERT_TRUE(_graph->rebaseAndCommit(*commitBuilder3, *_jobSystem));
+        ASSERT_TRUE(change->commitAllPending(*_jobSystem));
         spdlog::info(" -- Pushing 3");
 
         /* FOURTH BUFFER (First node and edge ids: 5, 5) */
-        const auto tx4 = _graph->openWriteTransaction();
-        auto commitBuilder4 = tx4.prepareCommit();
+        auto* commitBuilder4 = change->newCommit();
         auto& builder4 = commitBuilder4->newBuilder();
 
         {
@@ -240,7 +238,7 @@ protected:
             *edgeToPatch, stringID, "TmpEdgeID2 patch");
 
         spdlog::info(" -- Pushing 4");
-        ASSERT_TRUE(_graph->rebaseAndCommit(*commitBuilder4, *_jobSystem));
+        ASSERT_TRUE(_graph->submitChange(std::move(change), *_jobSystem));
     }
 
     void terminate() override {

@@ -127,5 +127,7 @@ private:
     bool planExplain(const ExplainCommand* explain);
     bool planHistory(const HistoryCommand* history);
     bool planChange(const ChangeCommand* cmd);
+    bool planCommit(const CommitCommand* commit);
 };
+
 }

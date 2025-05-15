@@ -2,7 +2,7 @@
 
 #include "views/GraphView.h"
 #include "writers/DataPartBuilder.h"
-#include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "versioning/Commit.h"
 #include "versioning/VersionController.h"
 
@@ -11,49 +11,20 @@ using namespace db;
 Graph::~Graph() {
 }
 
+std::unique_ptr<Change> Graph::newChange(CommitHash base) {
+    return _versionController->newChange(base);
+}
+
 Transaction Graph::openTransaction(CommitHash hash) const {
     return _versionController->openTransaction(hash);
 }
 
-WriteTransaction Graph::openWriteTransaction(CommitHash hash) const {
-    return _versionController->openWriteTransaction(hash);
-}
-
-CommitResult<void> Graph::commit(CommitBuilder& commitBuilder, JobSystem& jobSystem) {
-    return _versionController->commit(commitBuilder, jobSystem);
-}
-
-CommitResult<void> Graph::rebaseAndCommit(CommitBuilder& commitBuilder, JobSystem& jobSystem) {
-    if (auto res = _versionController->rebase(commitBuilder, jobSystem); !res) {
-        return res;
-    }
-
-    return _versionController->commit(commitBuilder, jobSystem);
-}
-
-Graph::EntityIDs Graph::getNextFreeIDs() const {
-    std::shared_lock lock(_entityIDsMutex);
-    return _nextFreeIDs;
+CommitResult<void> Graph::submitChange(std::unique_ptr<Change> commit, JobSystem& jobSystem) {
+    return _versionController->submitChange(std::move(commit), jobSystem);
 }
 
 CommitHash Graph::getHeadHash() const {
     return _versionController->getHeadHash();
-}
-
-Graph::EntityIDs Graph::allocIDs() {
-    std::unique_lock lock(_entityIDsMutex);
-    const auto ids = _nextFreeIDs;
-    ++_nextFreeIDs._node;
-    ++_nextFreeIDs._edge;
-    return ids;
-}
-
-Graph::EntityIDs Graph::allocIDRange(size_t nodeCount, size_t edgeCount) {
-    std::unique_lock lock(_entityIDsMutex);
-    const auto ids = _nextFreeIDs;
-    _nextFreeIDs._node += nodeCount;
-    _nextFreeIDs._edge += edgeCount;
-    return ids;
 }
 
 std::unique_ptr<Graph> Graph::create() {

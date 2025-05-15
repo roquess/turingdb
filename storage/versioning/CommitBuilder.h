@@ -12,9 +12,11 @@ namespace db {
 
 class DataPartBuilder;
 class MetadataBuilder;
-class Graph;
+class VersionController;
 class JobSystem;
 class Commit;
+class Change;
+class Transaction;
 
 class CommitBuilder {
 public:
@@ -26,7 +28,11 @@ public:
     CommitBuilder& operator=(const CommitBuilder&) = delete;
     CommitBuilder& operator=(CommitBuilder&&) = delete;
 
-    [[nodiscard]] static std::unique_ptr<CommitBuilder> prepare(Graph& graph, const GraphView& view);
+    [[nodiscard]] static std::unique_ptr<CommitBuilder> prepare(VersionController& controller,
+                                                                Change* change,
+                                                                const GraphView& view);
+
+    [[nodiscard]] Transaction openTransaction();
 
     [[nodiscard]] CommitHash hash() const;
     [[nodiscard]] GraphView viewGraph() const;
@@ -37,19 +43,23 @@ public:
 
     DataPartBuilder& newBuilder();
 
-    [[nodiscard]] std::unique_ptr<Commit> build(JobSystem& jobsystem);
-    void buildAllPending(JobSystem& jobsystem);
+    [[nodiscard]] CommitResult<void> submit(JobSystem& jobsystem);
+    [[nodiscard]] CommitResult<std::unique_ptr<Commit>> build(JobSystem& jobsystem);
+    [[nodiscard]] CommitResult<void> buildAllPending(JobSystem& jobsystem);
 
-    CommitResult<void> commit(JobSystem& jobsystem);
-    CommitResult<void> rebaseAndCommit(JobSystem& jobsystem);
+    void setEntityIDs(EntityID firstNodeID, EntityID firstEdgeID) {
+        _firstNodeID = firstNodeID;
+        _firstEdgeID = firstEdgeID;
+    }
 
 private:
-    friend Graph;
     friend VersionController;
+    friend Change;
 
     mutable std::mutex _mutex;
 
-    Graph* _graph {nullptr};
+    VersionController* _controller {nullptr};
+    Change* _change {nullptr};
     GraphView _view;
 
     EntityID _firstNodeID;
@@ -61,7 +71,7 @@ private:
     std::unique_ptr<MetadataBuilder> _metadata;
     std::vector<std::unique_ptr<DataPartBuilder>> _builders;
 
-    explicit CommitBuilder(Graph& , const GraphView&);
+    explicit CommitBuilder(VersionController&, Change* change, const GraphView&);
 
     void initialize();
 };
