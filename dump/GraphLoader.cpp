@@ -3,6 +3,7 @@
 #include "CommitLoader.h"
 #include "GraphInfoLoader.h"
 #include "Graph.h"
+#include "spdlog/spdlog.h"
 #include "versioning/Commit.h"
 #include "versioning/VersionController.h"
 #include "versioning/CommitView.h"
@@ -50,7 +51,8 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
 
     std::map<uint64_t, std::unique_ptr<Commit>> commits;
     for (auto& child : files.value()) {
-        const auto& childStr = child.get();
+        const auto& childStr = child.filename();
+        spdlog::info("string is {}", childStr);
 
         if (childStr.find(COMMIT_FOLDER_PREFIX) == std::string::npos) {
             // Not a commit folder
