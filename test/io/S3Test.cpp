@@ -428,7 +428,9 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
         std::ofstream create(testFile);
         create.flush();
         create.close();
-        chmod(testFile.c_str(), 0000);
+        if(chmod(testFile.c_str(), 0000) == -1){
+            perror("chmod failed:");
+        }
 
         Aws::S3Crt::Model::PutObjectResult putResult;
 
