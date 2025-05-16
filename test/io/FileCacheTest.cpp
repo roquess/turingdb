@@ -11,14 +11,9 @@ using namespace turing::test;
 
 class FileCacheTest : public TuringTest {
 protected:
-    std::string _tempTestDir = "/tmp/turingS3Test";
-
     void initialize() override {
         std::cout << "Running as user: " << getuid() << std::endl;
         std::cout << "Effective user: " << geteuid() << std::endl;
-        std::system("mount | grep tmp");
-        std::system("df -h /tmp");
-
     }
 
     void terminate() override {
