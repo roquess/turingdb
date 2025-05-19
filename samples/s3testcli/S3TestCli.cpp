@@ -1,18 +1,17 @@
 #include <stdlib.h>
-#include <argparse.hpp>
 #include <iostream>
-#include <linenoise.h>
 #include <string>
 #include <vector>
-#include <istream>
+
+#include <linenoise.h>
+#include <spdlog/spdlog.h>
+#include <argparse.hpp>
 
 #include "AwsS3ClientWrapper.h"
 #include "FileCache.h"
 #include "SystemManager.h"
-#include "spdlog/spdlog.h"
 
-
-void splitString(std::string& string, std::vector<std::string>& result){
+void splitString(std::string& string, std::vector<std::string>& result) {
     std::istringstream iss(string);
     std::string token;
 

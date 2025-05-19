@@ -1,6 +1,6 @@
 #include "FileCache.h"
 #include "TuringTest.h"
-#include "S3Result.h"
+#include "S3ClientResult.h"
 #include "Path.h"
 #include "AwsS3ClientWrapper.h"
 #include "DummyDirectory.h"
@@ -78,7 +78,7 @@ TEST_F(FileCacheTest, UnsuccesfulListGraphs) {
         std::vector<std::string> graphs;
         auto res = cache.listGraphs(graphs);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::LIST_GRAPHS_FAILED);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::LIST_GRAPHS_FAILED);
     }
 }
 
@@ -202,7 +202,7 @@ TEST_F(FileCacheTest, UnsuccesfulLoadGraphs) {
         std::vector<fs::Path> graphs;
         auto res = cache.loadGraph("graph1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::GRAPH_LOAD_FAILED);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::GRAPH_LOAD_FAILED);
     }
 }
 
@@ -260,7 +260,7 @@ TEST_F(FileCacheTest, UnsuccesfulSaveGraphs) {
         std::vector<fs::Path> graphs;
         auto res = cache.saveGraph("graph1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::FAILED_TO_FIND_GRAPH);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::FAILED_TO_FIND_GRAPH);
     }
 
     {
@@ -290,7 +290,7 @@ TEST_F(FileCacheTest, UnsuccesfulSaveGraphs) {
         std::vector<fs::Path> graphs;
         auto res = cache.saveGraph("graph1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::GRAPH_SAVE_FAILED);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::GRAPH_SAVE_FAILED);
     }
 }
 
@@ -362,7 +362,7 @@ TEST_F(FileCacheTest, UnsuccesfulListData) {
         std::vector<std::string> fileResults;
         auto res = cache.listData(fileResults, folderResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::LIST_DATA_FAILED);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::LIST_DATA_FAILED);
     }
 }
 
@@ -428,7 +428,7 @@ TEST_F(FileCacheTest, UnsuccesfulListLocalData) {
         std::string subdir = "nonexistent";
         auto res = cache.listLocalData(fileResults, folderResults, subdir);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::DIRECTORY_DOES_NOT_EXIST);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::DIRECTORY_DOES_NOT_EXIST);
     }
 }
 
@@ -477,7 +477,7 @@ TEST_F(FileCacheTest, UnsuccesfulSaveDataFile) {
 
         auto res = cache.saveDataFile("file10");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::FAILED_TO_FIND_DATA_FILE);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::FAILED_TO_FIND_DATA_FILE);
     }
 
     {
@@ -501,7 +501,7 @@ TEST_F(FileCacheTest, UnsuccesfulSaveDataFile) {
 
         auto res = cache.saveDataFile("dir1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::FILE_PATH_IS_DIRECTORY);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::FILE_PATH_IS_DIRECTORY);
     }
     {
         DummyDirectory dir(_tempTestDir, "FileCacheTest");
@@ -524,7 +524,7 @@ TEST_F(FileCacheTest, UnsuccesfulSaveDataFile) {
 
         auto res = cache.saveDataFile("file1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::DATA_FILE_SAVE_FAILED);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::DATA_FILE_SAVE_FAILED);
     }
 }
 
@@ -595,7 +595,7 @@ TEST_F(FileCacheTest, UnsuccesfulLoadDataFile) {
 
         auto res = cache.loadDataFile("dir1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::FILE_PATH_IS_DIRECTORY);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::FILE_PATH_IS_DIRECTORY);
     }
 
     {
@@ -618,7 +618,7 @@ TEST_F(FileCacheTest, UnsuccesfulLoadDataFile) {
 
         auto res = cache.loadDataFile("file1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::DATA_FILE_LOAD_FAILED);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::DATA_FILE_LOAD_FAILED);
     }
 }
 
@@ -669,7 +669,7 @@ TEST_F(FileCacheTest, UnsuccesfulSaveDataDirectory) {
 
         auto res = cache.saveDataDirectory("dir2");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::FAILED_TO_FIND_DATA_DIRECTORY);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::FAILED_TO_FIND_DATA_DIRECTORY);
     }
 
     {
@@ -693,7 +693,7 @@ TEST_F(FileCacheTest, UnsuccesfulSaveDataDirectory) {
 
         auto res = cache.saveDataDirectory("dir1/file1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::DIRECTORY_PATH_IS_FILE);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::DIRECTORY_PATH_IS_FILE);
     }
 
     {
@@ -718,7 +718,7 @@ TEST_F(FileCacheTest, UnsuccesfulSaveDataDirectory) {
 
         auto res = cache.saveDataDirectory("dir1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::DATA_DIRECTORY_SAVE_FAILED);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::DATA_DIRECTORY_SAVE_FAILED);
     }
 }
 
@@ -800,7 +800,7 @@ TEST_F(FileCacheTest, UnsuccesfulLoadDataDirectory) {
 
         auto res = cache.loadDataDirectory("file1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::DIRECTORY_PATH_IS_FILE);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::DIRECTORY_PATH_IS_FILE);
     }
 
     {
@@ -833,6 +833,6 @@ TEST_F(FileCacheTest, UnsuccesfulLoadDataDirectory) {
 
         auto res = cache.loadDataDirectory("dir1/file1");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), db::ErrorType::DIRECTORY_PATH_IS_FILE);
+        EXPECT_EQ(res.error().getType(), db::FileCacheErrorType::DIRECTORY_PATH_IS_FILE);
     }
 }

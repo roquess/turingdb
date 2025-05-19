@@ -1,21 +1,14 @@
 #pragma once
 
 #include "MockS3Client.h"
+
 #include <aws/s3-crt/ClientConfiguration.h>
 #include <aws/s3-crt/S3CrtClient.h>
-
 #include <aws/s3-crt/model/GetObjectRequest.h>
 #include <aws/s3-crt/model/PutObjectRequest.h>
 #include <aws/s3-crt/model/ListObjectsV2Request.h>
-
 #include <aws/core/Aws.h>
 
-namespace Aws {
-struct SDKOptions;
-namespace S3Crt {
-class S3CrtClient;
-}
-}
 namespace S3 {
 
 template <typename ClientType = Aws::S3Crt::S3CrtClient>
@@ -57,10 +50,10 @@ private:
 template <>
 class AwsS3ClientWrapper<MockS3Client> {
 public:
-	explicit AwsS3ClientWrapper(MockS3Client& client)
-	:_client(client)
-	{
-	}
+    explicit AwsS3ClientWrapper(MockS3Client& client)
+    :_client(client)
+    {
+    }
 
     Aws::S3Crt::Model::PutObjectOutcome PutObject(Aws::S3Crt::Model::PutObjectRequest& request) {
         return _client.PutObject(request);
@@ -77,6 +70,5 @@ public:
 private:
     MockS3Client& _client;
 };
-
 
 }

@@ -3,8 +3,8 @@
 #include <string_view>
 
 #include "FileCacheResult.h"
-#include "Path.h"
 #include "TuringS3Client.h"
+#include "Path.h"
 
 namespace db {
 
@@ -13,41 +13,36 @@ class Graph;
 template <typename ClientType>
 class FileCache {
 public:
-    FileCache(fs::Path& graphDir, fs::Path& dataDir, ClientType& clientWrapper);
+    FileCache(const fs::Path& graphDir, const fs::Path& dataDir, ClientType& clientWrapper);
 
-    Result<void> saveGraph(std::string_view graphName);
-    Result<void> loadGraph(std::string_view graphName);
+    FileCacheResult<void> saveGraph(std::string_view graphName);
+    FileCacheResult<void> loadGraph(std::string_view graphName);
 
-    Result<void> listGraphs(std::vector<std::string>& graphs);
-    Result<void> listLocalGraphs(std::vector<fs::Path>& graphs);
-    // bool loadGraph(const std::string& graphName);
-    Result<void> getCommit(Graph* graph, std::string_view graphName);
+    FileCacheResult<void> listGraphs(std::vector<std::string>& graphs);
+    FileCacheResult<void> listLocalGraphs(std::vector<fs::Path>& graphs);
 
-    Result<void> listData(std::vector<std::string>& files,
-                          std::vector<std::string>& folders,
-                          std::string_view dir);
-    Result<void> listData(std::vector<std::string>& files,
-                          std::vector<std::string>& folders);
-    Result<void> listLocalData(std::vector<fs::Path>& files,
-                               std::vector<fs::Path>& folders,
-                               std::string_view dir);
-    Result<void> listLocalData(std::vector<fs::Path>& files,
-                               std::vector<fs::Path>& folders);
+    FileCacheResult<void> listData(std::vector<std::string>& files,
+                                   std::vector<std::string>& folders,
+                                   std::string_view dir);
+    FileCacheResult<void> listData(std::vector<std::string>& files,
+                                   std::vector<std::string>& folders);
+    FileCacheResult<void> listLocalData(std::vector<fs::Path>& files,
+                                        std::vector<fs::Path>& folders,
+                                        std::string_view dir);
+    FileCacheResult<void> listLocalData(std::vector<fs::Path>& files,
+                                        std::vector<fs::Path>& folders);
 
-    Result<void> saveDataFile(std::string_view filePath);
-    Result<void> loadDataFile(std::string_view filePath);
+    FileCacheResult<void> saveDataFile(std::string_view filePath);
+    FileCacheResult<void> loadDataFile(std::string_view filePath);
 
-    Result<void> saveDataDirectory(std::string_view directoryPath);
-    Result<void> loadDataDirectory(std::string_view directoryPath);
-
-
-    void listFiles();
+    FileCacheResult<void> saveDataDirectory(std::string_view directoryPath);
+    FileCacheResult<void> loadDataDirectory(std::string_view directoryPath);
 
 private:
     fs::Path _graphsDir;
     fs::Path _dataDir;
     S3::TuringS3Client<ClientType> _s3Client;
-    std::string _userId = "testUser1";
-    std::string _bucketName = "suhas-disk-test";
+    std::string _userId = "turingDefault";
+    std::string _bucketName = "turing-disk-test";
 };
 }

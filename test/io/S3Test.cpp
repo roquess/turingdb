@@ -60,15 +60,15 @@ TEST_F(S3Test, SucessfulListOperations) {
     S3::AwsS3ClientWrapper<S3::MockS3Client> clientWrapper(mockClient);
     S3::TuringS3Client<S3::AwsS3ClientWrapper<S3::MockS3Client>> turingS3Client(clientWrapper);
 
-    auto res = turingS3Client.listKeys("bucketName", keyResults, "prefix/");
+    auto res = turingS3Client.listKeys("bucketName", "prefix/", keyResults);
     ASSERT_TRUE(res);
     EXPECT_EQ(keyNames, keyResults);
 
-    res = turingS3Client.listFiles("bucketName", fileResults, "prefix/");
+    res = turingS3Client.listFiles("bucketName", "prefix/", fileResults);
     ASSERT_TRUE(res);
     EXPECT_EQ(fileNames, fileResults);
 
-    res = turingS3Client.listFolders("bucketName", folderResults, "prefix/");
+    res = turingS3Client.listFolders("bucketName", "prefix/", folderResults);
     ASSERT_TRUE(res);
     EXPECT_EQ(folderNames, folderResults);
 }
@@ -89,17 +89,17 @@ TEST_F(S3Test, UnsucessfulListOperations) {
         std::vector<std::string> fileResults;
         std::vector<std::string> folderResults;
 
-        auto res = turingS3Client.listKeys("bucketName", keyResults, "prefix/");
+        auto res = turingS3Client.listKeys("bucketName", "prefix/", keyResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::ACCESS_DENIED);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::ACCESS_DENIED);
 
-        res = turingS3Client.listFiles("bucketName", fileResults, "prefix/");
+        res = turingS3Client.listFiles("bucketName", "prefix/", fileResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::ACCESS_DENIED);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::ACCESS_DENIED);
 
-        res = turingS3Client.listFolders("bucketName", folderResults, "prefix/");
+        res = turingS3Client.listFolders("bucketName", "prefix/", folderResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::ACCESS_DENIED);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::ACCESS_DENIED);
     }
 
     {
@@ -117,17 +117,17 @@ TEST_F(S3Test, UnsucessfulListOperations) {
         std::vector<std::string> fileResults;
         std::vector<std::string> folderResults;
 
-        auto res = turingS3Client.listKeys("bucketName", keyResults, "prefix/");
+        auto res = turingS3Client.listKeys("bucketName", "prefix/", keyResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_BUCKET_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_BUCKET_NAME);
 
-        res = turingS3Client.listFiles("bucketName", fileResults, "prefix/");
+        res = turingS3Client.listFiles("bucketName", "prefix/", fileResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_BUCKET_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_BUCKET_NAME);
 
-        res = turingS3Client.listFolders("bucketName", folderResults, "prefix/");
+        res = turingS3Client.listFolders("bucketName", "prefix/", folderResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_BUCKET_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_BUCKET_NAME);
     }
 
     {
@@ -143,17 +143,17 @@ TEST_F(S3Test, UnsucessfulListOperations) {
         std::vector<std::string> fileResults;
         std::vector<std::string> folderResults;
 
-        auto res = turingS3Client.listKeys("bucketName", keyResults, "prefix/");
+        auto res = turingS3Client.listKeys("bucketName", "prefix/", keyResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_LIST_KEYS);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_LIST_KEYS);
 
-        res = turingS3Client.listFiles("bucketName", fileResults, "prefix/");
+        res = turingS3Client.listFiles("bucketName", "prefix/", fileResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_LIST_FILES);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_LIST_FILES);
 
-        res = turingS3Client.listFolders("bucketName", folderResults, "prefix/");
+        res = turingS3Client.listFolders("bucketName", "prefix/", folderResults);
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_LIST_FOLDERS);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_LIST_FOLDERS);
     }
 }
 
@@ -186,7 +186,7 @@ TEST_F(S3Test, UnsuccesfulFileUpload) {
 
         auto res = turingS3Client.uploadFile("/does/not/exist", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::FILE_NOT_FOUND);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::FILE_NOT_FOUND);
     }
 
     {
@@ -203,7 +203,7 @@ TEST_F(S3Test, UnsuccesfulFileUpload) {
 
         auto res = turingS3Client.uploadFile("/dev/null", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::ACCESS_DENIED);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::ACCESS_DENIED);
     }
 
     {
@@ -220,7 +220,7 @@ TEST_F(S3Test, UnsuccesfulFileUpload) {
 
         auto res = turingS3Client.uploadFile("/dev/null", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_BUCKET_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_BUCKET_NAME);
     }
 
     {
@@ -238,7 +238,7 @@ TEST_F(S3Test, UnsuccesfulFileUpload) {
 
         auto res = turingS3Client.uploadFile("/dev/null", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::FILE_EXISTS);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::FILE_EXISTS);
     }
 
     // Covers Unspecified S3 Error Case
@@ -256,7 +256,7 @@ TEST_F(S3Test, UnsuccesfulFileUpload) {
 
         auto res = turingS3Client.uploadFile("/dev/null", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_UPLOAD_FILE);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_UPLOAD_FILE);
     }
 }
 
@@ -290,7 +290,7 @@ TEST_F(S3Test, UnsuccesfulFileDownload) {
 
         auto res = turingS3Client.downloadFile("/does/not/exist", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_OPEN_FILE);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_OPEN_FILE);
     }
 
     {
@@ -307,7 +307,7 @@ TEST_F(S3Test, UnsuccesfulFileDownload) {
 
         auto res = turingS3Client.downloadFile(_tempTestDir + "err", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::ACCESS_DENIED);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::ACCESS_DENIED);
     }
 
     {
@@ -324,7 +324,7 @@ TEST_F(S3Test, UnsuccesfulFileDownload) {
 
         auto res = turingS3Client.downloadFile(_tempTestDir + "err", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_KEY_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_KEY_NAME);
     }
 
     {
@@ -341,7 +341,7 @@ TEST_F(S3Test, UnsuccesfulFileDownload) {
 
         auto res = turingS3Client.downloadFile(_tempTestDir + "err", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_BUCKET_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_BUCKET_NAME);
     }
 
     // Covers Unspecified S3 Error Case
@@ -359,7 +359,7 @@ TEST_F(S3Test, UnsuccesfulFileDownload) {
 
         auto res = turingS3Client.downloadFile(_tempTestDir + "err", "bucketName", "keyName");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_DOWNLOAD_FILE);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_DOWNLOAD_FILE);
     }
 }
 
@@ -394,7 +394,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
 
         auto res = turingS3Client.uploadDirectory("/does/not/exist", "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::DIRECTORY_NOT_FOUND);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::DIRECTORY_NOT_FOUND);
     }
 
     {
@@ -413,7 +413,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
 
         auto res = turingS3Client.uploadDirectory(dir.getPath(), "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::ACCESS_DENIED);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::ACCESS_DENIED);
     }
 
     {
@@ -432,7 +432,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
 
         auto res = turingS3Client.uploadDirectory(dir.getPath(), "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_BUCKET_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_BUCKET_NAME);
     }
 
     {
@@ -452,7 +452,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
 
         auto res = turingS3Client.uploadDirectory(dir.getPath(), "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::DIRECTORY_EXISTS);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::DIRECTORY_EXISTS);
     }
 
     // Covers Unspecified S3 Error Case
@@ -472,7 +472,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
 
         auto res = turingS3Client.uploadDirectory(dir.getPath(), "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_UPLOAD_DIRECTORY);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_UPLOAD_DIRECTORY);
     }
 }
 
@@ -519,7 +519,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryDownload) {
 
         auto res = turingS3Client.downloadDirectory(_tempTestDir, "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_DIRECTORY_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_DIRECTORY_NAME);
     }
 
     {
@@ -545,7 +545,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryDownload) {
 
         auto res = turingS3Client.downloadDirectory(_tempTestDir, "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::ACCESS_DENIED);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::ACCESS_DENIED);
     }
 
     {
@@ -571,7 +571,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryDownload) {
 
         auto res = turingS3Client.downloadDirectory(_tempTestDir, "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_DOWNLOAD_DIRECTORY);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_DOWNLOAD_DIRECTORY);
     }
 
     {
@@ -597,7 +597,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryDownload) {
 
         auto res = turingS3Client.downloadDirectory(_tempTestDir, "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_BUCKET_NAME);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::INVALID_BUCKET_NAME);
     }
 
     // Covers Unspecified S3 Error Case
@@ -624,6 +624,6 @@ TEST_F(S3Test, UnsuccesfulDirectoryDownload) {
 
         auto res = turingS3Client.downloadDirectory(_tempTestDir, "bucketName", "prefix/");
         ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_DOWNLOAD_DIRECTORY);
+        EXPECT_EQ(res.error().getType(), S3::S3ClientErrorType::CANNOT_DOWNLOAD_DIRECTORY);
     }
 }

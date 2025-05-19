@@ -1,47 +1,43 @@
 #pragma once
 
-#include "S3Result.h"
-#include <memory>
 #include <aws/core/utils/memory/stl/AWSString.h>
+
+#include "S3ClientResult.h"
 
 class RemoteStorageClient;
 namespace S3 {
-template <typename T>
+template <typename ClientType>
 class TuringS3Client {
 public:
-    explicit TuringS3Client(T& client);
+    explicit TuringS3Client(ClientType& client);
     ~TuringS3Client() = default;
 
-    void listBuckets();
-    bool createBucket(const std::string& bucketName);
-    bool deleteBucket(const std::string& bucketName);
+    S3ClientResult<void> listKeys(const std::string& bucketName,
+                                  const std::string& prefix,
+                                  std::vector<std::string>& keyResults);
+    S3ClientResult<void> listFiles(const std::string& bucketName,
+                                   const std::string& prefix,
+                                   std::vector<std::string>& keyResults);
+    S3ClientResult<void> listFolders(const std::string& bucketName,
+                                     const std::string& prefix,
+                                     std::vector<std::string>& folderResults);
 
-    Result<void> listKeys(const std::string& bucketName,
-                          std::vector<std::string>& keyResults,
-                          const std::string& prefix);
-    Result<void> listFiles(const std::string& bucketName,
-                           std::vector<std::string>& keyResults,
-                           const std::string& prefix);
-    Result<void> listFolders(const std::string& bucketName,
-                             std::vector<std::string>& folderResults,
-                             const std::string& prefix);
+    S3ClientResult<void> uploadFile(const std::string& filePath,
+                                    const std::string& bucketName,
+                                    const std::string& keyName);
+    S3ClientResult<void> downloadFile(const std::string& filePath,
+                                      const std::string& bucketName,
+                                      const std::string& keyName);
 
-    Result<void> uploadFile(const std::string& filePath,
-                            const std::string& bucketName,
-                            const std::string& keyName);
-    Result<void> downloadFile(const std::string& filePath,
-                              const std::string& bucketName,
-                              const std::string& keyName);
-
-    Result<void> uploadDirectory(const std::string& directory,
-                                 const std::string& bucketName,
-                                 const std::string& prefix);
-    Result<void> downloadDirectory(const std::string& directory,
-                                   const std::string& bucketName,
-                                   const std::string& prefix);
+    S3ClientResult<void> uploadDirectory(const std::string& directory,
+                                         const std::string& bucketName,
+                                         const std::string& prefix);
+    S3ClientResult<void> downloadDirectory(const std::string& directory,
+                                           const std::string& bucketName,
+                                           const std::string& prefix);
 
 private:
-    T& _client;
+    ClientType& _client;
 };
 
 

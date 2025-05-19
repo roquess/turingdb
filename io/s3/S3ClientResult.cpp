@@ -1,8 +1,8 @@
-#include "FileCacheResult.h"
+#include "S3ClientResult.h"
 
-using namespace db;
+using namespace S3;
 
-std::string FileCacheError::fmtMessage() const {
+std::string S3ClientError::fmtMessage() const {
     return fmt::format("Turing S3Client error: {}",
                        ErrorTypeDescription::value(_type));
 }
