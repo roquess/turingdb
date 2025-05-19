@@ -7,8 +7,8 @@
 
 class DummyDirectory {
 public:
-    explicit DummyDirectory(const std::string& dirName, int n = 3)
-        : _path(std::filesystem::current_path().string() + "/tempFiles/"+ dirName + "/"),
+    explicit DummyDirectory(const std::string& parentDir, const std::string& dirName, int n = 3)
+        : _path(parentDir + dirName + "/"),
           _numFolders(n)
     {
         init();

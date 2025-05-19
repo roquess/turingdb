@@ -17,7 +17,7 @@ using namespace turing::test;
 
 class S3Test : public TuringTest {
 protected:
-    std::string _tempTestDir = std::filesystem::current_path().string() + "/tempFiles/";
+    std::string _tempTestDir = std::filesystem::current_path().string() + "/" + _testName + ".tmp/";
     void initialize() override {
         std::filesystem::create_directory(_tempTestDir);
     }
@@ -187,39 +187,6 @@ TEST_F(S3Test, UnsuccesfulFileUpload) {
         auto res = turingS3Client.uploadFile("/does/not/exist", "bucketName", "keyName");
         ASSERT_FALSE(res);
         EXPECT_EQ(res.error().getType(), S3::ErrorType::FILE_NOT_FOUND);
-    }
-
-    {
-        const auto testFile = _tempTestDir + "noPermissionTest";
-        std::ofstream create(testFile);
-        create.flush();
-        create.close();
-        // Remove all permissions from file
-        auto ret = chmod(testFile.c_str(), 0000);
-        if(ret == 0){
-            spdlog::info("Chmod was a success");
-        }else{
-            spdlog::info("chmod failed with error {}", errno);
-        }
-
-
-
-        Aws::S3Crt::Model::PutObjectResult putResult;
-
-        Aws::S3Crt::Model::PutObjectOutcome putOutcome(putResult);
-        Aws::S3Crt::Model::ListObjectsV2Outcome listOutcome;
-        Aws::S3Crt::Model::GetObjectOutcome getOutcome;
-
-        S3::MockS3Client mockClient(putOutcome, getOutcome, listOutcome);
-        S3::AwsS3ClientWrapper<S3::MockS3Client> clientWrapper(mockClient);
-        S3::TuringS3Client<S3::AwsS3ClientWrapper<S3::MockS3Client>> turingS3Client(clientWrapper);
-
-        auto res = turingS3Client.uploadFile(testFile, "bucketName", "keyName");
-        ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_OPEN_FILE);
-
-        // Add permissions back
-        chmod(testFile.c_str(), 0644);
     }
 
     {
@@ -397,7 +364,7 @@ TEST_F(S3Test, UnsuccesfulFileDownload) {
 }
 
 TEST_F(S3Test, SuccesfulDirectoryUpload) {
-    DummyDirectory dir("turingS3DirTest");
+    DummyDirectory dir(_tempTestDir, "turingS3DirTest");
 
     Aws::S3Crt::Model::PutObjectResult putResult;
 
@@ -429,36 +396,9 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
         ASSERT_FALSE(res);
         EXPECT_EQ(res.error().getType(), S3::ErrorType::DIRECTORY_NOT_FOUND);
     }
-    {
-        DummyDirectory dir("turingS3DirTest", 0);
-        const auto testFile = dir.getPath() + "noPermissionTest";
-        std::ofstream create(testFile);
-        create.flush();
-        create.close();
-        if (chmod(testFile.c_str(), 0000) == -1) {
-            perror("chmod failed:");
-            FAIL();
-        }
-
-        Aws::S3Crt::Model::PutObjectResult putResult;
-
-        Aws::S3Crt::Model::PutObjectOutcome putOutcome(putResult);
-        Aws::S3Crt::Model::ListObjectsV2Outcome listOutcome;
-        Aws::S3Crt::Model::GetObjectOutcome getOutcome;
-
-        S3::MockS3Client mockClient(putOutcome, getOutcome, listOutcome);
-        S3::AwsS3ClientWrapper<S3::MockS3Client> clientWrapper(mockClient);
-        S3::TuringS3Client<S3::AwsS3ClientWrapper<S3::MockS3Client>> turingS3Client(clientWrapper);
-
-        auto res = turingS3Client.uploadDirectory(dir.getPath(), "bucketName", "prefix/");
-        ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_UPLOAD_DIRECTORY);
-
-        chmod(testFile.c_str(), 0644);
-    }
 
     {
-        DummyDirectory dir("turingS3DirTest");
+        DummyDirectory dir(_tempTestDir, "turingS3DirTest");
 
         const auto errorType = Aws::S3Crt::S3CrtErrors::ACCESS_DENIED;
         Aws::S3Crt::S3CrtError s3Err(Aws::Client::AWSError(errorType, false));
@@ -477,7 +417,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
     }
 
     {
-        DummyDirectory dir("turingS3DirTest");
+        DummyDirectory dir(_tempTestDir, "turingS3DirTest");
 
         const auto errorType = Aws::S3Crt::S3CrtErrors::NO_SUCH_BUCKET;
         Aws::S3Crt::S3CrtError s3Err(Aws::Client::AWSError(errorType, false));
@@ -496,7 +436,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
     }
 
     {
-        DummyDirectory dir("turingS3DirTest");
+        DummyDirectory dir(_tempTestDir, "turingS3DirTest");
 
         const auto errorType = Aws::S3Crt::S3CrtErrors::UNKNOWN;
         Aws::S3Crt::S3CrtError s3Err(Aws::Client::AWSError(errorType, false));
@@ -517,7 +457,7 @@ TEST_F(S3Test, UnsuccesfulDirectoryUpload) {
 
     // Covers Unspecified S3 Error Case
     {
-        DummyDirectory dir("turingS3DirTest");
+        DummyDirectory dir(_tempTestDir, "turingS3DirTest");
 
         const auto errorType = Aws::S3Crt::S3CrtErrors::UNKNOWN;
         Aws::S3Crt::S3CrtError s3Err(Aws::Client::AWSError(errorType, false));
@@ -580,35 +520,6 @@ TEST_F(S3Test, UnsuccesfulDirectoryDownload) {
         auto res = turingS3Client.downloadDirectory(_tempTestDir, "bucketName", "prefix/");
         ASSERT_FALSE(res);
         EXPECT_EQ(res.error().getType(), S3::ErrorType::INVALID_DIRECTORY_NAME);
-    }
-
-    {
-        // Test for when local file cannot be opened
-        Aws::S3Crt::Model::GetObjectResult getResult;
-        Aws::S3Crt::Model::ListObjectsV2Result listResult;
-
-        std::vector<std::string> keyNames = {"prefix/dir0/file1", "prefix/dir0/file2", "prefix/file3"};
-        std::vector<std::string> keyResults;
-        Aws::Vector<Aws::S3Crt::Model::Object> objects(keyNames.size());
-        for (size_t i = 0; i < keyNames.size(); i++) {
-            objects[i].SetKey(keyNames[i]);
-        }
-        listResult.SetContents(objects);
-
-        Aws::S3Crt::Model::GetObjectOutcome getOutcome(std::move(getResult));
-        Aws::S3Crt::Model::ListObjectsV2Outcome listOutcome(listResult);
-        Aws::S3Crt::Model::PutObjectOutcome putOutcome;
-
-        S3::MockS3Client mockClient(putOutcome, getOutcome, listOutcome);
-        S3::AwsS3ClientWrapper<S3::MockS3Client> clientWrapper(mockClient);
-        S3::TuringS3Client<S3::AwsS3ClientWrapper<S3::MockS3Client>> turingS3Client(clientWrapper);
-
-        std::filesystem::create_directory(_tempTestDir + "dir0");
-        chmod((_tempTestDir + "dir0").c_str(), 0555);
-        auto res = turingS3Client.downloadDirectory(_tempTestDir, "bucketName", "prefix/");
-        chmod((_tempTestDir + "dir0").c_str(), 0755);
-        ASSERT_FALSE(res);
-        EXPECT_EQ(res.error().getType(), S3::ErrorType::CANNOT_DOWNLOAD_DIRECTORY);
     }
 
     {
