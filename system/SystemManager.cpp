@@ -20,9 +20,18 @@ using namespace db;
 SystemManager::SystemManager()
     :_changes(std::make_unique<ChangeManager>())
 {
-    const auto turingDir = createConfigDirectories();
-    _graphsDir = turingDir / "graphs/";
-    _dataDir = turingDir / "data/";
+    const char* home = std::getenv("HOME");
+    if (!home) {
+        panic("HOME environment variable not set");
+    }
+
+    _turingDir = createTuringConfigDirectories(home);
+
+    _graphsDir = fs::Path(home) / "graphs_v2";
+    if (!_graphsDir.exists()) {
+        panic("graphs_v2 directory not found at {}", _graphsDir.get());
+    }
+
     _defaultGraph = createGraph("default");
 }
 
@@ -33,12 +42,7 @@ void SystemManager::setGraphsDir(const fs::Path& dir) {
     _graphsDir = dir;
 }
 
-fs::Path SystemManager::createConfigDirectories() {
-    const char* homeDir = std::getenv("HOME");
-    if (!homeDir) {
-        panic("HOME environment variable not set");
-    }
-
+fs::Path SystemManager::createTuringConfigDirectories(const char* homeDir) {
     const fs::Path configBase = fs::Path(homeDir) / ".turing";
     const fs::Path graphsDir = configBase / "graphs";
     const fs::Path dataDir = configBase / "data";

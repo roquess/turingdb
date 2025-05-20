@@ -24,7 +24,7 @@ int main() {
 
     auto awsClient = S3::AwsS3ClientWrapper<>();
     db::SystemManager sysMan;
-    db::FileCache cache = db::FileCache(sysMan.getGraphsDir(), sysMan.getDataDir(), awsClient);
+    db::FileCache cache = db::FileCache(sysMan.getTuringDir() / "graphs", sysMan.getTuringDir() / "data", awsClient);
     // Main input loop
     char* line = nullptr;
     while ((line = linenoise("prompt> ")) != nullptr) {
