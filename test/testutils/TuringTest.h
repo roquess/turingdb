@@ -46,7 +46,7 @@ protected:
             const char* home = getenv("HOME");
             if (home) {
                 if (FileUtils::exists(home)) {
-                    const auto graphsDir = FileUtils::Path(home) / ".turing" / "graphs";
+                    const auto graphsDir = FileUtils::Path(home) / "graphs_v2";
                     if (!FileUtils::exists(graphsDir)) {
                         FileUtils::createDirectory(graphsDir);
                     }
