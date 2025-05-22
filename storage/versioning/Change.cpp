@@ -12,9 +12,8 @@ Change::~Change() = default;
 
 Change::Change(VersionController* versionController, ChangeID id, CommitHash base)
     : _id(id),
-    _versionController(versionController),
-    _base(versionController->openTransaction(base).commitData())
-{
+      _versionController(versionController),
+      _base(versionController->openTransaction(base).commitData()) {
     auto tip = CommitBuilder::prepare(*_versionController,
                                       this,
                                       GraphView {*_base});
@@ -82,27 +81,14 @@ CommitResult<void> Change::rebase(JobSystem& jobsystem) {
         // 2. Get all commits/dataparts from the previous commit history
         // 3. Add back dataparts of current commit and rebase them
 
-        auto& data = commitBuilder->commitData();
-        auto& history = data.history();
-        history.rebase(*prevHistory);
-
-        // TODO Ideally, commitDataparts should be a span
-        //      and we should:
-        //          CommitHistory newHistory = CommitHistory::fromPreviousCommit(previousHistory);
-        //          newHistory.pushDataparts(commitBuilder->commitDataparts());
-
         metadataRebaser.clear();
         metadataRebaser.rebase(prevCommitData->metadata(), commitBuilder->metadata());
 
-        const auto& prevDataParts = prevHistory->_allDataparts;
+        auto& data = commitBuilder->commitData();
+        auto& history = data.history();
 
-        if (!prevDataParts.empty()) {
-            const auto* prevPart = prevDataParts.back().get();
-            for (auto& part : history._commitDataparts) {
-                dataPartRebaser.rebase(metadataRebaser, *prevPart, *part);
-                prevPart = part.get();
-            }
-        }
+        CommitHistoryRebaser historyRebaser {history};
+        historyRebaser.rebase(metadataRebaser, dataPartRebaser, *prevHistory);
 
         prevCommitData = &commitBuilder->commitData();
         prevHistory = &prevCommitData->history();

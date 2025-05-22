@@ -48,7 +48,8 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
     graph->_versionController->_dataManager = std::make_unique<ArcManager<CommitData>>();
     graph->_versionController->_partManager = std::make_unique<ArcManager<DataPart>>();
 
-    std::map<uint64_t, std::unique_ptr<Commit>> commits;
+    std::map<uint64_t, std::pair<CommitHash, fs::Path>> commitInfo;
+
     for (auto& child : files.value()) {
         const auto& childStr = child.filename();
 
@@ -66,39 +67,27 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
         }
 
         const auto [offset, hash] = suffixRes.value();
+        commitInfo.emplace(offset, std::make_pair(hash, child));
+    }
 
-        auto res = CommitLoader::load(child, *graph, CommitHash {hash});
+    if (commitInfo.empty()) {
+        return DumpError::result(DumpErrorType::NO_COMMITS);
+    }
+
+    const CommitHistory* prevHistory = nullptr;
+
+    for (const auto& [commitIndex, commitInfoPair] : commitInfo) {
+        const auto& [hash, path] = commitInfoPair;
+        auto res = CommitLoader::load(path, *graph, CommitHash {hash}, prevHistory);
 
         if (!res) {
             return res.get_unexpected();
         }
 
-        commits.emplace(offset, std::move(res.value()));
+        auto* ptr = res->get();
+        graph->_versionController->addCommit(std::move(res.value()));
+        prevHistory = &ptr->history();
     }
-
-    if (commits.empty()) {
-        return DumpError::result(DumpErrorType::NO_COMMITS);
-    }
-
-    for (auto& [commitIndex, commit] : commits) {
-        auto& history = commit->history();
-
-        if (commitIndex != 0) {
-            const auto& prevCommit = commits.at(commitIndex - 1);
-            const auto prevDataparts = prevCommit->_data->allDataparts();
-
-            history.pushPreviousDataparts(prevDataparts);
-            history.pushPreviousCommits(prevCommit->history().commits());
-        }
-
-        history.pushCommit(CommitView{commit.get()});
-        history.pushPreviousDataparts(commit->history().commitDataparts());
-    }
-
-    for (auto& [commitIndex, commit] : commits) {
-        graph->_versionController->addCommit(std::move(commit));
-    }
-
 
     return {};
 }

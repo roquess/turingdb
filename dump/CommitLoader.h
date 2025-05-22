@@ -21,7 +21,10 @@ class PropertyManager;
 
 class CommitLoader {
 public:
-    [[nodiscard]] static DumpResult<std::unique_ptr<Commit>> load(const fs::Path& path, Graph& graph, CommitHash hash) {
+    [[nodiscard]] static DumpResult<std::unique_ptr<Commit>> load(const fs::Path& path,
+                                                                  Graph& graph,
+                                                                  CommitHash hash,
+                                                                  const CommitHistory* prevHistory) {
         // Listing files in the folder
         auto files = path.listDir();
         if (!files) {
@@ -37,6 +40,12 @@ public:
         commit->_data = versionController->createCommitData(hash);
         commit->_data->_hash = hash;
 
+        if (prevHistory) {
+            commit->_data->_history.newFromPrevious(*prevHistory);
+        }
+
+        CommitHistoryBuilder historyBuilder {commit->_data->_history};
+
         auto& metadata = commit->_data->_metadata;
 
         // Loading metadata
@@ -50,7 +59,7 @@ public:
         }
 
 
-        std::map<uint64_t, WeakArc<DataPart>> dataparts;
+        std::map<uint64_t, fs::Path> datapartPaths;
         for (auto& child : files.value()) {
             const auto& childStr = child.filename();
 
@@ -67,20 +76,20 @@ public:
                 return partIndex.get_unexpected();
             }
 
-            auto res = DataPartLoader::load(child, metadata, *versionController);
+            datapartPaths.emplace(partIndex.value(), child);
+        }
+
+        for (auto& [partIndex, path] : datapartPaths) {
+            auto res = DataPartLoader::load(path, metadata, *versionController);
 
             if (!res) {
                 return res.get_unexpected();
             }
 
-            WeakArc<DataPart> part = res.value();
-            dataparts.emplace(partIndex.value(), part);
+            historyBuilder.addDatapart(res.value());
         }
 
-        auto& history = commit->history();
-        for (auto& [partIndex, part] : dataparts) {
-            history.pushCommitDatapart(part);
-        }
+        historyBuilder.setCommitDatapartCount(datapartPaths.size());
 
         return std::move(commit);
     }

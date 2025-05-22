@@ -156,7 +156,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
         }
 
         ASSERT_EQ(builder.nodeCount(), ChunkConfig::CHUNK_SIZE);
-        ASSERT_TRUE(change->access().submit(*_jobSystem));
+        ASSERT_TRUE(change->access().commit(*_jobSystem));
     }
 
     const auto res = change->access().submit(*_jobSystem);

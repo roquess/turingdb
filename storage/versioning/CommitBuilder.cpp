@@ -53,7 +53,13 @@ CommitResult<void> CommitBuilder::buildAllPending(JobSystem& jobsystem) {
 
     GraphView view {*_commitData};
 
+    CommitHistoryBuilder historyBuilder {_commitData->_history};
+    size_t partCount = 0;
     for (const auto& builder : _builders) {
+        if (builder->isEmpty()) {
+            continue;
+        }
+
         auto part = _controller->createDataPart(_firstNodeID, _firstEdgeID);
 
         _firstNodeID += builder->nodeCount();
@@ -63,9 +69,13 @@ CommitResult<void> CommitBuilder::buildAllPending(JobSystem& jobsystem) {
             return CommitError::result(CommitErrorType::BUILD_DATAPART_FAILED);
         }
 
-        _commitData->_history._allDataparts.emplace_back(part);
-        _commitData->_history._commitDataparts.emplace_back(part);
+        historyBuilder.addDatapart(part);
+        partCount++;
     }
+
+    _datapartCount += partCount;
+    historyBuilder.setCommitDatapartCount(_datapartCount);
+
 
     _builders.clear();
 

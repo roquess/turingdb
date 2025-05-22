@@ -72,6 +72,8 @@ private:
     std::unique_ptr<MetadataBuilder> _metadataBuilder;
     std::unique_ptr<Commit> _commit;
 
+    size_t _datapartCount {0};
+
     std::vector<std::unique_ptr<DataPartBuilder>> _builders;
 
     explicit CommitBuilder(VersionController&, Change* change, const GraphView&);
