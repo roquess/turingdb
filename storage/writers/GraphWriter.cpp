@@ -47,7 +47,7 @@ bool GraphWriter::submit() {
     return true;
 }
 
-WriteTransaction GraphWriter::openWriteTransaction() {
+PendingCommitWriteTx GraphWriter::openWriteTransaction() {
     return _change->openWriteTransaction();
 }
 

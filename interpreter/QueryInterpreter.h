@@ -2,7 +2,6 @@
 
 #include <string_view>
 #include <memory>
-#include <variant>
 
 #include "QueryStatus.h"
 #include "QueryCallback.h"
@@ -15,8 +14,7 @@ class SystemManager;
 class JobSystem;
 class LocalMemory;
 class Executor;
-class ReadTransaction;
-class WriteTransaction;
+class Transaction;
 
 class QueryInterpreter {
 public:
@@ -34,10 +32,6 @@ private:
     SystemManager* _sysMan {nullptr};
     JobSystem* _jobSystem {nullptr};
     std::unique_ptr<Executor> _executor;
-
-    BasicResult<std::variant<ReadTransaction, WriteTransaction>, QueryStatus> openTransaction(std::string_view graphName,
-                                                                                          CommitHash commitHash,
-                                                                                          ChangeID changeID);
 };
 
 }

@@ -32,19 +32,19 @@ void VersionController::createFirstCommit(Graph* graph) {
     this->addCommit(std::move(commit));
 }
 
-ReadTransaction VersionController::openReadTransaction(CommitHash hash) const {
+FrozenCommitTx VersionController::openTransaction(CommitHash hash) const {
     if (hash == CommitHash::head()) {
-        return _head.load()->openReadTransaction();
+        return _head.load()->openTransaction();
     }
 
     std::scoped_lock lock {_mutex};
 
     auto it = _offsets.find(hash);
     if (it == _offsets.end()) {
-        return ReadTransaction {}; // Invalid hash
+        return FrozenCommitTx {}; // Invalid hash
     }
 
-    return _commits[it->second]->openReadTransaction();
+    return _commits[it->second]->openTransaction();
 }
 
 CommitHash VersionController::getHeadHash() const {

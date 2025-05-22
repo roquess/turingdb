@@ -5,9 +5,6 @@
 #include <variant>
 
 #include "ExecutionContext.h"
-#include "columns/ColumnVector.h"
-#include "views/GraphView.h"
-#include "versioning/CommitResult.h"
 #include "versioning/CommitHash.h"
 
 namespace db {
@@ -35,7 +32,7 @@ public:
 
 private:
     JobSystem* _jobSystem {nullptr};
-    WriteTransaction* _tx {nullptr};
+    Transaction* _tx {nullptr};
 };
 
 }

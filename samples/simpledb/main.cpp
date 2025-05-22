@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
         const Graph* defaultGraph = db.getSystemManager().getDefaultGraph();
 
         spdlog::info("Graph created");
-        const ReadTransaction tx = defaultGraph->openReadTransaction();
+        const FrozenCommitTx tx = defaultGraph->openTransaction();
         {
             std::stringstream sstream;
             GraphReport::getReport(tx.readGraph(), sstream);
@@ -52,7 +52,7 @@ int main(int argc, const char** argv) {
     {
         auto graph = Graph::createEmptyGraph();
         const auto loadRes = GraphLoader::load(graph.get(), outDir);
-        const auto tx = graph->openReadTransaction();
+        const auto tx = graph->openTransaction();
 
         const PropertyType name = tx.viewGraph().metadata().propTypes().get("name").value();
         const auto reader = tx.readGraph();

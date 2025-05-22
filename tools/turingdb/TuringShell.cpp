@@ -400,13 +400,14 @@ bool TuringShell::setGraphName(const std::string& graphName) {
 bool TuringShell::setChangeID(ChangeID changeID) {
     _hash = CommitHash::head();
 
-    if (changeID == ChangeID::head()) {
-        _changeID = changeID;
-        return true;
+    auto tx = _turingDB.getSystemManager().openTransaction(_graphName, _hash, changeID);
+    if (!tx) {
+        spdlog::error("Can not checkout change: {}", tx.error().fmtMessage());
+        return false;
     }
 
-    auto res = _turingDB.getSystemManager().getChangeManager().getChange(changeID);
-    if (!res) {
+    if (!tx->isValid()) {
+        spdlog::error("Can not checkout change");
         return false;
     }
 
@@ -415,43 +416,19 @@ bool TuringShell::setChangeID(ChangeID changeID) {
 }
 
 bool TuringShell::setCommitHash(CommitHash hash) {
-    const auto* graph = _turingDB.getSystemManager().getGraph(_graphName);
-    if (graph == nullptr) {
+    auto tx = _turingDB.getSystemManager().openTransaction(_graphName, _hash, _changeID);
+    if (!tx) {
+        spdlog::error("Can not switch commit: {}", tx.error().fmtMessage());
         return false;
     }
 
-    if (_changeID == ChangeID::head()) {
-        if (auto tx = graph->openReadTransaction(hash); !tx.isValid()) {
-            return false;
-        }
-
-        _hash = hash;
-        return true;
-    }
-
-    auto& changeManager = _turingDB.getSystemManager().getChangeManager();
-    auto res = changeManager.getChange(_changeID);
-    if (!res) {
+    if (!tx->isValid()) {
+        spdlog::error("Can not switch commit");
         return false;
     }
 
-    auto* change = res.value();
-    if (hash == CommitHash::head()) {
-        if (auto tx = change->openWriteTransaction(); tx.isValid()) {
-            _hash = hash;
-            return true;
-        }
-
-        return false;
-    }
-
-    if (auto tx = change->openReadTransaction(hash); tx.isValid()) {
-        _hash = hash;
-        return true;
-    }
-
-    spdlog::error("No commit matches hash {:x}", hash.get());
-    return false;
+    _hash = hash;
+    return true;
 }
 
 void TuringShell::printHelp() const {
@@ -471,7 +448,7 @@ void TuringShell::checkShellContext() {
     }
 
     if (_changeID == ChangeID::head()) {
-        ReadTransaction transaction = graph->openReadTransaction(_hash);
+        FrozenCommitTx transaction = graph->openTransaction(_hash);
         if (transaction.isValid()) {
             return;
         }

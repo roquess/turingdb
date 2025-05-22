@@ -15,8 +15,7 @@ using namespace db;
 ChangeStep::ChangeStep(ChangeOpType type,
                        ColumnVector<const Change*>* output)
     : _type(type),
-    _output(output)
-{
+      _output(output) {
 }
 
 ChangeStep::~ChangeStep() {
@@ -26,37 +25,46 @@ void ChangeStep::prepare(ExecutionContext* ctxt) {
     _sysMan = ctxt->getSystemManager();
     _jobSystem = ctxt->getJobSystem();
     _view = ctxt->getGraphView();
-    _writeTx = ctxt->getWriteTransaction();
+    _tx = ctxt->getTransaction();
 
-    if (_type == ChangeOpType::NEW) {
-        _changeInfo = std::string {ctxt->getGraphName()};
-    } else {
-        _changeInfo = ctxt->getChangeID();
+    switch (_type) {
+        case ChangeOpType::NEW: {
+            _changeInfo = std::string {ctxt->getGraphName()};
+        } break;
+        case ChangeOpType::SUBMIT:
+        case ChangeOpType::DELETE:
+            _changeInfo = ctxt->getChangeID();
+        case ChangeOpType::LIST: {
+        } break;
+        case ChangeOpType::_SIZE: {
+            throw PipelineException("ChangeStep: Unknown change type");
+        } break;
     }
 }
 
 void ChangeStep::execute() {
     switch (_type) {
-        case ChangeOpType::NEW:
+        case ChangeOpType::NEW: {
             if (auto res = createChange(); !res) {
                 throw PipelineException(fmt::format("Failed to create change: {}", res.error().fmtMessage()));
             }
-            break;
-        case ChangeOpType::SUBMIT:
+        } break;
+        case ChangeOpType::SUBMIT: {
             if (auto res = acceptChange(); !res) {
                 throw PipelineException(fmt::format("Failed to submit change: {}", res.error().fmtMessage()));
             }
-            break;
-        case ChangeOpType::DELETE:
+        } break;
+        case ChangeOpType::DELETE: {
             if (auto res = deleteChange(); !res) {
                 throw PipelineException(fmt::format("Failed to delete change: {}", res.error().fmtMessage()));
             }
-            break;
-        case ChangeOpType::LIST:
+        } break;
+        case ChangeOpType::LIST: {
             listChanges();
-            break;
-        case ChangeOpType::_SIZE:
+        } break;
+        case ChangeOpType::_SIZE: {
             throw PipelineException("ChangeStep: Unknown change type");
+        } break;
     }
 }
 
@@ -89,22 +97,34 @@ ChangeResult<ChangeID> ChangeStep::createChange() const {
 ChangeResult<void> ChangeStep::acceptChange() const {
     Profile profile {"ChangeStep::acceptChange"};
 
+    if (!_tx->writingPendingCommit()) {
+        throw PipelineException("ChangeStep: Cannot accept change outside of a write transaction");
+    }
+
+    auto& tx = _tx->get<PendingCommitWriteTx>();
+
     if (!std::holds_alternative<ChangeID>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the change hash");
     }
 
-    return _sysMan->getChangeManager().acceptChange(_writeTx->changeAccessor(), *_jobSystem);
+    return _sysMan->getChangeManager().acceptChange(tx.changeAccessor(), *_jobSystem);
 }
 
 ChangeResult<void> ChangeStep::deleteChange() const {
     Profile profile {"ChangeStep::deleteChange"};
+
+    if (!_tx->writingPendingCommit()) {
+        throw PipelineException("ChangeStep: Cannot delete change outside of a write transaction");
+    }
+
+    auto& tx = _tx->get<PendingCommitWriteTx>();
 
     if (!std::holds_alternative<ChangeID>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the change hash");
     }
 
     ChangeID changeID = std::get<ChangeID>(_changeInfo);
-    return _sysMan->getChangeManager().deleteChange(changeID);
+    return _sysMan->getChangeManager().deleteChange(tx.changeAccessor(), changeID);
 }
 
 void ChangeStep::listChanges() const {

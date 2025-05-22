@@ -257,7 +257,7 @@ protected:
         builder4.addNodeProperty<types::String>(
             2, stringID, "TmpID2 patch");
 
-        const auto readTransaction = _graph->openReadTransaction();
+        const auto readTransaction = _graph->openTransaction();
         const EdgeRecord* edgeToPatch = readTransaction.viewGraph().read().getEdge(2);
         builder4.addEdgeProperty<types::String>(
             *edgeToPatch, stringID, "TmpEdgeID2 patch");
@@ -277,7 +277,7 @@ protected:
 };
 
 TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::vector<TestEdgeRecord> compareSet {
         {0, 0, 1},
@@ -307,7 +307,7 @@ TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodesIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::vector<EntityID> compareSet {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
@@ -324,7 +324,7 @@ TEST_F(IteratorsTest, ScanNodesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::vector<EntityID> compareSet {2, 3, 4, 6, 7, 8};
 
@@ -342,7 +342,7 @@ TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanOutEdgesByLabelIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::map<EntityID, const EdgeRecord*> byScanNodesRecords;
     std::map<EntityID, const EdgeRecord*> byScanEdgesRecords;
@@ -376,7 +376,7 @@ TEST_F(IteratorsTest, ScanOutEdgesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::map<EntityID, const EdgeRecord*> byScanNodesRecords;
     std::map<EntityID, const EdgeRecord*> byScanEdgesRecords;
@@ -424,7 +424,7 @@ TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetEdgesIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {1, 2, 3, 8};
     std::vector<TestEdgeRecord> compareSet {
@@ -468,7 +468,7 @@ TEST_F(IteratorsTest, GetEdgesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
 
     {
@@ -507,7 +507,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
 
     {
@@ -548,7 +548,7 @@ TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     const auto labelset = LabelSet::fromList({1});
     const LabelSetHandle ref {labelset};
@@ -586,7 +586,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetNodeViewsIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
@@ -637,7 +637,7 @@ TEST_F(IteratorsTest, GetNodeViewsIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {1, 3, 8};
 

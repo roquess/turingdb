@@ -8,6 +8,7 @@
 #include "versioning/CommitHash.h"
 #include "versioning/CommitResult.h"
 #include "versioning/ChangeID.h"
+#include "views/GraphView.h"
 
 namespace db {
 
@@ -16,9 +17,10 @@ class DataPartBuilder;
 class CommitBuilder;
 class Commit;
 class JobSystem;
-class ReadTransaction;
+class FrozenCommitTx;
 class ChangeManager;
-class WriteTransaction;
+class PendingCommitWriteTx;
+class PendingCommitReadTx;
 
 class Change {
 public:
@@ -31,6 +33,8 @@ public:
         Accessor(Accessor&&) = default;
         Accessor& operator=(const Accessor&) = delete;
         Accessor& operator=(Accessor&&) = default;
+
+        [[nodiscard]] bool isValid() const { return _change != nullptr; }
 
         [[nodiscard]] CommitBuilder* getTip() const {
             return _change->_tip;
@@ -53,18 +57,22 @@ public:
 
         [[nodiscard]] ChangeID getID() const { return _change->_id; }
 
+        [[nodiscard]] GraphView viewGraph(CommitHash commitHash = CommitHash::head()) const {
+            return _change->viewGraph(commitHash);
+        }
+
         void release() {
             _lock.unlock();
         }
 
     private:
         friend Change;
-        Change* _change {nullptr};
         std::unique_lock<std::mutex> _lock;
+        Change* _change {nullptr};
 
         Accessor(Change* change)
-            : _change(change),
-            _lock(_change->_mutex)
+            : _lock(change->_mutex),
+            _change(change)
         {
         }
     };
@@ -80,10 +88,8 @@ public:
                                                         ChangeID id,
                                                         CommitHash base);
 
-    [[nodiscard]] WriteTransaction openWriteTransaction();
-    [[nodiscard]] ReadTransaction openReadTransaction(CommitHash hash);
-
-
+    [[nodiscard]] PendingCommitWriteTx openWriteTransaction();
+    [[nodiscard]] PendingCommitReadTx openReadTransaction(CommitHash commitHash);
 
     [[nodiscard]] Accessor access() { return Accessor {this}; }
     [[nodiscard]] CommitHash baseHash() const;
@@ -109,6 +115,8 @@ private:
     [[nodiscard]] CommitResult<void> commit(JobSystem& jobsystem);
     [[nodiscard]] CommitResult<void> rebase(JobSystem& jobsystem);
     [[nodiscard]] CommitResult<void> submit(JobSystem& jobsystem);
+
+    [[nodiscard]] GraphView viewGraph(CommitHash commitHash) const;
 };
 
 }

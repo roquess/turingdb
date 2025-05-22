@@ -9,7 +9,7 @@ class GraphView;
 class SystemManager;
 class DataPartBuilder;
 class JobSystem;
-class WriteTransaction;
+class Transaction;
 
 class ExecutionContext {
 public:
@@ -19,14 +19,14 @@ public:
                               std::string_view graphName = {},
                               CommitHash commitHash = CommitHash::head(),
                               ChangeID changeID = ChangeID::head(),
-                              WriteTransaction* tx = nullptr)
+                              Transaction* tx = nullptr)
         : _sysMan(sysMan),
         _jobSystem(jobSystem),
         _dbView(dbView),
         _graphName(graphName),
         _commitHash(commitHash),
         _changeID(changeID),
-        _writeTx(tx)
+        _tx(tx)
     {
     }
 
@@ -36,7 +36,7 @@ public:
     std::string_view getGraphName() const { return _graphName; }
     CommitHash getCommitHash() const { return _commitHash; }
     ChangeID getChangeID() const { return _changeID; }
-    WriteTransaction* getWriteTransaction() { return _writeTx; }
+    Transaction* getTransaction() { return _tx; }
 
 private:
     SystemManager* _sysMan {nullptr};
@@ -45,7 +45,7 @@ private:
     std::string_view _graphName;
     CommitHash _commitHash;
     ChangeID _changeID;
-    WriteTransaction* _writeTx {nullptr};
+    Transaction* _tx {nullptr};
 };
 
 }

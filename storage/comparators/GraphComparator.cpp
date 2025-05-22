@@ -14,8 +14,8 @@ bool GraphComparator::same(const Graph& a, const Graph& b) {
         return false;
     }
 
-    const ReadTransaction txA = a.openReadTransaction();
-    const ReadTransaction txB = b.openReadTransaction();
+    const FrozenCommitTx txA = a.openTransaction();
+    const FrozenCommitTx txB = b.openTransaction();
     const GraphReader readerA = txA.readGraph();
     const GraphReader readerB = txB.readGraph();
 

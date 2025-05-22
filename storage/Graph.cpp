@@ -16,8 +16,8 @@ std::unique_ptr<Change> Graph::newChange(CommitHash base) {
     return _versionController->newChange(base);
 }
 
-ReadTransaction Graph::openReadTransaction(CommitHash hash) const {
-    return _versionController->openReadTransaction(hash);
+FrozenCommitTx Graph::openTransaction(CommitHash hash) const {
+    return _versionController->openTransaction(hash);
 }
 
 CommitHash Graph::getHeadHash() const {
@@ -47,8 +47,7 @@ std::unique_ptr<Graph> Graph::createEmptyGraph(const std::string& name) {
 
 Graph::Graph()
     : _graphName("default"),
-    _versionController(new VersionController)
-{
+      _versionController(new VersionController) {
 }
 
 Graph::Graph(const std::string& name)

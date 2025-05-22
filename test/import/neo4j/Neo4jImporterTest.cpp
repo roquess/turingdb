@@ -89,7 +89,7 @@ TEST_F(Neo4jImporterTest, Simple) {
         ASSERT_TRUE(change->access().submit(*_jobSystem));
     }
 
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::cout << "All out edges: ";
     for (const auto& edge : reader.scanOutEdges()) {
@@ -130,7 +130,7 @@ TEST_F(Neo4jImporterTest, General) {
     ASSERT_TRUE(res);
     std::cout << "Parsing: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
 
-    const ReadTransaction transaction = _graph->openReadTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::stringstream report;
     GraphReport::getReport(reader, report);

@@ -1,6 +1,5 @@
 #include "Change.h"
 
-#include "Panic.h"
 #include "versioning/CommitBuilder.h"
 #include "versioning/DataPartRebaser.h"
 #include "versioning/MetadataRebaser.h"
@@ -13,8 +12,9 @@ Change::~Change() = default;
 
 Change::Change(VersionController* versionController, ChangeID id, CommitHash base)
     : _id(id),
-      _versionController(versionController),
-      _base(versionController->openReadTransaction(base).commitData()) {
+    _versionController(versionController),
+    _base(versionController->openTransaction(base).commitData())
+{
     auto tip = CommitBuilder::prepare(*_versionController,
                                       this,
                                       GraphView {*_base});
@@ -31,21 +31,21 @@ std::unique_ptr<Change> Change::create(VersionController* versionController,
     return std::unique_ptr<Change> {ptr};
 }
 
-WriteTransaction Change::openWriteTransaction() {
-    return WriteTransaction {
-        _tip->openReadTransaction().commitData(),
-        _tip,
-        &_tip->getCurrentBuilder(),
-        this->access()};
+PendingCommitWriteTx Change::openWriteTransaction() {
+    return PendingCommitWriteTx {this->access(), this->_tip};
 }
 
-ReadTransaction Change::openReadTransaction(CommitHash hash) {
-    auto commit = _commitOffsets.find(hash);
-    if (commit == _commitOffsets.end()) {
-        return ReadTransaction {}; // Invalid
+PendingCommitReadTx Change::openReadTransaction(CommitHash commitHash) {
+    if (commitHash == CommitHash::head()) {
+        return PendingCommitReadTx {this->access(), this->_tip};
     }
 
-    return _commits[commit->second]->openReadTransaction();
+    auto it = _commitOffsets.find(commitHash);
+    if (it != _commitOffsets.end()) {
+        return PendingCommitReadTx {this->access(), _commits[it->second].get()};
+    }
+
+    return {};
 }
 
 CommitResult<void> Change::commit(JobSystem& jobsystem) {
@@ -57,7 +57,7 @@ CommitResult<void> Change::commit(JobSystem& jobsystem) {
 
     auto newTip = CommitBuilder::prepare(*_versionController,
                                          this,
-                                         _commits.back()->openReadTransaction().viewGraph());
+                                         _commits.back()->viewGraph());
     _tip = newTip.get();
     _commitOffsets.emplace(_tip->hash(), _commits.size());
     _commits.emplace_back(std::move(newTip));
@@ -68,7 +68,7 @@ CommitResult<void> Change::commit(JobSystem& jobsystem) {
 CommitResult<void> Change::rebase(JobSystem& jobsystem) {
     Profile profile {"Change::rebase"};
 
-    _base = _versionController->openReadTransaction().commitData();
+    _base = _versionController->openTransaction().commitData();
 
     MetadataRebaser metadataRebaser;
     DataPartRebaser dataPartRebaser;
@@ -81,6 +81,7 @@ CommitResult<void> Change::rebase(JobSystem& jobsystem) {
         // 1. Rebase the metadata
         // 2. Get all commits/dataparts from the previous commit history
         // 3. Add back dataparts of current commit and rebase them
+
         auto& data = commitBuilder->commitData();
         auto& history = data.history();
         history.rebase(*prevHistory);
@@ -128,3 +129,15 @@ CommitResult<void> Change::submit(JobSystem& jobsystem) {
     return {};
 }
 
+GraphView Change::viewGraph(CommitHash commitHash) const {
+    if (commitHash == CommitHash::head()) {
+        return _tip->viewGraph();
+    }
+
+    auto it = _commitOffsets.find(commitHash);
+    if (it != _commitOffsets.end()) {
+        return _commits[it->second]->viewGraph();
+    }
+
+    return {};
+}

@@ -10,7 +10,7 @@ class DataPart;
 class VersionController;
 class CommitLoader;
 class GraphLoader;
-class ReadTransaction;
+class FrozenCommitTx;
 
 class Commit {
 public:
@@ -27,7 +27,7 @@ public:
         return _data != nullptr;
     }
 
-    [[nodiscard]] ReadTransaction openReadTransaction() const;
+    [[nodiscard]] FrozenCommitTx openTransaction() const;
 
     [[nodiscard]] CommitHash hash() const { return _hash; }
 
@@ -40,8 +40,8 @@ public:
     [[nodiscard]] CommitView view() const;
 
     [[nodiscard]] static std::unique_ptr<Commit> createNextCommit(VersionController* controller,
-                                                                 const WeakArc<CommitData>& data,
-                                                                 const CommitView& prevCommit);
+                                                                  const WeakArc<CommitData>& data,
+                                                                  const CommitView& prevCommit);
 
 private:
     friend CommitLoader;

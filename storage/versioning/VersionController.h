@@ -20,7 +20,7 @@ class Graph;
 class GraphLoader;
 class GraphDumper;
 class JobSystem;
-class ReadTransaction;
+class FrozenCommitTx;
 
 struct EntityIDPair {
     EntityID _nodeID;
@@ -43,7 +43,7 @@ public:
     void createFirstCommit(Graph*);
     [[nodiscard]] std::unique_ptr<Change> newChange(CommitHash base = CommitHash::head());
 
-    [[nodiscard]] ReadTransaction openReadTransaction(CommitHash hash = CommitHash::head()) const;
+    [[nodiscard]] FrozenCommitTx openTransaction(CommitHash hash = CommitHash::head()) const;
     [[nodiscard]] CommitHash getHeadHash() const;
 
     WeakArc<CommitData> createCommitData(CommitHash hash) {

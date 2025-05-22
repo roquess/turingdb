@@ -9,6 +9,7 @@ class Commit;
 class CommitHistory;
 class VersionController;
 class GraphMetadata;
+class FrozenCommitTx;
 
 class CommitView {
 public:
@@ -33,6 +34,8 @@ public:
     [[nodiscard]] DataPartSpan dataparts() const;
     [[nodiscard]] const CommitHistory& history() const;
     [[nodiscard]] const GraphMetadata& metadata() const;
+
+    [[nodiscard]] FrozenCommitTx openTransaction() const;
 
     bool operator==(const CommitView& other) const {
         return _commit == other._commit;

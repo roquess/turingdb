@@ -31,7 +31,7 @@ public:
     ChangeID storeChange(Graph* graph, std::unique_ptr<Change> change);
     ChangeResult<Change*> getChange(ChangeID changeID);
     ChangeResult<void> acceptChange(Change::Accessor& access, JobSystem&);
-    ChangeResult<void> deleteChange(ChangeID changeID);
+    ChangeResult<void> deleteChange(Change::Accessor& access, ChangeID changeID);
 
     void listChanges(std::vector<const Change*>& list) const;
 

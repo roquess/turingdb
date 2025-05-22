@@ -23,12 +23,14 @@ CreateNodeStep::~CreateNodeStep() {
 }
 
 void CreateNodeStep::prepare(ExecutionContext* ctxt) {
-    WriteTransaction* tx = ctxt->getWriteTransaction();
-    if (!tx) {
-        throw PipelineException("CreateNodeStep must be executed in a write transaction");
+    Transaction* rawTx = ctxt->getTransaction();
+    if (!rawTx->writingPendingCommit()) {
+        throw PipelineException("CreateNodeStep: Cannot create node outside of a write transaction");
     }
 
-    _builder = tx->partBuilder();
+    auto& tx = rawTx->get<PendingCommitWriteTx>();
+
+    _builder = &tx.commitBuilder()->getCurrentBuilder();
 }
 
 void CreateNodeStep::execute() {

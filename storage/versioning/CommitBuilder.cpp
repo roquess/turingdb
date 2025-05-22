@@ -25,10 +25,6 @@ std::unique_ptr<CommitBuilder> CommitBuilder::prepare(VersionController& control
     return std::unique_ptr<CommitBuilder> {ptr};
 }
 
-ReadTransaction CommitBuilder::openReadTransaction() {
-    return ReadTransaction {_commitData};
-}
-
 CommitHash CommitBuilder::hash() const {
     return _commitData->hash();
 }
@@ -87,8 +83,7 @@ CommitResult<std::unique_ptr<Commit>> CommitBuilder::build(JobSystem& jobsystem)
 CommitBuilder::CommitBuilder(VersionController& controller, Change* change, const GraphView& view)
     : _controller(&controller),
       _change(change),
-      _view(view)
-{
+      _view(view) {
 }
 
 void CommitBuilder::initialize() {

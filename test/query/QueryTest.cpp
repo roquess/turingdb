@@ -498,6 +498,7 @@ TEST_F(QueryTest, ChangeQuery) {
     tester.query("CHANGE SUBMIT")
         .execute();
 
+    tester.setChangeID(ChangeID::head());
     tester.setCommitHash(CommitHash::head());
 
     tester.query("MATCH n:Person RETURN n.name")

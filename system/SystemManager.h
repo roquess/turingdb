@@ -16,7 +16,8 @@ namespace db {
 class Graph;
 class ChangeManager;
 class JobSystem;
-class ReadTransaction;
+class FrozenCommitTx;
+class Transaction;
 
 class SystemManager {
 public:
@@ -52,13 +53,14 @@ public:
 
     bool isGraphLoading(const std::string& graphName) const;
 
-    BasicResult<ReadTransaction, std::string_view> openReadTransaction(const std::string& graphName,
-                                                               const CommitHash& commitID) const;
-
     ChangeManager& getChangeManager() { return *_changes; }
     const ChangeManager& getChangeManager() const { return *_changes; }
 
     ChangeResult<ChangeID> newChange(const std::string& graphName, CommitHash baseHash = CommitHash::head());
+
+    ChangeResult<Transaction> openTransaction(std::string_view graphName,
+                                              CommitHash commitHash,
+                                              ChangeID changeID);
 
 private:
     mutable RWSpinLock _graphsLock;

@@ -9,7 +9,6 @@
 #include "versioning/ChangeID.h"
 #include "views/GraphView.h"
 #include "versioning/ChangeResult.h"
-#include "versioning/CommitHash.h"
 #include "ChangeOpType.h"
 
 namespace db {
@@ -43,7 +42,7 @@ private:
     ChangeOpType _type {};
     ChangeInfo _changeInfo;
     ColumnVector<const Change*>* _output {nullptr};
-    WriteTransaction* _writeTx {nullptr};
+    Transaction* _tx {nullptr};
 
     ChangeResult<ChangeID> createChange() const;
     ChangeResult<void> acceptChange() const;

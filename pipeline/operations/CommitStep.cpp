@@ -9,16 +9,18 @@
 using namespace db;
 
 void CommitStep::prepare(ExecutionContext* ctxt) {
-    _tx = ctxt->getWriteTransaction();
-    if (!_tx) {
-        throw PipelineException("CommitStep: No write transaction");
-    }
-
+    _tx = ctxt->getTransaction();
     _jobSystem = ctxt->getJobSystem();
 }
 
 void CommitStep::execute() {
-    auto& access = _tx->changeAccessor();
+    if (!_tx->writingPendingCommit()) {
+        throw PipelineException("CommitStep: Cannot commit outside of a write transaction");
+    }
+
+    auto& tx = _tx->get<PendingCommitWriteTx>();
+
+    auto& access = tx.changeAccessor();
     if (auto res = access.commit(*_jobSystem); !res) {
         throw PipelineException(fmt::format("CommitStep: Failed to commit: {}", res.error().fmtMessage()));
     }

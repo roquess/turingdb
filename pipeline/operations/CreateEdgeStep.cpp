@@ -26,12 +26,14 @@ CreateEdgeStep::~CreateEdgeStep() {
 }
 
 void CreateEdgeStep::prepare(ExecutionContext* ctxt) {
-    WriteTransaction* tx = ctxt->getWriteTransaction();
-    if (!tx) {
-        throw PipelineException("CreateEdgeStep must be executed in a write transaction");
+    Transaction* rawTx = ctxt->getTransaction();
+    if (!rawTx->writingPendingCommit()) {
+        throw PipelineException("CreateEdgeStep: Cannot create node outside of a write transaction");
     }
 
-    _builder = tx->partBuilder();
+    auto& tx = rawTx->get<PendingCommitWriteTx>();
+
+    _builder = &tx.commitBuilder()->getCurrentBuilder();
 }
 
 void CreateEdgeStep::execute() {

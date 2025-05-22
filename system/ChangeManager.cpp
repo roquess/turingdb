@@ -25,7 +25,7 @@ ChangeResult<Change*> ChangeManager::getChange(ChangeID changeID) {
 
     const auto it = _changes.find(changeID);
     if (it == _changes.end()) {
-        return ChangeError::result(ChangeErrorType::CHANGE_NOT_EXISTS);
+        return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }
 
     return it->second._change.get();
@@ -36,7 +36,7 @@ ChangeResult<void> ChangeManager::acceptChange(Change::Accessor& access, JobSyst
 
     const auto it = _changes.find(access.getID());
     if (it == _changes.end()) {
-        return ChangeError::result(ChangeErrorType::CHANGE_NOT_EXISTS);
+        return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }
 
     auto& pair = it->second;
@@ -50,14 +50,15 @@ ChangeResult<void> ChangeManager::acceptChange(Change::Accessor& access, JobSyst
     return {};
 }
 
-ChangeResult<void> ChangeManager::deleteChange(ChangeID changeID) {
+ChangeResult<void> ChangeManager::deleteChange(Change::Accessor& access, ChangeID changeID) {
     std::unique_lock guard(_changesLock);
 
     const auto it = _changes.find(changeID);
     if (it == _changes.end()) {
-        return ChangeError::result(ChangeErrorType::CHANGE_NOT_EXISTS);
+        return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }
 
+    access.release();
     _changes.erase(it);
 
     return {};

@@ -16,7 +16,7 @@ class VersionController;
 class JobSystem;
 class Commit;
 class Change;
-class ReadTransaction;
+class FrozenCommitTx;
 
 class CommitBuilder {
 public:
@@ -32,8 +32,6 @@ public:
                                                                 Change* change,
                                                                 const GraphView& view);
 
-    [[nodiscard]] ReadTransaction openReadTransaction();
-
     [[nodiscard]] CommitHash hash() const;
     [[nodiscard]] GraphView viewGraph() const;
     [[nodiscard]] GraphReader readGraph() const;
@@ -41,6 +39,7 @@ public:
     [[nodiscard]] size_t pendingCount() const { return _builders.size(); }
 
     [[nodiscard]] CommitData& commitData() { return *_commitData; }
+    [[nodiscard]] const CommitData& commitData() const { return *_commitData; }
     [[nodiscard]] MetadataBuilder& metadata() { return *_metadataBuilder; }
     [[nodiscard]] DataPartBuilder& getCurrentBuilder() { return *_builders.back(); }
 

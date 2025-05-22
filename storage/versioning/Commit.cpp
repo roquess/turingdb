@@ -9,8 +9,9 @@ Commit::Commit() = default;
 
 Commit::Commit(VersionController* controller, const WeakArc<CommitData>& data)
     : _controller(controller),
-      _hash(data->hash()),
-      _data(data) {
+    _hash(data->hash()),
+    _data(data)
+{
 }
 
 Commit::~Commit() = default;
@@ -19,8 +20,8 @@ bool Commit::isHead() const {
     return _controller->getHeadHash() == _hash;
 }
 
-ReadTransaction Commit::openReadTransaction() const {
-    return ReadTransaction {_data};
+FrozenCommitTx Commit::openTransaction() const {
+    return FrozenCommitTx {_data};
 }
 
 CommitView Commit::view() const {
