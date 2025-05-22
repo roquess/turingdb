@@ -14,7 +14,7 @@ Change::~Change() = default;
 Change::Change(VersionController* versionController, ChangeID id, CommitHash base)
     : _id(id),
       _versionController(versionController),
-      _base(versionController->openTransaction(base).commitData()) {
+      _base(versionController->openReadTransaction(base).commitData()) {
     auto tip = CommitBuilder::prepare(*_versionController,
                                       this,
                                       GraphView {*_base});
@@ -33,10 +33,19 @@ std::unique_ptr<Change> Change::create(VersionController* versionController,
 
 WriteTransaction Change::openWriteTransaction() {
     return WriteTransaction {
-        _tip->openTransaction().commitData(),
+        _tip->openReadTransaction().commitData(),
         _tip,
         &_tip->getCurrentBuilder(),
         this->access()};
+}
+
+ReadTransaction Change::openReadTransaction(CommitHash hash) {
+    auto commit = _commitOffsets.find(hash);
+    if (commit == _commitOffsets.end()) {
+        return ReadTransaction {}; // Invalid
+    }
+
+    return _commits[commit->second]->openReadTransaction();
 }
 
 CommitResult<void> Change::commit(JobSystem& jobsystem) {
@@ -48,7 +57,7 @@ CommitResult<void> Change::commit(JobSystem& jobsystem) {
 
     auto newTip = CommitBuilder::prepare(*_versionController,
                                          this,
-                                         _commits.back()->openTransaction().viewGraph());
+                                         _commits.back()->openReadTransaction().viewGraph());
     _tip = newTip.get();
     _commitOffsets.emplace(_tip->hash(), _commits.size());
     _commits.emplace_back(std::move(newTip));
@@ -59,48 +68,43 @@ CommitResult<void> Change::commit(JobSystem& jobsystem) {
 CommitResult<void> Change::rebase(JobSystem& jobsystem) {
     Profile profile {"Change::rebase"};
 
-    _base = _versionController->openTransaction().commitData();
+    _base = _versionController->openReadTransaction().commitData();
 
-    // The situation that we try to resolve is:
-    // 1. We have commits A, B, C in main
-    // 2. We created commit D in our branch
-    // 3. Someone committed E, F, G in main
-    //
-    // Our commit D has info from A, B and C but it's missing E, F and G
-    // We need to:
-    // 1. Set the history of commit D to be A, B, C, E, F, G, [D]
-    // 2. Rebase the dataparts of D + metadata
-
-    // We need to do that algo for all commits in our branch
     MetadataRebaser metadataRebaser;
     DataPartRebaser dataPartRebaser;
 
     const auto* prevCommitData = _base.get();
-    const auto* prevCommits = &_base->_history._commits;
+    const auto* prevHistory = &_base->history();
 
     for (auto& commitBuilder : _commits) {
-        Profile p {"Rebase commit builder"};
-        auto& currentHistory = commitBuilder->_commit->_data->_history;
-        currentHistory._commits = *prevCommits;
-        currentHistory._commits.emplace_back(commitBuilder->_commit.get());
-        prevCommits = &currentHistory._commits;
+        // Rebasing means:
+        // 1. Rebase the metadata
+        // 2. Get all commits/dataparts from the previous commit history
+        // 3. Add back dataparts of current commit and rebase them
+        auto& data = commitBuilder->commitData();
+        auto& history = data.history();
+        history.rebase(*prevHistory);
+
+        // TODO Ideally, commitDataparts should be a span
+        //      and we should:
+        //          CommitHistory newHistory = CommitHistory::fromPreviousCommit(previousHistory);
+        //          newHistory.pushDataparts(commitBuilder->commitDataparts());
 
         metadataRebaser.clear();
-        metadataRebaser.rebase(prevCommitData->metadata(), *commitBuilder->_metadata);
+        metadataRebaser.rebase(prevCommitData->metadata(), commitBuilder->metadata());
 
-        const auto& prevDataParts = prevCommitData->_history._allDataparts;
-        if (prevDataParts.empty()) {
-            continue;
+        const auto& prevDataParts = prevHistory->_allDataparts;
+
+        if (!prevDataParts.empty()) {
+            const auto* prevPart = prevDataParts.back().get();
+            for (auto& part : history._commitDataparts) {
+                dataPartRebaser.rebase(metadataRebaser, *prevPart, *part);
+                prevPart = part.get();
+            }
         }
 
-        currentHistory._allDataparts = prevDataParts;
-        auto& commitDataParts = currentHistory._commitDataparts;
-        const auto* prevPart = prevDataParts.front().get();
-        for (auto& part : commitDataParts) {
-            currentHistory._allDataparts.emplace_back(part);
-            dataPartRebaser.rebase(metadataRebaser, *prevPart, *part);
-            prevPart = part.get();
-        }
+        prevCommitData = &commitBuilder->commitData();
+        prevHistory = &prevCommitData->history();
     }
 
     return {};

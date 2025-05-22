@@ -16,8 +16,8 @@ std::unique_ptr<Change> Graph::newChange(CommitHash base) {
     return _versionController->newChange(base);
 }
 
-Transaction Graph::openTransaction(CommitHash hash) const {
-    return _versionController->openTransaction(hash);
+ReadTransaction Graph::openReadTransaction(CommitHash hash) const {
+    return _versionController->openReadTransaction(hash);
 }
 
 CommitHash Graph::getHeadHash() const {

@@ -86,10 +86,10 @@ TEST_F(Neo4jImporterTest, Simple) {
         builder2.addNode(LabelSet::fromList({1}));
         builder2.addNode(LabelSet::fromList({1}));
         builder2.addEdge(0, 3, 4);
-        ASSERT_TRUE(change->access().commit(*_jobSystem));
+        ASSERT_TRUE(change->access().submit(*_jobSystem));
     }
 
-    const Transaction transaction = _graph->openTransaction();
+    const ReadTransaction transaction = _graph->openReadTransaction();
     const GraphReader reader = transaction.readGraph();
     std::cout << "All out edges: ";
     for (const auto& edge : reader.scanOutEdges()) {
@@ -130,7 +130,7 @@ TEST_F(Neo4jImporterTest, General) {
     ASSERT_TRUE(res);
     std::cout << "Parsing: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
 
-    const Transaction transaction = _graph->openTransaction();
+    const ReadTransaction transaction = _graph->openReadTransaction();
     const GraphReader reader = transaction.readGraph();
     std::stringstream report;
     GraphReport::getReport(reader, report);

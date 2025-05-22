@@ -34,6 +34,7 @@ public:
     }
 
     QueryTester& query(const std::string& query) {
+        _outputColumns.clear();
         _expectedColumns.clear();
         _query = query;
         _expectError = false;

@@ -202,7 +202,7 @@ void DBServerProcessor::get_graph_status() {
     payload.value(sysMan.isGraphLoading(transactionInfo.graphName));
 
     if (graph != nullptr) {
-        const auto transaction = graph->openTransaction();
+        const auto transaction = graph->openReadTransaction();
         const auto reader = transaction.readGraph();
         payload.key("nodeCount");
         payload.value(reader.getNodeCount());
@@ -299,7 +299,7 @@ void DBServerProcessor::list_labels() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {
@@ -379,7 +379,7 @@ void DBServerProcessor::list_property_types() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {
@@ -442,7 +442,7 @@ void DBServerProcessor::list_edge_types() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {
@@ -505,7 +505,7 @@ void DBServerProcessor::list_nodes() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {
@@ -603,7 +603,7 @@ void DBServerProcessor::get_node_properties() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {
@@ -716,7 +716,7 @@ void DBServerProcessor::get_neighbors() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {
@@ -834,7 +834,7 @@ void DBServerProcessor::get_nodes() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {
@@ -893,7 +893,7 @@ void DBServerProcessor::get_node_edges() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName, info.commit);
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName, info.commit);
 
     if (!transaction) {
         payload.key("error");
@@ -1085,7 +1085,7 @@ void DBServerProcessor::explore_node_edges() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {
@@ -1237,7 +1237,7 @@ void DBServerProcessor::get_edges() {
     payload.obj();
 
     const auto info = getTransactionInfo();
-    const auto transaction = _db.getSystemManager().openTransaction(info.graphName,
+    const auto transaction = _db.getSystemManager().openReadTransaction(info.graphName,
                                                                     info.commit);
 
     if (!transaction) {

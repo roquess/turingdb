@@ -15,7 +15,7 @@ class SystemManager;
 class JobSystem;
 class LocalMemory;
 class Executor;
-class Transaction;
+class ReadTransaction;
 class WriteTransaction;
 
 class QueryInterpreter {
@@ -35,7 +35,7 @@ private:
     JobSystem* _jobSystem {nullptr};
     std::unique_ptr<Executor> _executor;
 
-    BasicResult<std::variant<Transaction, WriteTransaction>, QueryStatus> openTransaction(std::string_view graphName,
+    BasicResult<std::variant<ReadTransaction, WriteTransaction>, QueryStatus> openTransaction(std::string_view graphName,
                                                                                           CommitHash commitHash,
                                                                                           ChangeID changeID);
 };

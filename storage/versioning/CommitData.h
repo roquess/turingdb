@@ -41,6 +41,7 @@ private:
     friend GraphLoader;
     friend VersionController;
     friend Change;
+    friend Commit;
 
     CommitHash _hash;
     CommitHistory _history;

@@ -16,7 +16,7 @@ class VersionController;
 class JobSystem;
 class Commit;
 class Change;
-class Transaction;
+class ReadTransaction;
 
 class CommitBuilder {
 public:
@@ -32,13 +32,16 @@ public:
                                                                 Change* change,
                                                                 const GraphView& view);
 
-    [[nodiscard]] Transaction openTransaction();
+    [[nodiscard]] ReadTransaction openReadTransaction();
 
     [[nodiscard]] CommitHash hash() const;
     [[nodiscard]] GraphView viewGraph() const;
     [[nodiscard]] GraphReader readGraph() const;
-    [[nodiscard]] MetadataBuilder& metadata() { return *_metadata; }
+
     [[nodiscard]] size_t pendingCount() const { return _builders.size(); }
+
+    [[nodiscard]] CommitData& commitData() { return *_commitData; }
+    [[nodiscard]] MetadataBuilder& metadata() { return *_metadataBuilder; }
     [[nodiscard]] DataPartBuilder& getCurrentBuilder() { return *_builders.back(); }
 
     DataPartBuilder& newBuilder();
@@ -66,8 +69,10 @@ private:
     EntityID _nextNodeID;
     EntityID _nextEdgeID;
 
+    WeakArc<CommitData> _commitData;
+    std::unique_ptr<MetadataBuilder> _metadataBuilder;
     std::unique_ptr<Commit> _commit;
-    std::unique_ptr<MetadataBuilder> _metadata;
+
     std::vector<std::unique_ptr<DataPartBuilder>> _builders;
 
     explicit CommitBuilder(VersionController&, Change* change, const GraphView&);

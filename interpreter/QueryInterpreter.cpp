@@ -53,7 +53,7 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
     }
 
     auto view = txRes->index() == 0
-                  ? std::get<Transaction>(txRes.value()).viewGraph()
+                  ? std::get<ReadTransaction>(txRes.value()).viewGraph()
                   : std::get<WriteTransaction>(txRes.value()).viewGraph();
 
     // Parsing query
@@ -95,7 +95,7 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
     return res;
 }
 
-BasicResult<std::variant<Transaction, WriteTransaction>, QueryStatus> QueryInterpreter::openTransaction(std::string_view graphName,
+BasicResult<std::variant<ReadTransaction, WriteTransaction>, QueryStatus> QueryInterpreter::openTransaction(std::string_view graphName,
                                                                                                         CommitHash commitHash,
                                                                                                         ChangeID changeID) {
     Graph* graph = graphName.empty() ? _sysMan->getDefaultGraph()
@@ -106,7 +106,7 @@ BasicResult<std::variant<Transaction, WriteTransaction>, QueryStatus> QueryInter
 
     auto changeRes = _sysMan->getChangeManager().getChange(changeID);
     if (!changeRes) {
-        if (auto tx = graph->openTransaction(commitHash); tx.isValid()) {
+        if (auto tx = graph->openReadTransaction(commitHash); tx.isValid()) {
             return tx; // Ready-only transaction
         }
 
@@ -114,9 +114,16 @@ BasicResult<std::variant<Transaction, WriteTransaction>, QueryStatus> QueryInter
     }
 
     auto* change = changeRes.value();
+    if (commitHash == CommitHash::head()) {
+        if (auto tx = change->openWriteTransaction(); tx.isValid()) {
+            return tx;
+        }
 
-    if (auto tx = change->openWriteTransaction(); tx.isValid()) {
-        return tx; // Write transaction
+        return BadResult<QueryStatus>(QueryStatus::Status::COMMIT_NOT_FOUND);
+    }
+
+    if (auto tx = change->openReadTransaction(commitHash); tx.isValid()) {
+        return tx;
     }
 
     return BadResult<QueryStatus>(QueryStatus::Status::COMMIT_NOT_FOUND);

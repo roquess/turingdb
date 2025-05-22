@@ -421,7 +421,7 @@ bool TuringShell::setCommitHash(CommitHash hash) {
     }
 
     if (_changeID == ChangeID::head()) {
-        if (auto tx = graph->openTransaction(hash); !tx.isValid()) {
+        if (auto tx = graph->openReadTransaction(hash); !tx.isValid()) {
             return false;
         }
 
@@ -436,9 +436,16 @@ bool TuringShell::setCommitHash(CommitHash hash) {
     }
 
     auto* change = res.value();
-    // TODO: add back ability to checkout a commit of a change (regular transaction)
+    if (hash == CommitHash::head()) {
+        if (auto tx = change->openWriteTransaction(); tx.isValid()) {
+            _hash = hash;
+            return true;
+        }
 
-    if (auto tx = change->openWriteTransaction(); tx.isValid()) {
+        return false;
+    }
+
+    if (auto tx = change->openReadTransaction(hash); tx.isValid()) {
         _hash = hash;
         return true;
     }
@@ -464,7 +471,7 @@ void TuringShell::checkShellContext() {
     }
 
     if (_changeID == ChangeID::head()) {
-        Transaction transaction = graph->openTransaction(_hash);
+        ReadTransaction transaction = graph->openReadTransaction(_hash);
         if (transaction.isValid()) {
             return;
         }

@@ -1,6 +1,5 @@
 #include "VersionController.h"
 
-#include "Panic.h"
 #include "Profiler.h"
 #include "Graph.h"
 #include "CommitView.h"
@@ -13,7 +12,8 @@ using namespace db;
 
 VersionController::VersionController()
     : _dataManager(std::make_unique<ArcManager<CommitData>>()),
-      _partManager(std::make_unique<ArcManager<DataPart>>()) {
+      _partManager(std::make_unique<ArcManager<DataPart>>())
+{
 }
 
 VersionController::~VersionController() {
@@ -23,30 +23,28 @@ VersionController::~VersionController() {
 }
 
 void VersionController::createFirstCommit(Graph* graph) {
-    auto commit = std::make_unique<Commit>();
-    commit->_controller = this;
-    commit->_data = _dataManager->create(commit->hash());
+    auto commitData = _dataManager->create(CommitHash::create());
+    auto commit = std::make_unique<Commit>(this, commitData);
 
-    auto* ptr = commit.get();
-    _offsets.emplace(commit->hash(), _commits.size());
-    commit->_data->_history._commits.emplace_back(commit.get());
-    _commits.emplace_back(std::move(commit));
-    _head.store(ptr);
+    // Register itself in the history
+    commit->history().pushCommit(CommitView {commit.get()});
+
+    this->addCommit(std::move(commit));
 }
 
-Transaction VersionController::openTransaction(CommitHash hash) const {
+ReadTransaction VersionController::openReadTransaction(CommitHash hash) const {
     if (hash == CommitHash::head()) {
-        return _head.load()->openTransaction();
+        return _head.load()->openReadTransaction();
     }
 
     std::scoped_lock lock {_mutex};
 
     auto it = _offsets.find(hash);
     if (it == _offsets.end()) {
-        return Transaction {}; // Invalid hash
+        return ReadTransaction {}; // Invalid hash
     }
 
-    return _commits[it->second]->openTransaction();
+    return _commits[it->second]->openReadTransaction();
 }
 
 CommitHash VersionController::getHeadHash() const {
@@ -57,7 +55,7 @@ CommitHash VersionController::getHeadHash() const {
         return CommitHash::head();
     }
 
-    return head->_hash;
+    return head->hash();
 }
 
 CommitResult<void> VersionController::submitChange(Change* change, JobSystem& jobSystem) {

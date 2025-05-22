@@ -16,7 +16,7 @@ class DataPartBuilder;
 class CommitBuilder;
 class Commit;
 class JobSystem;
-class Transaction;
+class ReadTransaction;
 class ChangeManager;
 class WriteTransaction;
 
@@ -32,26 +32,8 @@ public:
         Accessor& operator=(const Accessor&) = delete;
         Accessor& operator=(Accessor&&) = default;
 
-        [[nodiscard]] size_t commitCount() const { return _change->_commits.size(); }
         [[nodiscard]] CommitBuilder* getTip() const {
             return _change->_tip;
-        }
-
-        [[nodiscard]] CommitBuilder* getCommit(CommitHash hash) const {
-            if (_change->_commits.empty()) {
-                return nullptr;
-            }
-
-            if (hash == CommitHash::head()) {
-                return _change->_commits.back().get();
-            }
-
-            auto it = _change->_commitOffsets.find(hash);
-            if (it == _change->_commitOffsets.end()) {
-                return nullptr;
-            }
-
-            return _change->_commits[it->second].get();
         }
 
         [[nodiscard]] auto begin() const { return _change->_commits.cbegin(); }
@@ -99,6 +81,7 @@ public:
                                                         CommitHash base);
 
     [[nodiscard]] WriteTransaction openWriteTransaction();
+    [[nodiscard]] ReadTransaction openReadTransaction(CommitHash hash);
 
 
 

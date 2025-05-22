@@ -22,20 +22,19 @@ std::unique_ptr<CommitBuilder> CommitBuilder::prepare(VersionController& control
                                                       const GraphView& view) {
     auto* ptr = new CommitBuilder {controller, change, view};
     ptr->initialize();
-    ptr->newBuilder();
     return std::unique_ptr<CommitBuilder> {ptr};
 }
 
-Transaction CommitBuilder::openTransaction() {
-    return Transaction {_commit->_data};
+ReadTransaction CommitBuilder::openReadTransaction() {
+    return ReadTransaction {_commitData};
 }
 
 CommitHash CommitBuilder::hash() const {
-    return _commit->hash();
+    return _commitData->hash();
 }
 
 GraphView CommitBuilder::viewGraph() const {
-    return GraphView {*_commit->_data};
+    return GraphView {*_commitData};
 }
 
 GraphReader CommitBuilder::readGraph() const {
@@ -44,9 +43,9 @@ GraphReader CommitBuilder::readGraph() const {
 
 DataPartBuilder& CommitBuilder::newBuilder() {
     std::scoped_lock lock {_mutex};
-    GraphView view {*_commit->_data};
+    GraphView view {*_commitData};
     const size_t partIndex = view.dataparts().size() + _builders.size();
-    auto& builder = _builders.emplace_back(DataPartBuilder::prepare(*_metadata, view, partIndex));
+    auto& builder = _builders.emplace_back(DataPartBuilder::prepare(*_metadataBuilder, view, partIndex));
 
     return *builder;
 }
@@ -56,7 +55,7 @@ CommitResult<void> CommitBuilder::buildAllPending(JobSystem& jobsystem) {
 
     std::scoped_lock lock {_mutex};
 
-    GraphView view {*_commit->_data};
+    GraphView view {*_commitData};
 
     for (const auto& builder : _builders) {
         auto part = _controller->createDataPart(_firstNodeID, _firstEdgeID);
@@ -67,8 +66,9 @@ CommitResult<void> CommitBuilder::buildAllPending(JobSystem& jobsystem) {
         if (!part->load(view, jobsystem, *builder)) {
             return CommitError::result(CommitErrorType::BUILD_DATAPART_FAILED);
         }
-        _commit->_data->_history._allDataparts.emplace_back(part);
-        _commit->_data->_history._commitDataparts.emplace_back(part);
+
+        _commitData->_history._allDataparts.emplace_back(part);
+        _commitData->_history._commitDataparts.emplace_back(part);
     }
 
     _builders.clear();
@@ -98,19 +98,15 @@ void CommitBuilder::initialize() {
     _firstNodeID = reader.getNodeCount();
     _firstEdgeID = reader.getEdgeCount();
 
-    _commit = std::make_unique<Commit>();
-    _commit->_controller = _controller;
-    _commit->_data = _controller->createCommitData(_commit->hash());
-    _commit->_data->_hash = _commit->hash();
+    const CommitView prevCommit = reader.commits().back();
 
-    _metadata = MetadataBuilder::create(_view.metadata(), &_commit->_data->_metadata);
+    // Create new commit data
+    _commitData = _controller->createCommitData(CommitHash::create());
+    _commit = Commit::createNextCommit(_controller, _commitData, prevCommit);
 
-    auto& history = _commit->history();
+    // Create metadata builder
+    _metadataBuilder = MetadataBuilder::create(_view.metadata(), &_commitData->_metadata);
 
-    const DataPartSpan previousDataparts = reader.dataparts();
-    const std::span<const CommitView> previousCommits = reader.commits();
-
-    history.pushPreviousDataparts(previousDataparts);
-    history.pushPreviousCommits(previousCommits);
-    history.pushCommit(CommitView {_commit.get()});
+    // Create datapart builder
+    this->newBuilder();
 }

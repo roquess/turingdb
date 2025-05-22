@@ -19,7 +19,7 @@ class GraphLoader;
 class Commit;
 class GraphDumper;
 class CommitBuilder;
-class Transaction;
+class ReadTransaction;
 
 class Graph {
 public:
@@ -35,7 +35,7 @@ public:
     const std::string& getName() const { return _graphName; }
 
     [[nodiscard]] std::unique_ptr<Change> newChange(CommitHash base = CommitHash::head());
-    [[nodiscard]] Transaction openTransaction(CommitHash hash = CommitHash::head()) const;
+    [[nodiscard]] ReadTransaction openReadTransaction(CommitHash hash = CommitHash::head()) const;
 
     [[nodiscard]] CommitHash getHeadHash() const;
 

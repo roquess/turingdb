@@ -513,6 +513,61 @@ TEST_F(QueryTest, ChangeQuery) {
         .execute();
 }
 
+
+TEST_F(QueryTest, ChangeWithRebaseQueries) {
+    QueryTester tester {_mem, *_interp};
+
+    auto change1Res = tester.query("CHANGE NEW")
+                          .expectVector<const Change*>({}, false)
+                          .execute()
+                          .outputColumnVector<const Change*>(0);
+
+    ASSERT_TRUE(change1Res);
+
+    const ChangeID change1 = change1Res.value()->back()->id();
+
+    fmt::print("ChangeID 1: {}\n", change1.get());
+    tester.setChangeID(change1);
+
+    tester.query("CREATE (n:TestNode1 { name: \"1\" })-[e:TestEdge1 { name: \"1->2\" }]-(m:TestNode1 { name: \"2\" })")
+        .execute();
+
+    auto change2Res = tester.query("CHANGE NEW")
+                          .expectVector<const Change*>({}, false)
+                          .execute()
+                          .outputColumnVector<const Change*>(0);
+
+    const ChangeID change2 = change2Res.value()->back()->id();
+
+    fmt::print("ChangeID 2: {}\n", change2.get());
+    tester.setChangeID(change2);
+
+    tester.query("CREATE (n:TestNode2 { name: \"3\" })-[e:TestEdge2 { name: \"3->4\" }]-(m:TestNode2 { name: \"4\" })")
+        .execute();
+
+    tester.query("CHANGE SUBMIT")
+        .execute();
+
+    tester.setChangeID(change1);
+
+    tester.query("CHANGE SUBMIT")
+        .execute();
+
+    tester.setChangeID(ChangeID::head());
+
+    tester.query("MATCH (n:TestNode1)-[e:TestEdge1]-(m:TestNode1) RETURN n.name, e.name, m.name")
+        .expectOptVector<types::String::Primitive>({"1"})
+        .expectOptVector<types::String::Primitive>({"1->2"})
+        .expectOptVector<types::String::Primitive>({"2"})
+        .execute();
+
+    tester.query("MATCH (n:TestNode2)-[e:TestEdge2]-(m:TestNode2) RETURN n.name, e.name, m.name")
+        .expectOptVector<types::String::Primitive>({"3"})
+        .expectOptVector<types::String::Primitive>({"3->4"})
+        .expectOptVector<types::String::Primitive>({"4"})
+        .execute();
+}
+
 TEST_F(QueryTest, ChangeQueryErrors) {
     QueryTester tester {_mem, *_interp};
 

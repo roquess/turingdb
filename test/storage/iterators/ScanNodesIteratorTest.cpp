@@ -35,7 +35,7 @@ protected:
 
 TEST_F(ScanNodesIteratorTest, emptyGraph) {
     auto graph = Graph::create();
-    const Transaction transaction = graph->openTransaction();
+    const ReadTransaction transaction = graph->openReadTransaction();
     const GraphReader reader = transaction.readGraph();
 
     auto it = reader.scanNodes().begin();
@@ -57,7 +57,7 @@ TEST_F(ScanNodesIteratorTest, oneEmptyCommit) {
     }
     ASSERT_TRUE(res);
 
-    const Transaction transaction = graph->openTransaction();
+    const ReadTransaction transaction = graph->openReadTransaction();
     const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
@@ -81,7 +81,7 @@ TEST_F(ScanNodesIteratorTest, threeEmptyCommits) {
     }
     ASSERT_TRUE(res);
 
-    const Transaction transaction = graph->openTransaction();
+    const ReadTransaction transaction = graph->openReadTransaction();
     const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(!it.isValid());
@@ -112,7 +112,7 @@ TEST_F(ScanNodesIteratorTest, oneChunkSizePart) {
         ASSERT_TRUE(res);
     }
 
-    const Transaction transaction = graph->openTransaction();
+    const ReadTransaction transaction = graph->openReadTransaction();
     const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(it.isValid());
@@ -156,7 +156,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
         }
 
         ASSERT_EQ(builder.nodeCount(), ChunkConfig::CHUNK_SIZE);
-        ASSERT_TRUE(change->access().commit(*_jobSystem));
+        ASSERT_TRUE(change->access().submit(*_jobSystem));
     }
 
     const auto res = change->access().submit(*_jobSystem);
@@ -165,7 +165,7 @@ TEST_F(ScanNodesIteratorTest, manyChunkSizePart) {
     }
     ASSERT_TRUE(res);
 
-    const Transaction transaction = graph->openTransaction();
+    const ReadTransaction transaction = graph->openReadTransaction();
     const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
     ASSERT_TRUE(it.isValid());
@@ -222,7 +222,7 @@ TEST_F(ScanNodesIteratorTest, chunkAndALeftover) {
     }
 
 
-    const Transaction transaction = graph->openTransaction();
+    const ReadTransaction transaction = graph->openReadTransaction();
     const GraphReader reader = transaction.readGraph();
     auto it = reader.scanNodes().begin();
 

@@ -19,8 +19,18 @@ CommitHash CommitView::hash() const {
     return _commit->hash();
 }
 
+const VersionController& CommitView::controller() const {
+    return _commit->controller();
+}
+
 DataPartSpan CommitView::dataparts() const {
     return _commit->data().commitDataparts();
 }
 
+const CommitHistory& CommitView::history() const {
+    return _commit->history();
+}
 
+const GraphMetadata& CommitView::metadata() const {
+    return _commit->data().metadata();
+}

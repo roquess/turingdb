@@ -5,15 +5,15 @@
 
 using namespace db;
 
-Transaction::Transaction() = default;
+ReadTransaction::ReadTransaction() = default;
 
-Transaction::~Transaction() = default;
+ReadTransaction::~ReadTransaction() = default;
 
-GraphView Transaction::viewGraph() const {
+GraphView ReadTransaction::viewGraph() const {
     return GraphView {*_data};
 }
 
-GraphReader Transaction::readGraph() const {
+GraphReader ReadTransaction::readGraph() const {
     return GraphView {*_data}.read();
 }
 

@@ -16,7 +16,7 @@ namespace db {
 class Graph;
 class ChangeManager;
 class JobSystem;
-class Transaction;
+class ReadTransaction;
 
 class SystemManager {
 public:
@@ -52,7 +52,7 @@ public:
 
     bool isGraphLoading(const std::string& graphName) const;
 
-    BasicResult<Transaction, std::string_view> openTransaction(const std::string& graphName,
+    BasicResult<ReadTransaction, std::string_view> openReadTransaction(const std::string& graphName,
                                                                const CommitHash& commitID) const;
 
     ChangeManager& getChangeManager() { return *_changes; }

@@ -69,7 +69,7 @@ void ChangeStep::describe(std::string& descr) const {
 
 ChangeResult<ChangeID> ChangeStep::createChange() const {
     Profile profile {"ChangeStep::createChange"};
-
+    _output->clear();
 
     if (!std::holds_alternative<std::string>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the graph name");

@@ -113,7 +113,7 @@ DataPartBuilder& JsonParser::newDataBuffer() {
 
 CommitResult<void> JsonParser::commit(Graph& graph, JobSystem& jobSystem) {
     TimerStat timer("Committing dataparts");
-    return _change->access().commit(jobSystem);
+    return _change->access().submit(jobSystem);
 }
 
 }

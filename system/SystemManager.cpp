@@ -278,14 +278,14 @@ void SystemManager::listAvailableGraphs(std::vector<fs::Path>& names) {
     }
 }
 
-BasicResult<Transaction, std::string_view> SystemManager::openTransaction(const std::string& graphName,
+BasicResult<ReadTransaction, std::string_view> SystemManager::openReadTransaction(const std::string& graphName,
                                                                           const CommitHash& commitID) const {
     const auto* graph = getGraph(graphName);
     if (!graph) {
         return BadResult<std::string_view> {"Graph does not exist"};
     }
 
-    Transaction tr = graph->openTransaction(commitID);
+    ReadTransaction tr = graph->openReadTransaction(commitID);
     if (tr.isValid()) {
         return tr;
     }

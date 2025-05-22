@@ -12,19 +12,19 @@ class VersionController;
 class CommitBuilder;
 class DataPartBuilder;
 
-class Transaction {
+class ReadTransaction {
 public:
-    Transaction();
-    ~Transaction();
+    ReadTransaction();
+    ~ReadTransaction();
 
-    Transaction(const WeakArc<const CommitData>& data)
+    ReadTransaction(const WeakArc<const CommitData>& data)
         : _data(data) {
     }
 
-    Transaction(const Transaction&) = default;
-    Transaction(Transaction&&) = default;
-    Transaction& operator=(const Transaction&) = default;
-    Transaction& operator=(Transaction&&) = default;
+    ReadTransaction(const ReadTransaction&) = default;
+    ReadTransaction(ReadTransaction&&) = default;
+    ReadTransaction& operator=(const ReadTransaction&) = default;
+    ReadTransaction& operator=(ReadTransaction&&) = default;
 
     [[nodiscard]] bool isValid() const { return _data != nullptr; }
 

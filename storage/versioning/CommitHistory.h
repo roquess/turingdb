@@ -21,10 +21,10 @@ public:
     CommitHistory();
     ~CommitHistory();
 
-    CommitHistory(const CommitHistory&) = delete;
-    CommitHistory& operator=(const CommitHistory&) = delete;
-    CommitHistory(CommitHistory&&) = delete;
-    CommitHistory& operator=(CommitHistory&&) = delete;
+    CommitHistory(const CommitHistory&) = default;
+    CommitHistory& operator=(const CommitHistory&) = default;
+    CommitHistory(CommitHistory&&) = default;
+    CommitHistory& operator=(CommitHistory&&) = default;
 
     DataPartSpan allDataparts() const { return _allDataparts; }
     DataPartSpan commitDataparts() const { return _commitDataparts; }
@@ -50,6 +50,9 @@ public:
     void pushCommit(const CommitView& commit) {
         _commits.push_back(commit);
     }
+
+    void rebase(const CommitHistory& base);
+    void newFromPrevious(const CommitHistory& base);
 
 private:
     friend CommitBuilder;
