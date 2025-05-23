@@ -17,11 +17,12 @@ public:
 
         auto itA = a.begin();
         auto itB = b.begin();
+
         for (; itA != a.end() && itB != b.end(); ++itA, ++itB) {
             const auto& [idA, nameA] = *itA;
             const auto& [idB, nameB] = *itB;
 
-            if (nameA != nameB) {
+            if (*nameA != *nameB) {
                 return false;
             }
 
