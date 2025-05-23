@@ -75,7 +75,7 @@ void ChangeStep::describe(std::string& descr) const {
     descr.assign(ss.str());
 }
 
-ChangeResult<ChangeID> ChangeStep::createChange() const {
+ChangeResult<Change*> ChangeStep::createChange() const {
     Profile profile {"ChangeStep::createChange"};
     _output->clear();
 
@@ -86,12 +86,13 @@ ChangeResult<ChangeID> ChangeStep::createChange() const {
     const auto& graphName = std::get<std::string>(_changeInfo);
 
     auto res = _sysMan->newChange(graphName);
-    if (res) {
-        auto* change = _sysMan->getChangeManager().getChange(res.value()).value();
-        _output->push_back(change);
+    if (!res) {
+        return res;
     }
 
-    return res;
+    _output->push_back(res.value());
+
+    return {};
 }
 
 ChangeResult<void> ChangeStep::acceptChange() const {

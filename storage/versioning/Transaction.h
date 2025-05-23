@@ -4,7 +4,7 @@
 
 #include "ArcManager.h"
 #include "CommitData.h"
-#include "Change.h"
+#include "ChangeAccessor.h"
 
 namespace db {
 
@@ -20,7 +20,8 @@ public:
     ~FrozenCommitTx();
 
     FrozenCommitTx(const WeakArc<const CommitData>& data)
-        : _data(data) {
+        : _data(data)
+    {
     }
 
     FrozenCommitTx(const FrozenCommitTx&) = default;
@@ -43,7 +44,7 @@ public:
     PendingCommitReadTx();
     ~PendingCommitReadTx();
 
-    PendingCommitReadTx(Change::Accessor&& changeAccessor,
+    PendingCommitReadTx(ChangeAccessor&& changeAccessor,
                         const CommitBuilder* commitBuilder);
 
     PendingCommitReadTx(const PendingCommitReadTx&) = delete;
@@ -51,14 +52,14 @@ public:
     PendingCommitReadTx& operator=(const PendingCommitReadTx&) = delete;
     PendingCommitReadTx& operator=(PendingCommitReadTx&&) = default;
 
-    [[nodiscard]] const Change::Accessor& changeAccessor() const { return _changeAccessor; }
+    [[nodiscard]] const ChangeAccessor& changeAccessor() const { return _changeAccessor; }
     [[nodiscard]] const CommitBuilder* commitBuilder() const { return _commitBuilder; }
     [[nodiscard]] bool isValid() const { return _changeAccessor.isValid(); }
     [[nodiscard]] GraphView viewGraph() const;
     [[nodiscard]] GraphReader readGraph() const;
 
 private:
-    Change::Accessor _changeAccessor;
+    ChangeAccessor _changeAccessor;
     const CommitBuilder* _commitBuilder {nullptr};
 };
 
@@ -67,7 +68,7 @@ public:
     PendingCommitWriteTx();
     ~PendingCommitWriteTx();
 
-    PendingCommitWriteTx(Change::Accessor&& changeAccessor,
+    PendingCommitWriteTx(ChangeAccessor&& changeAccessor,
                          CommitBuilder* commitBuilder);
 
     PendingCommitWriteTx(const PendingCommitWriteTx&) = delete;
@@ -75,21 +76,21 @@ public:
     PendingCommitWriteTx& operator=(const PendingCommitWriteTx&) = delete;
     PendingCommitWriteTx& operator=(PendingCommitWriteTx&&) = default;
 
-    [[nodiscard]] Change::Accessor& changeAccessor() { return _changeAccessor; }
+    [[nodiscard]] ChangeAccessor& changeAccessor() { return _changeAccessor; }
     [[nodiscard]] CommitBuilder* commitBuilder() { return _commitBuilder; }
     [[nodiscard]] bool isValid() const { return _changeAccessor.isValid(); }
     [[nodiscard]] GraphView viewGraph() const;
     [[nodiscard]] GraphReader readGraph() const;
 
 private:
-    Change::Accessor _changeAccessor;
+    ChangeAccessor _changeAccessor;
     CommitBuilder* _commitBuilder {nullptr};
 };
 
 template <typename T>
-concept TransactionType = std::is_same_v<T, FrozenCommitTx> ||
-                          std::is_same_v<T, PendingCommitWriteTx> ||
-                          std::is_same_v<T, PendingCommitReadTx>;
+concept TransactionType = std::is_same_v<T, FrozenCommitTx>
+                       || std::is_same_v<T, PendingCommitWriteTx>
+                       || std::is_same_v<T, PendingCommitReadTx>;
 
 class Transaction {
 public:

@@ -9,7 +9,8 @@
 using namespace db;
 
 HistoryStep::HistoryStep(ColumnVector<std::string>* log)
-    : _log(log) {
+    : _log(log)
+{
 }
 
 HistoryStep::~HistoryStep() {

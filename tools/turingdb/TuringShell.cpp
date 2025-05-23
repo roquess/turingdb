@@ -206,7 +206,8 @@ void readCommand(const TuringShell::Command::Words& args, TuringShell& shell, st
 
 TuringShell::TuringShell(TuringDB& turingDB, LocalMemory* mem)
     : _turingDB(turingDB),
-      _mem(mem) {
+    _mem(mem)
+{
     _localCommands.emplace("q", Command {quitCommand});
     _localCommands.emplace("quit", Command {quitCommand});
     _localCommands.emplace("exit", Command {quitCommand});
@@ -454,7 +455,7 @@ void TuringShell::checkShellContext() {
         }
     }
 
-    auto res = _turingDB.getSystemManager().getChangeManager().getChange(_changeID);
+    auto res = _turingDB.getSystemManager().getChangeManager().getChange(graph, _changeID);
     if (!res) {
         fmt::print("Change '{:x}' does not exist anymore, switching back to head\n", _changeID.get());
         setChangeID(ChangeID::head());

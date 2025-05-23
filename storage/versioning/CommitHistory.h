@@ -52,7 +52,8 @@ private:
 class CommitHistoryBuilder {
 public:
     explicit CommitHistoryBuilder(CommitHistory& history)
-        : _history(history) {
+        : _history(history)
+    {
     }
 
     void addDatapart(const WeakArc<DataPart>& datapart) {
@@ -81,7 +82,8 @@ class DataPartRebaser;
 class CommitHistoryRebaser {
 public:
     explicit CommitHistoryRebaser(CommitHistory& history)
-        : _history(history) {
+        : _history(history)
+    {
     }
 
     void rebase(const MetadataRebaser& metadataRebaser,

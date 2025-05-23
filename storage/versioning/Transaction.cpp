@@ -22,10 +22,11 @@ PendingCommitReadTx::PendingCommitReadTx() = default;
 
 PendingCommitReadTx::~PendingCommitReadTx() = default;
 
-PendingCommitReadTx::PendingCommitReadTx(Change::Accessor&& changeAccessor,
+PendingCommitReadTx::PendingCommitReadTx(ChangeAccessor&& changeAccessor,
                                          const CommitBuilder* commitBuilder)
     : _changeAccessor(std::move(changeAccessor)),
-      _commitBuilder(commitBuilder) {
+    _commitBuilder(commitBuilder)
+{
 }
 
 GraphView PendingCommitReadTx::viewGraph() const {
@@ -40,10 +41,10 @@ PendingCommitWriteTx::PendingCommitWriteTx() = default;
 
 PendingCommitWriteTx::~PendingCommitWriteTx() = default;
 
-PendingCommitWriteTx::PendingCommitWriteTx(Change::Accessor&& changeAccessor,
+PendingCommitWriteTx::PendingCommitWriteTx(ChangeAccessor&& changeAccessor,
                                            CommitBuilder* commitBuilder)
     : _changeAccessor(std::move(changeAccessor)),
-      _commitBuilder(commitBuilder)
+    _commitBuilder(commitBuilder)
 {
 }
 

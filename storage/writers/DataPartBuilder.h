@@ -59,13 +59,6 @@ public:
     const GraphView& getView() const { return _view; }
     MetadataBuilder& getMetadata() { return *_metadata; }
 
-    bool isEmpty() const {
-        return _coreNodeLabelSets.empty()
-            && _edges.empty()
-            && _nodeProperties->isEmpty()
-            && _edgeProperties->isEmpty();
-    }
-
 private:
     friend ConcurrentWriter;
     friend DataPart;

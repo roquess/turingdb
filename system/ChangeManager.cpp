@@ -12,35 +12,37 @@ ChangeManager::ChangeManager() = default;
 
 ChangeManager::~ChangeManager() = default;
 
-ChangeID ChangeManager::storeChange(Graph* graph, std::unique_ptr<Change> change) {
+Change* ChangeManager::storeChange(const Graph* graph, std::unique_ptr<Change> change) {
     std::unique_lock guard(_changesLock);
-    const auto hash = change->id();
-    _changes.emplace(hash, GraphChangePair {std::move(change), graph});
+    const auto id = change->id();
+    auto* ptr = change.get();
+    _changes.emplace(GraphChangePair {graph, id}, std::move(change));
 
-    return hash;
+    return ptr;
 }
 
-ChangeResult<Change*> ChangeManager::getChange(ChangeID changeID) {
+ChangeResult<Change*> ChangeManager::getChange(const Graph* graph, ChangeID changeID) {
     std::shared_lock guard(_changesLock);
 
-    const auto it = _changes.find(changeID);
+    const auto it = _changes.find(GraphChangePair {graph, changeID});
     if (it == _changes.end()) {
         return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }
 
-    return it->second._change.get();
+    return it->second.get();
 }
 
-ChangeResult<void> ChangeManager::acceptChange(Change::Accessor& access, JobSystem& jobsystem) {
+ChangeResult<void> ChangeManager::acceptChange(ChangeAccessor& access, JobSystem& jobsystem) {
     std::unique_lock guard(_changesLock);
+    const Graph* graph = access.getGraph();
 
-    const auto it = _changes.find(access.getID());
+    const auto it = _changes.find(GraphChangePair {graph, access.getID()});
     if (it == _changes.end()) {
         return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }
 
     auto& pair = it->second;
-    if (auto res = pair._change->submit(jobsystem); ! res) {
+    if (auto res = pair->submit(jobsystem); !res) {
         return ChangeError::result(ChangeErrorType::COULD_NOT_ACCEPT_CHANGE, res.error());
     }
 
@@ -50,10 +52,11 @@ ChangeResult<void> ChangeManager::acceptChange(Change::Accessor& access, JobSyst
     return {};
 }
 
-ChangeResult<void> ChangeManager::deleteChange(Change::Accessor& access, ChangeID changeID) {
+ChangeResult<void> ChangeManager::deleteChange(ChangeAccessor& access, ChangeID changeID) {
     std::unique_lock guard(_changesLock);
+    const Graph* graph = access.getGraph();
 
-    const auto it = _changes.find(changeID);
+    const auto it = _changes.find(GraphChangePair {graph, changeID});
     if (it == _changes.end()) {
         return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }
@@ -68,7 +71,7 @@ void ChangeManager::listChanges(std::vector<const Change*>& list) const {
     std::shared_lock guard(_changesLock);
 
     list.clear();
-    for (const auto& [hash, change] : _changes) {
-        list.emplace_back(change._change.get());
+    for (const auto& [pair, change] : _changes) {
+        list.emplace_back(change.get());
     }
 }

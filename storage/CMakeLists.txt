@@ -46,6 +46,7 @@ set(storage_sources
         versioning/ChangeResult.cpp
         versioning/VersionController.cpp
         versioning/Change.cpp
+        versioning/ChangeAccessor.cpp
         versioning/CommitHash.cpp
         versioning/CommitData.cpp
         versioning/Commit.cpp

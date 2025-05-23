@@ -10,9 +10,11 @@
 
 using namespace db;
 
-VersionController::VersionController()
-    : _dataManager(std::make_unique<ArcManager<CommitData>>()),
-      _partManager(std::make_unique<ArcManager<DataPart>>()) {
+VersionController::VersionController(Graph* graph)
+    : _graph(graph),
+    _dataManager(std::make_unique<ArcManager<CommitData>>()),
+    _partManager(std::make_unique<ArcManager<DataPart>>())
+{
 }
 
 VersionController::~VersionController() {
@@ -21,7 +23,7 @@ VersionController::~VersionController() {
     _partManager.reset();
 }
 
-void VersionController::createFirstCommit(Graph* graph) {
+void VersionController::createFirstCommit() {
     auto commitData = _dataManager->create(CommitHash::create());
     auto commit = std::make_unique<Commit>(this, commitData);
 

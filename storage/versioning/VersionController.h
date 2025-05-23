@@ -32,7 +32,7 @@ public:
     using CommitVector = std::vector<std::unique_ptr<Commit>>;
     using CommitMap = std::unordered_map<CommitHash, size_t>;
 
-    VersionController();
+    explicit VersionController(Graph* graph);
     ~VersionController();
 
     VersionController(const VersionController&) = delete;
@@ -40,11 +40,12 @@ public:
     VersionController& operator=(const VersionController&) = delete;
     VersionController& operator=(VersionController&&) = delete;
 
-    void createFirstCommit(Graph*);
+    void createFirstCommit();
     [[nodiscard]] std::unique_ptr<Change> newChange(CommitHash base = CommitHash::head());
 
     [[nodiscard]] FrozenCommitTx openTransaction(CommitHash hash = CommitHash::head()) const;
     [[nodiscard]] CommitHash getHeadHash() const;
+    [[nodiscard]] const Graph* getGraph() const { return _graph; }
 
     WeakArc<CommitData> createCommitData(CommitHash hash) {
         Profile profile("VersionController::createCommitData");
@@ -60,6 +61,8 @@ private:
     friend GraphLoader;
     friend GraphDumper;
     friend Change;
+
+    Graph* _graph {nullptr};
 
     std::atomic<Commit*> _head {nullptr};
     std::atomic<uint64_t> _nextChangeID {0};

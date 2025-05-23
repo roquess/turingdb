@@ -26,13 +26,13 @@ CommitHash Graph::getHeadHash() const {
 
 std::unique_ptr<Graph> Graph::create() {
     auto* graph = new Graph;
-    graph->_versionController->createFirstCommit(graph);
+    graph->_versionController->createFirstCommit();
     return std::unique_ptr<Graph> {graph};
 }
 
 std::unique_ptr<Graph> Graph::create(const std::string& name) {
     auto* graph = new Graph(name);
-    graph->_versionController->createFirstCommit(graph);
+    graph->_versionController->createFirstCommit();
     return std::unique_ptr<Graph>(graph);
 }
 
@@ -47,11 +47,12 @@ std::unique_ptr<Graph> Graph::createEmptyGraph(const std::string& name) {
 
 Graph::Graph()
     : _graphName("default"),
-      _versionController(new VersionController) {
+    _versionController(new VersionController {this})
+{
 }
 
 Graph::Graph(const std::string& name)
     : _graphName(name),
-    _versionController(new VersionController)
+    _versionController(new VersionController {this})
 {
 }

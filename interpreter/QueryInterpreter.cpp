@@ -2,10 +2,8 @@
 
 #include "ChangeManager.h"
 #include "SystemManager.h"
-#include "Graph.h"
 #include "versioning/Transaction.h"
 #include "versioning/CommitBuilder.h"
-#include "versioning/Commit.h"
 #include "views/GraphView.h"
 #include "ASTContext.h"
 #include "QueryParser.h"
@@ -23,8 +21,9 @@ using namespace db;
 
 QueryInterpreter::QueryInterpreter(SystemManager* sysMan, JobSystem* jobSystem)
     : _sysMan(sysMan),
-      _jobSystem(jobSystem),
-      _executor(std::make_unique<Executor>()) {
+    _jobSystem(jobSystem),
+    _executor(std::make_unique<Executor>())
+{
 }
 
 QueryInterpreter::~QueryInterpreter() {

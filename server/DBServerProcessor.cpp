@@ -28,8 +28,9 @@ using namespace db;
 DBServerProcessor::DBServerProcessor(TuringDB& db,
                                      net::TCPConnection& connection)
     : _writer(&connection.getWriter()),
-      _db(db),
-      _connection(connection) {
+    _db(db),
+    _connection(connection)
+{
 }
 
 DBServerProcessor::~DBServerProcessor() {

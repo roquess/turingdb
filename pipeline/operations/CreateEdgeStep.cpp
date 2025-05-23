@@ -19,7 +19,8 @@ CreateEdgeStep::CreateEdgeStep(const EntityPattern* src,
                                const EntityPattern* tgt)
     : _src(src),
     _edge(edge),
-    _tgt(tgt) {
+    _tgt(tgt)
+{
 }
 
 CreateEdgeStep::~CreateEdgeStep() {

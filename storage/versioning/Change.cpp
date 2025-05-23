@@ -12,8 +12,9 @@ Change::~Change() = default;
 
 Change::Change(VersionController* versionController, ChangeID id, CommitHash base)
     : _id(id),
-      _versionController(versionController),
-      _base(versionController->openTransaction(base).commitData()) {
+    _versionController(versionController),
+    _base(versionController->openTransaction(base).commitData())
+{
     auto tip = CommitBuilder::prepare(*_versionController,
                                       this,
                                       GraphView {*_base});

@@ -18,6 +18,7 @@ class ChangeManager;
 class JobSystem;
 class FrozenCommitTx;
 class Transaction;
+class Change;
 
 class SystemManager {
 public:
@@ -56,7 +57,7 @@ public:
     ChangeManager& getChangeManager() { return *_changes; }
     const ChangeManager& getChangeManager() const { return *_changes; }
 
-    ChangeResult<ChangeID> newChange(const std::string& graphName, CommitHash baseHash = CommitHash::head());
+    ChangeResult<Change*> newChange(const std::string& graphName, CommitHash baseHash = CommitHash::head());
 
     ChangeResult<Transaction> openTransaction(std::string_view graphName,
                                               CommitHash commitHash,

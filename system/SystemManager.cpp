@@ -19,7 +19,7 @@
 using namespace db;
 
 SystemManager::SystemManager()
-    :_changes(std::make_unique<ChangeManager>())
+    : _changes(std::make_unique<ChangeManager>())
 {
     const char* home = std::getenv("HOME");
     if (!home) {
@@ -278,7 +278,7 @@ void SystemManager::listAvailableGraphs(std::vector<fs::Path>& names) {
     }
 }
 
-ChangeResult<ChangeID> SystemManager::newChange(const std::string& graphName, CommitHash baseHash) {
+ChangeResult<Change*> SystemManager::newChange(const std::string& graphName, CommitHash baseHash) {
     std::shared_lock graphGuard(_graphsLock);
 
     const auto it = _graphs.find(graphName);
@@ -312,7 +312,7 @@ ChangeResult<Transaction> SystemManager::openTransaction(std::string_view graphN
         return ChangeError::result(ChangeErrorType::GRAPH_NOT_FOUND);
     }
 
-    auto changeRes = this->getChangeManager().getChange(changeID);
+    auto changeRes = this->getChangeManager().getChange(graph, changeID);
     if (!changeRes) {
         return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }

@@ -44,7 +44,7 @@ private:
     ColumnVector<const Change*>* _output {nullptr};
     Transaction* _tx {nullptr};
 
-    ChangeResult<ChangeID> createChange() const;
+    ChangeResult<Change*> createChange() const;
     ChangeResult<void> acceptChange() const;
     ChangeResult<void> deleteChange() const;
     void listChanges() const;

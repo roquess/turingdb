@@ -86,8 +86,9 @@ CommitResult<std::unique_ptr<Commit>> CommitBuilder::build(JobSystem& jobsystem)
 
 CommitBuilder::CommitBuilder(VersionController& controller, Change* change, const GraphView& view)
     : _controller(&controller),
-      _change(change),
-      _view(view) {
+    _change(change),
+    _view(view)
+{
 }
 
 void CommitBuilder::initialize() {
