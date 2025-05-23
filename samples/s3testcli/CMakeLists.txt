@@ -1,5 +1,6 @@
 set(SAMPLE_NAME s3testcli)
 set(SOURCES S3TestCli.cpp)
+set(${SAMPLE_NAME}_EXCLUDE_FROM_CI 1 PARENT_SCOPE)
 
 turing_sample(${SAMPLE_NAME} ${SOURCES})
 

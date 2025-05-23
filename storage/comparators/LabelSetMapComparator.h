@@ -26,7 +26,7 @@ public:
                 return false;
             }
 
-            if (setA != setB) {
+            if (*setA != *setB) {
                 return false;
             }
         }
