@@ -55,8 +55,13 @@ set (SCRIPT_LIST_CONTENT "")
 list (LENGTH SAMPLE_LIST SAMPLE_COUNT)
 message(STATUS "Building ${SAMPLE_COUNT} samples:")
 foreach(sample IN ITEMS ${SAMPLE_LIST})
-    message("   - ${sample}")
-    set (SCRIPT_LIST_CONTENT "${sample}\n${SCRIPT_LIST_CONTENT}")
+    # if not excluded from CI, add to script list
+    if (${${sample}_EXCLUDE_FROM_CI})
+        message("   - ${sample} (excluded from CI pipeline)")
+    else()
+        message("   - ${sample}")
+        set (SCRIPT_LIST_CONTENT "${sample}\n${SCRIPT_LIST_CONTENT}")
+    endif()
 endforeach()
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/test.list
@@ -64,4 +69,5 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/test.list
 
 install(
     FILES       ${CMAKE_CURRENT_BINARY_DIR}/test.list
+                ${CMAKE_CURRENT_SOURCE_DIR}/run-samples.sh
     DESTINATION samples/${SAMPLE_NAME})
