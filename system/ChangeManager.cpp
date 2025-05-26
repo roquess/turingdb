@@ -2,8 +2,8 @@
 #include <shared_mutex>
 
 #include "ChangeManager.h"
+#include "Graph.h"
 #include "JobSystem.h"
-#include "Profiler.h"
 #include "versioning/CommitBuilder.h"
 
 using namespace db;
@@ -12,61 +12,66 @@ ChangeManager::ChangeManager() = default;
 
 ChangeManager::~ChangeManager() = default;
 
-CommitHash ChangeManager::storeChange(std::unique_ptr<CommitBuilder> builder) {
+Change* ChangeManager::storeChange(const Graph* graph, std::unique_ptr<Change> change) {
     std::unique_lock guard(_changesLock);
-    const auto hash = builder->hash();
-    _changes.emplace(hash, std::move(builder));
+    const auto id = change->id();
+    auto* ptr = change.get();
+    _changes.emplace(GraphChangePair {graph, id}, std::move(change));
 
-    return hash;
+    return ptr;
 }
 
-ChangeResult<CommitBuilder*> ChangeManager::getChange(CommitHash changeHash) {
+ChangeResult<Change*> ChangeManager::getChange(const Graph* graph, ChangeID changeID) {
     std::shared_lock guard(_changesLock);
 
-    const auto it = _changes.find(changeHash);
+    const auto it = _changes.find(GraphChangePair {graph, changeID});
     if (it == _changes.end()) {
-        return ChangeError::result(ChangeErrorType::CHANGE_NOT_EXISTS);
+        return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }
 
     return it->second.get();
 }
 
-ChangeResult<void> ChangeManager::acceptChange(CommitHash changeHash, JobSystem& jobsystem) {
+ChangeResult<void> ChangeManager::acceptChange(ChangeAccessor& access, JobSystem& jobsystem) {
     std::unique_lock guard(_changesLock);
+    const Graph* graph = access.getGraph();
 
-    const auto it = _changes.find(changeHash);
+    const auto it = _changes.find(GraphChangePair {graph, access.getID()});
     if (it == _changes.end()) {
-        return ChangeError::result(ChangeErrorType::CHANGE_NOT_EXISTS);
+        return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
     }
 
-    std::unique_ptr<CommitBuilder> builder = std::move(it->second);
-    _changes.erase(it);
-
-    if (auto res = builder->rebaseAndCommit(jobsystem); !res) {
+    auto& pair = it->second;
+    if (auto res = pair->submit(jobsystem); !res) {
         return ChangeError::result(ChangeErrorType::COULD_NOT_ACCEPT_CHANGE, res.error());
     }
 
-    return {};
-}
-
-ChangeResult<void> ChangeManager::deleteChange(CommitHash changeHash) {
-    std::unique_lock guard(_changesLock);
-
-    const auto it = _changes.find(changeHash);
-    if (it == _changes.end()) {
-        return ChangeError::result(ChangeErrorType::CHANGE_NOT_EXISTS);
-    }
-
+    access.release();
     _changes.erase(it);
 
     return {};
 }
 
-void ChangeManager::listChanges(std::vector<const CommitBuilder*>& list) const {
+ChangeResult<void> ChangeManager::deleteChange(ChangeAccessor& access, ChangeID changeID) {
+    std::unique_lock guard(_changesLock);
+    const Graph* graph = access.getGraph();
+
+    const auto it = _changes.find(GraphChangePair {graph, changeID});
+    if (it == _changes.end()) {
+        return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
+    }
+
+    access.release();
+    _changes.erase(it);
+
+    return {};
+}
+
+void ChangeManager::listChanges(std::vector<const Change*>& list) const {
     std::shared_lock guard(_changesLock);
 
     list.clear();
-    for (const auto& [hash, builder] : _changes) {
-        list.emplace_back(builder.get());
+    for (const auto& [pair, change] : _changes) {
+        list.emplace_back(change.get());
     }
 }

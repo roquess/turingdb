@@ -12,9 +12,11 @@ namespace db {
 
 class DataPartBuilder;
 class MetadataBuilder;
-class Graph;
+class VersionController;
 class JobSystem;
 class Commit;
+class Change;
+class FrozenCommitTx;
 
 class CommitBuilder {
 public:
@@ -26,30 +28,43 @@ public:
     CommitBuilder& operator=(const CommitBuilder&) = delete;
     CommitBuilder& operator=(CommitBuilder&&) = delete;
 
-    [[nodiscard]] static std::unique_ptr<CommitBuilder> prepare(Graph& graph, const GraphView& view);
+    [[nodiscard]] static std::unique_ptr<CommitBuilder> prepare(VersionController& controller,
+                                                                Change* change,
+                                                                const GraphView& view);
 
     [[nodiscard]] CommitHash hash() const;
     [[nodiscard]] GraphView viewGraph() const;
     [[nodiscard]] GraphReader readGraph() const;
-    [[nodiscard]] MetadataBuilder& metadata() { return *_metadata; }
+
     [[nodiscard]] size_t pendingCount() const { return _builders.size(); }
+
+    [[nodiscard]] CommitData& commitData() { return *_commitData; }
+    [[nodiscard]] const CommitData& commitData() const { return *_commitData; }
+    [[nodiscard]] MetadataBuilder& metadata() { return *_metadataBuilder; }
     [[nodiscard]] DataPartBuilder& getCurrentBuilder() { return *_builders.back(); }
 
     DataPartBuilder& newBuilder();
 
-    [[nodiscard]] std::unique_ptr<Commit> build(JobSystem& jobsystem);
-    void buildAllPending(JobSystem& jobsystem);
+    [[nodiscard]] CommitResult<std::unique_ptr<Commit>> build(JobSystem& jobsystem);
+    [[nodiscard]] CommitResult<void> buildAllPending(JobSystem& jobsystem);
 
-    CommitResult<void> commit(JobSystem& jobsystem);
-    CommitResult<void> rebaseAndCommit(JobSystem& jobsystem);
+    void setEntityIDs(EntityID firstNodeID, EntityID firstEdgeID) {
+        _firstNodeID = firstNodeID;
+        _firstEdgeID = firstEdgeID;
+    }
+
+    bool isEmpty() const {
+        return _datapartCount == 0;
+    }
 
 private:
-    friend Graph;
     friend VersionController;
+    friend Change;
 
     mutable std::mutex _mutex;
 
-    Graph* _graph {nullptr};
+    VersionController* _controller {nullptr};
+    Change* _change {nullptr};
     GraphView _view;
 
     EntityID _firstNodeID;
@@ -57,11 +72,15 @@ private:
     EntityID _nextNodeID;
     EntityID _nextEdgeID;
 
+    WeakArc<CommitData> _commitData;
+    std::unique_ptr<MetadataBuilder> _metadataBuilder;
     std::unique_ptr<Commit> _commit;
-    std::unique_ptr<MetadataBuilder> _metadata;
+
+    size_t _datapartCount {0};
+
     std::vector<std::unique_ptr<DataPartBuilder>> _builders;
 
-    explicit CommitBuilder(Graph& , const GraphView&);
+    explicit CommitBuilder(VersionController&, Change* change, const GraphView&);
 
     void initialize();
 };

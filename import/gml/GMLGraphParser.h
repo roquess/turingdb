@@ -5,6 +5,7 @@
 #include "ControlCharacters.h"
 #include "Graph.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "writers/MetadataBuilder.h"
 
 namespace db {
@@ -17,8 +18,8 @@ public:
     }
 
     bool prepare() {
-        const auto tx = _graph->openWriteTransaction();
-        _commitBuilder = tx.prepareCommit();
+        _change = _graph->newChange();
+        _commitBuilder = _change->access().getTip();
         _builder = &_commitBuilder->newBuilder();
         _metadata = &_commitBuilder->metadata();
 
@@ -29,8 +30,8 @@ public:
         return true;
     }
 
-    void finish(JobSystem& jobs) {
-        _graph->rebaseAndCommit(*_commitBuilder, jobs);
+    bool finish(JobSystem& jobs) {
+        return _change->access().submit(jobs).has_value();
     }
 
     bool onNodeProperty(std::string_view k, std::string_view v) {
@@ -174,7 +175,8 @@ public:
 
 private:
     Graph* _graph {nullptr};
-    std::unique_ptr<CommitBuilder> _commitBuilder;
+    std::unique_ptr<Change> _change;
+    CommitBuilder* _commitBuilder {nullptr};
     MetadataBuilder* _metadata {nullptr};
     DataPartBuilder* _builder {nullptr};
     LabelSetHandle _labelset;

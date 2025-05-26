@@ -125,6 +125,10 @@ public:
         return _map.size();
     }
 
+    bool isEmpty() const {
+        return _map.empty();
+    }
+
     const PropertyIndexer& indexers() const {
         return _indexers;
     }

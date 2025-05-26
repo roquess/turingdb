@@ -11,6 +11,7 @@ class CommitBuilder;
 class CommitLoader;
 class GraphLoader;
 class VersionController;
+class Change;
 
 class CommitData {
 public:
@@ -32,12 +33,15 @@ public:
     [[nodiscard]] std::span<const CommitView> commits() const { return _history.commits(); }
     [[nodiscard]] const CommitHistory& history() const { return _history; }
     [[nodiscard]] CommitHistory& history() { return _history; }
+    [[nodiscard]] CommitHash hash() const { return _hash; }
 
 private:
     friend CommitBuilder;
     friend CommitLoader;
     friend GraphLoader;
     friend VersionController;
+    friend Change;
+    friend Commit;
 
     CommitHash _hash;
     CommitHistory _history;

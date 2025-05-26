@@ -13,14 +13,12 @@ using namespace db;
 DataPartBuilder::~DataPartBuilder() = default;
 
 std::unique_ptr<DataPartBuilder> DataPartBuilder::prepare(MetadataBuilder& metadata,
-                                                          Graph& graph,
                                                           const GraphView& view,
                                                           size_t partIndex) {
     const auto reader = view.read();
     auto* ptr = new DataPartBuilder();
 
     ptr->_view = view;
-    ptr->_graph = &graph;
     ptr->_metadata = &metadata;
     ptr->_firstNodeID = reader.getNodeCount();
     ptr->_firstEdgeID = reader.getEdgeCount();

@@ -8,14 +8,17 @@
 #include "GraphLoadStatus.h"
 #include "Path.h"
 #include "GraphFileType.h"
+#include "versioning/ChangeID.h"
 #include "versioning/ChangeResult.h"
-#include "versioning/Transaction.h"
 
 namespace db {
 
 class Graph;
 class ChangeManager;
 class JobSystem;
+class FrozenCommitTx;
+class Transaction;
+class Change;
 
 class SystemManager {
 public:
@@ -51,13 +54,14 @@ public:
 
     bool isGraphLoading(const std::string& graphName) const;
 
-    BasicResult<Transaction, std::string_view> openTransaction(const std::string& graphName,
-                                                               const CommitHash& commit) const;
-
     ChangeManager& getChangeManager() { return *_changes; }
     const ChangeManager& getChangeManager() const { return *_changes; }
 
-    ChangeResult<CommitHash> newChange(const std::string& graphName);
+    ChangeResult<Change*> newChange(const std::string& graphName, CommitHash baseHash = CommitHash::head());
+
+    ChangeResult<Transaction> openTransaction(std::string_view graphName,
+                                              CommitHash commitHash,
+                                              ChangeID changeID);
 
 private:
     mutable RWSpinLock _graphsLock;

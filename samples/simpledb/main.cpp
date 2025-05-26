@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
         const Graph* defaultGraph = db.getSystemManager().getDefaultGraph();
 
         spdlog::info("Graph created");
-        const Transaction tx = defaultGraph->openTransaction();
+        const FrozenCommitTx tx = defaultGraph->openTransaction();
         {
             std::stringstream sstream;
             GraphReport::getReport(tx.readGraph(), sstream);

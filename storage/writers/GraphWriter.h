@@ -6,13 +6,15 @@
 #include "EntityID.h"
 #include "metadata/LabelSetHandle.h"
 #include "metadata/SupportedType.h"
-#include "versioning/Transaction.h"
 
 namespace db {
 
 class Graph;
 class JobSystem;
 class DataPartBuilder;
+class Change;
+class CommitBuilder;
+class PendingCommitWriteTx;
 
 class GraphWriter {
 public:
@@ -24,7 +26,10 @@ public:
     GraphWriter& operator=(const GraphWriter&) = delete;
     GraphWriter& operator=(GraphWriter&&) = delete;
 
-    void commit();
+    bool commit();
+    bool submit();
+
+    PendingCommitWriteTx openWriteTransaction();
 
     EntityID addNode(std::initializer_list<std::string_view> labels);
     EntityID addNode(std::initializer_list<LabelID> labels);
@@ -48,9 +53,9 @@ public:
 
 private:
     Graph* _graph {nullptr};
-    WriteTransaction _tx;
-    std::unique_ptr<CommitBuilder> _commitBuilder;
-    DataPartBuilder* _dataPartBuilder = nullptr;
+    std::unique_ptr<Change> _change;
+    CommitBuilder* _commitBuilder {nullptr};
+    DataPartBuilder* _dataPartBuilder {nullptr};
     std::unique_ptr<JobSystem> _jobSystem;
 };
 

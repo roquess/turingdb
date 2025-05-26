@@ -27,6 +27,7 @@ using namespace db;
 "explain"|"EXPLAIN" { return YParser::make_EXPLAIN(); }
 "history"|"HISTORY" { return YParser::make_HISTORY(); }
 "change"|"CHANGE" { return YParser::make_CHANGE(); }
+"commit"|"COMMIT" { return YParser::make_COMMIT(); }
 "or"|"OR" { return YParser::make_OR(); }
 "and"|"AND" { return YParser::make_AND(); }
 "like"|"LIKE" { return YParser::make_LIKE(); }

@@ -2,22 +2,20 @@
 
 #include "ArcManager.h"
 #include "versioning/CommitHash.h"
-#include "versioning/Transaction.h"
 #include "versioning/CommitData.h"
 
 namespace db {
 
 class DataPart;
-class CommitData;
 class VersionController;
-class CommitBuilder;
 class CommitLoader;
 class GraphLoader;
-class Graph;
+class FrozenCommitTx;
 
 class Commit {
 public:
     Commit();
+    Commit(VersionController* controller, const WeakArc<CommitData>& data);
     ~Commit();
 
     Commit(const Commit&) = delete;
@@ -29,29 +27,27 @@ public:
         return _data != nullptr;
     }
 
-    [[nodiscard]] Transaction openTransaction() const {
-        return {_data};
-    }
-
-    [[nodiscard]] WriteTransaction openWriteTransaction() const {
-        return {*_graph, _data};
-    }
+    [[nodiscard]] FrozenCommitTx openTransaction() const;
 
     [[nodiscard]] CommitHash hash() const { return _hash; }
 
+    [[nodiscard]] const VersionController& controller() const { return *_controller; }
     [[nodiscard]] const CommitData& data() const { return *_data; }
     [[nodiscard]] bool hasData() const { return _data != nullptr; }
     [[nodiscard]] const CommitHistory& history() const { return _data->history(); }
     [[nodiscard]] CommitHistory& history() { return _data->history(); }
     [[nodiscard]] bool isHead() const;
+    [[nodiscard]] CommitView view() const;
+
+    [[nodiscard]] static std::unique_ptr<Commit> createNextCommit(VersionController* controller,
+                                                                  const WeakArc<CommitData>& data,
+                                                                  const CommitView& prevCommit);
 
 private:
-    friend CommitBuilder;
     friend CommitLoader;
     friend GraphLoader;
-    friend VersionController;
 
-    Graph* _graph {nullptr};
+    VersionController* _controller {nullptr};
     CommitHash _hash = CommitHash::create();
     WeakArc<CommitData> _data;
 };

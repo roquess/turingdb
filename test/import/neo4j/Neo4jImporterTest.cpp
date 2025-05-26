@@ -5,6 +5,7 @@
 #include "views/GraphView.h"
 #include "reader/GraphReader.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "writers/DataPartBuilder.h"
 #include "views/EdgeView.h"
 #include "Neo4j/Neo4JParserConfig.h"
@@ -57,8 +58,8 @@ protected:
 
 TEST_F(Neo4jImporterTest, Simple) {
     {
-        const auto tx = _graph->openWriteTransaction();
-        auto commitBuilder = tx.prepareCommit();
+        auto change = _graph->newChange();
+        auto* commitBuilder = change->access().getTip();
         auto& builder1 = commitBuilder->newBuilder();
         builder1.addNode(LabelSet::fromList({1})); // 0
         builder1.addNode(LabelSet::fromList({0})); // 1
@@ -85,10 +86,10 @@ TEST_F(Neo4jImporterTest, Simple) {
         builder2.addNode(LabelSet::fromList({1}));
         builder2.addNode(LabelSet::fromList({1}));
         builder2.addEdge(0, 3, 4);
-        _graph->rebaseAndCommit(*commitBuilder, *_jobSystem);
+        ASSERT_TRUE(change->access().submit(*_jobSystem));
     }
 
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::cout << "All out edges: ";
     for (const auto& edge : reader.scanOutEdges()) {
@@ -129,7 +130,7 @@ TEST_F(Neo4jImporterTest, General) {
     ASSERT_TRUE(res);
     std::cout << "Parsing: " << duration<Microseconds>(t0, t1) << " us" << std::endl;
 
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::stringstream report;
     GraphReport::getReport(reader, report);

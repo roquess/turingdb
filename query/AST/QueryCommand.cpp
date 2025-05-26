@@ -47,6 +47,21 @@ CreateCommand* CreateCommand::create(ASTContext* ctxt, CreateTargets* targets) {
     return cmd;
 }
 
+// CommitCommand 
+
+CommitCommand::CommitCommand()
+{
+}
+
+CommitCommand::~CommitCommand() {
+}
+
+CommitCommand* CommitCommand::create(ASTContext* ctxt) {
+    CommitCommand* cmd = new CommitCommand();
+    cmd->registerCmd(ctxt);
+    return cmd;
+}
+
 // CreateGraphCommand
 
 CreateGraphCommand::CreateGraphCommand(const std::string& name)

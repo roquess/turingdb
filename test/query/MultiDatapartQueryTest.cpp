@@ -27,7 +27,8 @@ protected:
 };
 
 TEST_F(MultiDatapartQueryTest, MultiDatapartTest) {
-    Graph* graph = _db.getSystemManager().getDefaultGraph();
+    SystemManager& sysMan = _db.getSystemManager();
+    Graph* graph = sysMan.createGraph("simple");
     GraphWriter writer {graph};
     _interp = std::make_unique<QueryInterpreter>(&_db.getSystemManager(),
                                                  &_db.getJobSystem());
@@ -82,9 +83,7 @@ TEST_F(MultiDatapartQueryTest, MultiDatapartTest) {
     writer.addEdgeProperty<types::Bool>(edge3, "twig", false);
     writer.addEdgeProperty<types::Int64>(edge3, "weight", 3);
 
-    writer.commit();
-
-
+    writer.submit();
 
     // Tests labelset index when a datapart in the iteration has no labelsets and needs to be skipped
     tester.query("MATCH n:label1--m:label3 RETURN n,m")

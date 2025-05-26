@@ -275,7 +275,7 @@ bool Neo4jImporter::importJsonDir(JobSystem& jobSystem,
 
     for (size_t i = 0; i < nodeSteps; i++) {
         // Create the buffer that will hold the node info
-        DataPartBuilder& buf = parser.newDataBuffer();
+        DataPartBuilder& buf = parser.getCurrentDataBuffer();
 
         nodeResults[i] = jobs.submit<bool>(
             [&, i](Promise* p) {
@@ -299,6 +299,10 @@ bool Neo4jImporter::importJsonDir(JobSystem& jobSystem,
                              i * nodeCountPerFile, upperRange);
                 promise->set_value(parser.parseNodes(data, buf));
             });
+
+        if (i < nodeSteps - 1) {
+            parser.newDataBuffer();
+        }
     }
 
     // Wait for the end before pushing the datapart
@@ -313,7 +317,10 @@ bool Neo4jImporter::importJsonDir(JobSystem& jobSystem,
 
     {
         TimerStat t {"Build and push DataPart for nodes"};
-        parser.buildPending(jobSystem);
+        if (auto res = parser.buildPending(jobSystem); !res) {
+            spdlog::error("Could not build pending dataparts: {}", res.error().fmtMessage());
+            return false;
+        }
     }
 
     // Query and parse edges
@@ -361,7 +368,10 @@ bool Neo4jImporter::importJsonDir(JobSystem& jobSystem,
 
     {
         TimerStat t {"Build and push DataPart for edges"};
-        parser.commit(*graph, jobSystem);
+        if (auto res = parser.commit(*graph, jobSystem); !res) {
+            spdlog::error("Could not commit changes: {}", res.error().fmtMessage());
+            return false;
+        }
     }
 
     return true;

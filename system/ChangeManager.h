@@ -3,17 +3,36 @@
 #include <unordered_map>
 
 #include "RWSpinLock.h"
-#include "columns/ColumnVector.h"
 #include "versioning/ChangeResult.h"
-#include "versioning/CommitHash.h"
+#include "versioning/ChangeID.h"
+#include "versioning/Change.h"
 
 namespace db {
 
-class CommitBuilder;
+class Graph;
+
 class JobSystem;
 
 class ChangeManager {
 public:
+    struct GraphChangePair {
+        const Graph* _graph;
+        ChangeID _changeID;
+
+        struct Hasher {
+            size_t operator()(const GraphChangePair& pair) const {
+                return std::hash<const Graph*> {}(pair._graph)
+                     ^ std::hash<ChangeID::ValueType> {}(pair._changeID.get());
+            }
+        };
+
+        struct Predicate {
+            bool operator()(const GraphChangePair& a, const GraphChangePair& b) const {
+                return a._graph == b._graph && a._changeID == b._changeID;
+            }
+        };
+    };
+
     ChangeManager();
     ~ChangeManager();
 
@@ -22,16 +41,21 @@ public:
     ChangeManager& operator=(const ChangeManager&) = delete;
     ChangeManager& operator=(ChangeManager&&) = delete;
 
-    CommitHash storeChange(std::unique_ptr<CommitBuilder> builder);
-    ChangeResult<CommitBuilder*> getChange(CommitHash changeHash);
-    ChangeResult<void> acceptChange(CommitHash changeHash, JobSystem&);
-    ChangeResult<void> deleteChange(CommitHash changeHash);
+    Change* storeChange(const Graph* graph, std::unique_ptr<Change> change);
+    ChangeResult<Change*> getChange(const Graph* graph, ChangeID changeID);
+    ChangeResult<void> acceptChange(ChangeAccessor& access, JobSystem&);
+    ChangeResult<void> deleteChange(ChangeAccessor& access, ChangeID changeID);
 
-    void listChanges(std::vector<const CommitBuilder*>& list) const;
+    void listChanges(std::vector<const Change*>& list) const;
 
 private:
     mutable RWSpinLock _changesLock;
-    std::unordered_map<CommitHash, std::unique_ptr<CommitBuilder>> _changes;
+
+    std::unordered_map<GraphChangePair,
+                       std::unique_ptr<Change>,
+                       GraphChangePair::Hasher,
+                       GraphChangePair::Predicate>
+        _changes;
 };
 
 }

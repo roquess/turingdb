@@ -9,6 +9,7 @@
 #include "Neo4j/Neo4JParserConfig.h"
 #include "Neo4jImporter.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Transaction.h"
 #include "GMLImporter.h"
 #include "JobSystem.h"
 #include "GraphLoader.h"
@@ -18,7 +19,7 @@
 using namespace db;
 
 SystemManager::SystemManager()
-    :_changes(std::make_unique<ChangeManager>())
+    : _changes(std::make_unique<ChangeManager>())
 {
     const char* home = std::getenv("HOME");
     if (!home) {
@@ -277,22 +278,7 @@ void SystemManager::listAvailableGraphs(std::vector<fs::Path>& names) {
     }
 }
 
-BasicResult<Transaction, std::string_view> SystemManager::openTransaction(const std::string& graphName,
-                                                                          const CommitHash& commit) const {
-    const auto* graph = getGraph(graphName);
-    if (!graph) {
-        return BadResult<std::string_view> {"Graph does not exist"};
-    }
-
-    Transaction tr = graph->openTransaction(commit);
-    if (!tr.isValid()) {
-        return BadResult<std::string_view> {"Invalid commit hash"};
-    }
-
-    return tr;
-}
-
-ChangeResult<CommitHash> SystemManager::newChange(const std::string& graphName) {
+ChangeResult<Change*> SystemManager::newChange(const std::string& graphName, CommitHash baseHash) {
     std::shared_lock graphGuard(_graphsLock);
 
     const auto it = _graphs.find(graphName);
@@ -300,10 +286,57 @@ ChangeResult<CommitHash> SystemManager::newChange(const std::string& graphName) 
         return ChangeError::result(ChangeErrorType::GRAPH_NOT_FOUND);
     }
 
-    const auto* graph = it->second.get();
+    auto* graph = it->second.get();
+    auto change = graph->newChange(baseHash);
 
-    auto tx = graph->openWriteTransaction();
-    auto builder = tx.prepareCommit();
+    return _changes->storeChange(graph, std::move(change));
+}
 
-    return _changes->storeChange(std::move(builder));
+ChangeResult<Transaction> SystemManager::openTransaction(std::string_view graphName,
+                                                         CommitHash commitHash,
+                                                         ChangeID changeID) {
+    std::shared_lock guard(_graphsLock);
+
+    Graph* graph = graphName.empty() ? this->getDefaultGraph()
+                                     : this->getGraph(std::string(graphName));
+    if (!graph) {
+        return ChangeError::result(ChangeErrorType::GRAPH_NOT_FOUND);
+    }
+
+    if (changeID == ChangeID::head()) {
+        // Not in a change, reading frozen commit
+        if (auto tx = graph->openTransaction(commitHash); tx.isValid()) {
+            return tx;
+        }
+
+        return ChangeError::result(ChangeErrorType::COMMIT_NOT_FOUND);
+    }
+
+    auto changeRes = this->getChangeManager().getChange(graph, changeID);
+    if (!changeRes) {
+        return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
+    }
+
+    // In a valid change
+    auto* change = changeRes.value();
+
+    // If hash == head: Requesting a write on the tip of the change
+    if (commitHash == CommitHash::head()) {
+        if (auto tx = change->openWriteTransaction(); tx.isValid()) {
+            return tx;
+        }
+
+        return ChangeError::result(ChangeErrorType::CHANGE_NOT_FOUND);
+    }
+
+    // if hash != head: Requesting a read on a specific commit (either pending or frozen)
+    if (auto tx = change->openReadTransaction(commitHash); tx.isValid()) {
+        // Reading pending commit
+        return tx;
+    } else if (auto tx = graph->openTransaction(commitHash); tx.isValid()) {
+        // Reading frozen commit
+        return tx;
+    }
+
+    return ChangeError::result(ChangeErrorType::COMMIT_NOT_FOUND);
 }

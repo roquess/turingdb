@@ -8,10 +8,11 @@
 
 #include "EntityID.h"
 #include "Profiler.h"
+#include "versioning/Change.h"
 #include "versioning/CommitResult.h"
 #include "versioning/Commit.h"
 #include "versioning/CommitHash.h"
-#include "versioning/Transaction.h"
+#include "DataPart.h"
 
 namespace db {
 
@@ -19,13 +20,19 @@ class Graph;
 class GraphLoader;
 class GraphDumper;
 class JobSystem;
+class FrozenCommitTx;
+
+struct EntityIDPair {
+    EntityID _nodeID;
+    EntityID _edgeID;
+};
 
 class VersionController {
 public:
     using CommitVector = std::vector<std::unique_ptr<Commit>>;
     using CommitMap = std::unordered_map<CommitHash, size_t>;
 
-    VersionController();
+    explicit VersionController(Graph* graph);
     ~VersionController();
 
     VersionController(const VersionController&) = delete;
@@ -33,13 +40,12 @@ public:
     VersionController& operator=(const VersionController&) = delete;
     VersionController& operator=(VersionController&&) = delete;
 
-    void createFirstCommit(Graph*);
-    CommitResult<void> rebase(CommitBuilder& commitBuilder, JobSystem&);
-    CommitResult<void> commit(CommitBuilder& commitBuilder, JobSystem&);
+    void createFirstCommit();
+    [[nodiscard]] std::unique_ptr<Change> newChange(CommitHash base = CommitHash::head());
 
-    [[nodiscard]] Transaction openTransaction(CommitHash hash = CommitHash::head()) const;
-    [[nodiscard]] WriteTransaction openWriteTransaction(CommitHash hash = CommitHash::head()) const;
+    [[nodiscard]] FrozenCommitTx openTransaction(CommitHash hash = CommitHash::head()) const;
     [[nodiscard]] CommitHash getHeadHash() const;
+    [[nodiscard]] const Graph* getGraph() const { return _graph; }
 
     WeakArc<CommitData> createCommitData(CommitHash hash) {
         Profile profile("VersionController::createCommitData");
@@ -54,8 +60,12 @@ public:
 private:
     friend GraphLoader;
     friend GraphDumper;
+    friend Change;
+
+    Graph* _graph {nullptr};
 
     std::atomic<Commit*> _head {nullptr};
+    std::atomic<uint64_t> _nextChangeID {0};
 
     mutable std::mutex _mutex;
     CommitVector _commits;
@@ -67,6 +77,8 @@ private:
     void unlock();
 
     void addCommit(std::unique_ptr<Commit> commit);
+
+    [[nodiscard]] CommitResult<void> submitChange(Change* change, JobSystem&);
 };
 
 }

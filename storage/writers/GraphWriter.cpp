@@ -2,9 +2,12 @@
 
 #include "Graph.h"
 #include "JobSystem.h"
+#include "spdlog/spdlog.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "DataPartBuilder.h"
 #include "writers/MetadataBuilder.h"
+#include "versioning/Transaction.h"
 
 using namespace db;
 
@@ -14,24 +17,38 @@ GraphWriter::GraphWriter(Graph* graph)
 {
 
     if (_graph) {
-        _tx = _graph->openWriteTransaction();
-        _commitBuilder = _tx.prepareCommit();
-        _dataPartBuilder = &_commitBuilder->newBuilder();
+        _change = _graph->newChange();
+        _commitBuilder = _change->access().getTip();
+        _dataPartBuilder = &_commitBuilder->getCurrentBuilder();
     }
 }
 
 GraphWriter::~GraphWriter() {
 }
 
-void GraphWriter::commit() {
-    if (!_commitBuilder) {
-        return;
+bool GraphWriter::commit() {
+    if (auto res = _change->access().commit(*_jobSystem); !res) {
+        spdlog::error("Could not commit changes: {}", res.error().fmtMessage());
+        return false;
     }
 
-    _graph->rebaseAndCommit(*_commitBuilder, *_jobSystem);
-    _tx = _graph->openWriteTransaction();
-    _commitBuilder = _tx.prepareCommit();
-    _dataPartBuilder = &_commitBuilder->newBuilder();
+    _commitBuilder = _change->access().getTip();
+    _dataPartBuilder = &_commitBuilder->getCurrentBuilder();
+
+    return {};
+}
+
+bool GraphWriter::submit() {
+    if (auto res = _change->access().submit(*_jobSystem); !res) {
+        spdlog::error("Could not submit changes: {}", res.error().fmtMessage());
+        return false;
+    }
+
+    return true;
+}
+
+PendingCommitWriteTx GraphWriter::openWriteTransaction() {
+    return _change->openWriteTransaction();
 }
 
 EntityID GraphWriter::addNode(std::initializer_list<std::string_view> labels) {

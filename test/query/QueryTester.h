@@ -27,13 +27,15 @@ namespace db {
 
 class QueryTester {
 public:
-    QueryTester(LocalMemory& mem, QueryInterpreter& interp)
+    QueryTester(LocalMemory& mem, QueryInterpreter& interp, const std::string& graphName = "simple")
         : _mem(mem),
-        _interp(interp)
+        _interp(interp),
+        _graphName(graphName)
     {
     }
 
     QueryTester& query(const std::string& query) {
+        _outputColumns.clear();
         _expectedColumns.clear();
         _query = query;
         _expectError = false;
@@ -77,7 +79,8 @@ public:
                 _graphName,
                 &_mem,
                 [this](const Block& block) { fmt::print("Testing query: {}\n", _query); },
-                _commitHash);
+                _commitHash,
+                _changeID);
             EXPECT_FALSE(res);
             return *this;
         }
@@ -115,12 +118,13 @@ public:
                     COL_CASE(ColumnConst<types::String::Primitive>)
                     COL_CASE(ColumnConst<types::Bool::Primitive>)
                     COL_CASE(ColumnVector<const CommitBuilder*>)
+                    COL_CASE(ColumnVector<const Change*>)
 
                     default: {
                         panic("can not check result for column of kind {}", col->getKind());
                     }
                 }
-            } }, _commitHash);
+            } }, _commitHash, _changeID);
 
         EXPECT_TRUE(res);
 
@@ -163,11 +167,16 @@ public:
         _commitHash = commitHash;
     }
 
+    void setChangeID(const ChangeID& changeID) {
+        _changeID = changeID;
+    }
+
 private:
     LocalMemory& _mem;
     QueryInterpreter& _interp;
     CommitHash _commitHash = CommitHash::head();
-    std::string _graphName = "default";
+    ChangeID _changeID = ChangeID::head();
+    std::string _graphName = "simple";
     std::string _query;
     std::vector<std::pair<std::unique_ptr<Column>, bool>> _expectedColumns;
     std::vector<std::unique_ptr<Column>> _outputColumns;

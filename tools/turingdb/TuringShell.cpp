@@ -15,6 +15,7 @@
 #include "columns/ColumnConst.h"
 #include "columns/ColumnOptVector.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Transaction.h"
 #include "FileUtils.h"
 #include "Panic.h"
 #include "Profiler.h"
@@ -103,14 +104,15 @@ void changeDBCommand(const TuringShell::Command::Words& args, TuringShell& shell
 }
 
 void checkoutCommand(const TuringShell::Command::Words& args, TuringShell& shell, std::string& line) {
-    std::string hashStr = "head";
+    std::string hashStr;
 
     argparse::ArgumentParser argParser("checkout", "", argparse::default_arguments::help, false);
-    argParser.add_description("Checkout specific commit of current graph");
+    argParser.add_description("Checkout specific commit or change of current graph");
     argParser.add_argument("hash")
         .nargs(1)
         .metavar("hash")
-        .default_value("head")
+        .default_value("")
+        .help("Commit hash or change-{id}")
         .store_into(hashStr);
 
     try {
@@ -120,14 +122,46 @@ void checkoutCommand(const TuringShell::Command::Words& args, TuringShell& shell
         return;
     }
 
-    auto hash = CommitHash::fromString(hashStr);
-    if (!hash) {
-        spdlog::error("Commit {} is invalid: {}", hashStr, hash.error());
+    constexpr std::string_view changePrefix = "change-";
+
+    if (hashStr.empty()) {
+        shell.setChangeID(ChangeID::head());
         return;
     }
 
-    if (!shell.setCommitHash(hash.value())) {
-        spdlog::error("Commit {} is not part of the graph's history", hashStr);
+    if (hashStr.size() > changePrefix.size()) {
+        if (hashStr.substr(0, changePrefix.size()) == changePrefix) {
+            // Parsing a change
+            hashStr = hashStr.substr(changePrefix.size());
+            const auto changeRes = ChangeID::fromString(hashStr);
+
+            if (!changeRes) {
+                spdlog::error("{} is not a valid change id", hashStr);
+                return;
+            }
+
+            const auto currentChange = shell.getChangeID();
+
+            if (currentChange != changeRes.value()) {
+                shell.setChangeID(changeRes.value());
+            }
+
+            return;
+        }
+    }
+
+    const auto hashRes = CommitHash::fromString(hashStr);
+
+    if (!hashRes) {
+        spdlog::error("{} is not a valid commit hash", hashStr);
+        return;
+    }
+
+    const auto currentCommit = shell.getCommitHash();
+
+
+    if (currentCommit != hashRes.value()) {
+        shell.setCommitHash(hashRes.value());
     }
 }
 
@@ -204,10 +238,15 @@ void TuringShell::startLoop() {
 
 std::string TuringShell::composePrompt() {
     const std::string basePrompt = "turing";
+    if (_changeID == ChangeID::head()) {
+        return _hash == CommitHash::head()
+                 ? fmt::format("{}:{}> ", basePrompt, _graphName)
+                 : fmt::format("{}:{}(detached {:x})> ", basePrompt, _graphName, _hash.get());
+    }
 
-    return _hash == CommitHash::head() 
-        ? fmt::format("{}:{}> ", basePrompt, _graphName)
-        : fmt::format("{}:{}@{:x}> ", basePrompt, _graphName, _hash.get());
+    return _hash == CommitHash::head()
+             ? fmt::format("{}:{}@{:x}> ", basePrompt, _graphName, _changeID.get())
+             : fmt::format("{}:{}@{:x}(detached {:x})> ", basePrompt, _graphName, _changeID.get(), _hash.get());
 }
 
 template <typename T>
@@ -226,6 +265,10 @@ void tabulateWrite(tabulate::RowStream& rs, const std::optional<T>& value) {
 
 void tabulateWrite(tabulate::RowStream& rs, const CommitBuilder* commit) {
     rs << fmt::format("{:x}", commit->hash().get());
+}
+
+void tabulateWrite(tabulate::RowStream& rs, const Change* change) {
+    rs << fmt::format("{:x}", change->id().get());
 }
 
 #define TABULATE_COL_CASE(Type, i)                        \
@@ -292,6 +335,7 @@ void TuringShell::processLine(std::string& line) {
                     TABULATE_COL_CASE(ColumnOptVector<types::Bool::Primitive>, i)
                     TABULATE_COL_CASE(ColumnVector<std::string>, i)
                     TABULATE_COL_CASE(ColumnVector<const CommitBuilder*>, i)
+                    TABULATE_COL_CASE(ColumnVector<const Change*>, i)
                     TABULATE_COL_CONST_CASE(ColumnConst<EntityID>)
                     TABULATE_COL_CONST_CASE(ColumnConst<types::UInt64::Primitive>)
                     TABULATE_COL_CONST_CASE(ColumnConst<types::Int64::Primitive>)
@@ -309,9 +353,9 @@ void TuringShell::processLine(std::string& line) {
         }
     };
 
-    const auto res = _quiet 
-        ? _turingDB.query(line, _graphName, _mem, [](const Block&) {}, _hash) 
-        : _turingDB.query(line, _graphName, _mem, queryCallback, _hash);
+    const auto res = _quiet
+                       ? _turingDB.query(line, _graphName, _mem, [](const Block&) {}, _hash, _changeID)
+                       : _turingDB.query(line, _graphName, _mem, queryCallback, _hash, _changeID);
 
     checkShellContext();
 
@@ -349,25 +393,37 @@ bool TuringShell::setGraphName(const std::string& graphName) {
     return true;
 }
 
+bool TuringShell::setChangeID(ChangeID changeID) {
+    _hash = CommitHash::head();
+
+    auto tx = _turingDB.getSystemManager().openTransaction(_graphName, _hash, changeID);
+    if (!tx) {
+        spdlog::error("Can not checkout change: {}", tx.error().fmtMessage());
+        return false;
+    }
+
+    if (!tx->isValid()) {
+        spdlog::error("Can not checkout change");
+        return false;
+    }
+
+    _changeID = changeID;
+    return true;
+}
+
 bool TuringShell::setCommitHash(CommitHash hash) {
-    const auto* graph = _turingDB.getSystemManager().getGraph(_graphName);
-    if (graph == nullptr) {
+    auto tx = _turingDB.getSystemManager().openTransaction(_graphName, hash, _changeID);
+    if (!tx) {
+        spdlog::error("Can not switch commit: {}", tx.error().fmtMessage());
         return false;
     }
 
-    Transaction transaction = graph->openTransaction(hash);
-    if (transaction.isValid()) {
-        _hash = hash;
-        return true;
-    }
-
-    auto res =_turingDB.getSystemManager().getChangeManager().getChange(hash);
-    if (!res) {
+    if (!tx->isValid()) {
+        spdlog::error("Can not switch commit");
         return false;
     }
 
-    _hash = res.value()->hash();
-
+    _hash = hash;
     return true;
 }
 
@@ -387,16 +443,26 @@ void TuringShell::checkShellContext() {
         return;
     }
 
-    Transaction transaction = graph->openTransaction(_hash);
-    if (transaction.isValid()) {
+    if (_changeID == ChangeID::head()) {
+        FrozenCommitTx transaction = graph->openTransaction(_hash);
+        if (transaction.isValid()) {
+            return;
+        }
+    }
+
+    auto res = _turingDB.getSystemManager().getChangeManager().getChange(graph, _changeID);
+    if (!res) {
+        fmt::print("Change '{:x}' does not exist anymore, switching back to head\n", _changeID.get());
+        setChangeID(ChangeID::head());
         return;
     }
 
-    auto res = _turingDB.getSystemManager().getChangeManager().getChange(_hash);
-    if (!res) {
-        fmt::print("Change '{:x}' does not exist anymore, switching back to head\n", _hash.get());
-        setCommitHash(CommitHash::head());
+    auto* change = res.value();
+    if (auto tx = change->openWriteTransaction(); tx.isValid()) {
         return;
     }
+
+    fmt::print("No commit matches hash {:x}, switching back to head\n", _hash.get());
+    setCommitHash(CommitHash::head());
 }
 

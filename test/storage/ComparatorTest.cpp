@@ -100,8 +100,8 @@ TEST_F(ComparatorTest, Equal) {
     auto db2 = createDB1();
 
 
-    const Transaction transaction1 = db1->openTransaction();
-    const Transaction transaction2 = db2->openTransaction();
+    const FrozenCommitTx transaction1 = db1->openTransaction();
+    const FrozenCommitTx transaction2 = db2->openTransaction();
     GraphReader reader1 = transaction1.readGraph();
     GraphReader reader2 = transaction2.readGraph();
 
@@ -118,8 +118,8 @@ TEST_F(ComparatorTest, NotEqual) {
     auto db1 = createDB1();
     auto db2 = createDB2();
 
-    const Transaction transaction1 = db1->openTransaction();
-    const Transaction transaction2 = db2->openTransaction();
+    const FrozenCommitTx transaction1 = db1->openTransaction();
+    const FrozenCommitTx transaction2 = db2->openTransaction();
     GraphReader reader1 = transaction1.readGraph();
     GraphReader reader2 = transaction2.readGraph();
 

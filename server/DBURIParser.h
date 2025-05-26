@@ -51,6 +51,8 @@ public:
                 params[(size_t)DBHTTPParams::graph] = v;
             } else if (k == "commit") {
                 params[(size_t)DBHTTPParams::commit] = v;
+            } else if (k == "change") {
+                params[(size_t)DBHTTPParams::change] = v;
             }
         };
 

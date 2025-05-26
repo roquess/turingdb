@@ -16,6 +16,7 @@
 namespace db {
 
 class CommitBuilder;
+class Change;
 
 class LocalMemory {
 public:
@@ -46,6 +47,7 @@ public:
         MakeMemoryPool<ColumnVector<types::String::Primitive>>::type,
         MakeMemoryPool<ColumnVector<types::Bool::Primitive>>::type,
         MakeMemoryPool<ColumnVector<const CommitBuilder*>>::type,
+        MakeMemoryPool<ColumnVector<const Change*>>::type,
         MakeMemoryPool<ColumnOptVector<types::Int64::Primitive>>::type,
         MakeMemoryPool<ColumnOptVector<types::UInt64::Primitive>>::type,
         MakeMemoryPool<ColumnOptVector<types::Double::Primitive>>::type,
@@ -73,6 +75,7 @@ public:
         _pools.get<ColumnVector<std::string>>().clear();
         _pools.get<ColumnVector<std::string_view>>().clear();
         _pools.get<ColumnVector<const CommitBuilder*>>().clear();
+        _pools.get<ColumnVector<const Change*>>().clear();
     }
 
 private:

@@ -5,6 +5,7 @@
 #include "reader/GraphReader.h"
 #include "metadata/GraphMetadata.h"
 #include "versioning/CommitBuilder.h"
+#include "versioning/Change.h"
 #include "writers/DataPartBuilder.h"
 #include "FileUtils.h"
 #include "JobSystem.h"
@@ -21,6 +22,30 @@ struct TestEdgeRecord {
     EntityID _otherID;
 };
 
+struct GraphUpdate {
+    Graph* _graph {nullptr};
+    std::unique_ptr<Change> _change;
+    CommitBuilder& _commit;
+    DataPartBuilder& _builder;
+    MetadataBuilder& _metadata;
+
+    static GraphUpdate create(Graph& graph) {
+        auto change = graph.newChange();
+        auto* commit = change->access().getTip();
+        auto& builder = commit->newBuilder();
+        auto& metadata = builder.getMetadata();
+        return GraphUpdate {&graph, std::move(change), *commit, builder, metadata};
+    }
+
+    auto submit(JobSystem& jobSystem) {
+        auto res = _change->access().submit(jobSystem);
+        if (!res) {
+            spdlog::error("Failed to submit change: {}", res.error().fmtMessage());
+        }
+        return res;
+    }
+};
+
 class IteratorsTest : public TuringTest {
 protected:
     void initialize() override {
@@ -28,19 +53,20 @@ protected:
         _graph = Graph::create();
 
         /* FIRST BUFFER */
-        const auto tx1 = _graph->openWriteTransaction();
-        auto commitBuilder1 = tx1.prepareCommit();
-        auto& builder1 = commitBuilder1->newBuilder();
+        auto update1  = GraphUpdate::create(*_graph);
+        auto& builder1 = update1._builder;
+        auto& metadata1 = update1._metadata;
+
         PropertyTypeID uint64ID = 0;
         PropertyTypeID stringID = 1;
 
         {
             // Metadata
-            commitBuilder1->metadata().getOrCreateLabel("0");
-            commitBuilder1->metadata().getOrCreateLabel("1");
-            commitBuilder1->metadata().getOrCreateEdgeType("0");
-            commitBuilder1->metadata().getOrCreatePropertyType("UIntProp", ValueType::UInt64);
-            commitBuilder1->metadata().getOrCreatePropertyType("StringProp", ValueType::String);
+            metadata1.getOrCreateLabel("0");
+            metadata1.getOrCreateLabel("1");
+            metadata1.getOrCreateEdgeType("0");
+            metadata1.getOrCreatePropertyType("UIntProp", ValueType::UInt64);
+            metadata1.getOrCreatePropertyType("StringProp", ValueType::String);
         }
 
         {
@@ -87,20 +113,20 @@ protected:
         }
 
         spdlog::info(" -- Pushing 1");
-        ASSERT_TRUE(_graph->rebaseAndCommit(*commitBuilder1, *_jobSystem));
+        ASSERT_TRUE(update1.submit(*_jobSystem));
 
         /* SECOND BUFFER */
-        const auto tx2 = _graph->openWriteTransaction();
-        auto commitBuilder2 = tx2.prepareCommit();
-        auto& builder2 = commitBuilder2->newBuilder();
+        auto update2  = GraphUpdate::create(*_graph);
+        auto& builder2 = update2._builder;
+        auto& metadata2 = update2._metadata;
 
         {
             // Metadata
-            commitBuilder2->metadata().getOrCreateLabel("0");
-            commitBuilder2->metadata().getOrCreateLabel("1");
-            commitBuilder2->metadata().getOrCreateEdgeType("0");
-            commitBuilder2->metadata().getOrCreatePropertyType("UIntProp", ValueType::UInt64);
-            commitBuilder2->metadata().getOrCreatePropertyType("StringProp", ValueType::String);
+            metadata2.getOrCreateLabel("0");
+            metadata2.getOrCreateLabel("1");
+            metadata2.getOrCreateEdgeType("0");
+            metadata2.getOrCreatePropertyType("UIntProp", ValueType::UInt64);
+            metadata2.getOrCreatePropertyType("StringProp", ValueType::String);
         }
 
         {
@@ -145,19 +171,16 @@ protected:
         }
 
         spdlog::info(" -- Pushing 2");
-        ASSERT_TRUE(_graph->rebaseAndCommit(*commitBuilder2, *_jobSystem));
+        ASSERT_TRUE(update2.submit(*_jobSystem));
 
         /* THIRD BUFFER (Empty) */
-        const auto tx3 = _graph->openWriteTransaction();
-        auto commitBuilder3 = tx3.prepareCommit();
-        [[maybe_unused]] auto& builder3 = commitBuilder3->newBuilder();
-        ASSERT_TRUE(_graph->rebaseAndCommit(*commitBuilder3, *_jobSystem));
+        auto update3  = GraphUpdate::create(*_graph);
         spdlog::info(" -- Pushing 3");
+        ASSERT_TRUE(update3.submit(*_jobSystem));
 
         /* FOURTH BUFFER (First node and edge ids: 5, 5) */
-        const auto tx4 = _graph->openWriteTransaction();
-        auto commitBuilder4 = tx4.prepareCommit();
-        auto& builder4 = commitBuilder4->newBuilder();
+        auto update4  = GraphUpdate::create(*_graph);
+        auto& builder4 = update4._builder;
 
         {
             // Node 8
@@ -240,7 +263,7 @@ protected:
             *edgeToPatch, stringID, "TmpEdgeID2 patch");
 
         spdlog::info(" -- Pushing 4");
-        ASSERT_TRUE(_graph->rebaseAndCommit(*commitBuilder4, *_jobSystem));
+        ASSERT_TRUE(update4.submit(*_jobSystem));
     }
 
     void terminate() override {
@@ -254,7 +277,7 @@ protected:
 };
 
 TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::vector<TestEdgeRecord> compareSet {
         {0, 0, 1},
@@ -284,7 +307,7 @@ TEST_F(IteratorsTest, ScanEdgesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodesIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::vector<EntityID> compareSet {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
@@ -301,7 +324,7 @@ TEST_F(IteratorsTest, ScanNodesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::vector<EntityID> compareSet {2, 3, 4, 6, 7, 8};
 
@@ -319,7 +342,7 @@ TEST_F(IteratorsTest, ScanNodesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanOutEdgesByLabelIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::map<EntityID, const EdgeRecord*> byScanNodesRecords;
     std::map<EntityID, const EdgeRecord*> byScanEdgesRecords;
@@ -353,7 +376,7 @@ TEST_F(IteratorsTest, ScanOutEdgesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     std::map<EntityID, const EdgeRecord*> byScanNodesRecords;
     std::map<EntityID, const EdgeRecord*> byScanEdgesRecords;
@@ -401,7 +424,7 @@ TEST_F(IteratorsTest, ScanInEdgesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetEdgesIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {1, 2, 3, 8};
     std::vector<TestEdgeRecord> compareSet {
@@ -445,7 +468,7 @@ TEST_F(IteratorsTest, GetEdgesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
 
     {
@@ -484,7 +507,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
 
     {
@@ -525,7 +548,7 @@ TEST_F(IteratorsTest, ScanEdgePropertiesIteratorTest) {
 }
 
 TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     const auto labelset = LabelSet::fromList({1});
     const LabelSetHandle ref {labelset};
@@ -563,7 +586,7 @@ TEST_F(IteratorsTest, ScanNodePropertiesByLabelIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetNodeViewsIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
@@ -614,7 +637,7 @@ TEST_F(IteratorsTest, GetNodeViewsIteratorTest) {
 }
 
 TEST_F(IteratorsTest, GetNodePropertiesIteratorTest) {
-    const Transaction transaction = _graph->openTransaction();
+    const FrozenCommitTx transaction = _graph->openTransaction();
     const GraphReader reader = transaction.readGraph();
     ColumnIDs inputNodeIDs = {1, 3, 8};
 

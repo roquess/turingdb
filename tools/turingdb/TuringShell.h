@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "versioning/CommitHash.h"
+#include "versioning/ChangeID.h"
 
 namespace db {
 
@@ -25,16 +26,21 @@ public:
 
     bool setGraphName(const std::string& graphName);
     bool setCommitHash(CommitHash hash);
+    bool setChangeID(ChangeID changeID);
     void setQuiet(bool quiet) { _quiet = quiet; }
     void startLoop();
 
     void printHelp() const;
+
+    [[nodiscard]] CommitHash getCommitHash() const { return _hash; }
+    [[nodiscard]] ChangeID getChangeID() const { return _changeID; }
 
 private:
     TuringDB& _turingDB;
     LocalMemory* _mem {nullptr};
     std::string _graphName {"default"};
     CommitHash _hash {CommitHash::head()};
+    ChangeID _changeID {ChangeID::head()};
     bool _quiet {false};
     std::unordered_map<std::string_view, Command> _localCommands;
 

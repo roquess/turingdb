@@ -6,26 +6,64 @@
 
 using namespace db;
 
-Transaction::Transaction() = default;
+FrozenCommitTx::FrozenCommitTx() = default;
 
-Transaction::~Transaction() = default;
+FrozenCommitTx::~FrozenCommitTx() = default;
+
+GraphView FrozenCommitTx::viewGraph() const {
+    return GraphView {*_data};
+}
+
+GraphReader FrozenCommitTx::readGraph() const {
+    return GraphView {*_data}.read();
+}
+
+PendingCommitReadTx::PendingCommitReadTx() = default;
+
+PendingCommitReadTx::~PendingCommitReadTx() = default;
+
+PendingCommitReadTx::PendingCommitReadTx(ChangeAccessor&& changeAccessor,
+                                         const CommitBuilder* commitBuilder)
+    : _changeAccessor(std::move(changeAccessor)),
+    _commitBuilder(commitBuilder)
+{
+}
+
+GraphView PendingCommitReadTx::viewGraph() const {
+    return GraphView {_commitBuilder->commitData()};
+}
+
+GraphReader PendingCommitReadTx::readGraph() const {
+    return GraphView {_commitBuilder->commitData()}.read();
+}
+
+PendingCommitWriteTx::PendingCommitWriteTx() = default;
+
+PendingCommitWriteTx::~PendingCommitWriteTx() = default;
+
+PendingCommitWriteTx::PendingCommitWriteTx(ChangeAccessor&& changeAccessor,
+                                           CommitBuilder* commitBuilder)
+    : _changeAccessor(std::move(changeAccessor)),
+    _commitBuilder(commitBuilder)
+{
+}
+
+GraphView PendingCommitWriteTx::viewGraph() const {
+    return GraphView {_commitBuilder->commitData()};
+}
+
+GraphReader PendingCommitWriteTx::readGraph() const {
+    return GraphView {_commitBuilder->commitData()}.read();
+}
+
+bool Transaction::isValid() const {
+    return std::visit([](auto&& tx) { return tx.isValid(); }, _tx);
+}
 
 GraphView Transaction::viewGraph() const {
-    return GraphView {*_data};
+    return std::visit([](auto&& tx) { return tx.viewGraph(); }, _tx);
 }
 
 GraphReader Transaction::readGraph() const {
-    return GraphView {*_data}.read();
-}
-
-GraphView WriteTransaction::viewGraph() const {
-    return GraphView {*_data};
-}
-
-GraphReader WriteTransaction::readGraph() const {
-    return GraphView {*_data}.read();
-}
-
-std::unique_ptr<CommitBuilder> WriteTransaction::prepareCommit() const {
-    return CommitBuilder::prepare(*_graph, viewGraph());
+    return std::visit([](auto&& tx) { return tx.readGraph(); }, _tx);
 }

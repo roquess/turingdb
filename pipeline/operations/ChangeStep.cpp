@@ -5,16 +5,17 @@
 #include "ChangeManager.h"
 #include "ExecutionContext.h"
 #include "Profiler.h"
+#include "versioning/CommitBuilder.h"
+#include "versioning/Transaction.h"
 #include "SystemManager.h"
 #include "PipelineException.h"
 
 using namespace db;
 
 ChangeStep::ChangeStep(ChangeOpType type,
-                       ColumnVector<const CommitBuilder*>* output)
+                       ColumnVector<const Change*>* output)
     : _type(type),
-    _output(output)
-{
+      _output(output) {
 }
 
 ChangeStep::~ChangeStep() {
@@ -24,36 +25,46 @@ void ChangeStep::prepare(ExecutionContext* ctxt) {
     _sysMan = ctxt->getSystemManager();
     _jobSystem = ctxt->getJobSystem();
     _view = ctxt->getGraphView();
+    _tx = ctxt->getTransaction();
 
-    if (_type == ChangeOpType::NEW) {
-        _changeInfo = std::string {ctxt->getGraphName()};
-    } else {
-        _changeInfo = ctxt->getCommitHash();
+    switch (_type) {
+        case ChangeOpType::NEW: {
+            _changeInfo = std::string {ctxt->getGraphName()};
+        } break;
+        case ChangeOpType::SUBMIT:
+        case ChangeOpType::DELETE:
+            _changeInfo = ctxt->getChangeID();
+        case ChangeOpType::LIST: {
+        } break;
+        case ChangeOpType::_SIZE: {
+            throw PipelineException("ChangeStep: Unknown change type");
+        } break;
     }
 }
 
 void ChangeStep::execute() {
     switch (_type) {
-        case ChangeOpType::NEW:
+        case ChangeOpType::NEW: {
             if (auto res = createChange(); !res) {
                 throw PipelineException(fmt::format("Failed to create change: {}", res.error().fmtMessage()));
             }
-            break;
-        case ChangeOpType::SUBMIT:
+        } break;
+        case ChangeOpType::SUBMIT: {
             if (auto res = acceptChange(); !res) {
                 throw PipelineException(fmt::format("Failed to submit change: {}", res.error().fmtMessage()));
             }
-            break;
-        case ChangeOpType::DELETE:
+        } break;
+        case ChangeOpType::DELETE: {
             if (auto res = deleteChange(); !res) {
                 throw PipelineException(fmt::format("Failed to delete change: {}", res.error().fmtMessage()));
             }
-            break;
-        case ChangeOpType::LIST:
+        } break;
+        case ChangeOpType::LIST: {
             listChanges();
-            break;
-        case ChangeOpType::_SIZE:
+        } break;
+        case ChangeOpType::_SIZE: {
             throw PipelineException("ChangeStep: Unknown change type");
+        } break;
     }
 }
 
@@ -64,9 +75,9 @@ void ChangeStep::describe(std::string& descr) const {
     descr.assign(ss.str());
 }
 
-ChangeResult<CommitHash> ChangeStep::createChange() const {
+ChangeResult<Change*> ChangeStep::createChange() const {
     Profile profile {"ChangeStep::createChange"};
-
+    _output->clear();
 
     if (!std::holds_alternative<std::string>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the graph name");
@@ -75,34 +86,46 @@ ChangeResult<CommitHash> ChangeStep::createChange() const {
     const auto& graphName = std::get<std::string>(_changeInfo);
 
     auto res = _sysMan->newChange(graphName);
-    if (res) {
-        const auto& change = _sysMan->getChangeManager().getChange(res.value());
-        _output->push_back(change.value());
+    if (!res) {
+        return res;
     }
 
-    return res;
+    _output->push_back(res.value());
+
+    return {};
 }
 
 ChangeResult<void> ChangeStep::acceptChange() const {
     Profile profile {"ChangeStep::acceptChange"};
 
-    if (!std::holds_alternative<CommitHash>(_changeInfo)) {
+    if (!_tx->writingPendingCommit()) {
+        throw PipelineException("ChangeStep: Cannot accept change outside of a write transaction");
+    }
+
+    auto& tx = _tx->get<PendingCommitWriteTx>();
+
+    if (!std::holds_alternative<ChangeID>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the change hash");
     }
 
-    CommitHash changeHash = std::get<CommitHash>(_changeInfo);
-    return _sysMan->getChangeManager().acceptChange(changeHash, *_jobSystem);
+    return _sysMan->getChangeManager().acceptChange(tx.changeAccessor(), *_jobSystem);
 }
 
 ChangeResult<void> ChangeStep::deleteChange() const {
     Profile profile {"ChangeStep::deleteChange"};
 
-    if (!std::holds_alternative<CommitHash>(_changeInfo)) {
+    if (!_tx->writingPendingCommit()) {
+        throw PipelineException("ChangeStep: Cannot delete change outside of a write transaction");
+    }
+
+    auto& tx = _tx->get<PendingCommitWriteTx>();
+
+    if (!std::holds_alternative<ChangeID>(_changeInfo)) {
         throw PipelineException("ChangeStep: Change info must contain the change hash");
     }
 
-    CommitHash changeHash = std::get<CommitHash>(_changeInfo);
-    return _sysMan->getChangeManager().deleteChange(changeHash);
+    ChangeID changeID = std::get<ChangeID>(_changeInfo);
+    return _sysMan->getChangeManager().deleteChange(tx.changeAccessor(), changeID);
 }
 
 void ChangeStep::listChanges() const {

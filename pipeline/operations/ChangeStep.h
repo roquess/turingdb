@@ -6,23 +6,23 @@
 
 #include "ExecutionContext.h"
 #include "columns/ColumnVector.h"
+#include "versioning/ChangeID.h"
 #include "views/GraphView.h"
 #include "versioning/ChangeResult.h"
-#include "versioning/CommitHash.h"
 #include "ChangeOpType.h"
 
 namespace db {
 
 class ExecutionContext;
 class SystemManager;
-using ChangeInfo = std::variant<CommitHash, std::string>;
+using ChangeInfo = std::variant<ChangeID, std::string>;
 
 class ChangeStep {
 public:
     struct Tag {};
 
     ChangeStep(ChangeOpType type,
-               ColumnVector<const CommitBuilder*>* output);
+               ColumnVector<const Change*>* output);
     ~ChangeStep();
 
     void prepare(ExecutionContext* ctxt);
@@ -41,9 +41,10 @@ private:
     GraphView _view;
     ChangeOpType _type {};
     ChangeInfo _changeInfo;
-    ColumnVector<const CommitBuilder*>* _output {nullptr};
+    ColumnVector<const Change*>* _output {nullptr};
+    Transaction* _tx {nullptr};
 
-    ChangeResult<CommitHash> createChange() const;
+    ChangeResult<Change*> createChange() const;
     ChangeResult<void> acceptChange() const;
     ChangeResult<void> deleteChange() const;
     void listChanges() const;

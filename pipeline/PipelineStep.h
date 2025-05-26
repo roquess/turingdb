@@ -29,7 +29,7 @@
 #include "operations/ChangeStep.h"
 #include "operations/CreateNodeStep.h"
 #include "operations/CreateEdgeStep.h"
-#include "operations/BuildDataPartsStep.h"
+#include "operations/CommitStep.h"
 
 #include "FastGet.h"
 
@@ -111,14 +111,14 @@ public:
     PipelineStep(HistoryStep::Tag, ColumnVector<std::string>*);
     PipelineStep(ChangeStep::Tag,
                  ChangeOpType,
-                 ColumnVector<const CommitBuilder*>*);
+                 ColumnVector<const Change*>*);
     PipelineStep(LoadGraphStep::Tag, const std::string& graphName);
     PipelineStep(CreateNodeStep::Tag, const EntityPattern*);
     PipelineStep(CreateEdgeStep::Tag,
                  const EntityPattern*,
                  const EntityPattern*,
                  const EntityPattern*);
-    PipelineStep(BuildDataPartsStep::Tag);
+    PipelineStep(CommitStep::Tag);
 
     PROPERTY_STEPS(Int64)
     PROPERTY_STEPS(UInt64)
@@ -194,7 +194,7 @@ private:
                  ChangeStep,
                  CreateNodeStep,
                  CreateEdgeStep,
-                 BuildDataPartsStep>
+                 CommitStep>
         _impl;
 };
 
