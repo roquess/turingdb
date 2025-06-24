@@ -2,7 +2,7 @@ default:
   image: 799170964164.dkr.ecr.eu-west-2.amazonaws.com/turing:latest
 
 variables:
-  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_STRATEGY: none
   GIT_SUBMODULE_FORCE_HTTPS: "true"
 
 stages:
@@ -13,6 +13,8 @@ build-job:
     - docker
   stage: build
   before_script:
+  - git clean -ffdx
+  - git submodule update --init --recursive --force
   - git remote prune origin  # Remove stale remote branches
   - git fetch --prune --all  # Fetch fresh refs, removing old ones
   - git branch -r            # List remote branches for verification
