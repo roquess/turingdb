@@ -36,8 +36,9 @@ void returnAllVariables(MatchCommand* cmd) {
 
 }
 
-QueryAnalyzer::QueryAnalyzer(ASTContext* ctxt, const PropertyTypeMap& propTypeMap)
-    : _ctxt(ctxt),
+QueryAnalyzer::QueryAnalyzer(const GraphView& view, ASTContext* ctxt, const PropertyTypeMap& propTypeMap) 
+    : _view(view),
+    _ctxt(ctxt),
     _propTypeMap(propTypeMap)
 {
 }

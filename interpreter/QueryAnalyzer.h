@@ -1,5 +1,6 @@
 #pragma once
 
+#include "views/GraphView.h"
 #include <stdint.h>
 #include <string>
 
@@ -18,12 +19,13 @@ class ExplainCommand;
 
 class QueryAnalyzer {
 public:
-    QueryAnalyzer(ASTContext* ctxt, const PropertyTypeMap& propTypeMap);
+    QueryAnalyzer(const GraphView& view, ASTContext* ctxt, const PropertyTypeMap& propTypeMap);
     ~QueryAnalyzer();
 
     bool analyze(QueryCommand* cmd);
 
 private:
+    const GraphView& _view;
     ASTContext* _ctxt {nullptr};
     const PropertyTypeMap& _propTypeMap;
     uint64_t _nextNewVarID {0};
