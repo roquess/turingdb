@@ -125,9 +125,9 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
 
         if (elements.size() >= 2) {
             bioassert(elements.size() >= 3);
-            for (auto triple : elements | rv::drop(1) | rv::chunk(2)) {
-                EntityPattern* edge = triple[0];
-                EntityPattern* target = triple[1];
+            for (auto pair : elements | rv::drop(1) | rv::chunk(2)) {
+                EntityPattern* edge = pair[0];
+                EntityPattern* target = pair[1];
 
                 edge->setKind(DeclKind::EDGE_DECL);
                 target->setKind(DeclKind::NODE_DECL);
