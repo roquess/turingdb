@@ -162,6 +162,8 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
             decl->setReturned(true);
             field->setDecl(decl);
             const auto& memberName = field->getMemberName();
+
+            // If returning a member, get (and check) its type
             if (!memberName.empty()) {
                 const auto propTypeRes = _propTypeMap.get(memberName);
                 if (!propTypeRes) {
@@ -228,6 +230,7 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
 bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
                                          EntityPattern* entity) {
     VarExpr* var = entity->getVar();
+    // Handle the case where the entity is unlabeled edge (--)
     if (!var) {
         var = VarExpr::create(_ctxt, createVarName());
         entity->setVar(var);
@@ -239,16 +242,18 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
             var->getName(),
             entity->getKind(),
             entity->getEntityID());
+
     if (!decl) {
         // decl already exists from prev targets
-        decl = declContext->getDecl(var->getName());
-        if (decl->getEntityID() != entity->getEntityID()) {
+        VarDecl* existingDecl = declContext->getDecl(var->getName());
+        if (existingDecl->getEntityID() != entity->getEntityID()) {
             return false;
         }
     }
 
     if (auto* exprConstraint = entity->getExprConstraint()) {
         for (auto* binExpr : exprConstraint->getExpressions()) {
+            // Currently only support equals
             if (binExpr->getOpType() != BinExpr::OP_EQUAL) {
                 return false;
             }
