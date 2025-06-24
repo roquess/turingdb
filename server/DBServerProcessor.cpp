@@ -142,13 +142,14 @@ void DBServerProcessor::query() {
         transactionInfo.commit,
         transactionInfo.change);
 
-    payload.end();
-
     if (!res.isOk()) {
-        payload.key("error");
-        payload.value(QueryStatusDescription::value(res.getStatus()));
-        return;
+      payload.key("error");
+      payload.value(QueryStatusDescription::value(res.getStatus()));
+      payload.end();
+      return;
     }
+
+    payload.end();
 
     payload.key("time");
     payload.value(res.getTotalTime().count());
