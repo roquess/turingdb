@@ -297,10 +297,12 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
             if (valueType != exprType) {
                 std::string varTypeName = std::string(ValueTypeName::value(valueType));
                 std::string exprTypeName = std::string(ValueTypeName::value(exprType));
+                std::string verb = isCreate ? "assigned" : "compared to";
                 throw AnalyzeException(
                                        "Variable '" + varExprName +
                                        "' of type " + varTypeName +
-                                       " cannot be compared to value of type " +
+                                       " cannot be " + verb +
+                                       " value of type " +
                                        exprTypeName
                 );
             }
