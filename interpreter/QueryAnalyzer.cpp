@@ -260,54 +260,58 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
         }
     }
 
-    if (auto* exprConstraint = entity->getExprConstraint()) {
-        for (auto* binExpr : exprConstraint->getExpressions()) {
-            // Currently only support equals
-            if (binExpr->getOpType() != BinExpr::OP_EQUAL) {
-                throw AnalyzeException("Unsupported operator");
+    auto* exprConstraint = entity->getExprConstraint();
+    // If there are no constraints, return
+    if (!exprConstraint) {
+        var->setDecl(decl);
+        return true;
+    }
+
+    // Otherwise, type check all constraints
+    for (auto* binExpr : exprConstraint->getExpressions()) {
+        // Currently only support equals
+        if (binExpr->getOpType() != BinExpr::OP_EQUAL) {
+            throw AnalyzeException("Unsupported operator");
+        }
+        // XXX: Assumes that variable is left operand, constant is right operand
+        const VarExpr* leftOperand =
+            static_cast<VarExpr*>(binExpr->getLeftExpr());
+        const ExprConst* rightOperand =
+            static_cast<ExprConst*>(binExpr->getRightExpr());
+
+        // Query graph for name and type of variable
+        const std::string& varExprName = leftOperand->getName();
+        const GraphReader reader = _view.read();
+        const auto propTypeOpt = reader.getMetadata().propTypes().get(varExprName);
+
+        // Property type exists: type check
+        if (propTypeOpt != std::nullopt) {
+            const PropertyType propType = propTypeOpt.value();
+            // NOTE: Directly accessing struct member
+            const ValueType valueType = propType._valueType; 
+
+            const ValueType exprType = rightOperand->getType();
+
+            // FIXME: Should there be non-equal types that are allowed to be compared?
+            // (e.g. int64 and uint64)
+            if (valueType != exprType) {
+                std::string varTypeName = std::string(ValueTypeName::value(valueType));
+                std::string exprTypeName = std::string(ValueTypeName::value(exprType));
+                throw AnalyzeException(
+                                       "Variable '" + varExprName +
+                                       "' of type " + varTypeName +
+                                       " cannot be compared to value of type " +
+                                       exprTypeName
+                );
             }
-            // XXX: Assumes that variable is left operand, constant is right operand
-            const VarExpr* leftOperand =
-                static_cast<VarExpr*>(binExpr->getLeftExpr());
-            const ExprConst* rightOperand =
-                static_cast<ExprConst*>(binExpr->getRightExpr());
-
-            // Query graph for name and type of variable
-            const std::string& varExprName = leftOperand->getName();
-            const GraphReader reader = _view.read();
-            const auto propTypeOpt = reader.getMetadata().propTypes().get(varExprName);
-
-            // Property type exists: type check
-            if (propTypeOpt != std::nullopt) {
-                // Peform type check
-                const PropertyType propType = propTypeOpt.value();
-                // NOTE: Directly accessing struct member
-                const ValueType valueType = propType._valueType; 
-
-                const ValueType exprType = rightOperand->getType();
-
-                // FIXME: Should there be non-equal types that are allowed to be compared?
-                // (e.g. int64 and uint64)
-                if (valueType != exprType) {
-                    std::string varTypeName = std::string(ValueTypeName::value(valueType));
-                    std::string exprTypeName = std::string(ValueTypeName::value(exprType));
-                    throw AnalyzeException(
-                                           "Variable '" + varExprName +
-                                           "' of type " + varTypeName +
-                                           " cannot be compared to value of type " +
-                                           exprTypeName
-                    );
-                }
-            } else { // Property type does exist
-                // If a MATCH query: error
-                if (!isCreate) {
-                    throw AnalyzeException("Variable '" +
-                                           varExprName + "' has invalid property type");
-                }
+        } else { // Else: property type does exist
+            // If a MATCH query: error
+            if (!isCreate) {
+                throw AnalyzeException("Variable '" +
+                                       varExprName + "' has invalid property type");
             }
         }
     }
-
     var->setDecl(decl);
 
     return true;
