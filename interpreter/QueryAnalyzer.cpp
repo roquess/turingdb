@@ -113,6 +113,7 @@ bool QueryAnalyzer::analyzeCreateGraph(CreateGraphCommand* cmd) {
 }
 
 bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
+    bool isCreate{false};
     ReturnProjection* proj = cmd->getProjection();
     if (!proj) {
         return false;
@@ -126,7 +127,7 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
 
         EntityPattern* entityPattern = elements[0];
         entityPattern->setKind(DeclKind::NODE_DECL);
-        if (!analyzeEntityPattern(declContext, entityPattern)) {
+        if (!analyzeEntityPattern(declContext, entityPattern, isCreate)) {
             return false;
         }
 
@@ -139,11 +140,11 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
                 edge->setKind(DeclKind::EDGE_DECL);
                 target->setKind(DeclKind::NODE_DECL);
 
-                if (!analyzeEntityPattern(declContext, edge)) {
+                if (!analyzeEntityPattern(declContext, edge, isCreate)) {
                     return false;
                 }
 
-                if (!analyzeEntityPattern(declContext, target)) {
+                if (!analyzeEntityPattern(declContext, target, isCreate)) {
                     return false;
                 }
             }
@@ -194,6 +195,7 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
 }
 
 bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
+    bool isCreate{true};
     DeclContext* declContext = cmd->getDeclContext();
     const auto& targets = cmd->createTargets();
     for (const CreateTarget* target : targets) {
@@ -206,24 +208,24 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
         }
 
         entityPattern->setKind(DeclKind::NODE_DECL);
-        if (!analyzeEntityPattern(declContext, entityPattern)) {
+        if (!analyzeEntityPattern(declContext, entityPattern, isCreate)) {
             return false;
         }
 
         if (elements.size() >= 2) {
             bioassert(elements.size() >= 3);
-            for (auto triple : elements | rv::drop(1) | rv::chunk(2)) {
-                EntityPattern* edge = triple[0];
-                EntityPattern* target = triple[1];
+            for (auto pair : elements | rv::drop(1) | rv::chunk(2)) {
+                EntityPattern* edge = pair[0];
+                EntityPattern* target = pair[1];
 
                 edge->setKind(DeclKind::EDGE_DECL);
                 target->setKind(DeclKind::NODE_DECL);
 
-                if (!analyzeEntityPattern(declContext, edge)) {
+                if (!analyzeEntityPattern(declContext, edge,isCreate)) {
                     return false;
                 }
 
-                if (!analyzeEntityPattern(declContext, target)) {
+                if (!analyzeEntityPattern(declContext, target, isCreate)) {
                     return false;
                 }
             }
@@ -234,7 +236,8 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
 }
 
 bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
-                                         EntityPattern* entity) {
+                                         EntityPattern* entity,
+                                         bool isCreate) {
     VarExpr* var = entity->getVar();
     // Handle the case where the entity is unlabeled edge (--)
     if (!var) {
@@ -261,7 +264,7 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
         for (auto* binExpr : exprConstraint->getExpressions()) {
             // Currently only support equals
             if (binExpr->getOpType() != BinExpr::OP_EQUAL) {
-                return false;
+                throw AnalyzeException("Unsupported operator");
             }
             // XXX: Assumes that variable is left operand, constant is right operand
             const VarExpr* leftOperand =
@@ -273,30 +276,35 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
             const std::string& varExprName = leftOperand->getName();
             const GraphReader reader = _view.read();
             const auto propTypeOpt = reader.getMetadata().propTypes().get(varExprName);
-            if (propTypeOpt == std::nullopt) {
-                throw AnalyzeException("Variable" +
-                                       varExprName + " has invalid property type");
-            }
-            const PropertyType propType = propTypeOpt.value();
-            // NOTE: Directly accessing struct member
-            const ValueType valueType = propType._valueType; 
 
-            const ValueType exprType = rightOperand->getType();
+            // Property type exists: type check
+            if (propTypeOpt != std::nullopt) {
+                // Peform type check
+                const PropertyType propType = propTypeOpt.value();
+                // NOTE: Directly accessing struct member
+                const ValueType valueType = propType._valueType; 
 
-            // FIXME: Should there be non-equal types that are allowed to be compared?
-            // (e.g. int64 and uint64)
-            if (valueType != exprType) {
-                std::string varTypeName = std::string(ValueTypeName::value(valueType));
-                std::string exprTypeName = std::string(ValueTypeName::value(exprType));
-                throw AnalyzeException(
-                                       "Variable '" + varExprName +
-                                       "' of type " + varTypeName +
-                                       " cannot be compared to value of type " +
-                                       exprTypeName
-                                       
-                );
+                const ValueType exprType = rightOperand->getType();
+
+                // FIXME: Should there be non-equal types that are allowed to be compared?
+                // (e.g. int64 and uint64)
+                if (valueType != exprType) {
+                    std::string varTypeName = std::string(ValueTypeName::value(valueType));
+                    std::string exprTypeName = std::string(ValueTypeName::value(exprType));
+                    throw AnalyzeException(
+                                           "Variable '" + varExprName +
+                                           "' of type " + varTypeName +
+                                           " cannot be compared to value of type " +
+                                           exprTypeName
+                    );
+                }
+            } else { // Property type does exist
+                // If a MATCH query: error
+                if (!isCreate) {
+                    throw AnalyzeException("Variable '" +
+                                           varExprName + "' has invalid property type");
+                }
             }
-            
         }
     }
 

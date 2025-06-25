@@ -34,7 +34,9 @@ private:
     bool analyzeCreate(CreateCommand* cmd);
     bool analyzeCreateGraph(CreateGraphCommand* cmd);
     bool analyzeLoadGraph(LoadGraphCommand* cmd);
-    bool analyzeEntityPattern(DeclContext* declContext, EntityPattern* entity);
+    bool analyzeEntityPattern(DeclContext* declContext,
+                              EntityPattern* entity,
+                              bool isCreate);
     bool analyzeExplain(ExplainCommand* cmd);
     std::string createVarName();
 };
