@@ -1,9 +1,9 @@
 #pragma once
 
-#include "metadata/PropertyType.h"
-#include "views/GraphView.h"
 #include <stdint.h>
 #include <string>
+
+#include "metadata/PropertyType.h"
 
 namespace db {
 
@@ -22,7 +22,9 @@ class BinExpr;
 
 class QueryAnalyzer {
 public:
-    QueryAnalyzer(const GraphView& view, ASTContext* ctxt, const PropertyTypeMap& propTypeMap);
+    QueryAnalyzer(const GraphView& view,
+                  ASTContext* ctxt,
+                  const PropertyTypeMap& propTypeMap);
     ~QueryAnalyzer();
 
     bool analyze(QueryCommand* cmd);
@@ -41,7 +43,7 @@ private:
                               EntityPattern* entity,
                               bool isCreate);
     bool analyzeBinExprConstraint(const BinExpr* constraint, bool isCreate);
-    bool typeCheckBinExprConstr(const ValueType lhs, const ValueType rhs);
+    bool typeCheckBinExprConstr(ValueType lhs, ValueType rhs);
     bool analyzeExplain(ExplainCommand* cmd);
     std::string createVarName();
 };
