@@ -136,7 +136,9 @@ class DoubleExprConst : public ExprConst {
 public:
     static DoubleExprConst* create(ASTContext* ctxt, double val);
 
-    double getVal() const { return _val;}; private:
+    double getVal() const { return _val;};
+
+private:
     double _val {0};
     DoubleExprConst(int64_t val)
         : ExprConst(db::ValueType::Double),
