@@ -56,7 +56,7 @@ using namespace db;
 "[" { return YParser::make_OSBRACK(); }
 "]" { return YParser::make_CSBRACK(); }
 
-"u" { return YParser::make_USGN_SFX(); }
+"u" { return YParser::make_UNSIGNED_SUFFIX(); }
 
 (True|False|TRUE|FALSE|true|false) { return YParser::make_BOOLEAN_CONSTANT(yytext); }
 

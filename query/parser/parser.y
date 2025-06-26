@@ -124,7 +124,7 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token <std::string> BACKTICK_STRING_CONSTANT
 
 // Constant suffixes
-%token USGN_SFX
+%token UNSIGNED_SUFFIX
 
 %type<db::QueryCommand*> query_unit
 %type<db::QueryCommand*> cmd
@@ -379,7 +379,7 @@ prop_equals_expr: prop_ID EQUAL prop_expr_constant { $$ = BinExpr::create(ctxt, 
 
 prop_expr_constant: STRING_CONSTANT  { $$ = StringExprConst::create(ctxt, $1); }
                      | DECIMAL_CONSTANT { $$ =  DoubleExprConst::create(ctxt, std::stod($1));}
-                     | INT_CONSTANT USGN_SFX { $$ = UInt64ExprConst::create(ctxt, std::stoull($1)); }
+                     | INT_CONSTANT UNSIGNED_SUFFIX { $$ = UInt64ExprConst::create(ctxt, std::stoull($1)); }
                      | MINUS INT_CONSTANT { $$ = Int64ExprConst::create(ctxt, std::stoll("-"+$2)); }
                      | INT_CONSTANT { $$ = Int64ExprConst::create(ctxt, std::stoll($1)); }
                      | BOOLEAN_CONSTANT { 
