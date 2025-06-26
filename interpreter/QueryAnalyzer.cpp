@@ -252,7 +252,7 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
             throw AnalyzeException("Unsupported operator");
         }
 
-        // XXX: Assumes that variable is left operand, constant is right operand
+        // Assumes that variable is left operand, constant is right operand
         const VarExpr* leftOperand =
             static_cast<VarExpr*>(binExpr->getLeftExpr());
         const ExprConst* rightOperand =
@@ -276,7 +276,7 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
             }
         }
 
-        // Else: property type exists: get types and type check
+        // If property type exists: get types and type check
         const PropertyType lhsPropType = lhsPropTypeOpt.value();
         // NOTE: Directly accessing struct member
         const ValueType lhsType = lhsPropType._valueType; 

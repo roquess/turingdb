@@ -136,7 +136,7 @@ class DoubleExprConst : public ExprConst {
 public:
     static DoubleExprConst* create(ASTContext* ctxt, double val);
 
-    double getVal() const { return _val;};
+    double getVal() const { return _val; };
 
 private:
     double _val {0};
@@ -181,9 +181,9 @@ public:
     static BinExpr* create(ASTContext* ctxt, Expr* left, Expr* right, OpType _opType);// Could be a virtual protected func of parent class
    
     Expr::Kind getKind() const override { return EK_BIN_EXPR; }
-    OpType getOpType() const { return _opType;}
-    Expr* getLeftExpr() const { return _lexpr;}
-    Expr* getRightExpr() const { return _rexpr;}
+    OpType getOpType() const { return _opType; }
+    Expr* getLeftExpr() const { return _lexpr; }
+    Expr* getRightExpr() const { return _rexpr; }
 
 private:
     Expr* _lexpr {nullptr};
