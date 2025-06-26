@@ -325,7 +325,7 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
 
     auto* exprConstraint = entity->getExprConstraint();
     // If there are no constraints, no need to type check
-    if (!exprConstraint) {
+    if (exprConstraint == nullptr) {
         var->setDecl(decl);
         return true;
     }
