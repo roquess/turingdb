@@ -1,5 +1,6 @@
 #include "QueryAnalyzer.h"
 
+#include <cstdint>
 #include <optional>
 #include <range/v3/view.hpp>
 
@@ -235,17 +236,22 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
     return true;
 }
 
-bool QueryAnalyzer::typeCheckBinExprConstr(const ValueType lhs, const ValueType rhs) {
-    // FIXME: Should there be non-equal types that are allowed to be compared?
-    // (e.g. int64 and uint64)
+bool QueryAnalyzer::typeCheckBinExprConstr(const PropertyType lhs,
+                                           const ExprConst* rhs) {
+    // NOTE: Directly accessing struct member
+    const ValueType lhsType = lhs._valueType; 
+    const ValueType rhsType = rhs->getType();
 
-    if (lhs == rhs) {
+    if (lhsType == rhsType) {
         return true;
-    } else if (lhs == ValueType::UInt64 && rhs == ValueType::Int64) {
-        return true;
+    } else if (lhsType == ValueType::UInt64 && rhsType == ValueType::Int64) {
+        const auto rhsI64 = static_cast<const Int64ExprConst*>(rhs);
+        const int64_t rhsValue = rhsI64->getVal();
+        // Ensure the Int64 is not out of UInt64 range
+        if (rhsValue >= 0) {
+            return true;
+        }
     }
-     
-
     return false;
 }
 
@@ -257,13 +263,13 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
     }
 
     // Assumes that variable is left operand, constant is right operand
-    const VarExpr* leftOperand =
+    const VarExpr* lhsExpr =
         static_cast<VarExpr*>(binExpr->getLeftExpr());
-    const ExprConst* rightOperand =
+    const ExprConst* rhsExpr =
         static_cast<ExprConst*>(binExpr->getRightExpr());
 
     // Query graph for name and type of variable
-    const std::string& lhsName = leftOperand->getName();
+    const std::string& lhsName = lhsExpr->getName();
     const GraphReader reader = _view.read();
     const auto lhsPropTypeOpt = reader.getMetadata().propTypes().get(lhsName);
 
@@ -282,12 +288,10 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
 
     // If property type exists: get types and type check
     const PropertyType lhsPropType = lhsPropTypeOpt.value();
-    // NOTE: Directly accessing struct member
-    const ValueType lhsType = lhsPropType._valueType; 
 
-    const ValueType rhsType = rightOperand->getType();
-
-    if (!QueryAnalyzer::typeCheckBinExprConstr(lhsType, rhsType)) [[unlikely]] {
+    if (!QueryAnalyzer::typeCheckBinExprConstr(lhsPropType, rhsExpr)) [[unlikely]] {
+        const ValueType lhsType = lhsPropType._valueType; 
+        const ValueType rhsType = rhsExpr->getType();
         const std::string varTypeName = std::string(ValueTypeName::value(lhsType));
         const std::string exprTypeName = std::string(ValueTypeName::value(rhsType));
         const std::string verb = isCreate ? "assigned" : "compared to";

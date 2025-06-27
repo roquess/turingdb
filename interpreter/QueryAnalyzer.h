@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string>
 
+#include "Expr.h"
 #include "metadata/PropertyType.h"
 
 namespace db {
@@ -43,7 +44,7 @@ private:
                               EntityPattern* entity,
                               bool isCreate);
     bool analyzeBinExprConstraint(const BinExpr* constraint, bool isCreate);
-    bool typeCheckBinExprConstr(ValueType lhs, ValueType rhs);
+    bool typeCheckBinExprConstr(const PropertyType lhs, const ExprConst* rhs);
     bool analyzeExplain(ExplainCommand* cmd);
     std::string createVarName();
 };
