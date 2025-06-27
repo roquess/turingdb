@@ -238,6 +238,11 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
 bool QueryAnalyzer::typeCheckBinExprConstr(const ValueType lhs, const ValueType rhs) {
     // FIXME: Should there be non-equal types that are allowed to be compared?
     // (e.g. int64 and uint64)
+
+    if (lhs == ValueType::UInt64 && rhs == ValueType::Int64) {
+        return true;
+    }
+     
     if (lhs != rhs) {
         return false;
     }
@@ -265,7 +270,7 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
     // Property type does not exist
     if (lhsPropTypeOpt == std::nullopt) {
         // If this is a match query: error
-        if (!isCreate) {
+        if (!isCreate) [[unlikely]] {
             throw AnalyzeException("Variable '" +
                                    lhsName +
                                    "' has invalid property type");
@@ -282,7 +287,7 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
 
     const ValueType rhsType = rightOperand->getType();
 
-    if (!QueryAnalyzer::typeCheckBinExprConstr(lhsType, rhsType)) {
+    if (!QueryAnalyzer::typeCheckBinExprConstr(lhsType, rhsType)) [[unlikely]] {
         const std::string varTypeName = std::string(ValueTypeName::value(lhsType));
         const std::string exprTypeName = std::string(ValueTypeName::value(rhsType));
         const std::string verb = isCreate ? "assigned" : "compared to";
