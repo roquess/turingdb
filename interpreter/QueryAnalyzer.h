@@ -20,6 +20,7 @@ class LoadGraphCommand;
 class ExplainCommand;
 class GraphView;
 class BinExpr;
+class ExprConst;
 
 class QueryAnalyzer {
 public:
