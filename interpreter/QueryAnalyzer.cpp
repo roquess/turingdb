@@ -239,14 +239,14 @@ bool QueryAnalyzer::typeCheckBinExprConstr(const ValueType lhs, const ValueType 
     // FIXME: Should there be non-equal types that are allowed to be compared?
     // (e.g. int64 and uint64)
 
-    if (lhs == ValueType::UInt64 && rhs == ValueType::Int64) {
+    if (lhs == rhs) {
+        return true;
+    } else if (lhs == ValueType::UInt64 && rhs == ValueType::Int64) {
         return true;
     }
      
-    if (lhs != rhs) {
-        return false;
-    }
-    return true;
+
+    return false;
 }
 
 bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
