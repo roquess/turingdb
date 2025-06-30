@@ -127,7 +127,6 @@ private:
         std::vector<NodeID> res{};
         std::deque<PrefixTreeNode*> q{node};
         // BFS, collecting owners
-        
         while (!q.empty()) {
             PrefixTreeNode* n = q.front();
             q.pop_front();
@@ -184,6 +183,7 @@ private:
 const std::string help = "usage: \n \
     insert a string into the trie: 'i <string>' \n \
     query a string in the trie: 'f <string>' \n \
+    get the node ids which a own a string in the trie: 'o <string>' \n \
     print the trie: 'p' \n \
     ";
 
