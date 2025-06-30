@@ -6,101 +6,138 @@
 #include "utils.h"
 
 
+// TODO:
+// remove std namespace
+
 using namespace std;
 
 // Size of our alphabet: assumes some preprocessing,
-// so only termination char and a-z and 1-10
-constexpr size_t SIGMA = 1 + 26 + 10;
+// so only a-z and 1-9
+constexpr size_t SIGMA = 26 + 10;
 
 class StringApproximatorIndex {
 public:
-    struct prefixTreeNode {
-        array<prefixTreeNode*, SIGMA> children;
+    struct PrefixTreeNode {
+        array<PrefixTreeNode*, SIGMA> _children{};
         // Termination char denotes terminal node
-        char val;
-        bool isTerminal;
+        char _val{'\0'};
+        bool _isComplete{false};
 
-        prefixTreeNode(char val) : children{}, val{val}, isTerminal(false)
+        PrefixTreeNode(char val)
+            : _children{},
+            _val{val},
+            _isComplete(false)
         {
+        }
+
+        ~PrefixTreeNode() {
+            for (auto child : _children) {
+                delete child;
+            }
         }
 
     };
 
 
-    StringApproximatorIndex() {
-        _root = new prefixTreeNode{'\1'};
+    StringApproximatorIndex()
+    {
+        _root = new PrefixTreeNode{'\1'};
     }
 
-    void insert(string_view str) { return insert(_root, str); }
-    void print() { _printTree(_root); }
+    void insert(string_view str) { return _insert(_root, str); }
 
+    void print() const { _printTree(_root); }
 
 private:
-    prefixTreeNode* _root;
+    PrefixTreeNode* _root{nullptr};
 
-    size_t charToIndex(char c) {
+    static size_t charToIndex(char c) {
         // Children array layout:
         // INDEX CHARACTER VALUE
-        // 0     \0
-        // 1     a
+        // 0     a
         // ...  ...
-        // 26    z
-        // 27    0
+        // 25    z
+        // 26    0
         // ...  ...
-        // 37    9
-        if (isalpha(c)) return 1 + c - 'a';
-        else return 1 + 26 + c - '0';
+        // 36    9
+        if (isalpha(c)) return c - 'a';
+        else return 26 + c - '0';
     }
 
-    void insert(prefixTreeNode* parent, string_view str) {
+    void _insert(PrefixTreeNode* n, string_view str) {
+        PrefixTreeNode* node = n;
+        for (const char c : str) {
+            size_t idx = charToIndex(c);
+            if (node->_children[idx] == nullptr) {
+                auto* newChild = new PrefixTreeNode(c);
+                node->_children[idx] = newChild;
+            }
+            node = node->_children[idx];
+        }
+        node->_isComplete = true;
+    }
+
+    void _insert_rec(PrefixTreeNode* parent, string_view str) {
         if (str.empty()) {
-            parent->isTerminal = true;
+            parent->_isComplete = true;
             return;
         }
         // Get first char
         char c = str.at(0);
         str.remove_prefix(1);
-        // Index into the children array
         size_t idx = charToIndex(c);
 
         // If next char already exists in the tree
-        if (parent->children[idx] != nullptr) {
-            return insert(parent->children[idx], str);
+        if (parent->_children[idx] != nullptr) {
+            return _insert_rec(parent->_children[idx], str);
         }
         else {
-            auto newChild = parent->children[idx] = new prefixTreeNode{c};
-            return insert(newChild, str);
+            auto newChild = new PrefixTreeNode{c};
+            parent->_children[idx] = newChild;
+            return _insert_rec(newChild, str);
         }
     }
 
-   void _printTree(prefixTreeNode* node)
-    {
+    enum FindResult {
+        FOUND,
+        FOUND_PREFIX,
+        NOT_FOUND
+    };
+
+    FindResult _find(PrefixTreeNode* parent, string_view str) {
+        if (str.empty()) {
+            parent->_isComplete = true;
+            return FOUND;
+        }
+        
+    }
+
+   void _printTree(PrefixTreeNode* node) const {
         _printTree(node, "", true);
     }
 
-    void _printTree(prefixTreeNode* node,
+    void _printTree(PrefixTreeNode* node,
                     const std::string& prefix,
-                    bool isLastChild)
-    {
+                    bool isLastChild) const {
         if (!node) return;
 
-        if (node->val != '\1') {
+        if (node->_val != '\1') {
             std::cout << prefix
                       << (isLastChild ? "└── " : "├── ")
-                      << node->val
-                      << (node->isTerminal ? "*" : "")
+                      << node->_val
+                      << (node->_isComplete ? "*" : "")
                       << '\n';
         }
 
         // Gather existing children so we know which one is the last
-        vector<prefixTreeNode*> kids;
+        vector<PrefixTreeNode*> kids;
         kids.reserve(SIGMA);
         for (std::size_t i = 0; i < SIGMA; ++i)
-            if (node->children[i]) kids.push_back(node->children[i]);
+            if (node->_children[i]) kids.push_back(node->_children[i]);
 
         // Prefix extension: keep vertical bar if this isn’t last
         std::string nextPrefix = prefix;
-        if (node->val != '\1')          // don’t add for sentinel root
+        if (node->_val != '\1')          // don’t add for sentinel root
             nextPrefix += (isLastChild ? "    " : "│   ");
 
         // Recurse over children
@@ -129,7 +166,6 @@ int main() {
         }
         else if (tokens[0] == "p") tree.print();
         else cout << "unkown cmd" << endl;
-        
     }
 
 }
