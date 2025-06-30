@@ -19,8 +19,8 @@ void TypingGraph::createTypingGraph(Graph* graph) {
     
     writer.addNodeProperty<types::String>(typeHolder, "str", "string property");
 
-    writer.addNodeProperty<types::Bool>(typeHolder, "true", true);
-    writer.addNodeProperty<types::Bool>(typeHolder, "false", false);
+    writer.addNodeProperty<types::Bool>(typeHolder, "bool_t", true);
+    writer.addNodeProperty<types::Bool>(typeHolder, "bool_f", false);
 
     writer.commit();
 
