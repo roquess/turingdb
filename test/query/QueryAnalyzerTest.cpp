@@ -144,33 +144,31 @@ TEST_F(QueryAnalyzerTest, typeCheckDouble) {
         .execute();
 }
 
-/*
 TEST_F(QueryAnalyzerTest, typeCheckBool) {
     QueryTester tester {_mem, *_interp};
 
     // Query Bool with Bool
-    tester.query("MATCH n:Typer{boolt:true} return n")
+    tester.query("MATCH n:Typer{bool_t:true} return n")
         .expectVector<NodeID>({0})
         .execute();
 
     // Query Bool with Int64
-    tester.query("MATCH n:Typer{boolt:12} return n")
+    tester.query("MATCH n:Typer{bool_t:12} return n")
         .expectError()
         .execute();
 
     // Query Bool with UInt64
-    tester.query("MATCH n:Typer{boolt:12u} return n")
+    tester.query("MATCH n:Typer{bool_t:12u} return n")
         .expectError()
         .execute();
 
     // Query Bool with String
-    tester.query("MATCH n:Typer{boolt:\"true\"} return n")
+    tester.query("MATCH n:Typer{bool_t:\"true\"} return n")
         .expectError()
         .execute();
     
     // Query Bool with Double
-    tester.query("MATCH n:Typer{boolt:12.} return n")
+    tester.query("MATCH n:Typer{bool_t:12.} return n")
         .expectError()
         .execute();
 }
-*/
