@@ -1,13 +1,17 @@
 #include <cctype>
+#include <cstdint>
 #include <iostream>
 #include <array>
 #include <memory>
 #include <string_view>
+#include <deque>
 #include <vector>
 
 #include "utils.h"
 
 using NodeID = uint32_t;
+
+NodeID CURRENT_ID = 1;
 
 // Size of our alphabet: assumes some preprocessing,
 // so only a-z and 1-9
@@ -56,7 +60,14 @@ public:
 
     PrefixTreeIterator find(std::string_view str) { return _find(_root.get(), str); }
 
+    std::vector<NodeID> getOwners(std::string_view str) {
+        auto it = find(str);
+        if (!it._nodePtr) return {};
+        return getOwners(it);
+    }
+
     void print() const { _printTree(_root.get()); }
+
 
 private:
     std::unique_ptr<PrefixTreeNode> _root{};
@@ -74,7 +85,7 @@ private:
         else return 26 + c - '0';
     }
 
-    void _insert(PrefixTreeNode* root, std::string_view sv, NodeID owner=-1) {
+    void _insert(PrefixTreeNode* root, std::string_view sv, NodeID owner=CURRENT_ID++) {
         PrefixTreeNode* node = root;
         for (const char c : sv) {
             size_t idx = charToIndex(c);
@@ -110,6 +121,29 @@ private:
         }
         FindResult res = node->_isComplete ? FOUND : FOUND_PREFIX;
         return PrefixTreeIterator{res, node};
+    }
+
+    static std::vector<NodeID> getOwners(PrefixTreeIterator it) {
+        PrefixTreeNode* node = it._nodePtr;
+        std::vector<NodeID> res{};
+        std::deque<PrefixTreeNode*> q{node};
+        // BFS, collecting owners
+        
+        while (!q.empty()) {
+            PrefixTreeNode* n = q.front();
+            q.pop_front();
+            for (size_t i{0}; i < n->_children.size(); i++) {
+                if (auto child = n->_children[i].get())
+                q.push_back(child);
+            }
+            if (n->_isComplete) {
+                std::vector<NodeID>* owners = n->_owners.get();
+                res.insert(std::end(res),
+                           std::begin(*owners),
+                           std::end(*owners));
+            }
+        }
+        return res;
     }
 
     void _printTree(PrefixTreeNode* node) const {
@@ -151,7 +185,7 @@ private:
 const std::string help = "usage: \n \
     insert a string into the trie: 'i <string>' \n \
     query a string in the trie: 'f <string>' \n \
-    print the trie: 'p' \
+    print the trie: 'p' \n \
     ";
 
 int main() {
@@ -186,6 +220,14 @@ int main() {
                 std::cout << "String " << tokens[1] << verb << std::endl;
             }
             
+        }
+        else if (tokens[0] == "o") {
+            if (tokens.size() != 2) std::cout << "o <param>" << std::endl;
+            else {
+                auto owners = tree.getOwners(tokens[1]);
+                for (const auto o : owners) std::cout << o << "    ";
+                std::cout << std::endl;
+            }
         }
         else std::cout << "unkown cmd" << std::endl;
     }
