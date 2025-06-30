@@ -1,7 +1,5 @@
 #include "PlanGraphGenerator.h"
 
-#include <iostream>
-
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/chunk.hpp>
 
