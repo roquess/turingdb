@@ -7,11 +7,6 @@
 #include "utils.h"
 
 
-// TODO:
-// remove std namespace
-
-using namespace std;
-
 // Size of our alphabet: assumes some preprocessing,
 // so only a-z and 1-9
 constexpr size_t SIGMA = 26 + 10;
@@ -27,7 +22,7 @@ public:
 
 
     struct PrefixTreeNode {
-        array<PrefixTreeNode*, SIGMA> _children{};
+        std::array<PrefixTreeNode*, SIGMA> _children{};
         // Termination char denotes terminal node
         char _val{'\0'};
         bool _isComplete{false};
@@ -59,9 +54,9 @@ public:
         _root = new PrefixTreeNode{'\1'};
     }
 
-    void insert(string_view str) { return _insert(_root, str); }
+    void insert(std::string_view str) { return _insert(_root, str); }
 
-    PrefixTreeIterator find(string_view str) { return _find(_root, str); }
+    PrefixTreeIterator find(std::string_view str) { return _find(_root, str); }
 
     void print() const { _printTree(_root); }
 
@@ -81,7 +76,7 @@ private:
         else return 26 + c - '0';
     }
 
-    void _insert(PrefixTreeNode* root, string_view sv) {
+    void _insert(PrefixTreeNode* root, std::string_view sv) {
         PrefixTreeNode* node = root;
         for (const char c : sv) {
             size_t idx = charToIndex(c);
@@ -95,7 +90,7 @@ private:
     }
 
 
-    PrefixTreeIterator _find(PrefixTreeNode* root, string_view sv) {
+    PrefixTreeIterator _find(PrefixTreeNode* root, std::string_view sv) {
         char firstChar = sv[0];
         size_t idx = charToIndex(firstChar);
         if (root->_children[idx] == nullptr) {
@@ -116,29 +111,7 @@ private:
         return PrefixTreeIterator{res, node};
     }
 
-    void _insert_rec(PrefixTreeNode* parent, string_view str) {
-        if (str.empty()) {
-            parent->_isComplete = true;
-            return;
-        }
-        // Get first char
-        char c = str.at(0);
-        str.remove_prefix(1);
-        size_t idx = charToIndex(c);
-
-        // If next char already exists in the tree
-        if (parent->_children[idx] != nullptr) {
-            return _insert_rec(parent->_children[idx], str);
-        }
-        else {
-            auto newChild = new PrefixTreeNode{c};
-            parent->_children[idx] = newChild;
-            return _insert_rec(newChild, str);
-        }
-    }
-
-
-   void _printTree(PrefixTreeNode* node) const {
+    void _printTree(PrefixTreeNode* node) const {
         _printTree(node, "", true);
     }
 
@@ -156,7 +129,7 @@ private:
         }
 
         // Gather existing children so we know which one is the last
-        vector<PrefixTreeNode*> kids;
+        std::vector<PrefixTreeNode*> kids;
         kids.reserve(SIGMA);
         for (std::size_t i = 0; i < SIGMA; ++i)
             if (node->_children[i]) kids.push_back(node->_children[i]);
@@ -174,28 +147,28 @@ private:
 };
 
 
-const string help = "";
+const std::string help = "";
 
 int main() {
-    cout << help << endl;
+    std::cout << help << std::endl;
 
     StringApproximatorIndex tree{};
 
-    string in;
+    std::string in;
     while (true) {
-        cout << ">";
-        getline(cin, in);
+        std::cout << ">";
+        getline(std::cin, in);
         auto tokens = split(in, " ");
         if (tokens[0] == "i") {
-            if (tokens.size() != 2) cout << "i <param>" << endl;
+            if (tokens.size() != 2) std::cout << "i <param>" << std::endl;
             else tree.insert(tokens[1]);
         }
         else if (tokens[0] == "p") tree.print();
         else if (tokens[0] == "f") {
-            if (tokens.size() != 2) cout << "f <param>" << endl;
+            if (tokens.size() != 2) std::cout << "f <param>" << std::endl;
             else {
                 StringApproximatorIndex::PrefixTreeIterator res = tree.find(tokens[1]);
-                string verb;
+                std::string verb;
                 if (res._result == StringApproximatorIndex::FOUND) {
                     verb = " found ";
                 }
@@ -205,11 +178,11 @@ int main() {
                 else {
                     verb = " not found ";
                 }
-                cout << "String " << tokens[1] << verb << endl;
+                std::cout << "String " << tokens[1] << verb << std::endl;
             }
             
         }
-        else cout << "unkown cmd" << endl;
+        else std::cout << "unkown cmd" << std::endl;
     }
 
 }
