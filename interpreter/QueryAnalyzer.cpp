@@ -169,7 +169,7 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
             field->setDecl(decl);
             const auto& memberName = field->getMemberName();
 
-            auto propTypeMap = _view.metadata().propTypes();
+            const auto& propTypeMap = _view.metadata().propTypes();
             // If returning a member, get (and check) its type
             if (!memberName.empty()) {
                 const auto propTypeRes = propTypeMap.get(memberName);
