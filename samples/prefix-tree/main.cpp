@@ -19,5 +19,7 @@ int main(int argc, char** argv) {
         auto input = std::string(argv[2]);
         auto queries = std::string(argv[3]);
         benchmarkPrefix(input, queries);
+        std::cout << std::endl;
+        benchmarkNaive(input, queries);
     }
 }

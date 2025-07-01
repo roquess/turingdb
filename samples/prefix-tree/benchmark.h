@@ -2,7 +2,6 @@
 
 #include "prefix-tree.h"
 
-#include <chrono>
 #include <string>
 
 struct QueryResults {
@@ -14,3 +13,5 @@ struct QueryResults {
 void dumpTree(StringApproximatorIndex* trie, const std::string& inPath);
 QueryResults* queryTree(StringApproximatorIndex* trie, const std::string& queryPath);
 void benchmarkPrefix(const std::string& inputsPath, const std::string& queryPath);
+QueryResults* naiveQuery(const std::string& inputPath, const std::string& queryPath);
+void benchmarkNaive(const std::string& inputsPath, const std::string& queryPath);

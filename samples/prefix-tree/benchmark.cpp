@@ -1,6 +1,9 @@
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <string>
 
 #include "prefix-tree.h"
 #include "benchmark.h"
@@ -15,6 +18,7 @@ void dumpTree(StringApproximatorIndex* trie, const std::string& inPath) {
         auto words = preprocess(input);
         for (const auto& word : words) trie->insert(word);
     }
+    infile.close();
 }
 
 QueryResults* queryTree(StringApproximatorIndex* trie, const std::string& queryPath) {
@@ -33,11 +37,52 @@ QueryResults* queryTree(StringApproximatorIndex* trie, const std::string& queryP
         for (const auto& word : words){
             using Trie = StringApproximatorIndex;
             auto it = trie->find(word);
-            if (it._result == Trie::FOUND) res->finds++;
+            if (it._result == Trie::FOUND) {
+                size_t numOwners = it._nodePtr->_owners->size();
+                res->finds += numOwners;
+            }
             else if (it._result == Trie::FOUND_PREFIX) res->partial_finds++;
             else res->misses++;
         }
     }
+    infile.close();
+    return res;
+}
+
+// Awfully slow brute force approach
+QueryResults* naiveQuery(const std::string& inputPath, const std::string& queryPath) {
+    std::fstream qFile(queryPath);
+    std::fstream iFile(inputPath);
+
+    QueryResults* res = new QueryResults;
+
+    std::string qLine;
+    while (std::getline(qFile, qLine)) {
+        if (qLine == "Query" || qLine.empty()) continue;
+    
+        if (qLine.front() == '"' && qLine.back() == '"') {
+            qLine = qLine.substr(1, qLine.length() - 2);
+        }
+        std::vector<std::string> queries = preprocess(qLine);
+        std::string iLine;
+        for (const auto& q : queries) {
+            iFile.clear();
+            iFile.seekg(0, std::ios::beg);
+            bool found{false};
+            while (std::getline(iFile, iLine)) {
+                if (iLine == "Inputs" || iLine.empty()) continue;
+                auto tokens = preprocess(iLine);
+                auto it = std::find(std::begin(tokens), std::end(tokens), q);
+                if (it != std::end(tokens)) {
+                    res->finds++;
+                    found |= true;
+                }
+            }
+            if (!found) res->misses++;
+        }
+    }
+    iFile.close();
+    qFile.close();
     return res;
 }
 
@@ -64,4 +109,21 @@ void benchmarkPrefix(const std::string& inputsPath, const std::string& queryPath
     std::cout << results->finds << " complete matches" << std::endl;
     std::cout << results->partial_finds << " partial matches" << std::endl;
     std::cout << results->misses << " misses" << std::endl;
+}
+
+
+void benchmarkNaive(const std::string& inputsPath, const std::string& queryPath) {
+    using std::chrono::high_resolution_clock;
+    auto tsQueryPrior = high_resolution_clock::now();
+    QueryResults* results = naiveQuery(inputsPath, queryPath);
+    auto tsQueryPost = high_resolution_clock::now();
+
+    std::chrono::duration<double,std::milli> timeQuery =
+        tsQueryPost - tsQueryPrior;
+    std::cout << "Naive Brute Force Query: " << timeQuery.count() << "ms" << std::endl;
+    std::cout << "with: " << std::endl;
+    std::cout << results->finds << " complete matches" << std::endl;
+    std::cout << results->partial_finds << " partial matches" << std::endl;
+    std::cout << results->misses << " misses" << std::endl;
+    
 }
