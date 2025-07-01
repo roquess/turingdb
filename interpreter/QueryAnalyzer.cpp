@@ -41,12 +41,9 @@ void returnAllVariables(MatchCommand* cmd) {
 
 }
 
-QueryAnalyzer::QueryAnalyzer(const GraphView& view,
-                             ASTContext* ctxt,
-                             const PropertyTypeMap& propTypeMap) 
+QueryAnalyzer::QueryAnalyzer(const GraphView& view, ASTContext* ctxt)
     : _view(view),
-    _ctxt(ctxt),
-    _propTypeMap(propTypeMap)
+    _ctxt(ctxt)
 {
 }
 
@@ -172,9 +169,10 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
             field->setDecl(decl);
             const auto& memberName = field->getMemberName();
 
+            auto propTypeMap = _view.metadata().propTypes();
             // If returning a member, get (and check) its type
             if (!memberName.empty()) {
-                const auto propTypeRes = _propTypeMap.get(memberName);
+                const auto propTypeRes = propTypeMap.get(memberName);
                 if (!propTypeRes) {
                     throw AnalyzeException("Property type not found for property member \""
                                            + field->getMemberName() + "\"");
