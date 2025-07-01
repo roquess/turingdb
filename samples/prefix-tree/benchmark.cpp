@@ -104,7 +104,7 @@ inline QueryResults* queryTree(StringApproximatorIndex* trie, const std::string&
             else if (it._result == Trie::FOUND_PREFIX) res->partial_finds++;
             else {
                 res->misses++;
-                std::cout << word << " not found in trie" << std::endl;
+                //std::cout << word << " not found in trie" << std::endl;
             }
         }
     }
