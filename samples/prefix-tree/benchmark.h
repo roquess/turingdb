@@ -13,13 +13,12 @@ struct QueryResults {
     uint64_t misses{0};
 };
 
-void dumpTree(StringApproximatorIndex* trie, const std::string& inPath);
-QueryResults* queryTree(StringApproximatorIndex* trie, const std::string& queryPath);
-void benchmarkPrefix(const std::string& inputsPath, const std::string& queryPath);
+void benchmarkPrefix(StringApproximatorIndex* trie,
+                     const std::string& inputsPath,
+                     const std::string& queryPath);
 
-QueryResults* naiveQuery(const std::string& inputPath, const std::string& queryPath);
-void benchmarkNaive(const std::string& inputsPath, const std::string& queryPath);
+void benchmarkHash(HashingStringIndexer& index,
+                   const std::string& inputsPath,
+                   const std::string& queryPath);
 
-void dumpHash(HashingStringIndexer& hash, const std::string& inPath);
-QueryResults* queryHash(HashingStringIndexer& hash, const std::string& queryPath);
-void benchmarkHash(const std::string& inputsPath, const std::string& queryPath);
+void runBenchmarks(const std::string& inputPath, const std::string& queryPath);

@@ -18,9 +18,6 @@ int main(int argc, char** argv) {
     else if (argc == 4 && std::string(argv[1]) == "--bm") {
         auto input = std::string(argv[2]);
         auto queries = std::string(argv[3]);
-        benchmarkPrefix(input, queries);
-        std::cout << std::endl;
-        benchmarkHash(input, queries);
-        std::cout << std::endl;
+        runBenchmarks(input, queries);
     }
 }
