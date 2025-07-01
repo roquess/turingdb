@@ -2,7 +2,6 @@
 #include <cstddef>
 #include <fstream>
 #include <iostream>
-#include <ranges>
 #include <string>
 #include <unordered_map>
 
@@ -12,6 +11,7 @@
 
 using HashingStringIndexer = std::unordered_map<std::string, std::vector<NodeID>>;
 
+// Populate hash and tree with data
 inline void dump(StringApproximatorIndex* trie,
                  HashingStringIndexer& hash,
                  const std::string& path) {
@@ -102,10 +102,7 @@ inline QueryResults* queryTree(StringApproximatorIndex* trie, const std::string&
                 res->finds += numOwners;
             }
             else if (it._result == Trie::FOUND_PREFIX) res->partial_finds++;
-            else {
-                res->misses++;
-                //std::cout << word << " not found in trie" << std::endl;
-            }
+            else res->misses++;
         }
     }
     infile.close();

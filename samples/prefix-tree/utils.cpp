@@ -1,4 +1,5 @@
 #include "utils.h"
+
 #include <cctype>
 #include <iterator>
 #include <locale>
@@ -21,7 +22,7 @@ std::vector<std::string> split(std::string_view str, std::string_view delim) {
     return out;
 }
 
-std::string alphaNumericise(const std::string_view in) {
+inline std::string alphaNumericise(const std::string_view in) {
     std::string out{};
 
     auto ppxChar = [](char c) {
