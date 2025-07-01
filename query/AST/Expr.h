@@ -86,6 +86,7 @@ public:
     static StringExprConst* create(ASTContext* ctxt, const std::string& val);
 
     const std::string& getVal() const { return _val;};
+
 private:
     const std::string _val;
 
@@ -140,7 +141,7 @@ public:
 
 private:
     double _val {0};
-    DoubleExprConst(int64_t val)
+    DoubleExprConst(double val)
         : ExprConst(db::ValueType::Double),
         _val(val)
     {

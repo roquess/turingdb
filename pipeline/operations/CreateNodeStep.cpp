@@ -77,6 +77,7 @@ void CreateNodeStep::createNode(DataPartBuilder* builder, const EntityPattern* d
             throw PipelineException("Node property expression must be an assignment");
         }
 
+        // Types are checked previously in QueryAnalyzer
         const ValueType valueType = right->getType();
         const auto propType = metadata.getOrCreatePropertyType(left->getName(), valueType);
 
