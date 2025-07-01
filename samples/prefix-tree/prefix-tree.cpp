@@ -187,7 +187,8 @@ const std::string help = "usage: \n \
     print the trie: 'p' \n \
     ";
 
-int main() {
+
+void cli() {
     std::cout << help << std::endl;
 
     StringApproximatorIndex tree{};
@@ -230,6 +231,11 @@ int main() {
         }
         else std::cout << "unkown cmd" << std::endl;
     }
+}
 
+int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--cli") {
+        cli();
+    }
 }
 
