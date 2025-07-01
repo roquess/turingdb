@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <string>
 
-#include "Expr.h"
 #include "metadata/PropertyType.h"
 
 namespace db {

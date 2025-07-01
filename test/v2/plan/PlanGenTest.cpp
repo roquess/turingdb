@@ -43,7 +43,7 @@ TEST_F(PlanGenTest, matchAllNodes) {
     QueryCommand* queryCmd = parser.parse(queryStr);
     ASSERT_TRUE(queryCmd);
 
-    QueryAnalyzer analyzer(view, &ctxt, view.metadata().propTypes());
+    QueryAnalyzer analyzer(view, &ctxt);
     const bool anaRes = analyzer.analyze(queryCmd);
     ASSERT_TRUE(anaRes);
 
@@ -75,7 +75,7 @@ TEST_F(PlanGenTest, matchAllEdgesWithVar) {
     QueryCommand* queryCmd = parser.parse(queryStr);
     ASSERT_TRUE(queryCmd);
 
-    QueryAnalyzer analyzer(view, &ctxt, view.metadata().propTypes());
+    QueryAnalyzer analyzer(view, &ctxt);
     const bool anaRes = analyzer.analyze(queryCmd);
     ASSERT_TRUE(anaRes);
 
@@ -111,7 +111,7 @@ TEST_F(PlanGenTest, matchAllEdges2) {
     QueryCommand* queryCmd = parser.parse(queryStr);
     ASSERT_TRUE(queryCmd);
 
-    QueryAnalyzer analyzer(view, &ctxt, view.metadata().propTypes());
+    QueryAnalyzer analyzer(view, &ctxt);
     const bool anaRes = analyzer.analyze(queryCmd);
     ASSERT_TRUE(anaRes);
 
@@ -147,7 +147,7 @@ TEST_F(PlanGenTest, matchSingleByLabel) {
     QueryCommand* queryCmd = parser.parse(queryStr);
     ASSERT_TRUE(queryCmd);
 
-    QueryAnalyzer analyzer(view, &ctxt, view.metadata().propTypes());
+    QueryAnalyzer analyzer(view, &ctxt);
     const bool anaRes = analyzer.analyze(queryCmd);
     ASSERT_TRUE(anaRes);
 
@@ -179,7 +179,7 @@ TEST_F(PlanGenTest, matchLinear1) {
     QueryCommand* queryCmd = parser.parse(queryStr);
     ASSERT_TRUE(queryCmd);
 
-    QueryAnalyzer analyzer(view, &ctxt, view.metadata().propTypes());
+    QueryAnalyzer analyzer(view, &ctxt);
     const bool anaRes = analyzer.analyze(queryCmd);
     ASSERT_TRUE(anaRes);
 
