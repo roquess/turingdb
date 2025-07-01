@@ -19,12 +19,11 @@ class LoadGraphCommand;
 class ExplainCommand;
 class GraphView;
 class BinExpr;
+class ExprConst;
 
 class QueryAnalyzer {
 public:
-    QueryAnalyzer(const GraphView& view,
-                  ASTContext* ctxt,
-                  const PropertyTypeMap& propTypeMap);
+    QueryAnalyzer(const GraphView& view, ASTContext* ctxt);
     ~QueryAnalyzer();
 
     bool analyze(QueryCommand* cmd);
@@ -32,7 +31,6 @@ public:
 private:
     const GraphView& _view;
     ASTContext* _ctxt {nullptr};
-    const PropertyTypeMap& _propTypeMap;
     uint64_t _nextNewVarID {0};
 
     bool analyzeMatch(MatchCommand* cmd);
@@ -43,7 +41,7 @@ private:
                               EntityPattern* entity,
                               bool isCreate);
     bool analyzeBinExprConstraint(const BinExpr* constraint, bool isCreate);
-    bool typeCheckBinExprConstr(ValueType lhs, ValueType rhs);
+    bool typeCheckBinExprConstr(const PropertyType lhs, const ExprConst* rhs);
     bool analyzeExplain(ExplainCommand* cmd);
     std::string createVarName();
 };
