@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
         auto queries = std::string(argv[3]);
         benchmarkPrefix(input, queries);
         std::cout << std::endl;
-        benchmarkNaive(input, queries);
+        benchmarkHash(input, queries);
+        std::cout << std::endl;
     }
 }
