@@ -3,11 +3,13 @@
 #include <cstdint>
 #include <optional>
 #include <range/v3/view.hpp>
+#include <range/v3/action/sort.hpp>
+#include <range/v3/algorithm/adjacent_find.hpp>
 
 #include "AnalyzeException.h"
 #include "Profiler.h"
 #include "metadata/PropertyType.h"
-#include "metadata/PropertyTypeMap.h"
+#include "reader/GraphReader.h"
 #include "DeclContext.h"
 #include "Expr.h"
 #include "MatchTarget.h"
@@ -19,7 +21,6 @@
 #include "VarDecl.h"
 #include "BioAssert.h"
 
-#include "reader/GraphReader.h"
 
 using namespace db;
 namespace rv = ranges::views;
@@ -111,8 +112,39 @@ bool QueryAnalyzer::analyzeCreateGraph(CreateGraphCommand* cmd) {
     return true;
 }
 
+// Checks if a match target contains multiple variables
+void QueryAnalyzer::ensureMatchVarsUnique(const MatchTarget* target) {
+    using PathElements = std::vector<EntityPattern*>;
+
+    const PathPattern* ptn = target->getPattern();
+
+    const PathElements& elements = ptn->elements();
+
+    std::vector<std::string> varNames;
+    for (auto&& e : elements) {
+        if (e && e->getVar()) {
+            varNames.push_back(e->getVar()->getName());
+        }
+    }
+    std::ranges::sort(varNames);
+
+    // Adjacent find returns an iterator to the first occurences of two consecutive
+    // identical elements. Since the vector is sorted, identical variable names are
+    // contiguous, and thus if adjacent_find returns no such two consecutive
+    // identical elements, all variables must be unique.
+    const auto duplicateVarIt = ranges::adjacent_find(varNames);
+    const bool hasDuplicate = duplicateVarIt != std::end(varNames);
+
+    if (hasDuplicate) [[unlikely]] {
+        const std::string duplicateVarName = *duplicateVarIt;
+        throw AnalyzeException(fmt::format(
+            "Variable {} occurs multiple times in MATCH query",
+            duplicateVarName));
+    }
+}
+
 bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
-    bool isCreate{false}; // Flag to distinguish create and match commands
+    bool isCreate {false}; // Flag to distinguish create and match commands
     ReturnProjection* proj = cmd->getProjection();
     if (!proj) {
         return false;
@@ -122,6 +154,11 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
     DeclContext* declContext = cmd->getDeclContext();
     for (const MatchTarget* target : cmd->matchTargets()) {
         const PathPattern* pattern = target->getPattern();
+        if (pattern == nullptr) {
+            throw new AnalyzeException("Match target path pattern not found");
+        }
+
+        ensureMatchVarsUnique(target);
         const auto& elements = pattern->elements();
 
         EntityPattern* entityPattern = elements[0];
@@ -174,8 +211,9 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
             if (!memberName.empty()) {
                 const auto propTypeRes = propTypeMap.get(memberName);
                 if (!propTypeRes) {
-                    throw AnalyzeException("Property type not found for property member \""
-                                           + field->getMemberName() + "\"");
+                    throw AnalyzeException(
+                        "Property type not found for property member \""
+                       + field->getMemberName() + "\"");
                 }
 
                 const auto propType = propTypeRes.value();
@@ -195,7 +233,7 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
 }
 
 bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
-    bool isCreate{true}; // Flag to distinguish create and match commands
+    bool isCreate {true}; // Flag to distinguish create and match commands
     DeclContext* declContext = cmd->getDeclContext();
     const auto& targets = cmd->createTargets();
     for (const CreateTarget* target : targets) {
@@ -221,7 +259,7 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
                 edge->setKind(DeclKind::EDGE_DECL);
                 target->setKind(DeclKind::NODE_DECL);
 
-                if (!analyzeEntityPattern(declContext, edge,isCreate)) {
+                if (!analyzeEntityPattern(declContext, edge, isCreate)) {
                     return false;
                 }
 
@@ -237,7 +275,7 @@ bool QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
 bool QueryAnalyzer::typeCheckBinExprConstr(const PropertyType lhs,
                                            const ExprConst* rhs) {
     // NOTE: Directly accessing struct member
-    const ValueType lhsType = lhs._valueType; 
+    const ValueType lhsType = lhs._valueType;
     const ValueType rhsType = rhs->getType();
 
     if (lhsType == rhsType) {
@@ -275,11 +313,9 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
     if (lhsPropTypeOpt == std::nullopt) {
         // If this is a match query: error
         if (!isCreate) [[unlikely]] {
-            throw AnalyzeException("Variable '" +
-                                   lhsName +
+            throw AnalyzeException("Variable '" + lhsName +
                                    "' has invalid property type");
-        }
-        else { // If a create query: no need to type check
+        } else { // If a create query: no need to type check
             return true;
         }
     }
@@ -288,16 +324,13 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
     const PropertyType lhsPropType = lhsPropTypeOpt.value();
 
     if (!QueryAnalyzer::typeCheckBinExprConstr(lhsPropType, rhsExpr)) [[unlikely]] {
-        const ValueType lhsType = lhsPropType._valueType; 
+        const ValueType lhsType = lhsPropType._valueType;
         const ValueType rhsType = rhsExpr->getType();
         const std::string varTypeName = std::string(ValueTypeName::value(lhsType));
         const std::string exprTypeName = std::string(ValueTypeName::value(rhsType));
         const std::string verb = isCreate ? "assigned" : "compared to";
-        throw AnalyzeException("Variable '" + lhsName +
-                               "' of type " + varTypeName +
-                               " cannot be " + verb +
-                               " value of type " +
-                               exprTypeName);
+        throw AnalyzeException("Variable '" + lhsName + "' of type " + varTypeName +
+                               " cannot be " + verb + " value of type " + exprTypeName);
     }
     return true;
 }
@@ -314,10 +347,10 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
 
     // Create the variable declaration in the scope of the command
     VarDecl* decl = VarDecl::create(_ctxt,
-            declContext,
-            var->getName(),
-            entity->getKind(),
-            entity->getEntityID());
+                                    declContext,
+                                    var->getName(),
+                                    entity->getKind(),
+                                    entity->getEntityID());
 
     if (!decl) {
         // decl already exists from prev targets
@@ -338,10 +371,10 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
     const auto binExprs = exprConstraint->getExpressions();
     for (const BinExpr* binExpr : binExprs) {
         if (!QueryAnalyzer::analyzeBinExprConstraint(binExpr, isCreate)) {
-          return false;
+            return false;
         }
     }
-    
+
     var->setDecl(decl);
     return true;
 }
