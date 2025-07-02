@@ -44,7 +44,7 @@ void returnAllVariables(MatchCommand* cmd) {
 
 QueryAnalyzer::QueryAnalyzer(const GraphView& view, ASTContext* ctxt)
     : _view(view),
-      _ctxt(ctxt)
+    _ctxt(ctxt)
 {
 }
 
@@ -57,36 +57,36 @@ bool QueryAnalyzer::analyze(QueryCommand* cmd) {
     switch (cmd->getKind()) {
         case QueryCommand::Kind::MATCH_COMMAND:
             return analyzeMatch(static_cast<MatchCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::CREATE_COMMAND:
             return analyzeCreate(static_cast<CreateCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::CREATE_GRAPH_COMMAND:
             return analyzeCreateGraph(static_cast<CreateGraphCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::LIST_GRAPH_COMMAND:
             return true;
-            break;
+        break;
 
         case QueryCommand::Kind::LOAD_GRAPH_COMMAND:
             return analyzeLoadGraph(static_cast<LoadGraphCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::EXPLAIN_COMMAND:
             return analyzeExplain(static_cast<ExplainCommand*>(cmd));
-            break;
+        break;
 
         case QueryCommand::Kind::HISTORY_COMMAND:
         case QueryCommand::Kind::CHANGE_COMMAND:
         case QueryCommand::Kind::COMMIT_COMMAND:
             return true;
-            break;
+        break;
 
         default:
-            return false;
+        return false;
     }
 
     return true;
