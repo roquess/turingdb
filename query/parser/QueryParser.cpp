@@ -25,8 +25,10 @@ QueryCommand* QueryParser::parse(std::string_view query) {
 
     yscanner.switch_streams(&iss, NULL);
 
-    yparser.parse();
-    if (_astCtxt->hasError()) {
+    try {
+        yparser.parse();  
+    } catch (const db::YParser::syntax_error& e) {
+        std::cerr << e.what() << '\n';
         return nullptr;
     }
     

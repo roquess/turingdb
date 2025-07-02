@@ -7,6 +7,8 @@
 %define api.value.type variant
 %define parse.assert
 %define api.namespace { db }
+%define parse.error verbose
+
 
 %code requires
 {
@@ -455,5 +457,9 @@ commit_cmd: COMMIT { $$ = CommitCommand::create(ctxt); }
 
 %%
 
-void db::YParser::error(const std::string& message) {
+
+void db::YParser::error(const std::string& msg) {
+    // This function is required by the base class.
+    // It might never be called if you're only catching syntax_error exceptions.
+    throw db::YParser::syntax_error(msg);
 }
