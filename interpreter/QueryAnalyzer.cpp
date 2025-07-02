@@ -117,9 +117,6 @@ void QueryAnalyzer::ensureMatchVarsUnique(const MatchTarget* target) {
     using PathElements = std::vector<EntityPattern*>;
 
     const PathPattern* ptn = target->getPattern();
-    if (ptn == nullptr) {
-        throw new AnalyzeException("Match target path pattern not found");
-    }
 
     const PathElements& elements = ptn->elements();
 
@@ -163,11 +160,12 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
     // match targets
     DeclContext* declContext = cmd->getDeclContext();
     for (const MatchTarget* target : cmd->matchTargets()) {
-        ensureMatchVarsUnique(target);
         const PathPattern* pattern = target->getPattern();
         if (pattern == nullptr) {
             throw new AnalyzeException("Match target path pattern not found");
         }
+
+        ensureMatchVarsUnique(target);
         const auto& elements = pattern->elements();
 
         EntityPattern* entityPattern = elements[0];
