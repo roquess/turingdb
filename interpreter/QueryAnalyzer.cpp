@@ -220,8 +220,9 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
             if (!memberName.empty()) {
                 const auto propTypeRes = propTypeMap.get(memberName);
                 if (!propTypeRes) {
-                    throw AnalyzeException("Property type not found for property member \""
-                                           + field->getMemberName() + "\"");
+                    throw AnalyzeException(
+                        "Property type not found for property member \""
+                       + field->getMemberName() + "\"");
                 }
 
                 const auto propType = propTypeRes.value();
@@ -321,7 +322,8 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
     if (lhsPropTypeOpt == std::nullopt) {
         // If this is a match query: error
         if (!isCreate) [[unlikely]] {
-            throw AnalyzeException("Variable '" + lhsName + "' has invalid property type");
+            throw AnalyzeException("Variable '" + lhsName +
+                                   "' has invalid property type");
         } else { // If a create query: no need to type check
             return true;
         }
@@ -336,7 +338,8 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
         const std::string varTypeName = std::string(ValueTypeName::value(lhsType));
         const std::string exprTypeName = std::string(ValueTypeName::value(rhsType));
         const std::string verb = isCreate ? "assigned" : "compared to";
-        throw AnalyzeException("Variable '" + lhsName + "' of type " + varTypeName + " cannot be " + verb + " value of type " + exprTypeName);
+        throw AnalyzeException("Variable '" + lhsName + "' of type " + varTypeName +
+                               " cannot be " + verb + " value of type " + exprTypeName);
     }
     return true;
 }
