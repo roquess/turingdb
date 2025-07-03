@@ -7,19 +7,22 @@
 #include <string>
 #include <iostream>
 
-
-
 StringApproximatorIndex::StringApproximatorIndex()
     : _root(std::make_unique<PrefixTreeNode>('\1'))
 {
 }
     
-void StringApproximatorIndex::insert(std::string_view str) { return _insert(_root.get(), str, _currentID); }
+void StringApproximatorIndex::insert(std::string_view str) {
+    return _insert(_root.get(), str, _currentID);
+}
 
-StringApproximatorIndex::PrefixTreeIterator StringApproximatorIndex::find(std::string_view str) { return _find(_root.get(), str); }
+StringApproximatorIndex::PrefixTreeIterator
+    StringApproximatorIndex::find(std::string_view str) {
+        return _find(_root.get(), str);
+    }
 
 std::vector<NodeID> StringApproximatorIndex::getOwners(std::string_view str) {
-    auto it = find(str);
+    const auto it = find(str);
     if (!it._nodePtr) return {};
     return getOwners(it);
 }
@@ -33,15 +36,20 @@ size_t StringApproximatorIndex::charToIndex(char c) {
     // 26    0
     // ...  ...
     // 36    9
-    if (isalpha(c)) return c - 'a';
+
+    // NOTE: Converts upper-case characters to lower to calculate index,
+    // but the value of the node is still uppercase
+    if (isalpha(c)) return std::tolower(c, std::locale()) - 'a';
     else if (isdigit(c)) return 26 + c - '0';
     else throw std::runtime_error("Invalid character: " + std::to_string(c));
 }
 
-void StringApproximatorIndex::_insert(PrefixTreeNode* root, std::string_view sv, NodeID owner) {
+void StringApproximatorIndex::_insert(PrefixTreeNode* root,
+                                      std::string_view sv,
+                                      NodeID owner) {
     PrefixTreeNode* node = root;
     for (const char c : sv) {
-        size_t idx = charToIndex(c);
+        const size_t idx = charToIndex(c);
         if (!node->_children[idx]) {
             node->_children[idx] = std::make_unique<PrefixTreeNode>(c);
         }
@@ -56,27 +64,18 @@ void StringApproximatorIndex::_insert(PrefixTreeNode* root, std::string_view sv,
 }
 
 
-StringApproximatorIndex::PrefixTreeIterator StringApproximatorIndex::_find(PrefixTreeNode* root, std::string_view sv) {
-    char firstChar = sv[0];
-    // XXX should fix this so this isnt needed
-    if (firstChar == 0) return PrefixTreeIterator{NOT_FOUND, nullptr};
-    size_t idx = charToIndex(firstChar);
-    if (idx >= SIGMA) return PrefixTreeIterator{NOT_FOUND, nullptr};
-    if (!root->_children[idx]) {
-        return PrefixTreeIterator{NOT_FOUND, nullptr};
-    }
-
-    sv.remove_prefix(1);        
-
-    PrefixTreeNode* node = root->_children[idx].get();
+StringApproximatorIndex::PrefixTreeIterator
+    StringApproximatorIndex::_find(PrefixTreeNode* root,
+                                   std::string_view sv) {
+    PrefixTreeNode* node = root;
     for (const char c : sv) {
-        size_t idx = charToIndex(c);
+        const size_t idx = charToIndex(c);
         if (!node->_children[idx]) {
             return PrefixTreeIterator{NOT_FOUND, node};
         }
         node = node->_children[idx].get();
     }
-    FindResult res = node->_isComplete ? FOUND : FOUND_PREFIX;
+    const FindResult res = node->_isComplete ? FOUND : FOUND_PREFIX;
     return PrefixTreeIterator{res, node};
 }
 
@@ -87,12 +86,14 @@ std::vector<NodeID> StringApproximatorIndex::getOwners(PrefixTreeIterator it) {
     std::deque<PrefixTreeNode*> q{node};
     // BFS, collecting owners
     while (!q.empty()) {
-        PrefixTreeNode* n = q.front();
+        const PrefixTreeNode* n = q.front();
         q.pop_front();
         for (size_t i{0}; i < n->_children.size(); i++) {
-            if (auto child = n->_children[i].get())
-            q.push_back(child);
+            if (PrefixTreeNode* child = n->_children[i].get()) {
+                q.push_back(child);
+            }
         }
+        // Collect owners to report back
         if (n->_isComplete) {
             std::vector<NodeID>* owners = n->_owners.get();
             res.insert(std::end(res),
@@ -103,7 +104,8 @@ std::vector<NodeID> StringApproximatorIndex::getOwners(PrefixTreeIterator it) {
     return res;
 }
 
-void StringApproximatorIndex::_printTree(StringApproximatorIndex::PrefixTreeNode* node) const {
+void StringApproximatorIndex::_printTree(StringApproximatorIndex::PrefixTreeNode* node
+                                        ) const {
     _printTree(node, "", true);
 }
 
