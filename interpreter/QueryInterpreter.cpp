@@ -59,6 +59,7 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
     ASTContext astCtxt;
     QueryParser parser(&astCtxt);
     QueryCommand* cmd = parser.parse(query);
+    // TODO: Make query raise exception here, catch and handle (see below for examples)
     if (!cmd) {
         return QueryStatus(QueryStatus::Status::PARSE_ERROR);
     }
