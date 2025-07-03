@@ -461,12 +461,7 @@ commit_cmd: COMMIT { $$ = CommitCommand::create(ctxt); }
 
 // Using our own custom location in YScanner, not yylloc (loc)
 void db::YParser::error(const location_type& loc, const std::string& msg) {
-    std::ostringstream oss;
     location turingLoc = scanner.getLocation();
-    oss << "Parse error on line " << turingLoc.begin.line 
-        << ", from column " << turingLoc.begin.column 
-        << ", to column " << turingLoc.end.column 
-        << ": " << msg;
-    throw db::YParser::syntax_error(turingLoc, oss.str());
+    throw db::YParser::syntax_error(turingLoc, msg);
 }
 

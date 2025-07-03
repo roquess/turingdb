@@ -44,6 +44,8 @@ void QueryParser::generateErrorMsg(std::string& msg,
                           const std::string_view query,
                           const std::string_view excptMsg,
                           const location& loc){
+
+    std::ostringstream out;
     // Get error line of query
     const uint32_t errLineNo = loc.begin.line;
     std::istringstream ss(std::string(query), std::ios_base::in);
@@ -57,12 +59,14 @@ void QueryParser::generateErrorMsg(std::string& msg,
     const std::string errorBars(errLen, '^');
     const std::string blank(loc.begin.column - 1, ' ');
 
-    std::stringstream out;
     out << " |" << '\n';
     out << errLineNo << "|\t" << errLine << '\n';
-    out << " |\t" << blank << errorBars << '\n';
+    out << " |\t" << blank << errorBars << '\t';
+    out << "\t"<< excptMsg << "\n\n";
 
-    out << excptMsg << std::endl;
+    out << "Parse error on line " << loc.begin.line 
+        << ", from column " << loc.begin.column 
+        << ", to column " << loc.end.column << std::endl;
 
     msg = out.str();
 }
