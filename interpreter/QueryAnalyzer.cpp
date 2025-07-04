@@ -40,6 +40,12 @@ void returnAllVariables(MatchCommand* cmd) {
     }
 }
 
+template <typename T>
+const T* enforceType(const Expr* exp) {
+    const T* castedExp = dynamic_cast<const T*>(exp);
+    return castedExp;
+}
+
 }
 
 QueryAnalyzer::QueryAnalyzer(const GraphView& view, ASTContext* ctxt)
@@ -86,7 +92,8 @@ bool QueryAnalyzer::analyze(QueryCommand* cmd) {
         break;
 
         default:
-        return false;
+            return false;
+        break;
     }
 
     return true;
@@ -311,6 +318,7 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
 
         default:
             throw AnalyzeException("Unsupported operator");
+        break;
     }
     
     // Assumes that variable is left operand, constant is right operand
@@ -412,8 +420,3 @@ bool QueryAnalyzer::analyzeLoadGraph(LoadGraphCommand* cmd) {
     return true;
 }
 
-template <typename T>
-const T* QueryAnalyzer::enforceType(const Expr* exp) const {
-    const T* castedExp = dynamic_cast<const T*>(exp);
-    return castedExp;
-}
