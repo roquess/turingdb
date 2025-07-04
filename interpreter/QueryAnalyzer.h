@@ -50,7 +50,7 @@ private:
 
 
     template<typename T>
-    T* enforceType(Expr* exp);
+    const T* enforceType(const Expr* exp) const;
 };
 
 }

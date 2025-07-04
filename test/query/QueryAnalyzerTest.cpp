@@ -1,14 +1,18 @@
+#include "QueryAnalyzer.h"
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include "ASTContext.h"
 #include "AnalyzeException.h"
 #include "ID.h"
 #include "LocalMemory.h"
 #include "QueryInterpreter.h"
+#include "QueryParser.h"
 #include "QueryTester.h"
 #include "TuringDB.h"
 #include "TypingGraph.h"
 #include "TuringTest.h"
+#include "views/GraphView.h"
 
 using namespace db;
 
@@ -214,22 +218,29 @@ TEST_F(QueryAnalyzerTest, checkMatchVariableUniqueness) {
 }
 
 TEST_F(QueryAnalyzerTest, testApproxStringOperator) {
-    QueryTester tester {_mem, *_interp};
+    ASTContext ctxt;
+    GraphView view;
+
+    QueryParser ps(&ctxt);
+    QueryAnalyzer az(view, &ctxt);
     // Correct usage of the string approximate operator
     const std::string query1 = "MATCH (n:Typer{str~=\"string property\"}) return n";
     // Incorrect usage of the string approximate operator: comparing string to int
     const std::string query2 = "MATCH (n:Typer{str~=2}) return n";
 
+    auto cmd1 = ps.parse(query1);
+    auto cmd2 = ps.parse(query2);
+
     // XXX: Not implemented yet
     EXPECT_THAT(
-    [&]() { tester.query(query1); },
+    [&]() { az.analyze(cmd1); },
     testing::Throws<AnalyzeException>(
         testing::Property(&std::exception::what, 
                              testing::HasSubstr("OPERATOR '~=' NOT SUPPORTED")))
     );
 
     EXPECT_THAT(
-    [&]() { tester.query(query2); },
+    [&]() { az.analyze(cmd2); },
     testing::Throws<AnalyzeException>(
         testing::Property(&std::exception::what, 
                              testing::HasSubstr("Operator '~=' must be used with values of type 'String'.")))

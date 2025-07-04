@@ -155,7 +155,7 @@ bool QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
     for (const MatchTarget* target : cmd->matchTargets()) {
         const PathPattern* pattern = target->getPattern();
         if (pattern == nullptr) {
-            throw new AnalyzeException("Match target path pattern not found");
+            throw AnalyzeException("Match target path pattern not found");
         }
 
         ensureMatchVarsUnique(target);
@@ -310,7 +310,7 @@ bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
         break;
 
         default:
-        throw AnalyzeException("Unsupported operator");
+            throw AnalyzeException("Unsupported operator");
     }
     
     // Assumes that variable is left operand, constant is right operand
@@ -385,9 +385,7 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
     // Otherwise, verify all constraints are valid
     const auto binExprs = exprConstraint->getExpressions();
     for (const BinExpr* binExpr : binExprs) {
-        if (!QueryAnalyzer::analyzeBinExprConstraint(binExpr, isCreate)) {
-            return false;
-        }
+        QueryAnalyzer::analyzeBinExprConstraint(binExpr, isCreate);
     }
 
     var->setDecl(decl);
@@ -414,9 +412,8 @@ bool QueryAnalyzer::analyzeLoadGraph(LoadGraphCommand* cmd) {
     return true;
 }
 
-
 template <typename T>
-T* QueryAnalyzer::enforceType(Expr* exp) {
-    T* castedExp = dynamic_cast<T*>(exp);
+const T* QueryAnalyzer::enforceType(const Expr* exp) const {
+    const T* castedExp = dynamic_cast<const T*>(exp);
     return castedExp;
 }
