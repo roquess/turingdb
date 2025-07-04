@@ -293,7 +293,7 @@ bool QueryAnalyzer::typeCheckBinExprConstr(const PropertyType lhs,
 
 bool QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
                                              bool isCreate) {
-    Expr* constExpr = binExpr->getRightExpr();
+    const Expr* constExpr = binExpr->getRightExpr();
 
     switch (binExpr->getOpType()) {
         case BinExpr::OP_EQUAL:
@@ -385,7 +385,7 @@ bool QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
     // Otherwise, verify all constraints are valid
     const auto binExprs = exprConstraint->getExpressions();
     for (const BinExpr* binExpr : binExprs) {
-        QueryAnalyzer::analyzeBinExprConstraint(binExpr, isCreate);
+        analyzeBinExprConstraint(binExpr, isCreate);
     }
 
     var->setDecl(decl);
