@@ -48,7 +48,6 @@ private:
     bool analyzeExplain(ExplainCommand* cmd);
     std::string createVarName();
 
-
     template<typename T>
     const T* enforceType(const Expr* exp) const;
 };

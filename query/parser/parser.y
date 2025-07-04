@@ -370,7 +370,6 @@ prop_expr_constraint : prop_expr_constraint COMMA prop_equals_expr {
          | prop_expr_constraint COMMA prop_approx_expr  {
                                                             $1->addExpr($3);
                                                             $$ = $1;
-            
                                                         }
          | prop_equals_expr                             {
                                                             auto ExprConstraint = ExprConstraint::create(ctxt);
