@@ -4,22 +4,18 @@
 #include <iterator>
 #include <locale>
 
-std::vector<std::string> split(std::string_view str, std::string_view delim) {
-    std::vector<std::string> out{};
-
+void split(std::vector<std::string>& res, std::string_view str, std::string_view delim) {
     size_t l{0};
     size_t r = str.find(delim);
 
     while (r != std::string::npos) {
         // Add only if the string is non-empty (removes repeated delims)
-        if (l != r) out.push_back(std::string(str.substr(l, r - l)));
+        if (l != r) res.push_back(std::string(str.substr(l, r - l)));
         l = r + 1;
         r = str.find(delim, l);
     }
 
-    out.push_back(std::string(str.substr(l, std::min(r, str.size()) - l + 1)));
-
-    return out;
+    res.push_back(std::string(str.substr(l, std::min(r, str.size()) - l + 1)));
 }
 
 inline std::string alphaNumericise(const std::string_view in) {
@@ -42,12 +38,8 @@ inline std::string alphaNumericise(const std::string_view in) {
  - all alphabetical characters are converted to lower case
  - split all strings on whitespace into tokens, which are then returned as a vector
 */
-std::vector<std::string> preprocess(const std::string_view in) {
-    std::vector<std::string> tokens{};
-
+void preprocess(std::vector<std::string>& res, const std::string_view in) {
     const std::string cleaned = alphaNumericise(in);
 
-    tokens = split(cleaned, " ");
-
-    return tokens;
+    split(res, cleaned, " ");
 }

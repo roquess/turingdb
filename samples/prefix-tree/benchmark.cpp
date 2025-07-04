@@ -20,7 +20,8 @@ inline void dump(StringApproximatorIndex* trie,
 
     while (std::getline(infile, input)) {
         if (input == "Inputs" || input.empty()) continue;
-        auto words = preprocess(input);
+        std::vector<std::string> words{};
+        preprocess(words, input);
         NodeID id{0};
         for (const auto& word : words){
             trie->insert(word);
@@ -37,7 +38,8 @@ inline void dumpTree(StringApproximatorIndex* trie, const std::string& inPath) {
 
     while (std::getline(infile, input)) {
         if (input == "Inputs" || input.empty()) continue;
-        auto words = preprocess(input);
+        std::vector<std::string> words{};
+        preprocess(words, input);
         for (const auto& word : words) trie->insert(word);
     }
     infile.close();
@@ -50,7 +52,8 @@ inline void dumpHash(HashingStringIndexer& hash, const std::string& inPath) {
     NodeID id{0};
     while (std::getline(infile, input)) {
         if (input == "Inputs" || input.empty()) continue;
-        auto words = preprocess(input);
+        std::vector<std::string> words{};
+        preprocess(words, input);
         for (const auto& word : words) {
             hash[word].push_back(id);
         }
@@ -70,7 +73,8 @@ inline QueryResults* queryHash(HashingStringIndexer& hash, const std::string& qu
         if (line.front() == '"' && line.back() == '"') {
             line = line.substr(1, line.length() - 2);
         }
-        std::vector<std::string> words = preprocess(line);
+        std::vector<std::string> words;
+        preprocess(words, line);
         for (const auto& word : words) {
             if (word.empty()) continue;
             auto it = hash.find(word);
@@ -92,7 +96,8 @@ inline QueryResults* queryTree(StringApproximatorIndex* trie, const std::string&
         if (line.front() == '"' && line.back() == '"') {
             line = line.substr(1, line.length() - 2);
         }
-        std::vector<std::string> words = preprocess(line);
+        std::vector<std::string> words;
+        preprocess(words, line);
         for (const auto& word : words){
             if (word.empty()) continue;
             using Trie = StringApproximatorIndex;

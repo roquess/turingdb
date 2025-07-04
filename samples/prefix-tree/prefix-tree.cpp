@@ -11,26 +11,10 @@ StringApproximatorIndex::StringApproximatorIndex()
     : _root(std::make_unique<PrefixTreeNode>('\1'))
 {
 }
-    
-void StringApproximatorIndex::insert(std::string_view str) {
-    return _insert(_root.get(), str, _currentID);
-}
-
-StringApproximatorIndex::PrefixTreeIterator
-    StringApproximatorIndex::find(std::string_view str) {
-        return _find(_root.get(), str);
-    }
-
-std::vector<NodeID> StringApproximatorIndex::getOwners(std::string_view str) {
-    const auto it = find(str);
-    if (!it._nodePtr) return {};
-    return getOwners(it);
-}
 
 size_t StringApproximatorIndex::charToIndex(char c) {
     // Children array layout:
-    // INDEX CHARACTER VALUE
-    // 0     a
+    // INDEX CHARACTER VALUE 0     a
     // ...  ...
     // 25    z
     // 26    0
@@ -44,11 +28,9 @@ size_t StringApproximatorIndex::charToIndex(char c) {
     else throw std::runtime_error("Invalid character: " + std::to_string(c));
 }
 
-void StringApproximatorIndex::_insert(PrefixTreeNode* root,
-                                      std::string_view sv,
-                                      NodeID owner) {
-    PrefixTreeNode* node = root;
-    for (const char c : sv) {
+void StringApproximatorIndex::insert(std::string_view str, NodeID owner) {
+    PrefixTreeNode* node = this->_root.get();
+    for (const char c : str) {
         const size_t idx = charToIndex(c);
         if (!node->_children[idx]) {
             node->_children[idx] = std::make_unique<PrefixTreeNode>(c);
@@ -63,11 +45,9 @@ void StringApproximatorIndex::_insert(PrefixTreeNode* root,
     _currentID++;
 }
 
-
-StringApproximatorIndex::PrefixTreeIterator
-    StringApproximatorIndex::_find(PrefixTreeNode* root,
-                                   std::string_view sv) {
-    PrefixTreeNode* node = root;
+const StringApproximatorIndex::PrefixTreeIterator
+StringApproximatorIndex::find(std::string_view sv) const {
+    PrefixTreeNode* node = this->_root.get();
     for (const char c : sv) {
         const size_t idx = charToIndex(c);
         if (!node->_children[idx]) {
@@ -80,9 +60,12 @@ StringApproximatorIndex::PrefixTreeIterator
 }
 
 
-std::vector<NodeID> StringApproximatorIndex::getOwners(PrefixTreeIterator it) {
+void StringApproximatorIndex::getOwners(std::vector<NodeID>& owners, std::string_view str) {
+    owners.clear(); // NOTE: Doesn't deallocate or change capacity
+    const auto it = find(str);
+    if (!it._nodePtr) return;
+
     PrefixTreeNode* node = it._nodePtr;
-    std::vector<NodeID> res{};
     std::deque<PrefixTreeNode*> q{node};
     // BFS, collecting owners
     while (!q.empty()) {
@@ -95,22 +78,19 @@ std::vector<NodeID> StringApproximatorIndex::getOwners(PrefixTreeIterator it) {
         }
         // Collect owners to report back
         if (n->_isComplete) {
-            std::vector<NodeID>* owners = n->_owners.get();
-            res.insert(std::end(res),
-                       std::begin(*owners),
-                       std::end(*owners));
+            std::vector<NodeID>* nOwners = n->_owners.get();
+            owners.insert(std::end(owners),
+                       std::begin(*nOwners),
+                       std::end(*nOwners));
         }
     }
-    return res;
 }
 
-void StringApproximatorIndex::_printTree(StringApproximatorIndex::PrefixTreeNode* node
-                                        ) const {
-    _printTree(node, "", true);
+void StringApproximatorIndex::print() const {
+    printTree(this->_root.get(), "", false);
 }
 
-
-void StringApproximatorIndex::_printTree(StringApproximatorIndex::PrefixTreeNode* node,
+void StringApproximatorIndex::printTree(StringApproximatorIndex::PrefixTreeNode* node,
                 const std::string& prefix,
                 bool isLastChild) const {
     if (!node) return;
@@ -136,7 +116,7 @@ void StringApproximatorIndex::_printTree(StringApproximatorIndex::PrefixTreeNode
 
     // Recurse over children
     for (std::size_t k = 0; k < kids.size(); ++k) {
-        _printTree(kids[k], nextPrefix, k + 1 == kids.size());
+        printTree(kids[k], nextPrefix, k + 1 == kids.size());
     }
 }
 

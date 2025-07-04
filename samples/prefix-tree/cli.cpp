@@ -23,7 +23,8 @@ void cli() {
     while (true) {
         std::cout << ">";
         getline(std::cin, in);
-        auto tokens = split(in, " ");
+        std::vector<std::string> tokens;
+        split(tokens, in, " ");
         if (tokens[0] == "i") {
             if (tokens.size() != 2) std::cout << "i <param>" << std::endl;
             else tree.insert(tokens[1]);
@@ -50,7 +51,8 @@ void cli() {
         else if (tokens[0] == "o") {
             if (tokens.size() != 2) std::cout << "o <param>" << std::endl;
             else {
-                auto owners = tree.getOwners(tokens[1]);
+                std::vector<NodeID> owners{};
+                tree.getOwners(owners, tokens[1]);
                 for (const auto o : owners) std::cout << o << "    ";
                 std::cout << std::endl;
             }

@@ -1,9 +1,10 @@
+#include <iostream>
+#include <string>
+
 #include "cli.h"
 #include "benchmark.h"
 #include "utils.h"
 
-#include <iostream>
-#include <string>
 
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "--cli") {
@@ -12,7 +13,8 @@ int main(int argc, char** argv) {
 
     else if (argc == 3 && std::string(argv[1]) == "--ppx") {
         auto arg = std::string(argv[2]);
-        auto tokens = preprocess(arg);
+        std::vector<std::string> tokens;
+        preprocess(tokens, arg);
         for (const auto& t : tokens) std::cout << t << std::endl;
     }
     else if (argc == 4 && std::string(argv[1]) == "--bm") {

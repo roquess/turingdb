@@ -21,56 +21,42 @@ public:
         NOT_FOUND
     };
 
-
     struct PrefixTreeNode {
         using NodeOwners = std::vector<NodeID>;
 
         std::array<std::unique_ptr<PrefixTreeNode>, SIGMA> _children{};
-        char _val{'\0'};
-        bool _isComplete{false};
-        std::unique_ptr<NodeOwners> _owners;
+        char _val {'\0'};
+        bool _isComplete {false};
+        std::unique_ptr<NodeOwners> _owners{};
 
         PrefixTreeNode(char val)
-            : _children{},
-              _val{val},
-              _isComplete{false},
-              _owners{}
-
+            : _val{val}
         {
         }
     };
 
     struct PrefixTreeIterator {
-        FindResult _result{NOT_FOUND};
-        PrefixTreeNode* _nodePtr{nullptr};
+        FindResult _result {NOT_FOUND};
+        PrefixTreeNode* _nodePtr {nullptr};
     };
 
     StringApproximatorIndex();
     
-    void insert(std::string_view str);
+    void insert(std::string_view str, NodeID owner=0);
 
-    PrefixTreeIterator find(std::string_view str);
+    const PrefixTreeIterator find(std::string_view sv) const ;
 
-    void print() const { _printTree(_root.get()); }
+    void print() const;
 
-    std::vector<NodeID> getOwners(std::string_view str);
+    void getOwners(std::vector<NodeID>& owners, std::string_view str);
 
 private:
-    NodeID _currentID;
-
+    NodeID _currentID {0};
     std::unique_ptr<PrefixTreeNode> _root{};
 
     static size_t charToIndex(char c);
 
-    void _insert(PrefixTreeNode* root, std::string_view sv, NodeID owner);
-
-    PrefixTreeIterator _find(PrefixTreeNode* root, std::string_view sv);
-
-    static std::vector<NodeID> getOwners(PrefixTreeIterator it);
-
-    void _printTree(PrefixTreeNode* node) const;
-
-    void _printTree(PrefixTreeNode* node,
+    void printTree(PrefixTreeNode* node,
                     const std::string& prefix,
                     bool isLastChild) const;
 };
