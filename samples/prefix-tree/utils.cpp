@@ -5,6 +5,8 @@
 #include <locale>
 
 void split(std::vector<std::string>& res, std::string_view str, std::string_view delim) {
+    res.clear();
+    if (str.empty()) return;
     size_t l{0};
     size_t r = str.find(delim);
 
