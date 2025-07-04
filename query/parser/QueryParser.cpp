@@ -4,6 +4,7 @@
 #include <limits>
 #include <string>
 
+#include "ParserException.h"
 #include "Profiler.h"
 #include "YScanner.h"
 #include "parser.hpp"
@@ -32,9 +33,7 @@ QueryCommand* QueryParser::parse(std::string_view query) {
     } catch (const db::YParser::syntax_error& e) {
         std::string errMsg;
         generateErrorMsg(errMsg, query, e.what(), e.location);
-        std::cout << errMsg << std::endl;
-
-        return nullptr;
+        throw ParserException(std::move(errMsg));
     }
     
     return _astCtxt->getRoot();
@@ -59,7 +58,7 @@ void QueryParser::generateErrorMsg(std::string& msg,
     const std::string errorBars(errLen, '^');
     const std::string blank(loc.begin.column - 1, ' ');
 
-    out << " |" << '\n';
+    out << '\n' << " |" << '\n';
     out << errLineNo << "|\t" << errLine << '\n';
     out << " |\t" << blank << errorBars << '\t';
     out << "\t"<< excptMsg << "\n\n";
