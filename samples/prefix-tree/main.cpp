@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <stdlib.h>
 
 #include "cli.h"
 #include "benchmark.h"
@@ -22,4 +23,6 @@ int main(int argc, char** argv) {
         auto queries = std::string(argv[3]);
         runBenchmarks(input, queries);
     }
+
+    return EXIT_SUCCESS;
 }
