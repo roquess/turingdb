@@ -21,12 +21,12 @@ using namespace db;
 void runPlan2(const std::string& query);
 
 int main(int argc, char** argv) {
+    std::string queryStr = "match (n:Person{hasPhD: true})--(m:Person) return m";
     if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <query>" << std::endl;
-        return EXIT_FAILURE;
+       queryStr = argv[1];
     }
 
-    runPlan2(argv[1]);
+    runPlan2(queryStr);
 
     return EXIT_SUCCESS;
 }
