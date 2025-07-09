@@ -295,8 +295,7 @@ TEST_F(PlanGenTest, matchMultiTargetsLinear) {
     ASSERT_TRUE(queryCmd);
 
     QueryAnalyzer analyzer(view, &ctxt);
-    const bool anaRes = analyzer.analyze(queryCmd);
-    ASSERT_TRUE(anaRes);
+    EXPECT_NO_THROW(analyzer.analyze(queryCmd));
 
     PlanGraphGenerator planGen(view, callback);
     planGen.generate(queryCmd);
@@ -319,8 +318,7 @@ TEST_F(PlanGenTest, matchMultiTargets1) {
     ASSERT_TRUE(queryCmd);
 
     QueryAnalyzer analyzer(view, &ctxt);
-    const bool anaRes = analyzer.analyze(queryCmd);
-    ASSERT_TRUE(anaRes);
+    EXPECT_NO_THROW(analyzer.analyze(queryCmd));
 
     PlanGraphGenerator planGen(view, callback);
     planGen.generate(queryCmd);
