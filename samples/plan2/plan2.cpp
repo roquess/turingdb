@@ -87,6 +87,5 @@ void runPlan2(std::string_view query) {
     planGen.generate(queryCmd);
     const PlanGraph& planGraph = planGen.getPlanGraph();
 
-    std::string output = PlanGraphDebug::dumpMermaid(view, planGraph);
-    fmt::print("{}\n", output);
+    PlanGraphDebug::dumpMermaid(std::cout, view, planGraph);
 }

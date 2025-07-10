@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <ostream>
 
 namespace db {
 
@@ -9,7 +9,7 @@ class PlanGraph;
 
 class PlanGraphDebug {
 public:
-    static std::string dumpMermaid(const GraphView& view, const PlanGraph& planGraph);
+    static void dumpMermaid(std::ostream& output, const GraphView& view, const PlanGraph& planGraph);
 };
 
 }
