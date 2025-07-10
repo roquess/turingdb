@@ -1,12 +1,16 @@
 %{
 
+#include <charconv>
+
 #include "YCypherScanner.h"
 #include "GeneratedCypherParser.h"
 
 using namespace db;
 
-#define yyterminate() return db::YCypherParser::token::END_TOKEN
+#define yyterminate() return db::YCypherParser::token::PROG_END
 #define YY_USER_ACTION advanceLocation(yyleng);
+
+using Token = db::YCypherParser::token;
 
 %}
 
@@ -17,38 +21,197 @@ using namespace db;
 \n        { locationNewLine(); }
 [ \t\r]+  { }
 
-// General purpose tokens
-"=" { return db::YCypherParser::token::ASSIGN; }
-"+=" { return db::YCypherParser::token::ADD_ASSIGN; }
-"<=" { return db::YCypherParser::token::LE; }
-">=" { return db::YCypherParser::token::GE; }
-">" { return db::YCypherParser::token::GT; }
-"<" { return db::YCypherParser::token::LT; }
-"<>" { return db::YCypherParser::token::NOT_EQUAL; }
-"!=" { return db::YCypherParser::token::NOT_EQUAL; }
-"->" { return db::YCypherParser::token::ARROW; }
-".." { return db::YCypherParser::token::RANGE; }
-";" { return db::YCypherParser::token::SEMI; }
-"." { return db::YCypherParser::token::DOT; }
-"," { return db::YCypherParser::token::COMMA; }
-"(" { return db::YCypherParser::token::LPAREN; }
-")" { return db::YCypherParser::token::RPAREN; }
-"{" { return db::YCypherParser::token::LBRACE; }
-"}" { return db::YCypherParser::token::RBRACE; }
-"[" { return db::YCypherParser::token::LBRACK; }
-"]" { return db::YCypherParser::token::RBRACK; }
-"-" { return db::YCypherParser::token::SUB; }
-"+" { return db::YCypherParser::token::PLUS; }
-"/" { return db::YCypherParser::token::DIV; }
-"%" { return db::YCypherParser::token::MOD; }
-"^" { return db::YCypherParser::token::CARET; }
-"*" { return db::YCypherParser::token::MULT; }
-"`" { return db::YCypherParser::token::ESC; }
-":" { return db::YCypherParser::token::COLON; }
-"|" { return db::YCypherParser::token::PIPE; }
-"$" { return db::YCypherParser::token::DOLLAR; }
+"//".*     { }
+"/*".*"*/" { }
+
+"+=" { return Token::ADD_ASSIGN; }
+"<>" { return Token::NOT_EQUAL; }
+"!=" { return Token::NOT_EQUAL; }
+".." { return Token::RANGE; }
+"<=" { return Token::LE; }
+">=" { return Token::GE; }
+
+";"  { return Token::SEMI_COLON; }
+"("  { return Token::OPAREN; }
+")"  { return Token::CPAREN; }
+"{"  { return Token::OBRACE; }
+"}"  { return Token::CBRACE; }
+"["  { return Token::OBRACK; }
+"]"  { return Token::CBRACK; }
+"="  { return Token::ASSIGN; }
+"$"  { return Token::DOLLAR; }
+","  { return Token::COMMA; }
+":"  { return Token::COLON; }
+"^"  { return Token::CARET; }
+"|"  { return Token::PIPE; }
+"+"  { return Token::PLUS; }
+"*"  { return Token::MULT; }
+"`"  { return Token::ESC; }
+"-"  { return Token::SUB; }
+"."  { return Token::DOT; }
+"/"  { return Token::DIV; }
+"%"  { return Token::MOD; }
+">"  { return Token::GT; }
+"<"  { return Token::LT; }
+
+"DESCENDING" { return Token::DESCENDING; }
+"CONSTRAINT" { return Token::CONSTRAINT; }
+"MANDATORY" { return Token::MANDATORY; }
+"ASCENDING" { return Token::ASCENDING; }
+"OPTIONAL" { return Token::OPTIONAL; }
+"CONTAINS" { return Token::CONTAINS; }
+"DISTINCT" { return Token::DISTINCT; }
+"EXTRACT" { return Token::EXTRACT; }
+"REQUIRE" { return Token::REQUIRE; }
+"STARTS" { return Token::STARTS; }
+"UNIQUE" { return Token::UNIQUE; }
+"FILTER" { return Token::FILTER; }
+"SINGLE" { return Token::SINGLE; }
+"SCALAR" { return Token::SCALAR; }
+"UNWIND" { return Token::UNWIND; }
+"REMOVE" { return Token::REMOVE; }
+"RETURN" { return Token::RETURN; }
+"CREATE" { return Token::CREATE; }
+"DELETE" { return Token::DELETE; }
+"DETACH" { return Token::DETACH; }
+"EXISTS" { return Token::EXISTS; }
+"LIMIT" { return Token::LIMIT; }
+"YIELD" { return Token::YIELD; }
+"MATCH" { return Token::MATCH; }
+"MERGE" { return Token::MERGE; }
+"ORDER" { return Token::ORDER; }
+"WHERE" { return Token::WHERE; }
+"UNION" { return Token::UNION; }
+"FALSE" { return Token::FALSE; }
+"COUNT" { return Token::COUNT; }
+"DESC" { return Token::DESC; }
+"CALL" { return Token::CALL; }
+"NULL" { return Token::NULL_; }
+"TRUE" { return Token::TRUE; }
+"WHEN" { return Token::WHEN; }
+"NONE" { return Token::NONE; }
+"THEN" { return Token::THEN; }
+"ELSE" { return Token::ELSE; }
+"CASE" { return Token::CASE; }
+"ENDS" { return Token::ENDS; }
+"DROP" { return Token::DROP; }
+"SKIP" { return Token::SKIP; }
+"WITH" { return Token::WITH; }
+"ANY" { return Token::ANY; }
+"SET" { return Token::SET; }
+"ALL" { return Token::ALL; }
+"ASC" { return Token::ASC; }
+"NOT" { return Token::NOT; }
+"END" { return Token::END; }
+"XOR" { return Token::XOR; }
+"FOR" { return Token::FOR; }
+"ADD" { return Token::ADD; }
+"AND" { return Token::AND; }
+"OR" { return Token::OR; }
+"IN" { return Token::IN; }
+"IS" { return Token::IS; }
+"BY" { return Token::BY; }
+"DO" { return Token::DO; }
+"OF" { return Token::OF; }
+"ON" { return Token::ON; }
+"AS" { return Token::AS; }
 
 
-.        { return YCypherParser::token::UNKNOWN; }
+`[^`]*` {
+    /* Escaped identifier. Example: `my-var` */
+    yylval->emplace<std::string>(yytext + 1, yyleng - 2);
+    return Token::ESC_LITERAL;
+}
+
+
+'([^'\\\r\n]|\\.|\\)' {
+    /* Character literal */
+    yylval->emplace<char>(yytext[1]);
+    return Token::CHAR_LITERAL;
+}
+
+
+\"([^\"\\\r\n]|\\.)*\" {
+    /* String literal */
+    yylval->emplace<std::string>(yytext + 1, yyleng - 2);
+    return Token::STRING_LITERAL;
+}
+
+
+-?[0-9]*\.[0-9]+([eE][+-]?[0-9]+)?[fd]? {
+    /* Float pattern */
+    float v = 0.0f;
+    std::from_chars(yytext, yytext + yyleng, v);
+    yylval->emplace<float>(v);
+
+    return Token::FLOAT;
+}
+
+
+-?\.[0-9]+([eE][+-]?[0-9]+)?[fd]? {
+    /* Float pattern TODO see we can remove*/
+    float v = 0.0f;
+    std::from_chars(yytext, yytext + yyleng, v);
+    yylval->emplace<float>(v);
+
+    return Token::FLOAT;
+}
+
+
+-?[0-9]+[eE][+-]?[0-9]+[fd]? {
+    /* Float pattern */
+    float v = 0.0f;
+    std::from_chars(yytext, yytext + yyleng, v);
+    yylval->emplace<float>(v);
+
+    return Token::FLOAT;
+}
+
+
+-?[0-9]+[fd] {
+    float v = 0.0f;
+    std::from_chars(yytext, yytext + yyleng, v);
+    yylval->emplace<float>(v);
+
+    return Token::FLOAT;
+}
+
+
+-?0[xX][0-9a-fA-F]+ {
+    int64_t v = 0;
+    std::from_chars(yytext, yytext + yyleng, v);
+    yylval->emplace<int64_t>(v);
+
+    return Token::DIGIT;
+}
+
+
+-?0[0-7]+ {
+    int64_t v = 0;
+    std::from_chars(yytext, yytext + yyleng, v);
+    yylval->emplace<int64_t>(v);
+
+    return Token::DIGIT;
+}
+
+
+-?[0-9]+ {
+    int64_t v = 0;
+    std::from_chars(yytext, yytext + yyleng, v);
+    yylval->emplace<int64_t>(v);
+
+    return Token::DIGIT;
+}
+
+
+[a-zA-Z_][a-zA-Z0-9_]* {
+    /* Identifier */
+    yylval->emplace<std::string>(yytext, yyleng);
+    return Token::ID;
+}
+
+
+. { return YCypherParser::token::UNKNOWN; }
+
 
 %%
