@@ -321,6 +321,16 @@ queryCallSt
     | CALL invocationName parenExpressionChain yieldClause
     | OPTIONAL CALL invocationName parenExpressionChain
     | OPTIONAL CALL invocationName parenExpressionChain yieldClause
+    | CALL OBRACE singleQuery CBRACE
+    | CALL OPAREN CPAREN OBRACE singleQuery CBRACE
+    | CALL OPAREN callCapture CPAREN OBRACE singleQuery CBRACE
+    ;
+
+callCapture
+    : symbol
+    | symbol AS symbol
+    | callCapture COMMA symbol
+    | callCapture COMMA symbol AS symbol
     ;
 
 expressionChain

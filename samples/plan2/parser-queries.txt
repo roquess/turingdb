@@ -240,3 +240,61 @@ SET c.topSpender = false
 RETURN c.firstName AS customer,
        totalSpent,
        c.topSpender AS topSpender;
+
+
+MATCH (company:Company)-[:EMPLOYS]->(emp:Employee)
+MATCH (emp)-[:WORKS_ON]->(project:Project)
+MATCH (project)-[:USES]->(tech:Technology)
+WHERE company.revenue > 1000000 AND tech.type IN ["Database", "Framework"]
+WITH company, 
+     collect(DISTINCT emp.name) as employees,
+     collect(DISTINCT project.name) as projects,
+     collect(DISTINCT tech.name) as technologies,
+     count(DISTINCT emp) as empCount
+WHERE empCount > 5
+OPTIONAL MATCH (company)-[:COMPETES_WITH]->(competitor:Company)
+RETURN company.name as companyName,
+       employees[0..3] as topEmployees,
+       size(projects) as projectCount,
+       technologies as techStack,
+       collect(competitor.name) as competitors
+ORDER BY projectCount DESC
+LIMIT 10;
+
+UNWIND [0, 1, 2] AS x
+CALL {
+  RETURN 'hello' AS innerReturn
+}
+RETURN innerReturn;
+
+MATCH path = (start:Node {type: "root"})-[:CONNECTS*1..5]->(_end:Node)
+WHERE ALL(n in nodes(path) WHERE n.active = true)
+WITH start, _end, path, length(path) as pathLength
+WHERE pathLength >= 3
+CALL {
+  WITH start, _end, pathLength
+  MERGE (summary:PathSummary {
+    from: start.id,
+    to: _end.id,
+    length: pathLength
+  })
+  ON CREATE SET summary.created = timestamp(),
+                summary.traversalCount = 1
+  ON MATCH SET summary.traversalCount = summary.traversalCount + 1
+  RETURN summary
+}
+MATCH (intermediate) WHERE intermediate IN nodes(path)[1..-1]
+RETURN start.id as startId,
+       _end.id as endId,
+       pathLength,
+       collect(intermediate.id) as intermediateNodes,
+       summary.traversalCount as timesTraversed;
+
+UNWIND [1, 2, 3] AS x
+CALL () {
+    MATCH (p:Player {name: 'Player A'})
+    SET p.age = p.age + 1
+    RETURN p.age AS newAge
+}
+MATCH (p:Player {name: 'Player A'})
+RETURN x AS iteration, newAge, p.age AS totalAge;
