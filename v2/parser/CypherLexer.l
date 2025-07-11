@@ -117,6 +117,7 @@ using Token = db::YCypherParser::token;
 "ADD" { return Token::ADD; }
 "AND" { return Token::AND; }
 "OR" { return Token::OR; }
+"||" { return Token::OR; }
 "IN" { return Token::IN; }
 "IS" { return Token::IS; }
 "BY" { return Token::BY; }
@@ -146,19 +147,14 @@ using Token = db::YCypherParser::token;
     return Token::STRING_LITERAL;
 }
 
+\'([^\'\\\r\n]|\\.)*\' {
+    /* Single-quoted string literal */
+    yylval->emplace<std::string>(yytext + 1, yyleng - 2);
+    return Token::STRING_LITERAL;
+}
 
 -?[0-9]*\.[0-9]+([eE][+-]?[0-9]+)?[fd]? {
     /* Float pattern */
-    float v = 0.0f;
-    std::from_chars(yytext, yytext + yyleng, v);
-    yylval->emplace<float>(v);
-
-    return Token::FLOAT;
-}
-
-
--?\.[0-9]+([eE][+-]?[0-9]+)?[fd]? {
-    /* Float pattern TODO see we can remove*/
     float v = 0.0f;
     std::from_chars(yytext, yytext + yyleng, v);
     yylval->emplace<float>(v);

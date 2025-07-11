@@ -143,8 +143,13 @@
 %%
 
 script
+    : queries
+    | queries SEMI_COLON
+    ;
+
+queries
     : query
-    | query SEMI_COLON
+    | queries SEMI_COLON query
     ;
 
 query
@@ -554,9 +559,9 @@ atom
     | listComprehension
     | patternComprehension
     | filterWith
-    //| relationshipsChainPattern
+    //| relationshipsChainPattern // Enabling this causes conflicts, not sure if we need it
     | parenthesizedExpression
-    //| functionInvocation
+    | functionInvocation
     | symbol
     | subqueryExist
     ;
@@ -597,15 +602,15 @@ subqueryExist
 
 invocationName
     : symbol
-    | invocationName DOT symbol
+    // | invocationName DOT symbol // Enabling this causes conflicts, not sure if we need it
     ;
 
-//functionInvocation
-//    : invocationName OPAREN CPAREN
-//    | invocationName OPAREN DISTINCT CPAREN
-//    | invocationName OPAREN expressionChain CPAREN
-//    | invocationName OPAREN DISTINCT expressionChain CPAREN
-//    ;
+functionInvocation
+    : invocationName OPAREN CPAREN
+    | invocationName OPAREN DISTINCT CPAREN
+    | invocationName OPAREN expressionChain CPAREN
+    | invocationName OPAREN DISTINCT expressionChain CPAREN
+    ;
 
 parenthesizedExpression
     : OPAREN expression CPAREN
@@ -675,7 +680,7 @@ literal
     | NULL_
     | stringLit
     | charLit
-    //| listLit
+    | listLit
     | mapLit
     ;
 
@@ -695,6 +700,7 @@ boolLit
 
 numLit
     : DIGIT
+    | FLOAT
     ;
 
 stringLit
@@ -705,10 +711,30 @@ charLit
     : CHAR_LITERAL
     ;
 
-//listLit
-//    : OBRACK CBRACK
-//    | OBRACK expressionChain CBRACK
-//    ;
+listLit
+    : OBRACK CBRACK
+    //| OBRACK expressionChain CBRACK // Enabling this causes conflicts
+    | OBRACK listLitItems CBRACK // Instead using this (simpler, too simple?)
+    ;
+
+listLitItems
+    : listLitItem
+    | listLitItems COMMA listLitItem
+    ;
+
+listLitItem
+    : literal
+    | parameter
+    | caseExpression
+    | countAll
+    | listComprehension
+    | patternComprehension
+    | filterWith
+    //| parenthesizedExpression // Enabling this causes conflicts
+    | functionInvocation
+    | symbol
+    | subqueryExist
+    ;
 
 mapLit
     : OBRACE CBRACE
@@ -732,12 +758,12 @@ name
 symbol
     : ESC_LITERAL
     | ID
-    | COUNT
-    | FILTER
-    | EXTRACT
-    | ANY
-    | NONE
-    | SINGLE
+    //| COUNT // Not sure needing this yet
+    //| FILTER
+    //| EXTRACT
+    //| ANY
+    //| NONE
+    //| SINGLE
     ;
 
 reservedWord
