@@ -24,6 +24,14 @@ using Token = db::YCypherParser::token;
 "//".*     { }
 "/*".*"*/" { }
 
+"--"  { return Token::TAIL_TAIL; }
+"<--" { return Token::TIP_TAIL_TAIL; }
+"-->" { return Token::TAIL_TAIL_TIP; }
+"<-[" { return Token::TIP_TAIL_BRACKET; }
+"]->" { return Token::BRACKET_TAIL_TIP; }
+"-["  { return Token::TAIL_BRACKET; }
+"]-"  { return Token::BRACKET_TAIL; }
+
 "+=" { return Token::ADD_ASSIGN; }
 "<>" { return Token::NOT_EQUAL; }
 "!=" { return Token::NOT_EQUAL; }
@@ -53,6 +61,7 @@ using Token = db::YCypherParser::token;
 "%"  { return Token::MOD; }
 ">"  { return Token::GT; }
 "<"  { return Token::LT; }
+
 
 "DESCENDING" { return Token::DESCENDING; }
 "CONSTRAINT" { return Token::CONSTRAINT; }

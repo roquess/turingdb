@@ -30,6 +30,13 @@
 
 %token PROG_END 0
 
+%token TAIL_TAIL
+%token TIP_TAIL_TAIL
+%token TAIL_TAIL_TIP
+%token TIP_TAIL_BRACKET
+%token BRACKET_TAIL_TIP
+%token TAIL_BRACKET
+%token BRACKET_TAIL
 %token SEMI_COLON
 %token ADD_ASSIGN
 %token NOT_EQUAL
@@ -129,19 +136,6 @@
 
 %token UNKNOWN
 
-%left OR
-%left XOR  
-%left AND
-%right NOT
-%left ASSIGN NOT_EQUAL
-%left LT LE GT GE
-%left PLUS SUB
-%left MULT DIV MOD
-%right UNARY_PLUS UNARY_MINUS
-%left DOT
-%left OBRACK CBRACK
-%left OPAREN CPAREN
-
 %expect 0
 
 %start script
@@ -149,8 +143,8 @@
 %%
 
 script
-    : query PROG_END
-    | query SEMI_COLON PROG_END
+    : query
+    | query SEMI_COLON
     ;
 
 query
@@ -198,7 +192,7 @@ limitSt
     ;
 
 projectionBody
-    : opt_Distinct projectionItems opt_OrderSt opt_SkipSt opt_LimitSt
+    : opt_Distinct projectionItems opt_OrderSt opt_skipSt opt_limitSt
     ;
 
 opt_Distinct
@@ -211,19 +205,19 @@ opt_OrderSt
     | /* empty */
     ;
 
-opt_SkipSt
+opt_skipSt
     : skipSt
     | /* empty */
     ;
 
-opt_LimitSt
+opt_limitSt
     : limitSt
     | /* empty */
     ;
 
 projectionItems
-    : projectionItem
-    | MULT
+    : MULT
+    | projectionItem
     | projectionItems COMMA projectionItem
     ;
 
@@ -266,10 +260,10 @@ updatingStatements
     : updatingStatement
     | updatingStatements updatingStatement
     ;
-
+ 
 multiPartQ
-    : readingStatements updateWithSt singlePartQ
-    | updateWithSt singlePartQ
+    : updateWithSt singlePartQ
+    | readingStatements updateWithSt singlePartQ
     ;
 
 updateWithSt
@@ -301,7 +295,7 @@ updatingStatement
     | setSt
     | removeSt
     ;
-
+ 
 deleteSt
     : DELETE expressionChain
     | DETACH DELETE expressionChain
@@ -378,7 +372,6 @@ setSt
 
 setItem
     : propertyExpression ASSIGN expression
-    | symbol ASSIGN expression
     | symbol ADD_ASSIGN expression
     | symbol nodeLabels
     ;
@@ -561,9 +554,9 @@ atom
     | listComprehension
     | patternComprehension
     | filterWith
-    | relationshipsChainPattern
+    //| relationshipsChainPattern
     | parenthesizedExpression
-    | functionInvocation
+    //| functionInvocation
     | symbol
     | subqueryExist
     ;
@@ -572,23 +565,18 @@ lhs
     : symbol ASSIGN
     ;
 
+
 relationshipPattern
-    : leftArrow relationDetail rightArrow
-    | leftArrow rightArrow
-    ;
-
-rightArrow
-    : SUB
-    | SUB GT
-    ;
-
-leftArrow
-    : SUB
-    | LT SUB
+    : TAIL_TAIL     // --
+    | TIP_TAIL_TAIL // <--
+    | TAIL_TAIL_TIP // -->
+    | TAIL_BRACKET relationDetail BRACKET_TAIL     // -[]-
+    | TIP_TAIL_BRACKET relationDetail BRACKET_TAIL // <-[]-
+    | TAIL_BRACKET relationDetail BRACKET_TAIL_TIP // -[]->
     ;
 
 relationDetail
-    : OBRACK opt_symbol opt_relationshipTypes opt_rangeLit opt_properties CBRACK
+    : opt_symbol opt_relationshipTypes opt_rangeLit opt_properties
     ;
 
 relationshipTypes
@@ -612,12 +600,12 @@ invocationName
     | invocationName DOT symbol
     ;
 
-functionInvocation
-    : invocationName OPAREN CPAREN
-    | invocationName OPAREN DISTINCT CPAREN
-    | invocationName OPAREN expressionChain CPAREN
-    | invocationName OPAREN DISTINCT expressionChain CPAREN
-    ;
+//functionInvocation
+//    : invocationName OPAREN CPAREN
+//    | invocationName OPAREN DISTINCT CPAREN
+//    | invocationName OPAREN expressionChain CPAREN
+//    | invocationName OPAREN DISTINCT expressionChain CPAREN
+//    ;
 
 parenthesizedExpression
     : OPAREN expression CPAREN
@@ -687,7 +675,7 @@ literal
     | NULL_
     | stringLit
     | charLit
-    | listLit
+    //| listLit
     | mapLit
     ;
 
@@ -717,10 +705,10 @@ charLit
     : CHAR_LITERAL
     ;
 
-listLit
-    : OBRACK CBRACK
-    | OBRACK expressionChain CBRACK
-    ;
+//listLit
+//    : OBRACK CBRACK
+//    | OBRACK expressionChain CBRACK
+//    ;
 
 mapLit
     : OBRACE CBRACE

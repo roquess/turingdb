@@ -6,7 +6,7 @@ flex_target(cypher_lexer ${CMAKE_CURRENT_SOURCE_DIR}/CypherLexer.l
 bison_target(cypher_parser ${CMAKE_CURRENT_SOURCE_DIR}/CypherParser.y
              ${CMAKE_CURRENT_BINARY_DIR}/GeneratedCypherParser.cpp
              DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/GeneratedCypherParser.h
-             COMPILE_FLAGS "-d -v")
+             COMPILE_FLAGS "-d -v -Wcounterexamples")
 
 add_flex_bison_dependency(cypher_lexer cypher_parser)
 
