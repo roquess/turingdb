@@ -21,6 +21,10 @@ public:
 
     void setQuery(const std::string& query) { _query = &query; }
 
+    void setThrowNotImplemented(bool throwNotImplemented) {
+        _throwNotImplemented = throwNotImplemented;
+    }
+
     void advanceLocation(uint64_t yyleng) {
         _location.step();
         _location.columns(yyleng);
@@ -30,11 +34,14 @@ public:
         _location.lines(1);
     }
 
+    void generateError(const std::string& msg, std::string& errorOutput);
     [[noreturn]] void syntaxError(const std::string& msg);
+    void notImplemented(std::string_view rawMsg);
 
 private:
     location _location;
     const std::string* _query = nullptr;
+    bool _throwNotImplemented = true;
 };
 
 }

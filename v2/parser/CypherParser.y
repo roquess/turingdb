@@ -157,7 +157,7 @@ script
 
 queries
     : query
-    | queries SEMI_COLON query
+    | queries SEMI_COLON query { scanner.notImplemented("Multiple queries"); }
     ;
 
 query
@@ -166,7 +166,7 @@ query
     ;
 
 unionList
-    : unionSt
+    : unionSt { scanner.notImplemented("Unions"); }
     | unionList unionSt
     ;
 
@@ -180,16 +180,16 @@ returnSt
     ;
 
 withSt
-    : WITH projectionBody where
-    | WITH projectionBody
+    : WITH projectionBody where { scanner.notImplemented("WITH ... WHERE"); }
+    | WITH projectionBody { scanner.notImplemented("WITH"); }
     ;
 
 skipSt
-    : SKIP expression
+    : SKIP expression { scanner.notImplemented("SKIP"); }
     ;
 
 limitSt
-    : LIMIT expression
+    : LIMIT expression { scanner.notImplemented("LIMIT"); }
     ;
 
 projectionBody
@@ -197,7 +197,7 @@ projectionBody
     ;
 
 opt_Distinct
-    : DISTINCT
+    : DISTINCT { scanner.notImplemented("DISTINCT"); }
     | /* empty */
     ;
 
@@ -229,14 +229,14 @@ projectionItem
 
 orderItem
     : expression
-    | expression ASCENDING
-    | expression ASC
-    | expression DESCENDING
-    | expression DESC
+    | expression ASCENDING { scanner.notImplemented("ASCENDING"); }
+    | expression ASC { scanner.notImplemented("ASC"); }
+    | expression DESCENDING { scanner.notImplemented("DESCENDING"); }
+    | expression DESC { scanner.notImplemented("DESC"); }
     ;
 
 orderSt
-    : ORDER BY orderItem
+    : ORDER BY orderItem { scanner.notImplemented("ORDER BY"); }
     | orderSt COMMA orderItem
     ;
 
@@ -276,11 +276,11 @@ updateWithSt
 
 matchSt
     : MATCH patternWhere opt_orderSt opt_skipSt opt_limitSt
-    | OPTIONAL MATCH patternWhere opt_orderSt opt_skipSt opt_limitSt
+    | OPTIONAL MATCH patternWhere opt_orderSt opt_skipSt opt_limitSt { scanner.notImplemented("OPTIONAL MATCH"); }
     ;
 
 unwindSt
-    : UNWIND expression AS symbol
+    : UNWIND expression AS symbol { scanner.notImplemented("UNWIND"); }
     ;
 
 readingStatement
@@ -298,12 +298,12 @@ updatingStatement
     ;
  
 deleteSt
-    : DELETE expressionChain
-    | DETACH DELETE expressionChain
+    : DELETE expressionChain { scanner.notImplemented("DELETE"); }
+    | DETACH DELETE expressionChain { scanner.notImplemented("DETACH DELETE"); }
     ;
 
 removeSt
-    : REMOVE removeItemChain
+    : REMOVE removeItemChain { scanner.notImplemented("REMOVE"); }
     ;
 
 removeItemChain
@@ -317,13 +317,13 @@ removeItem
     ;
 
 queryCallSt
-    : CALL invocationName parenExpressionChain
-    | CALL invocationName parenExpressionChain yieldClause
-    | OPTIONAL CALL invocationName parenExpressionChain
-    | OPTIONAL CALL invocationName parenExpressionChain yieldClause
-    | CALL OBRACE query CBRACE
-    | CALL OPAREN CPAREN OBRACE query CBRACE
-    | CALL OPAREN callCapture CPAREN OBRACE query CBRACE
+    : CALL invocationName parenExpressionChain { scanner.notImplemented("CALL name(...)"); }
+    | CALL invocationName parenExpressionChain yieldClause { scanner.notImplemented("CALL name(...) YIELD ..."); }
+    | OPTIONAL CALL invocationName parenExpressionChain { scanner.notImplemented("OPTIONAL CALL name(...)"); }
+    | OPTIONAL CALL invocationName parenExpressionChain yieldClause { scanner.notImplemented("OPTIONAL CALL name(...) YIELD ..."); }
+    | CALL OBRACE query CBRACE { scanner.notImplemented("CALL { subquery }"); }
+    | CALL OPAREN CPAREN OBRACE query CBRACE { scanner.notImplemented("CALL () { subquery }"); }
+    | CALL OPAREN callCapture CPAREN OBRACE query CBRACE { scanner.notImplemented("CALL (..) { subquery }"); }
     ;
 
 callCapture
@@ -364,8 +364,8 @@ yieldItem
     ;
 
 mergeSt
-    : MERGE patternPart
-    | MERGE patternPart mergeActionChain
+    : MERGE patternPart { scanner.notImplemented("MERGE"); }
+    | MERGE patternPart mergeActionChain { scanner.notImplemented("MERGE"); }
     ;
 
 mergeActionChain
@@ -379,7 +379,7 @@ mergeAction
     ;
 
 setSt
-    : SET setItem
+    : SET setItem { scanner.notImplemented("SET"); }
     | setSt COMMA setItem
     ;
 
@@ -397,16 +397,16 @@ nodeLabels
     ;
 
 createSt
-    : CREATE pattern
+    : CREATE pattern { scanner.notImplemented("CREATE"); }
     ;
 
 patternWhere
     : pattern
-    | pattern where
+    | pattern where { scanner.notImplemented("WHERE"); }
     ;
 
 where
-    : WHERE expression
+    : WHERE expression { scanner.notImplemented("WHERE"); }
     ;
 
 pattern
@@ -415,27 +415,27 @@ pattern
     ;
 
 expression
-    : xorExpression
+    : xorExpression { scanner.notImplemented("XOR"); }
     | expression OR xorExpression
     ;
 
 xorExpression
-    : andExpression
+    : andExpression { scanner.notImplemented("AND"); }
     | xorExpression XOR andExpression
     ;
 
 andExpression
-    : notExpression
+    : notExpression { scanner.notImplemented("NOT"); }
     | andExpression AND notExpression
     ;
 
 notExpression
-    : comparisonExpression
+    : comparisonExpression { scanner.notImplemented("Comparison expressions"); }
     | NOT notExpression
     ;
 
 comparisonExpression
-    : addSubExpression
+    : addSubExpression { scanner.notImplemented("Add/Sub expressions"); }
     | comparisonExpression comparisonSigns addSubExpression
     ;
 
@@ -451,33 +451,33 @@ comparisonSigns
     ;
 
 addSubExpression
-    : multDivExpression
+    : multDivExpression { scanner.notImplemented("Mult/Div expressions"); }
     | addSubExpression PLUS multDivExpression
     | addSubExpression SUB multDivExpression
     ;
 
 multDivExpression
-    : powerExpression
+    : powerExpression { scanner.notImplemented("Power expressions"); }
     | multDivExpression MULT powerExpression
     | multDivExpression DIV powerExpression
     | multDivExpression MOD powerExpression
     ;
 
 powerExpression
-    : unaryAddSubExpression
+    : unaryAddSubExpression { scanner.notImplemented("Unary Add/Sub expressions"); }
     | powerExpression CARET unaryAddSubExpression
     ;
 
 unaryAddSubExpression
-    : atomicExpression
+    : atomicExpression { scanner.notImplemented("Atomic expressions"); }
     | PLUS atomicExpression
     | SUB atomicExpression
     ;
 
 atomicExpression
     : propertyOrLabelExpression
-    | atomicExpression stringExpression
-    | atomicExpression listExpression
+    | atomicExpression stringExpression { scanner.notImplemented("String expressions"); }
+    | atomicExpression listExpression { scanner.notImplemented("List expressions"); }
     ;
 
 listExpression
@@ -500,7 +500,7 @@ stringExpPrefix
     ;
 
 propertyOrLabelExpression
-    : propertyExpression
+    : propertyExpression { scanner.notImplemented("Property expressions"); }
     | propertyExpression nodeLabels
     ;
 
@@ -596,13 +596,13 @@ relationshipTypes
     ;
 
 unionSt
-    : UNION singleQuery
-    | UNION ALL singleQuery
+    : UNION singleQuery { scanner.notImplemented("UNION"); }
+    | UNION ALL singleQuery { scanner.notImplemented("UNION ALL"); }
     ;
 
 subqueryExist
-    : EXISTS OBRACE query CBRACE
-    | EXISTS OBRACE patternWhere CBRACE
+    : EXISTS OBRACE query CBRACE { scanner.notImplemented("EXISTS"); }
+    | EXISTS OBRACE patternWhere CBRACE { scanner.notImplemented("EXISTS"); }
     ;
 
 qualifiedName
@@ -615,10 +615,10 @@ invocationName
     ;
 
 functionInvocation
-    : invocationName OPAREN CPAREN
-    | invocationName OPAREN DISTINCT CPAREN
-    | invocationName OPAREN expressionChain CPAREN
-    | invocationName OPAREN DISTINCT expressionChain CPAREN
+    : invocationName OPAREN CPAREN { scanner.notImplemented("Function invocations"); }
+    | invocationName OPAREN DISTINCT CPAREN { scanner.notImplemented("Function invocations"); }
+    | invocationName OPAREN expressionChain CPAREN { scanner.notImplemented("Function invocations"); }
+    | invocationName OPAREN DISTINCT expressionChain CPAREN { scanner.notImplemented("Function invocations"); }
     ;
 
 parenthesizedExpression
@@ -626,7 +626,7 @@ parenthesizedExpression
     ;
 
 filterWith
-    : filterKeyword OPAREN filterExpression CPAREN
+    : filterKeyword OPAREN filterExpression CPAREN { scanner.notImplemented("Filters"); }
     ;
 
 filterKeyword
@@ -649,30 +649,32 @@ relationshipsChainPattern
     ;
 
 listComprehension
-    : OBRACK filterExpression CBRACK
-    | OBRACK filterExpression PIPE expression CBRACK
+    : OBRACK filterExpression CBRACK { scanner.notImplemented("List comprehensions"); }
+    | OBRACK filterExpression PIPE expression CBRACK { scanner.notImplemented("List comprehensions"); }
     ;
 
 filterExpression
-    : symbol IN expression
-    | symbol IN expression where
+    : symbol IN expression { scanner.notImplemented("IN"); }
+    | symbol IN expression where { scanner.notImplemented("IN"); }
     ;
 
 countFunc
-    : COUNT OPAREN MULT CPAREN
-    | COUNT OPAREN CPAREN
-    | COUNT OPAREN DISTINCT CPAREN
-    | COUNT OPAREN expressionChain CPAREN
-    | COUNT OPAREN DISTINCT expressionChain CPAREN
-    | COUNT OBRACE patternWhere CBRACE
-    | COUNT OBRACE query CBRACE // returnSt is mandatory for MATCH subqueries, as opposed to Neo4j's Cypher parser
+    : COUNT OPAREN MULT CPAREN { scanner.notImplemented("COUNT"); }
+    | COUNT OPAREN CPAREN { scanner.notImplemented("COUNT"); }
+    | COUNT OPAREN DISTINCT CPAREN { scanner.notImplemented("COUNT"); }
+    | COUNT OPAREN expressionChain CPAREN { scanner.notImplemented("COUNT"); }
+    | COUNT OPAREN DISTINCT expressionChain CPAREN { scanner.notImplemented("COUNT"); }
+    | COUNT OBRACE patternWhere CBRACE { scanner.notImplemented("COUNT"); }
+
+    // Here, returnSt is mandatory for MATCH subqueries, as opposed to Neo4j's Cypher parser
+    | COUNT OBRACE query CBRACE { scanner.notImplemented("COUNT"); }
     ;
 
 caseExpression
-    : CASE whenThenChain END
-    | CASE expression whenThenChain END
-    | CASE whenThenChain ELSE expression END
-    | CASE expression whenThenChain ELSE expression END
+    : CASE whenThenChain END { scanner.notImplemented("CASE"); }
+    | CASE expression whenThenChain END  { scanner.notImplemented("CASE"); }
+    | CASE whenThenChain ELSE expression END { scanner.notImplemented("CASE"); }
+    | CASE expression whenThenChain ELSE expression END { scanner.notImplemented("CASE"); }
     ;
 
 whenThenChain
@@ -685,27 +687,27 @@ whenThen
     ;
 
 parameter
-    : DOLLAR symbol
-    | DOLLAR numLit
+    : DOLLAR symbol { scanner.notImplemented("Parameters"); }
+    | DOLLAR numLit { scanner.notImplemented("Parameters"); }
     ;
 
 literal
     : boolLit
     | numLit
-    | NULL_
+    | NULL_ { scanner.notImplemented("NULL"); }
     | stringLit
     | charLit
-    | listLit
-    | mapLit
+    | listLit { scanner.notImplemented("Lists"); }
+    | mapLit { scanner.notImplemented("Maps"); }
     ;
 
 rangeLit
-    : MULT
-    | MULT numLit
-    | MULT RANGE
-    | MULT RANGE numLit
-    | MULT numLit RANGE
-    | MULT numLit RANGE numLit
+    : MULT { scanner.notImplemented("Ranges"); }
+    | MULT numLit { scanner.notImplemented("Ranges"); }
+    | MULT RANGE { scanner.notImplemented("Ranges"); }
+    | MULT RANGE numLit { scanner.notImplemented("Ranges"); }
+    | MULT numLit RANGE { scanner.notImplemented("Ranges"); }
+    | MULT numLit RANGE numLit { scanner.notImplemented("Ranges"); }
     ;
 
 boolLit
@@ -727,9 +729,10 @@ charLit
     ;
 
 listLit
-    : OBRACK CBRACK
+    : OBRACK CBRACK { scanner.notImplemented("Lists"); }
     //| OBRACK expressionChain CBRACK // Enabling this causes conflicts
-    | OBRACK listLitItems CBRACK // Instead using this (simpler, too simple?)
+    // Instead using this: (simpler, too simple?)
+    | OBRACK listLitItems CBRACK { scanner.notImplemented("Lists"); }
     ;
 
 listLitItems
@@ -739,30 +742,30 @@ listLitItems
 
 listLitItem
     : literal
-    | parameter
-    | caseExpression
-    | countFunc
-    | listComprehension
-    | patternComprehension
-    | filterWith
+    | parameter { scanner.notImplemented("Parameters"); }
+    | caseExpression { scanner.notImplemented("CASE"); }
+    | countFunc { scanner.notImplemented("COUNT"); }
+    | listComprehension { scanner.notImplemented("List comprehensions"); }
+    | patternComprehension { scanner.notImplemented("Pattern comprehensions"); }
+    | filterWith { scanner.notImplemented("Filters"); }
     //| parenthesizedExpression // Enabling this causes conflicts, not needed?
-    | functionInvocation
+    | functionInvocation { scanner.notImplemented("Function invocations"); }
     | symbol
-    | subqueryExist
+    | subqueryExist { scanner.notImplemented("EXISTS"); }
     ;
 
 mapLit
-    : OBRACE CBRACE
-    | OBRACE mapPairChain CBRACE
+    : OBRACE CBRACE { scanner.notImplemented("Maps"); }
+    | OBRACE mapPairChain CBRACE { scanner.notImplemented("Maps"); }
     ;
 
 mapPairChain
-    : mapPair
-    | mapPairChain COMMA mapPair
+    : mapPair { scanner.notImplemented("Maps"); }
+    | mapPairChain COMMA mapPair { scanner.notImplemented("Maps"); }
     ;
 
 mapPair
-    : name COLON expression
+    : name COLON expression { scanner.notImplemented("Maps"); }
     ;
 
 name
