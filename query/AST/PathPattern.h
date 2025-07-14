@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "DeclKind.h"
+#include "ID.h"
 
 namespace db {
 
@@ -30,6 +31,8 @@ public:
     DeclKind getKind() const { return _kind; }
 
     void setVar(VarExpr* var) { _var = var; }
+    void setTypeConstraint(TypeConstraint* typeConstr) { _typeConstr = typeConstr; }
+    void setExprConstraint(ExprConstraint* exprConstr) { _exprConstr = exprConstr; }
 
     VarExpr* getVar() const { return _var; }
     TypeConstraint* getTypeConstraint() const { return _typeConstr; }
@@ -43,11 +46,35 @@ private:
     ExprConstraint* _exprConstr {nullptr};
     uint64_t _entityID {UINT64_MAX};
 
+protected:
     EntityPattern(VarExpr* var,
                   TypeConstraint* typeConstr,
                   ExprConstraint* exprConstr,
                   uint64_t entityID);
-    ~EntityPattern();
+    virtual ~EntityPattern();
+};
+
+class InjectedNodes : public EntityPattern{
+public:
+    friend ASTContext;
+
+    static InjectedNodes* create(ASTContext* ctxt);
+
+    static EntityPattern* create(ASTContext* ctxt,
+                                 VarExpr* var,
+                                 TypeConstraint* typeConstr,
+                                 ExprConstraint* exprConstr);
+
+    const std::vector<NodeID>& nodes() const { return _nodeIds; }
+
+    void addNode(NodeID id);
+
+private:
+    std::vector<NodeID> _nodeIds;
+    
+
+    InjectedNodes();
+    ~InjectedNodes();
 };
 
 class PathPattern {
@@ -67,5 +94,6 @@ private:
     PathPattern();
     ~PathPattern();
 };
+
 
 }

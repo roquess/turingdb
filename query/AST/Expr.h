@@ -178,7 +178,10 @@ public:
     enum OpType {
         OP_EQUAL,
         OP_STR_APPROX,
+        _SIZE
     };
+    using OpTypeName = EnumToString<OpType>::Create<
+    EnumStringPair<OpType::OP_EQUAL, "Equals">>;
 
     static BinExpr* create(ASTContext* ctxt, Expr* left, Expr* right, OpType opType);
    

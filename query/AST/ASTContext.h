@@ -11,6 +11,7 @@ class MatchTargets;
 class CreateTarget;
 class CreateTargets;
 class PathPattern;
+class InjectedNodes;
 class EntityPattern;
 class TypeConstraint;
 class ExprConstraint;
@@ -27,6 +28,7 @@ public:
     friend CreateTarget;
     friend CreateTargets;
     friend PathPattern;
+    friend InjectedNodes;
     friend EntityPattern;
     friend TypeConstraint;
     friend ExprConstraint;
