@@ -390,7 +390,7 @@ void QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
                                          EntityPattern* entity,
                                          bool isCreate) {
     if(entity->getKind() == DeclKind::INJECT_DECL) {
-        throw AnalyzeException("Injecting Nodes In Non-Primary Entity:\""
+        throw AnalyzeException("Injecting Nodes In Non-Primary Entity Not Supported, For Entity:\""
                                + entity->getVar()->getName() + "\"");
     }
     VarExpr* var = entity->getVar();
