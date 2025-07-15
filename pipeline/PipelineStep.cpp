@@ -1,4 +1,6 @@
 #include "PipelineStep.h"
+#include "PipelineOpcode.h"
+#include "ScanNodesStringApproxStep.h"
 
 #define GET_PROPERTY_STEP_IMPL(NodeOrEdge, Opcode, Type)                             \
     PipelineStep::PipelineStep(Get##NodeOrEdge##Property##Type##Step::Tag,           \
@@ -60,6 +62,13 @@
 
 
 using namespace db;
+
+PipelineStep::PipelineStep(ScanNodesStringApproxStep::Tag, ColumnVector<NodeID>* nodes,
+                           PropertyTypeID propID, std::string_view strQuery)
+    : _opcode(PipelineOpcode::SCAN_NODE_PROPERTY_STRING_APPROX),
+      _impl(std::in_place_type<ScanNodesStringApproxStep>, nodes, propID, strQuery)
+{
+}
 
 PipelineStep::PipelineStep(ScanNodesStep::Tag, ColumnNodeIDs* nodes)
     : _opcode(PipelineOpcode::SCAN_NODES),

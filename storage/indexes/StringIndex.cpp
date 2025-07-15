@@ -129,7 +129,7 @@ const void StringIndex::query(std::vector<EntityID>& result,
                               std::string_view queryString) const {
     using Node = StringIndexNode;
 
-    result.clear();
+    //result.clear();
     // Track owners in a set to avoid duplicates
     std::unordered_set<EntityID> resSet;
 
@@ -163,6 +163,6 @@ const void StringIndex::query(std::vector<EntityID>& result,
             }
         }
     }
-    result.resize(resSet.size());  // Allocate enough space
-    std::copy(resSet.begin(), resSet.end(), result.begin());
+    //result.resize(resSet.size());  // Allocate enough space
+    std::copy(resSet.begin(), resSet.end(), std::back_inserter(result));
 }

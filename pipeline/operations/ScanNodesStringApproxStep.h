@@ -1,36 +1,38 @@
 #pragma once
 
 #include "DataPartSpan.h"
-#include "metadata/PropertyType.h"
+#include "ID.h"
 #include <memory>
 
 namespace db {
 
-class ColumnNodeIDs;
+class ExecutionContext;
 template <typename T>
 class ColumnVector;
-class ExecutionContext;
 
 class ScanNodesStringApproxStep {
 public:
-    ScanNodesStringApproxStep(ColumnNodeIDs* nodes,
-                             ColumnVector<types::String>* propValues);
+    struct Tag {};
+
+    ScanNodesStringApproxStep(ColumnVector<NodeID>* nodes, PropertyTypeID propID,
+                              std::string_view strQuery);
     ScanNodesStringApproxStep(ScanNodesStringApproxStep && other) = default;
     ~ScanNodesStringApproxStep();
 
     void prepare(ExecutionContext* ctxt);
 
-    inline void reset();
+    void reset();
 
     inline bool isFinished() const;
 
-    inline void execute();
+    void execute();
 
     void describe(std::string& descr) const;
 
 private:
     std::unique_ptr<DataPartSpan> _dps;
-    ColumnNodeIDs* _nodes {nullptr};
-    ColumnVector<types::String>* _propValues {nullptr};
+    ColumnVector<NodeID>* _nodes {nullptr};
+    PropertyTypeID _pId {0};
+    std::string_view _strQuery;
 };
 }

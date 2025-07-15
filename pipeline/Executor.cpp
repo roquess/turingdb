@@ -6,6 +6,7 @@
 #include "PipelineException.h"
 #include "PipelineMacros.h"
 #include "Profiler.h"
+#include "ScanNodesStringApproxStep.h"
 
 using namespace db;
 
@@ -50,6 +51,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _activateTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_INT64] = ACTIVATE_PTR(ScanNodesByPropertyInt64Step);
         _activateTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_UINT64] = ACTIVATE_PTR(ScanNodesByPropertyUInt64Step);
         _activateTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_DOUBLE] = ACTIVATE_PTR(ScanNodesByPropertyDoubleStep);
+        _activateTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_STRING_APPROX] = ACTIVATE_PTR(ScanNodesStringApproxStep);
         _activateTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_STRING] = ACTIVATE_PTR(ScanNodesByPropertyStringStep);
         _activateTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_BOOL] = ACTIVATE_PTR(ScanNodesByPropertyBoolStep);
         _activateTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_AND_LABEL_INT64] = ACTIVATE_PTR(ScanNodesByPropertyAndLabelInt64Step);
@@ -187,6 +189,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     })
 
     // ACTIVATE actions
+    ACTIVATE_STEP(ScanNodesStringApproxStep)
     ACTIVATE_STEP(ScanNodesStep)
     ACTIVATE_STEP(ScanNodesByLabelStep)
     ACTIVATE_STEP(ScanEdgesStep)

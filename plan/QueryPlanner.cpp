@@ -19,6 +19,7 @@
 #include "ReturnField.h"
 #include "ASTContext.h"
 #include "ReturnProjection.h"
+#include "ScanNodesStringApproxStep.h"
 #include "TypeConstraint.h"
 #include "InjectedIDs.h"
 #include "VarDecl.h"
@@ -420,14 +421,7 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnNodeIDs* const& ou
     // Get the PropertyType (ID and type) which we are scanning for
     const PropertyType propType = propTypeRes.value();
 
-    // Here construct new step
-
-    const auto opType = expressions[0]->getOpType();
-
-    if (opType == BinExpr::OP_STR_APPROX) {
-        spdlog::info("We are approximating the string {}",
-                     static_cast<StringExprConst*>(rightExpr)->getVal());
-    }
+    
 
     const auto caseScanNodesPropertyValueType = [&]<SupportedType T>() {
         using Step = ScanNodesByPropertyStep<T>;
@@ -507,27 +501,42 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnNodeIDs* const& ou
     switch (propType._valueType) {
         case ValueType::Int64: {
             caseScanNodesPropertyValueType.operator()<types::Int64>();
-            break;
+        break;
         }
 
         case ValueType::UInt64: {
             caseScanNodesPropertyValueType.operator()<types::UInt64>();
-            break;
+        break;
         }
 
         case ValueType::Double: {
             caseScanNodesPropertyValueType.operator()<types::Double>();
-            break;
+        break;
         }
 
         case ValueType::Bool: {
             caseScanNodesPropertyValueType.operator()<types::Bool>();
-            break;
+        break;
         }
 
         case ValueType::String: {
-            caseScanNodesPropertyValueType.operator()<types::String>();
-            break;
+            const auto opType = expressions[0]->getOpType();
+            if (opType == BinExpr::OP_STR_APPROX && expressions.size() == 1) {
+                spdlog::info("We are approximating the string {}",
+                             static_cast<StringExprConst*>(rightExpr)->getVal());
+
+                // String Approximation => we have a string constant as right operand
+                const StringExprConst* strConstant =
+                    dynamic_cast<StringExprConst*>(rightExpr);
+                const std::string strConstantValue = strConstant->getVal();
+                const auto strPropID = propType._id;
+
+                _pipeline->add<ScanNodesStringApproxStep>(scannedNodes, strPropID,
+                                                          strConstantValue);
+            } else {
+                caseScanNodesPropertyValueType.operator()<types::String>();
+            }
+        break;
         }
 
 

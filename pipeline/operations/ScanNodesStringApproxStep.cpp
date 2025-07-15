@@ -1,7 +1,10 @@
 #include "ScanNodesStringApproxStep.h"
+
 #include "DataPart.h"
 #include "ExecutionContext.h"
 #include "Profiler.h"
+#include "columns/ColumnVector.h"
+#include "indexes/StringIndex.h"
 #include "views/GraphView.h"
 
 #include <memory>
@@ -11,10 +14,11 @@ using namespace db;
 using Step = ScanNodesStringApproxStep;
 
 
-Step::ScanNodesStringApproxStep(
-    ColumnNodeIDs* nodes, ColumnVector<types::String>* propValues)
+Step::ScanNodesStringApproxStep(ColumnVector<NodeID>* nodes, PropertyTypeID propID,
+                                std::string_view strQuery)
     : _nodes(nodes),
-      _propValues(propValues)
+      _pId(propID),
+      _strQuery(strQuery)
 {
 }
 
@@ -25,7 +29,7 @@ void Step::describe(std::string& descr) const {
     std::stringstream ss;
     ss << "ScanNodesByPropertyStep";
     ss << " nodes=" << std::hex << _nodes;
-    ss << " props=" << std::hex << _propValues;
+    ss << " query=" << std::hex << _strQuery;
     descr.assign(ss.str());
     
 }
@@ -35,15 +39,25 @@ void Step::prepare(ExecutionContext* ctxt) {
     _dps = std::make_unique<DataPartSpan>(ctxt->getGraphView().dataparts());
 }
 
+void Step::reset() {
+    
+}
+
+inline bool Step::isFinished() const {
+    return _dps != nullptr;
+}
+
 void Step::execute() {
     Profile profile {"ScanNodesStringApproxStep::execute"};
-    
+
     // For each datapart
     for (DataPartIterator it = _dps->begin(); it != _dps->end(); it++) {
         // Query its index for each string
-        //auto& nodeStringIndex = it->get()->getNodeStrPropIndex();
+        const auto& nodeStringIndex = it->get()->getNodeStrPropIndex();
+        const auto& strIndex = nodeStringIndex.at(_pId);
 
-        // accumulate into NodeIDs
+        // Accumulates matching node IDs into _nodes column vec
+        strIndex->query(_nodes->getRaw(), _strQuery);
     }
-
+    _dps.reset();
 }

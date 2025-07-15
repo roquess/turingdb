@@ -8,6 +8,7 @@
 #include "CallLabelStep.h"
 #include "PipelineOpcode.h"
 
+#include "ScanNodesStringApproxStep.h"
 #include "operations/ScanNodesStep.h"
 #include "operations/ScanNodesByLabelStep.h"
 #include "operations/ScanNodesByPropertyStep.h"
@@ -78,6 +79,9 @@ struct EdgeWriteInfo;
 
 class PipelineStep {
 public:
+
+    PipelineStep(ScanNodesStringApproxStep::Tag, ColumnVector<NodeID>* nodes,
+                           PropertyTypeID propID, std::string_view strQuery);
     PipelineStep(ScanNodesStep::Tag, ColumnNodeIDs* nodes);
     PipelineStep(ScanNodesByLabelStep::Tag,
                  ColumnNodeIDs* nodes,
@@ -181,6 +185,7 @@ private:
                  ScanNodesByPropertyUInt64Step,
                  ScanNodesByPropertyDoubleStep,
                  ScanNodesByPropertyStringStep,
+                 ScanNodesStringApproxStep,
                  ScanNodesByPropertyBoolStep,
                  ScanNodesByPropertyAndLabelInt64Step,
                  ScanNodesByPropertyAndLabelUInt64Step,
