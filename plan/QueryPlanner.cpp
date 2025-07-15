@@ -226,8 +226,12 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
 void QueryPlanner::planInjectNodes(const std::vector<EntityPattern*>& path) {
     const auto* injectedNodes = static_cast<InjectedNodes*>(path[0]);
 
+    auto* nodes = _mem->alloc<ColumnNodeIDs>(injectedNodes->nodes());
+
     const TypeConstraint* injectTypeConstr = injectedNodes->getTypeConstraint();
-    if(injectTypeConstr) {
+    const ExprConstraint* injectExprConstr = injectedNodes->getExprConstraint();
+
+    if (injectTypeConstr) {
         const LabelSet* injectLabelSet = getOrCreateLabelSet(injectTypeConstr);
 
         getMatchingLabelSets(_tmpLabelSetIDs, injectLabelSet);
@@ -238,18 +242,90 @@ void QueryPlanner::planInjectNodes(const std::vector<EntityPattern*>& path) {
             return;
         }
 
+        auto* nodesLabelSetIDs = _mem->alloc<ColumnVector<LabelSetID>>();
+        _pipeline->add<GetLabelSetIDStep>(nodes, nodesLabelSetIDs);
+
+        auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+
+        // Build filter expression to compute filter for each LabelSetID
+        ColumnMask* filterMask {nullptr};
+        for (LabelSetID labelSetID : _tmpLabelSetIDs) {
+            spdlog::info("labelsetid = {}", labelSetID);
+            auto* targetLabelSetID = _mem->alloc<ColumnConst<LabelSetID>>();
+            targetLabelSetID->set(labelSetID);
+
+            auto* newMask = _mem->alloc<ColumnMask>();
+
+            filter.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_EQUAL,
+                ._mask = newMask,
+                ._lhs = nodesLabelSetIDs,
+                ._rhs = targetLabelSetID,
+            });
+
+            if (filterMask) {
+                filter.addExpression(FilterStep::Expression {
+                    ._op = ColumnOperator::OP_OR,
+                    ._mask = newMask,
+                    ._lhs = filterMask,
+                    ._rhs = newMask,
+                });
+            }
+
+            filterMask = newMask;
+        }
+
+        // Apply filter to target node IDs
+        auto* filterOutNodes = _mem->alloc<ColumnNodeIDs>();
+        filter.addOperand(FilterStep::Operand {
+            ._mask = filterMask,
+            ._src = nodes,
+            ._dest = filterOutNodes,
+        });
+
+
+        // Assign the filtered nodes column to the general node column
+        // pointer so we can iteratively apply filters.
+        nodes = filterOutNodes;
     }
 
-    auto* injectedNodesCol = _mem->alloc<ColumnNodeIDs>(injectedNodes->nodes());
+    if (injectExprConstr) {
+        const auto& expressions = injectExprConstr->getExpressions();
+
+        std::vector<ColumnMask*> masks(expressions.size());
+        for (auto& mask : masks) {
+            mask = _mem->alloc<ColumnMask>();
+        }
+
+        generateNodePropertyFilterMasks(masks, expressions, nodes);
+
+        auto* filterOutNodes = _mem->alloc<ColumnNodeIDs>();
+        auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+
+        for (auto* mask : masks) {
+            filter.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_AND,
+                ._mask = masks[0],
+                ._lhs = masks[0],
+                ._rhs = mask});
+        }
+        filter.addOperand(FilterStep::Operand {
+            ._mask = masks[0],
+            ._src = nodes,
+            ._dest = filterOutNodes});
+
+        nodes = filterOutNodes;
+    }
+
     const VarExpr* nodeVar = injectedNodes->getVar();
     if (nodeVar) {
         VarDecl* nodeDecl = nodeVar->getDecl();
         if (nodeDecl->isReturned()) {
-            _transformData->addColumn(injectedNodesCol, nodeDecl);
+            _transformData->addColumn(nodes, nodeDecl);
         }
     }
 
-    _result = injectedNodesCol;
+    _result = nodes;
 
     const auto expandSteps = path | rv::drop(1) | rv::chunk(2);
     for (auto step : expandSteps) {
