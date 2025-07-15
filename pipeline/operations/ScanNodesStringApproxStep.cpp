@@ -43,10 +43,6 @@ void Step::reset() {
     
 }
 
-inline bool Step::isFinished() const {
-    return _dps != nullptr;
-}
-
 void Step::execute() {
     Profile profile {"ScanNodesStringApproxStep::execute"};
 
@@ -60,4 +56,5 @@ void Step::execute() {
         strIndex->query<NodeID>(_nodes->getRaw(), _strQuery);
     }
     _dps.reset();
+    _done = true;
 }

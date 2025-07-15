@@ -23,13 +23,16 @@ public:
 
     void reset();
 
-    inline bool isFinished() const;
+    inline bool isFinished() const {
+        return _done;
+    }
 
     void execute();
 
     void describe(std::string& descr) const;
 
 private:
+    bool _done {false};
     std::unique_ptr<DataPartSpan> _dps;
     ColumnVector<NodeID>* _nodes {nullptr};
     PropertyTypeID _pId {0};

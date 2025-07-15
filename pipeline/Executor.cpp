@@ -109,6 +109,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _returnTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_INT64] = RETURN_PTR(ScanNodesByPropertyInt64Step);
         _returnTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_UINT64] = RETURN_PTR(ScanNodesByPropertyUInt64Step);
         _returnTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_DOUBLE] = RETURN_PTR(ScanNodesByPropertyDoubleStep);
+        _returnTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_STRING_APPROX] = RETURN_PTR(ScanNodesStringApproxStep);
         _returnTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_STRING] = RETURN_PTR(ScanNodesByPropertyStringStep);
         _returnTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_BOOL] = RETURN_PTR(ScanNodesByPropertyBoolStep);
         _returnTbl[(uint64_t)PipelineOpcode::SCAN_NODE_PROPERTY_AND_LABEL_INT64] = RETURN_PTR(ScanNodesByPropertyAndLabelInt64Step);
@@ -246,6 +247,7 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     ACTIVATE_END()
 
     // RETURN actions
+    RETURN_STEP(ScanNodesStringApproxStep)
     RETURN_STEP(ScanNodesStep)
     RETURN_STEP(ScanNodesByLabelStep)
     RETURN_STEP(ScanEdgesStep)
