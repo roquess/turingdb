@@ -14,13 +14,14 @@
 %verbose
 
 %code requires {
+    // Inspired by https://github.com/antlr/grammars-v4/blob/master/cypher/CypherParser.g4
+
     #include <spdlog/fmt/bundled/core.h>
     #include <optional>
     #include <vector>
 
-    #include "expressions/Operators.h"
+    #include "expressions/All.h"
     #include "Literal.h"
-    #include "Atom.h"
     #include "Symbol.h"
     #include "QualifiedName.h"
 
@@ -150,7 +151,6 @@
 %token UNKNOWN
 
 %type<db::Literal> numLit boolLit charLit literal stringLit
-%type<db::Atom> atom
 %type<db::Symbol> symbol
 %type<db::QualifiedName> qualifiedName
 %type<db::QualifiedName> invocationName
@@ -163,6 +163,22 @@
 %type<std::optional<Symbol>> opt_symbol
 %type<std::optional<std::vector<std::string>>> opt_nodeLabels
 %type<std::optional<std::vector<std::string>>> opt_relationshipTypes
+
+%type<db::Expression*> expression
+%type<db::Expression*> xorExpression
+%type<db::Expression*> andExpression
+%type<db::Expression*> notExpression
+%type<db::Expression*> comparisonExpression
+%type<db::Expression*> addSubExpression
+%type<db::Expression*> multDivExpression
+%type<db::Expression*> powerExpression
+%type<db::Expression*> unaryAddSubExpression
+%type<db::Expression*> atomicExpression
+%type<db::Expression*> listExpression
+%type<db::Expression*> stringExpression
+%type<db::Expression*> propertyOrLabelExpression
+%type<db::Expression*> propertyExpression
+%type<db::Expression*> atomExpression
 
 %type<BinaryOperator> comparisonSign
 %type<StringOperator> stringExpPrefix
@@ -438,28 +454,28 @@ pattern
     ;
 
 expression
-    : xorExpression { fmt::print("expression\n"); }
-    | expression OR xorExpression { fmt::print("expression OR xorExpression\n"); }
+    : xorExpression { $$ = $1; }
+    | expression OR xorExpression { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::Or, $3); }
     ;
 
 xorExpression
-    : andExpression { fmt::print("xorExpression\n"); }
-    | xorExpression XOR andExpression  { fmt::print("xorExpression XOR andExpression\n"); }
+    : andExpression { $$ = $1; }
+    | xorExpression XOR andExpression  { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::Xor, $3); }
     ;
 
 andExpression
-    : notExpression { fmt::print("andExpression\n"); }
-    | andExpression AND notExpression { fmt::print("andExpression AND notExpression\n"); }
+    : notExpression { $$ = $1; }
+    | andExpression AND notExpression { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::And, $3); }
     ;
 
 notExpression
-    : comparisonExpression { fmt::print("notExpression\n"); }
-    | NOT notExpression { fmt::print("NOT notExpression\n"); }
+    : comparisonExpression { $$ = $1; }
+    | NOT notExpression { $$ = ast.newExpression<UnaryExpression>(UnaryOperator::Not, $2); }
     ;
 
 comparisonExpression
-    : addSubExpression { fmt::print("comparisonExpression\n"); }
-    | comparisonExpression comparisonSign addSubExpression { fmt::print("comparisonExpression comparisonSign addSubExpression\n"); }
+    : addSubExpression { $$ = $1; }
+    | comparisonExpression comparisonSign addSubExpression { $$ = ast.newExpression<BinaryExpression>($1, $2, $3); }
     ;
 
 comparisonSign
@@ -471,49 +487,30 @@ comparisonSign
     | NOT_EQUAL { $$ = BinaryOperator::NotEqual; }
     | IS { $$ = BinaryOperator::Equal; }
     | IS_NOT { $$ = BinaryOperator::NotEqual; }
+    | IN { $$ = BinaryOperator::In; }
     ;
 
 addSubExpression
-    : multDivExpression { fmt::print("addSubExpression\n"); }
-    | addSubExpression PLUS multDivExpression { fmt::print("addSubExpression PLUS multDivExpression\n"); }
-    | addSubExpression SUB multDivExpression { fmt::print("addSubExpression SUB multDivExpression\n"); }
+    : multDivExpression { $$ = $1; }
+    | addSubExpression PLUS multDivExpression { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::Add, $3); }
+    | addSubExpression SUB multDivExpression { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::Sub, $3); }
     ;
 
 multDivExpression
-    : powerExpression { fmt::print("multDivExpression\n"); }
-    | multDivExpression MULT powerExpression { fmt::print("multDivExpression MULT powerExpression\n"); }
-    | multDivExpression DIV powerExpression { fmt::print("multDivExpression DIV powerExpression\n"); }
-    | multDivExpression MOD powerExpression { fmt::print("multDivExpression MOD powerExpression\n"); }
+    : powerExpression { $$ = $1; }
+    | multDivExpression MULT powerExpression { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::Mult, $3); }
+    | multDivExpression DIV powerExpression { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::Div, $3); }
+    | multDivExpression MOD powerExpression { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::Mod, $3); }
     ;
 
 powerExpression
-    : unaryAddSubExpression { fmt::print("powerExpression\n"); }
-    | powerExpression CARET unaryAddSubExpression { fmt::print("powerExpression CARET unaryAddSubExpression\n"); }
-    ;
-
-unaryAddSubExpression
-    : atomicExpression { fmt::print("unaryAddSubExpression\n"); }
-    | PLUS atomicExpression { scanner.notImplemented("Unary Add/Sub expressions"); }
-    | SUB atomicExpression { scanner.notImplemented("Unary Add/Sub expressions"); }
-    ;
-
-atomicExpression
-    : propertyOrLabelExpression { fmt::print("atomicExpression\n"); }
-    | atomicExpression stringExpression { scanner.notImplemented("String expressions"); }
-    | atomicExpression listExpression { scanner.notImplemented("List expressions"); }
-    ;
-
-listExpression
-    : IN propertyOrLabelExpression
-    | OBRACK expression CBRACK
-    | OBRACK expression RANGE expression CBRACK
-    | OBRACK RANGE expression CBRACK
-    | OBRACK expression RANGE CBRACK
-    | OBRACK RANGE CBRACK
+    : stringExpression { $$ = $1; }
+    | powerExpression CARET stringExpression { $$ = ast.newExpression<BinaryExpression>($1, BinaryOperator::Pow, $3); }
     ;
 
 stringExpression
-    : stringExpPrefix propertyOrLabelExpression { fmt::print("stringExpPrefix propertyOrLabelExpression\n"); }
+    : unaryAddSubExpression { $$ = $1; }
+    | stringExpPrefix unaryAddSubExpression { $$ = ast.newExpression<StringExpression>($1, $2); }
     ;
 
 stringExpPrefix
@@ -522,15 +519,57 @@ stringExpPrefix
     | CONTAINS { $$ = StringOperator::Contains; }
     ;
 
+unaryAddSubExpression
+    : atomicExpression { $$ = $1; }
+    | PLUS unaryAddSubExpression { $$ = ast.newExpression<UnaryExpression>(UnaryOperator::Plus, $2); }
+    | SUB unaryAddSubExpression { $$ = ast.newExpression<UnaryExpression>(UnaryOperator::Minus, $2); }
+    // this allows chaining operators like -+--1 (which is +1)
+    ;
+
+atomicExpression
+    : propertyOrLabelExpression { $$ = $1; }
+    | atomicExpression listExpression { $$ = nullptr; scanner.notImplemented("List expressions"); }
+    ;
+
+listExpression
+    : OBRACK expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression CBRACK"); }
+    | OBRACK expression RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE expression CBRACK"); }
+    | OBRACK RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE expression CBRACK"); }
+    | OBRACK expression RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE CBRACK"); }
+    | OBRACK RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE CBRACK"); }
+    ;
+
 propertyOrLabelExpression
-    : propertyExpression { fmt::print("propertyExpression\n"); }
-    | propertyExpression nodeLabels { fmt::print("propertyExpression nodeLabels\n"); }
+    : propertyExpression { $$ = $1; }
+
+    // | propertyExpression nodeLabels { fmt::print("propertyExpression nodeLabels\n"); }
+    // This seems too permissive, it allows 'n.name:Person' which is weird
+
+    // Replaced by this more specific rule
+    | symbol nodeLabels { $$ = ast.newExpression<NodeLabelExpression>(std::move($1), std::move($2)); }
     ;
 
 propertyExpression
-    : atom { fmt::print("atom\n"); }
-    | qualifiedName DOT name { fmt::print("qualifiedName DOT name\n"); }
+    : atomExpression { $$ = $1; }
+    | qualifiedName DOT name { $1.addName(std::move($3)); $$ = ast.newExpression<PropertyExpression>(std::move($1)); }
     ;
+
+atomExpression
+    : literal { ast.newExpression<AtomExpression>(std::move($1)); }
+    | symbol { ast.newExpression<AtomExpression>(std::move($1)); }
+
+    | parameter { scanner.notImplemented("Parameters"); }
+    | caseExpression { scanner.notImplemented("CASE"); }
+    | countFunc { scanner.notImplemented("COUNT"); }
+    | listComprehension { scanner.notImplemented("List comprehensions"); }
+    | patternComprehension { scanner.notImplemented("Pattern comprehensions"); }
+    | filterWith { scanner.notImplemented("Filter keywords"); }
+    | parenthesizedExpression { scanner.notImplemented("Parenthesized expressions"); }
+    | functionInvocation { scanner.notImplemented("Function invocations"); }
+    | subqueryExist { scanner.notImplemented("EXISTS"); }
+    //| relationshipsChainPattern // Enabling this causes conflicts, not sure if we need it
+    ;
+
 
 patternPart
     : patternElem
@@ -582,21 +621,6 @@ opt_rangeLit
     | /* empty */
     ;
 
-atom
-    : literal { $$ = std::move($1); }
-    | parameter { scanner.notImplemented("Parameters"); }
-    | caseExpression { scanner.notImplemented("CASE"); }
-    | countFunc { scanner.notImplemented("COUNT"); }
-    | listComprehension { scanner.notImplemented("List comprehensions"); }
-    | patternComprehension { scanner.notImplemented("Pattern comprehensions"); }
-    | filterWith { scanner.notImplemented("Filter keywords"); }
-    //| relationshipsChainPattern // Enabling this causes conflicts, not sure if we need it
-    | parenthesizedExpression { scanner.notImplemented("Parenthesized expressions"); }
-    | functionInvocation { scanner.notImplemented("Function invocations"); }
-    | symbol { $$ = std::move($1); }
-    | subqueryExist { scanner.notImplemented("EXISTS"); }
-    ;
-
 lhs
     : symbol ASSIGN
     ;
@@ -632,8 +656,8 @@ subqueryExist
     ;
 
 qualifiedName
-    : symbol { $$.addSymbol(std::move($1)); }
-    | qualifiedName DOT symbol { $$.addSymbol(std::move($3)); }
+    : symbol { $$.addName(std::move($1._name)); }
+    | qualifiedName DOT symbol { $$.addName(std::move($3._name)); }
     ;
 
 invocationName
@@ -737,13 +761,13 @@ rangeLit
     ;
 
 boolLit
-    : TRUE { $$ = Literal(true); }
-    | FALSE { $$ = Literal(false); }
+    : TRUE { fmt::print("bool true\n"); $$ = Literal(true); }
+    | FALSE { fmt::print("bool false\n"); $$ = Literal(false); }
     ;
 
 numLit
-    : DIGIT { $$ = Literal($1); }
-    | FLOAT { $$ = Literal($1); }
+    : DIGIT { fmt::print("numLit {}\n", $1); $$ = Literal($1); }
+    | FLOAT { fmt::print("numLit {}\n", $1); $$ = Literal($1); }
     ;
 
 stringLit
@@ -800,8 +824,8 @@ name
     ;
 
 symbol
-    : ESC_LITERAL { $$ = Symbol { ._name = std::move($1)}; }
-    | ID { $$ = Symbol { ._name = std::move($1) }; }
+    : ESC_LITERAL { fmt::print("symbol {}\n", $1); $$ = Symbol { ._name = std::move($1)}; }
+    | ID { fmt::print("symbol {}\n", $1); $$ = Symbol { ._name = std::move($1) }; }
     //| FILTER // We should not need to support these
     //| EXTRACT
     //| ANY

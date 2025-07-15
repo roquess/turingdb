@@ -1,5 +1,5 @@
 MATCH (n)--(a:Officer), (n:Country)--(b), (m)--(c:Ceo), (m)--(d:City) 
-WHERE 5 > 1 AND m:Person
+WHERE 5 > 1 AND m:Person AND 2 > 4 AND x.name = "Luc"
 RETURN n, m
 
 // 

@@ -6,6 +6,8 @@ enum class ExpressionType {
     Binary = 0,
     Unary,
     String,
+    NodeLabel,
+    Property,
 };
 
 

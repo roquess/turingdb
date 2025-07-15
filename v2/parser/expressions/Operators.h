@@ -13,10 +13,12 @@ enum class BinaryOperator {
     LessThanOrEqual,
     GreaterThanOrEqual,
     Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Modulo,
+    Sub,
+    Mult,
+    Div,
+    Mod,
+    Pow,
+    In,
 };
 
 enum class UnaryOperator {

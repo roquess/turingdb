@@ -1,8 +1,7 @@
 #pragma once
 
 #include <vector>
-
-#include "Symbol.h"
+#include <string>
 
 namespace db {
 
@@ -16,12 +15,12 @@ public:
     QualifiedName& operator=(const QualifiedName&) = default;
     QualifiedName& operator=(QualifiedName&&) = default;
 
-    void addSymbol(Symbol&& symbol) { _symbols.emplace_back(std::move(symbol)); }
+    void addName(std::string&& name) { _names.emplace_back(std::move(name)); }
 
-    const std::vector<Symbol>& getSymbols() const { return _symbols; }
+    const std::vector<std::string>& getNames() const { return _names; }
 
 private:
-    std::vector<Symbol> _symbols;
+    std::vector<std::string> _names;
 };
 
 }

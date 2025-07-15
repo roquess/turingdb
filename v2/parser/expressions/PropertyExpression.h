@@ -1,16 +1,15 @@
 #pragma once
 
-#include "AtomicExpression.h"
-#include <optional>
-#include <string>
+#include <memory>
+
+#include "Expression.h"
+#include "QualifiedName.h"
+#include "spdlog/fmt/bundled/core.h"
 
 namespace db {
 
-class PropertyExpression : public AtomicExpression {
+class PropertyExpression : public Expression {
 public:
-    PropertyExpression(ExpressionType type)
-        : AtomicExpression(type) {}
-
     ~PropertyExpression() override = default;
 
     PropertyExpression(const PropertyExpression&) = delete;
@@ -18,8 +17,22 @@ public:
     PropertyExpression& operator=(const PropertyExpression&) = delete;
     PropertyExpression& operator=(PropertyExpression&&) = delete;
 
+    const QualifiedName& name() { return _name; }
+
+    static std::unique_ptr<Expression> create(QualifiedName&& name) {
+
+        fmt::print("PropertyExpression::create\n");
+        return std::unique_ptr<Expression> {
+            new PropertyExpression {std::move(name)}};
+    }
+
 private:
-    std::optional<std::string> _nodeLabels;
+    PropertyExpression(QualifiedName&& name)
+        : Expression(ExpressionType::Property),
+          _name(std::move(name)) {
+    }
+
+    QualifiedName _name;
 };
 
 }

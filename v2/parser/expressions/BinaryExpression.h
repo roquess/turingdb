@@ -4,6 +4,7 @@
 
 #include "Expression.h"
 #include "Operators.h"
+#include "spdlog/fmt/bundled/core.h"
 
 namespace db {
 
@@ -23,25 +24,23 @@ public:
     Expression& left() { return *_left; }
     Expression& right() { return *_right; }
 
-    static std::unique_ptr<BinaryExpression> create(
-        BinaryOperator op,
-        std::unique_ptr<Expression> left,
-        std::unique_ptr<Expression> right) {
+    static std::unique_ptr<BinaryExpression> create(Expression* left, BinaryOperator op, Expression* right) {
 
+        fmt::print("BinaryExpression::create()\n");
         return std::unique_ptr<BinaryExpression> {
-            new BinaryExpression {op, std::move(left), std::move(right)}
+            new BinaryExpression {left, op, right}
         };
     }
 
 private:
-    BinaryExpression(BinaryOperator op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+    BinaryExpression(Expression* left, BinaryOperator op, Expression* right)
         : Expression(ExpressionType::Binary),
-          _left(std::move(left)),
-          _right(std::move(right)),
+          _left(left),
+          _right(right),
           _operator(op) {}
 
-    std::unique_ptr<Expression> _left;
-    std::unique_ptr<Expression> _right;
+    Expression* _left {nullptr};
+    Expression* _right {nullptr};
     BinaryOperator _operator {};
 };
 

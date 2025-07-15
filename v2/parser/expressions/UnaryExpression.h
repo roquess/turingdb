@@ -4,6 +4,7 @@
 
 #include "Operators.h"
 #include "Expression.h"
+#include "spdlog/fmt/bundled/core.h"
 
 namespace db {
 
@@ -23,23 +24,23 @@ public:
     UnaryOperator getUnaryOperator() const { return _operator; }
     Expression& right() { return *_right; }
 
-    static Expression* create(
+    static std::unique_ptr<Expression> create(
         UnaryOperator op,
-        std::unique_ptr<Expression> right) {
+        Expression* right) {
 
-        return new UnaryExpression {
-            op,
-            std::move(right),
+        fmt::print("UnaryExpression::create\n");
+        return std::unique_ptr<Expression> {
+            new UnaryExpression {op, right}
         };
     }
 
 private:
-    UnaryExpression(UnaryOperator op, std::unique_ptr<Expression> right)
+    UnaryExpression(UnaryOperator op, Expression* right)
         : Expression(ExpressionType::Unary),
-          _right(std::move(right)),
+          _right(right),
           _operator(op) {}
 
-    std::unique_ptr<Expression> _right;
+    Expression* _right = nullptr;
     UnaryOperator _operator {};
 };
 
