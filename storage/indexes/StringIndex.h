@@ -14,6 +14,10 @@ namespace db {
 
 /*
  * @brief Approximate string indexing using prefix trees (tries)
+ * @detail String properties are preprocesed, replacing any non-alphanumeric characters
+ * with spaces, and subsequently splitting the string into substrings using spaces as a
+ * delimiter. Each substring is then inserted into the trie, associated with the "owner"
+ * (NodeID/EdgeID) which has that property value.
  */
 class StringIndex {
 private:
@@ -70,7 +74,6 @@ public:
     const void query(std::vector<T>& result, std::string_view queryString) const {
         using Node = StringIndexNode;
 
-        //result.clear();
         // Track owners in a set to avoid duplicates
         std::unordered_set<T> resSet;
 
@@ -105,12 +108,9 @@ public:
                     for (const EntityID& id : *owners) {
                         resSet.emplace(T(id.getValue()));
                     }
-                
-                    //resSet.insert(std::begin(*owners), std::end(*owners));
                 }
             }
         }
-        //result.resize(resSet.size());  // Allocate enough space
         std::copy(resSet.begin(), resSet.end(), std::back_inserter(result));
     }
 
