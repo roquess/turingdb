@@ -357,7 +357,6 @@ void QueryPlanner::planPath(const std::vector<EntityPattern*>& path) {
     }
 
     // General case: scan nodes for the origin and expand edges afterward
-    spdlog::info("ScanNodes");
     planScanNodes(path[0]);
 
     const auto expandSteps = path | rv::drop(1) | rv::chunk(2);
@@ -375,18 +374,14 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
     const ExprConstraint* exprConstr = entity->getExprConstraint();
 
     if (exprConstr && typeConstr) {
-        spdlog::info("ScanNodesWithPropertyAndLabelConstraints");
         const LabelSet* labelSet = getOrCreateLabelSet(typeConstr);
         planScanNodesWithPropertyAndLabelConstraints(nodes, labelSet, exprConstr);
     } else if (exprConstr) {
-        spdlog::info("ScanNodesWithPropertyConstraints");
         planScanNodesWithPropertyConstraints(nodes, exprConstr);
     } else if (typeConstr) {
-        spdlog::info("ScanNodesByLabelStep");
         const LabelSet* labelSet = getOrCreateLabelSet(typeConstr);
         _pipeline->add<ScanNodesByLabelStep>(nodes, labelSet->handle());
     } else {
-        spdlog::info("");
         _pipeline->add<ScanNodesStep>(nodes);
     }
 
@@ -522,23 +517,19 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnNodeIDs* const& ou
         case ValueType::String: {
             const auto opType = expressions[0]->getOpType();
             if (opType == BinExpr::OP_STR_APPROX && expressions.size() == 1) {
-                spdlog::info("We are approximating the string {}",
-                             static_cast<StringExprConst*>(rightExpr)->getVal());
-
                 // String Approximation => we have a string constant as right operand
                 const StringExprConst* strConstant =
                     dynamic_cast<StringExprConst*>(rightExpr);
                 const std::string strConstantValue = strConstant->getVal();
                 const auto strPropID = propType._id;
 
-                _pipeline->add<ScanNodesStringApproxStep>(scannedNodes, strPropID,
+                _pipeline->add<ScanNodesStringApproxStep>(outputNodes, strPropID,
                                                           strConstantValue);
             } else {
                 caseScanNodesPropertyValueType.operator()<types::String>();
             }
         break;
         }
-
 
         default: {
             throw PlannerException("Unsupported property type for property member");

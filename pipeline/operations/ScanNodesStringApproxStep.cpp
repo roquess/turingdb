@@ -5,7 +5,6 @@
 #include "Profiler.h"
 #include "columns/ColumnVector.h"
 #include "indexes/StringIndex.h"
-#include "spdlog/spdlog.h"
 #include "views/GraphView.h"
 
 #include <memory>
@@ -38,7 +37,6 @@ void Step::describe(std::string& descr) const {
 void Step::prepare(ExecutionContext* ctxt) {
     // XXX: Does this need be uniqueptr?
     _dps = std::make_unique<DataPartSpan>(ctxt->getGraphView().dataparts());
-    spdlog::info("_dps has {} parts", _dps->size());
 }
 
 void Step::reset() {
@@ -64,11 +62,9 @@ void Step::execute() {
         // Get any matches for the query string in the index
         std::vector<NodeID> owners {};
         strIndex->query<NodeID>(owners, _strQuery);
-        spdlog::info("owners has found {} matches ", owners.size());
 
         // Add them to the output ColumnVector
         for (const auto& id : owners) {
-            spdlog::info("adding {} to the output", id);
             _nodes->push_back(id);
         }
     }
