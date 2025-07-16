@@ -400,7 +400,6 @@ void QueryPlanner::planScanNodes(const EntityPattern* entity) {
 void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnNodeIDs* const& outputNodes,
                                                         const ExprConstraint* exprConstraint) {
     const auto reader = _view.read();
-    auto* scannedNodes = _mem->alloc<ColumnNodeIDs>();
 
     const auto& expressions = exprConstraint->getExpressions();
 
@@ -422,8 +421,10 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnNodeIDs* const& ou
         using Step = ScanNodesByPropertyStep<T>;
         using Val = typename T::Primitive;
 
+        auto* scannedNodes = _mem->alloc<ColumnNodeIDs>();
         auto* filterMask = _mem->alloc<ColumnMask>();
         auto* propValues = _mem->alloc<ColumnVector<Val>>();
+
         const auto valueType = rightExpr->getType();
         if (valueType != T::_valueType) {
             throw PlannerException("Invalid value type for property member \""
