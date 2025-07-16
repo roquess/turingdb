@@ -515,18 +515,32 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnNodeIDs* const& ou
         }
 
         case ValueType::String: {
-            const auto opType = expressions[0]->getOpType();
-            if (opType == BinExpr::OP_STR_APPROX && expressions.size() == 1) {
-                // String Approximation => we have a string constant as right operand
-                const StringExprConst* strConstant =
-                    dynamic_cast<StringExprConst*>(rightExpr);
-                const std::string strConstantValue = strConstant->getVal();
-                const auto strPropID = propType._id;
+            switch (expressions[0]->getOpType()) {
+                case (BinExpr::OP_STR_APPROX): {
+                    if (expressions.size() != 1) {
+                        throw PlannerException(
+                            "String approximation is only supported for single "
+                            "constraint queries.");
+                    }
+                    // String Approximation => we have a string constant as right operand
+                    const StringExprConst* strConstant =
+                        dynamic_cast<StringExprConst*>(rightExpr);
+                    const std::string strConstantValue = strConstant->getVal();
+                    const auto strPropID = propType._id;
 
-                _pipeline->add<ScanNodesStringApproxStep>(outputNodes, strPropID,
-                                                          strConstantValue);
-            } else {
-                caseScanNodesPropertyValueType.operator()<types::String>();
+                    _pipeline->add<ScanNodesStringApproxStep>(outputNodes, strPropID,
+                                                              strConstantValue);
+                break;
+                }
+
+                case (BinExpr::OP_EQUAL): {
+                    caseScanNodesPropertyValueType.operator()<types::String>();
+                break;
+                }
+
+                default:
+                    throw PlannerException("Unsupported operation");
+                break;
             }
         break;
         }
