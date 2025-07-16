@@ -148,6 +148,7 @@
 %token<std::string> DO
 %token<std::string> OF
 %token<std::string> ON
+%token<std::string> IF
 %token<std::string> AS
 
 %token<std::string> ESC_LITERAL
@@ -248,6 +249,8 @@ unionList
 singleQuery
     : singlePartQ { $$ = $1; }
     | multiPartQ { scanner.notImplemented("Multi-part queries"); }
+    | createConstraint { scanner.notImplemented("CREATE CONSTRAINT"); }
+    | dropConstraint { scanner.notImplemented("DROP CONSTRAINT"); }
     ;
 
 returnSt
@@ -609,7 +612,7 @@ atomExpression
     | parenthesizedExpression { scanner.notImplemented("Parenthesized expressions"); }
     | functionInvocation { scanner.notImplemented("Function invocations"); }
     | subqueryExist { scanner.notImplemented("EXISTS"); }
-    //| edgesChainPattern // Enabling this causes conflicts, not sure if we need it
+    //| edgesChainPattern // Enabling this causes conflicts, WE NEED THAT
     ;
 
 
@@ -630,10 +633,6 @@ patternElemChain
     : edgePattern nodePattern { $$ = std::make_pair($1, $2); }
     ;
 
-properties
-    : mapLit
-    ;
-
 nodePattern
     : OPAREN opt_symbol opt_nodeLabels opt_properties CPAREN { $$ = ast.newNode(std::move($2), std::move($3)); }
     ;
@@ -649,7 +648,7 @@ opt_nodeLabels
     ;
 
 opt_properties
-    : properties { scanner.notImplemented("Properties"); }
+    : mapLit { scanner.notImplemented("Properties"); }
     | /* empty */
     ;
 
@@ -714,7 +713,7 @@ functionInvocation
     ;
 
 parenthesizedExpression
-    : OPAREN expression CPAREN
+    : OPAREN expression CPAREN { fmt::print("parenthesizedExpression\n"); }
     ;
 
 filterWith
@@ -840,7 +839,7 @@ listLitItem
     | listComprehension { scanner.notImplemented("List comprehensions"); }
     | patternComprehension { scanner.notImplemented("Pattern comprehensions"); }
     | filterWith { scanner.notImplemented("Filters"); }
-    //| parenthesizedExpression // Enabling this causes conflicts, not needed?
+    // | parenthesizedExpression // Enabling this causes conflicts, WE NEED THAT
     | functionInvocation { scanner.notImplemented("Function invocations"); }
     | symbol
     | subqueryExist { scanner.notImplemented("EXISTS"); }
@@ -875,6 +874,34 @@ symbol
     //| SINGLE
     ;
 
+createConstraint
+    : CREATE CONSTRAINT symbol forConstraint
+    | CREATE CONSTRAINT symbol IF NOT EXISTS forConstraint
+    ;
+
+forConstraint
+    : FOR nodeConstraintPattern REQUIRE constraint
+    | FOR edgeConstraintPattern REQUIRE constraint
+    ;
+
+nodeConstraintPattern
+    : OPAREN symbol nodeLabels CPAREN
+    ;
+
+edgeConstraintPattern
+    : OPAREN CPAREN TAIL_BRACKET symbol edgeTypes BRACKET_TAIL OPAREN CPAREN
+    ;
+
+constraint
+    : qualifiedName DOT name IS UNIQUE
+    | qualifiedName DOT name IS NOT NULL_
+    ;
+
+dropConstraint
+    : DROP CONSTRAINT symbol
+    | DROP CONSTRAINT symbol IF EXISTS
+    ;
+
 reservedWord
     : ALL { $$ = std::move($1); }
     | ASC { $$ = std::move($1); }
@@ -890,6 +917,7 @@ reservedWord
     | MATCH { $$ = std::move($1); }
     | MERGE { $$ = std::move($1); }
     | ON { $$ = std::move($1); }
+    | IF { $$ = std::move($1); }
     | OPTIONAL { $$ = std::move($1); }
     | ORDER { $$ = std::move($1); }
     | REMOVE { $$ = std::move($1); }

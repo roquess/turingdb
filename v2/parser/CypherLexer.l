@@ -20,7 +20,7 @@ using Token = db::YCypherParser::token;
 
 %%
 
-#[^\n]* { }
+"//"[^\n]* { }
 
 \n        { locationNewLine(); }
 [ \t\r]+  { }
@@ -126,6 +126,7 @@ using Token = db::YCypherParser::token;
 "DO" { KEYWORD(DO) }
 "OF" { KEYWORD(OF) }
 "ON" { KEYWORD(ON) }
+"IF" { KEYWORD(IF) }
 "AS" { KEYWORD(AS) }
 
 
