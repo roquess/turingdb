@@ -5,6 +5,7 @@
 #include "Profiler.h"
 #include "columns/ColumnVector.h"
 #include "indexes/StringIndex.h"
+#include "spdlog/spdlog.h"
 #include "views/GraphView.h"
 
 #include <memory>
@@ -37,6 +38,7 @@ void Step::describe(std::string& descr) const {
 void Step::prepare(ExecutionContext* ctxt) {
     // XXX: Does this need be uniqueptr?
     _dps = std::make_unique<DataPartSpan>(ctxt->getGraphView().dataparts());
+    spdlog::info("_dps has {} parts", _dps->size());
 }
 
 void Step::reset() {
@@ -48,12 +50,27 @@ void Step::execute() {
 
     // For each datapart
     for (DataPartIterator it = _dps->begin(); it != _dps->end(); it++) {
-        // Query its index for each string
+        // Get ProprtyID -> Index map
         const auto& nodeStringIndex = it->get()->getNodeStrPropIndex();
+
+        // Check if the datapart contains an index of this property ID
+        if (!nodeStringIndex.contains(_pId)) {
+            continue;
+        }
+
+        // Get the index for this property
         const auto& strIndex = nodeStringIndex.at(_pId);
 
-        // Accumulates matching node IDs into _nodes column vec
-        strIndex->query<NodeID>(_nodes->getRaw(), _strQuery);
+        // Get any matches for the query string in the index
+        std::vector<NodeID> owners {};
+        strIndex->query<NodeID>(owners, _strQuery);
+        spdlog::info("owners has found {} matches ", owners.size());
+
+        // Add them to the output ColumnVector
+        for (const auto& id : owners) {
+            spdlog::info("adding {} to the output", id);
+            _nodes->push_back(id);
+        }
     }
     _dps.reset();
     _done = true;

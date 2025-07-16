@@ -36,6 +36,6 @@ private:
     std::unique_ptr<DataPartSpan> _dps;
     ColumnVector<NodeID>* _nodes {nullptr};
     PropertyTypeID _pId {0};
-    std::string_view _strQuery;
+    const std::string _strQuery;
 };
 }
