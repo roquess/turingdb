@@ -24,7 +24,7 @@ public:
 
     const QualifiedName& name() { return _name; }
 
-    static std::unique_ptr<Expression> create(QualifiedName&& name) {
+    static std::unique_ptr<PropertyExpression> create(QualifiedName&& name) {
         return std::make_unique<PropertyExpression>(std::move(name));
     }
 

@@ -27,6 +27,10 @@
     #include "pattern/Pattern.h"
     #include "pattern/PatternNode.h"
     #include "pattern/PatternEdge.h"
+    #include "statements/ReadingStatementContainer.h"
+    #include "statements/Return.h"
+    #include "SinglePartQuery.h"
+    #include "Projection.h"
 
     namespace db {
         class YCypherScanner;
@@ -185,6 +189,10 @@
 %type<db::Expression*> propertyExpression
 %type<db::Expression*> atomExpression
 
+%type<db::Expression*> projectionItem
+%type<db::Projection*> projectionItems
+%type<db::Projection*> projectionBody
+
 %type<BinaryOperator> comparisonSign
 %type<StringOperator> stringExpPrefix
 
@@ -196,6 +204,20 @@
 %type<db::PatternEdge*> edgePattern
 %type<std::pair<db::PatternEdge*, db::PatternNode*>> patternElemChain
 %type<db::WhereClause> where
+
+%type<db::SinglePartQuery*> singlePartQ
+%type<db::Query*> singleQuery
+%type<db::Query*> query
+%type<db::ReadingStatementContainer*> readingStatements
+%type<db::ReadingStatement> readingStatement
+%type<db::Match*> matchSt
+%type<db::Skip*> skipSt
+%type<db::Limit*> limitSt
+%type<db::Return*> returnSt
+
+%type<db::Skip*> opt_skipSt
+%type<db::Limit*> opt_limitSt
+%type<bool> opt_distinct
 
 %expect 0
 
@@ -209,8 +231,8 @@ script
     ;
 
 queries
-    : query { fmt::print("Finished query\n"); }
-    | queries SEMI_COLON query { scanner.notImplemented("Multiple queries"); }
+    : query {}
+    | queries SEMI_COLON query {}
     ;
 
 query
@@ -224,12 +246,12 @@ unionList
     ;
 
 singleQuery
-    : singlePartQ
+    : singlePartQ { $$ = $1; }
     | multiPartQ { scanner.notImplemented("Multi-part queries"); }
     ;
 
 returnSt
-    : RETURN projectionBody { fmt::print("RETURN projectionBody\n"); }
+    : RETURN projectionBody { $$ = ast.newStatement<Return>($2); }
     ;
 
 withSt
@@ -238,46 +260,51 @@ withSt
     ;
 
 skipSt
-    : SKIP expression { scanner.notImplemented("SKIP"); }
+    : SKIP expression { $$ = ast.newStatement<Skip>($2); }
     ;
 
 limitSt
-    : LIMIT expression { scanner.notImplemented("LIMIT"); }
+    : LIMIT expression { $$ = ast.newStatement<Limit>($2); }
     ;
 
 projectionBody
-    : opt_Distinct projectionItems opt_orderSt opt_skipSt opt_limitSt
+    : opt_distinct projectionItems opt_orderSt opt_skipSt opt_limitSt {
+        $$ = $2;
+        $$->setDistinct($1);
+        $$->setSkip($4);
+        $$->setLimit($5);
+      }
     ;
 
-opt_Distinct
-    : DISTINCT { scanner.notImplemented("DISTINCT"); }
-    | /* empty */
+opt_distinct
+    : DISTINCT { $$ = true; }
+    | { $$ = false; }
     ;
 
 opt_orderSt
-    : orderSt
+    : orderSt { scanner.notImplemented("ORDER BY"); }
     | /* empty */
     ;
 
 opt_skipSt
-    : skipSt
-    | /* empty */
+    : skipSt { $$ = $1; }
+    | { $$ = nullptr; }
     ;
 
 opt_limitSt
-    : limitSt
-    | /* empty */
+    : limitSt { $$ = $1; }
+    | { $$ = nullptr; }
     ;
 
 projectionItems
-    : MULT { fmt::print("projectionItems '*'\n"); }
-    | projectionItem { fmt::print("projectionItem\n"); }
-    | projectionItems COMMA projectionItem
+    : MULT { $$ = ast.newProjection(); $$->setAll(); }
+    | projectionItem { $$ = ast.newProjection(); $$->add($1); }
+    | projectionItems COMMA projectionItem { $$ = $1; $$->add($3); }
     ;
 
 projectionItem
-    : expression { fmt::print("projectionItem\n"); }
-    | expression AS name
+    : expression
+    | expression AS name { scanner.notImplemented("AS"); }
     ;
 
 orderItem
@@ -294,20 +321,21 @@ orderSt
     ;
 
 singlePartQ
-    : readingStatements returnSt
-    | returnSt { scanner.notImplemented("Return only"); }
-    | readingStatements singlePartUpdateQ { scanner.notImplemented("Reading statement + Update"); }
-    | singlePartUpdateQ { scanner.notImplemented("Single-part update"); }
-    ;
-
-singlePartUpdateQ
-    : updatingStatements { scanner.notImplemented("Single-part update"); }
-    | updatingStatements returnSt { scanner.notImplemented("Single-part update + Return"); }
+    : returnSt { scanner.notImplemented("Single part query: Return only"); }
+    | updatingStatements { scanner.notImplemented("Single part query: Update only"); }
+    | updatingStatements returnSt { scanner.notImplemented("Single part query: Update + Return"); }
+    | readingStatements returnSt { 
+        $$ = ast.newSinglePartQuery();
+        $$->setReadingStatements($1);
+        $$->setReturn($2);
+      }
+    | readingStatements updatingStatements { scanner.notImplemented("Single part query: Reading statement + Update"); }
+    | readingStatements updatingStatements returnSt { scanner.notImplemented("Single part query: Reading statement + Update + Return"); }
     ;
 
 readingStatements
-    : readingStatement
-    | readingStatements readingStatement {}
+    : readingStatement { $$ = ast.newReadingStatementContainer(); $$->add($1); }
+    | readingStatements readingStatement { $$ = $1; $$->add($2); }
     ;
 
 updatingStatements
@@ -328,8 +356,8 @@ updateWithSt
     ;
 
 matchSt
-    : MATCH patternWhere opt_orderSt opt_skipSt opt_limitSt { fmt::print("MATCH patternWhere\n"); }
-    | OPTIONAL MATCH patternWhere opt_orderSt opt_skipSt opt_limitSt { scanner.notImplemented("OPTIONAL MATCH"); }
+    : MATCH patternWhere opt_orderSt opt_skipSt opt_limitSt { $$ = ast.newStatement<Match>($2, $4, $5); }
+    | OPTIONAL MATCH patternWhere opt_orderSt opt_skipSt opt_limitSt { $$ = ast.newStatement<Match>($3, $5, $6, true); }
     ;
 
 unwindSt
@@ -556,7 +584,7 @@ listExpression
 propertyOrLabelExpression
     : propertyExpression { $$ = $1; }
 
-    // | propertyExpression nodeLabels { fmt::print("propertyExpression nodeLabels\n"); }
+    // | propertyExpression nodeLabels
     // This seems too permissive, it allows 'n.name:Person' which is weird
 
     // Replaced by this more specific rule

@@ -20,11 +20,10 @@ using Token = db::YCypherParser::token;
 
 %%
 
+#[^\n]* { }
+
 \n        { locationNewLine(); }
 [ \t\r]+  { }
-
-"//".*     { }
-"/*".*"*/" { }
 
 "--"  { return Token::TAIL_TAIL; }
 "<--" { return Token::TIP_TAIL_TAIL; }
@@ -214,7 +213,6 @@ using Token = db::YCypherParser::token;
 
 [a-zA-Z_][a-zA-Z0-9_]* {
     /* Identifier */
-    fmt::print("ID: {}\n", yytext);
     yylval->emplace<std::string>(yytext, yyleng);
     return Token::ID;
 }

@@ -3,9 +3,13 @@
 #include <memory>
 #include <optional>
 
+#include "Projection.h"
+#include "SinglePartQuery.h"
 #include "pattern/Pattern.h"
 #include "pattern/PatternNode.h"
 #include "pattern/PatternEdge.h"
+#include "statements/ReadingStatementContainer.h"
+#include "statements/Statement.h"
 #include "Scope.h"
 #include "Symbol.h"
 #include "expressions/Expression.h"
@@ -32,10 +36,23 @@ public:
     }
 
     template <typename T, typename... Args>
+        requires std::is_base_of_v<Statement, T>
+    T* newStatement(Args&&... args) {
+        auto st = T::create(std::forward<Args>(args)...);
+        auto* ptr = st.get();
+        _statements.emplace_back(std::move(st));
+
+        return ptr;
+    }
+
+    template <typename T, typename... Args>
         requires std::is_base_of_v<Expression, T>
-    Expression* newExpression(Args&&... args) {
-        auto& expr = _expressions.emplace_back(T::create(std::forward<Args>(args)...));
-        return expr.get();
+    T* newExpression(Args&&... args) {
+        auto expr = T::create(std::forward<Args>(args)...);
+        auto* ptr = expr.get();
+        _expressions.emplace_back(std::move(expr));
+
+        return ptr;
     }
 
     Pattern* newPattern() {
@@ -73,6 +90,27 @@ public:
         return ptr;
     }
 
+    ReadingStatementContainer* newReadingStatementContainer() {
+        auto& readingStatements = _readingStatements.emplace_back(ReadingStatementContainer::create());
+        return readingStatements.get();
+    }
+
+    Projection* newProjection() {
+        auto& projection = _projections.emplace_back(Projection::create());
+        return projection.get();
+    }
+
+    SinglePartQuery* newSinglePartQuery() {
+        auto q = SinglePartQuery::create();
+        auto* ptr = q.get();
+        _queries.emplace_back(std::move(q));
+        return ptr;
+    }
+
+    const std::vector<std::unique_ptr<Query>>& queries() const {
+        return _queries;
+    }
+
 private:
     std::unique_ptr<Scope> _rootScope;
 
@@ -80,6 +118,10 @@ private:
     std::vector<std::unique_ptr<Pattern>> _patterns;
     std::vector<std::unique_ptr<PatternPart>> _patternParts;
     std::vector<std::unique_ptr<PatternEntity>> _patternEntity;
+    std::vector<std::unique_ptr<Statement>> _statements;
+    std::vector<std::unique_ptr<ReadingStatementContainer>> _readingStatements;
+    std::vector<std::unique_ptr<Projection>> _projections;
+    std::vector<std::unique_ptr<Query>> _queries;
 
     Scope* _currentScope = nullptr;
 };

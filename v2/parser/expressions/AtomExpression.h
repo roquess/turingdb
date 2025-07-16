@@ -32,7 +32,7 @@ public:
     AtomExpression& operator=(const AtomExpression&) = delete;
     AtomExpression& operator=(AtomExpression&&) = delete;
 
-    static std::unique_ptr<Expression> create(ValueType&& v) {
+    static std::unique_ptr<AtomExpression> create(ValueType&& v) {
         return std::make_unique<AtomExpression>(std::move(v));
     }
 

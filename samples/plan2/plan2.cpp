@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 void runParser2(const std::string& query) {
     YCypherScanner yscanner;
     CypherAST ast;
-    yscanner.setThrowNotImplemented(true);
+    yscanner.setThrowNotImplemented(false);
     yscanner.setQuery(query);
 
     YCypherParser yparser(yscanner, ast);
@@ -53,8 +53,16 @@ void runParser2(const std::string& query) {
     try {
         auto t0 = Clock::now();
         yparser.parse();
-        fmt::print("Query parsed in {} us\n", duration<Microseconds>(t0, Clock::now()));
+        auto t1 = Clock::now();
+        fmt::print("Query parsed in {} us\n", duration<Microseconds>(t0, t1));
     } catch (const ParserException& e) {
         fmt::print("{}\n", e.what());
     }
+
+    // const auto& queries = ast.queries();
+    // for (const auto& query : queries) {
+    //     // TODO Analyze
+    //     // Plan
+    //     // Execute
+    // }
 }

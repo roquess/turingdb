@@ -26,7 +26,7 @@ public:
     Expression& right() { return *_right; }
 
 
-    static std::unique_ptr<Expression> create(StringOperator op,
+    static std::unique_ptr<StringExpression> create(StringOperator op,
                                               Expression* right) {
         return std::make_unique<StringExpression>(op, right);
     }

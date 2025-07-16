@@ -27,7 +27,7 @@ public:
     const Symbol& symbol() { return _symbol; }
     const std::vector<std::string>& labels() { return _labels; }
 
-    static std::unique_ptr<Expression> create(Symbol&& symbol,
+    static std::unique_ptr<NodeLabelExpression> create(Symbol&& symbol,
                                               std::vector<std::string>&& labels) {
         return std::make_unique<NodeLabelExpression>(std::move(symbol), std::move(labels));
     }
