@@ -482,11 +482,15 @@ void QueryPlanner::planScanNodesWithPropertyConstraints(ColumnNodeIDs* const& ou
                 ._dest = outputNodes});
         } else {
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+            // Filter by comparing each node's property value with the queried value
+            // Produced output mask in @ref filterMask
             filter.addExpression(FilterStep::Expression {
                 ._op = ColumnOperator::OP_EQUAL,
                 ._mask = filterMask,
                 ._lhs = propValues,
                 ._rhs = filterConstVal});
+            // Apply the mask in @ref filterMask to all nodes (stored in @ref
+            // scannedNodes), outputting to @ref outputNodes
             filter.addOperand(FilterStep::Operand {
                 ._mask = filterMask,
                 ._src = scannedNodes,
