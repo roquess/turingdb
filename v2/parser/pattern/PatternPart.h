@@ -23,6 +23,14 @@ public:
         return std::make_unique<PatternPart>();
     }
 
+    void addRootNode(PatternNode* node) {
+        _entities.insert(_entities.begin(), (PatternEntity*)node);
+    }
+
+    void addRootEdge(PatternEdge* edge) {
+        _entities.insert(_entities.begin(), (PatternEntity*)edge);
+    }
+
     void addNode(PatternNode* node) {
         _entities.emplace_back(node);
     }

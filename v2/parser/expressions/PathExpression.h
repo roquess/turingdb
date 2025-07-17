@@ -1,10 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 
 #include "Expression.h"
-#include "Symbol.h"
+#include "pattern/PatternPart.h"
 
 namespace db {
 
@@ -18,23 +17,31 @@ public:
     PathExpression& operator=(const PathExpression&) = delete;
     PathExpression& operator=(PathExpression&&) = delete;
 
-    PathExpression(Symbol&& symbol, std::vector<std::string>&& labels)
+    explicit PathExpression(PatternPart* pattern)
         : Expression(ExpressionType::Path),
-          _symbol(std::move(symbol)),
-          _labels(std::move(labels)) {
+          _pattern(pattern) {
     }
 
-    const Symbol& symbol() { return _symbol; }
-    const std::vector<std::string>& labels() { return _labels; }
 
-    static std::unique_ptr<PathExpression> create(Symbol&& symbol,
-                                              std::vector<std::string>&& labels) {
-        return std::make_unique<PathExpression>(std::move(symbol), std::move(labels));
+    static std::unique_ptr<PathExpression> create(PatternPart* pattern) {
+        return std::make_unique<PathExpression>(pattern);
+    }
+
+    const PatternPart* pattern() const {
+        return _pattern;
+    }
+
+
+    void addNode(PatternNode* node) {
+        _pattern->addNode(node);
+    }
+
+    void addEdge(PatternEdge* edge) {
+        _pattern->addEdge(edge);
     }
 
 private:
-    Symbol _symbol;
-    std::vector<std::string> _labels;
+    PatternPart* _pattern {nullptr};
 };
 
 }

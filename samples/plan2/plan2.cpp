@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 void runParser2(const std::string& query) {
     YCypherScanner yscanner;
     CypherAST ast;
-    yscanner.setThrowNotImplemented(true);
+    yscanner.setThrowNotImplemented(false);
     yscanner.setQuery(query);
 
     YCypherParser yparser(yscanner, ast);

@@ -25,13 +25,13 @@ using Token = db::YCypherParser::token;
 \n        { locationNewLine(); }
 [ \t\r]+  { }
 
-"--"  { return Token::TAIL_TAIL; }
-"<--" { return Token::TIP_TAIL_TAIL; }
-"-->" { return Token::TAIL_TAIL_TIP; }
-"<-[" { return Token::TIP_TAIL_BRACKET; }
-"]->" { return Token::BRACKET_TAIL_TIP; }
-"-["  { return Token::TAIL_BRACKET; }
-"]-"  { return Token::BRACKET_TAIL; }
+"-"[ \t\r]*-  { return Token::TAIL_TAIL; }
+"<"[ \t\r]*-[ \t\r]*- { return Token::TIP_TAIL_TAIL; }
+"-"[ \t\r]*-[ \t\r]*> { return Token::TAIL_TAIL_TIP; }
+"<"[ \t\r]*-[ \t\r]*\[ { return Token::TIP_TAIL_BRACKET; }
+"]"[ \t\r]*-[ \t\r]*> { return Token::BRACKET_TAIL_TIP; }
+"-"[ \t\r]*\[  { return Token::TAIL_BRACKET; }
+"]"[ \t\r]*-  { return Token::BRACKET_TAIL; }
 
 "+=" { return Token::ADD_ASSIGN; }
 "<>" { return Token::NOT_EQUAL; }
@@ -73,6 +73,7 @@ using Token = db::YCypherParser::token;
 "DISTINCT" { KEYWORD(DISTINCT) }
 "EXTRACT" { KEYWORD(EXTRACT) }
 "REQUIRE" { KEYWORD(REQUIRE) }
+"COLLECT" { KEYWORD(COLLECT) }
 "STARTS" { KEYWORD(STARTS) }
 "UNIQUE" { KEYWORD(UNIQUE) }
 "FILTER" { KEYWORD(FILTER) }

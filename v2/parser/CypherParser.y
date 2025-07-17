@@ -28,6 +28,7 @@
     #include "pattern/PatternNode.h"
     #include "pattern/PatternEdge.h"
     #include "statements/ReadingStatementContainer.h"
+    #include "expressions/PathExpression.h"
     #include "statements/Return.h"
     #include "SinglePartQuery.h"
     #include "Projection.h"
@@ -96,6 +97,7 @@
 %token<std::string> DISTINCT
 %token<std::string> EXTRACT
 %token<std::string> REQUIRE
+%token<std::string> COLLECT
 %token<std::string> STARTS
 %token<std::string> UNIQUE
 %token<std::string> FILTER
@@ -160,7 +162,9 @@
 
 %token UNKNOWN
 
-%type<db::Literal> numLit boolLit charLit literal stringLit
+%type<db::Literal> numLit boolLit charLit literal stringLit mapLit
+%type<std::pair<std::string, db::Expression*>> mapPair
+%type<db::MapLiteral*> mapPairChain
 %type<db::Symbol> symbol
 %type<db::QualifiedName> qualifiedName
 %type<db::QualifiedName> invocationName
@@ -169,9 +173,11 @@
 
 %type<std::vector<std::string>> nodeLabels
 %type<std::vector<std::string>> edgeTypes
+%type<db::MapLiteral*> properties
 
 %type<std::optional<Symbol>> opt_symbol
 %type<std::optional<std::vector<std::string>>> opt_nodeLabels
+%type<std::optional<MapLiteral*>> opt_properties
 %type<std::optional<std::vector<std::string>>> opt_edgeTypes
 
 %type<db::Expression*> expression
@@ -184,11 +190,12 @@
 %type<db::Expression*> powerExpression
 %type<db::Expression*> unaryAddSubExpression
 %type<db::Expression*> atomicExpression
-//%type<db::Expression*> listExpression
+%type<db::Expression*> listExpression
 %type<db::Expression*> stringExpression
 %type<db::Expression*> propertyOrLabelExpression
 %type<db::Expression*> propertyExpression
 %type<db::Expression*> atomExpression
+%type<db::Expression*> collectExpression
 %type<db::Expression*> pathExpression
 %type<db::Expression*> parenthesizedExpression
 
@@ -203,6 +210,7 @@
 %type<db::Pattern*> patternWhere
 %type<db::PatternPart*> patternPart
 %type<db::PatternPart*> patternElem
+%type<db::PatternPart*> pathExpressionElem
 %type<db::PatternNode*> nodePattern
 %type<db::PatternEdge*> edgePattern
 %type<std::pair<db::PatternEdge*, db::PatternNode*>> patternElemChain
@@ -575,16 +583,16 @@ unaryAddSubExpression
 
 atomicExpression
     : propertyOrLabelExpression { $$ = $1; }
-    //| atomicExpression listExpression { $$ = nullptr; scanner.notImplemented("List expressions"); }
+    | atomicExpression listExpression { $$ = nullptr; scanner.notImplemented("List expressions"); }
     ;
 
-//listExpression
-//    : OBRACK expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression CBRACK"); }
-//    | OBRACK expression RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE expression CBRACK"); }
-//    | OBRACK RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE expression CBRACK"); }
-//    | OBRACK expression RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE CBRACK"); }
-//    | OBRACK RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE CBRACK"); }
-//    ;
+listExpression
+    : OBRACK expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression CBRACK"); }
+    | OBRACK expression RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE expression CBRACK"); }
+    | OBRACK RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE expression CBRACK"); }
+    | OBRACK expression RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE CBRACK"); }
+    | OBRACK RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE CBRACK"); }
+    ;
 
 propertyOrLabelExpression
     : propertyExpression { $$ = $1; }
@@ -614,6 +622,13 @@ atomExpression
     | filterWith { scanner.notImplemented("Filter keywords"); }
     | functionInvocation { scanner.notImplemented("Function invocations"); }
     | subqueryExist { scanner.notImplemented("EXISTS"); }
+    | collectExpression
+    ;
+
+collectExpression
+    : COLLECT OBRACE readingStatements returnSt CBRACE { scanner.notImplemented("COLLECT"); }
+    | COLLECT OPAREN expression CPAREN { scanner.notImplemented("COLLECT"); }
+    | COLLECT OPAREN DISTINCT expression CPAREN { scanner.notImplemented("COLLECT"); }
     ;
 
 patternPart
@@ -634,7 +649,7 @@ patternElemChain
     ;
 
 properties
-    : mapLit
+    : mapLit { $$ = *$1.as<MapLiteral*>(); }
     ;
 
 nodePattern
@@ -652,8 +667,8 @@ opt_nodeLabels
     ;
 
 opt_properties
-    : properties { scanner.notImplemented("Properties"); }
-    | /* empty */
+    : properties { $$ = $1; }
+    | { $$ = std::nullopt; }
     ;
 
 opt_edgeTypes
@@ -718,11 +733,11 @@ functionInvocation
 
 pathExpression
     : parenthesizedExpression { $$ = $1; }
-    | OPAREN CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
-    | OPAREN symbol properties CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
-    | OPAREN symbol nodeLabels properties CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
-    | OPAREN nodeLabels CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
-    | OPAREN nodeLabels properties CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+    | OPAREN CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($3); }
+    | OPAREN symbol properties CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($5); $5->addRootNode(ast.newNode($2, std::nullopt)); }
+    | OPAREN symbol nodeLabels properties CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($6); $6->addRootNode(ast.newNode($2, std::move($3))); }
+    | OPAREN nodeLabels CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($4); $4->addRootNode(ast.newNode(std::nullopt, std::move($2))); }
+    | OPAREN nodeLabels properties CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($5); $5->addRootNode(ast.newNode(std::nullopt, std::move($2))); }
 
     // Those three expressions are tricky and cause conflicts with 'OPAREN expression CPAREN'
 
@@ -736,33 +751,21 @@ pathExpression
     // Causes conflicts because 'properties' is a valid expression (map literal)
 
     // Instead, they are handled by the rule below
-    | OPAREN expression CPAREN patternElemChain { 
-        if ($2 == nullptr) {
-          fmt::print("Error!\n");
-          error(@1, "Invalid path expression");
-        }
 
-        if (const auto* atomExpr = dynamic_cast<db::AtomExpression*>($2)) {
-          if (const auto* value = std::get_if<db::Symbol>(&atomExpr->value())) {
-              fmt::print("Path expression with symbol: {}\n", value->_name);
-              YYACCEPT;
+    | OPAREN expression CPAREN pathExpressionElem {
+          $$ = ast.newExpression<PathExpression>($4);
+
+          if (auto* node = ast.nodeFromExpression($2)) {
+              $4->addRootNode(node);
+          } else {
+              error(@1, "Invalid path expression. Root must be a valid node pattern '(symbol? nodeLabels? properties?)'");
           }
-
-          if (const auto* literal = std::get_if<db::Literal>(&atomExpr->value())) {
-              if ([[maybe_unused]] const auto* maplit = literal->as<db::MapLiteral>()) {
-                  fmt::print("Path expression with properties\n");
-                  YYACCEPT;
-              }
-          }
-        }
-
-        else if ([[maybe_unused]] const auto* nodeLabelExpr = dynamic_cast<db::NodeLabelExpression*>($2)) {
-            fmt::print("Path expression with labels\n");
-            YYACCEPT;
-        }
-
-        error(@1, "Invalid path expression. The root must be a valid node pattern '(symbol? labels? properties?)'");
       }
+    ;
+
+pathExpressionElem
+    : patternElemChain { $$ = ast.newPatternPart(); $$->addRootNode($1.second); $$->addRootEdge($1.first); }
+    | pathExpressionElem patternElemChain { $$ = $1; $$->addRootNode($2.second); $$->addRootEdge($2.first); }
     ;
 
 parenthesizedExpression
@@ -842,7 +845,7 @@ literal
     | stringLit { $$ = Literal(std::move($1)); }
     | charLit { $$ = Literal($1); }
     | listLit { scanner.notImplemented("Lists"); }
-    | mapLit { scanner.notImplemented("Maps"); }
+    | mapLit { $$ = Literal(std::move($1)); }
     ;
 
 rangeLit
@@ -899,17 +902,17 @@ listLitItem
     ;
 
 mapLit
-    : OBRACE CBRACE { scanner.notImplemented("Maps"); }
-    | OBRACE mapPairChain CBRACE { scanner.notImplemented("Maps"); }
+    : OBRACE CBRACE { $$ = Literal(ast.newMapLiteral()); }
+    | OBRACE mapPairChain CBRACE { $$ = Literal($2);}
     ;
 
 mapPairChain
-    : mapPair { scanner.notImplemented("Maps"); }
-    | mapPairChain COMMA mapPair { scanner.notImplemented("Maps"); }
+    : mapPair { $$ = ast.newMapLiteral(); $$->set(std::move($1.first), $1.second); }
+    | mapPairChain COMMA mapPair { $$ = $1; $$->set(std::move($3.first), $3.second); }
     ;
 
 mapPair
-    : name COLON expression { scanner.notImplemented("Maps"); }
+    : name COLON expression { $$ = std::make_pair(std::move($1), $3); }
     ;
 
 name
@@ -999,6 +1002,7 @@ reservedWord
     | DO { $$ = std::move($1); }
     | FOR { $$ = std::move($1); }
     | REQUIRE { $$ = std::move($1); }
+    | COLLECT { $$ = std::move($1); }
     | UNIQUE { $$ = std::move($1); }
     | CASE { $$ = std::move($1); }
     | WHEN { $$ = std::move($1); }

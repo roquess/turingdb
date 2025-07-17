@@ -5,6 +5,8 @@
 
 #include "Projection.h"
 #include "SinglePartQuery.h"
+#include "expressions/AtomExpression.h"
+#include "expressions/NodeLabelExpression.h"
 #include "pattern/Pattern.h"
 #include "pattern/PatternNode.h"
 #include "pattern/PatternEdge.h"
@@ -13,6 +15,7 @@
 #include "Scope.h"
 #include "Symbol.h"
 #include "expressions/Expression.h"
+#include "Literal.h"
 
 namespace db {
 
@@ -53,6 +56,31 @@ public:
         _expressions.emplace_back(std::move(expr));
 
         return ptr;
+    }
+
+    PatternNode* nodeFromExpression(Expression* e) {
+        if (e == nullptr) {
+            return nullptr;
+        }
+
+        if (const auto* atomExpr = dynamic_cast<db::AtomExpression*>(e)) {
+            if (const auto* value = std::get_if<db::Symbol>(&atomExpr->value())) {
+                return newNode(*value, std::nullopt);
+            }
+
+            if (const auto* literal = std::get_if<db::Literal>(&atomExpr->value())) {
+                if ([[maybe_unused]] const auto* maplit = literal->as<db::MapLiteral*>()) {
+                    // TODO, use the properties there
+                    return newNode(std::nullopt, std::nullopt);
+                }
+            }
+        }
+
+        else if (const auto* nodeLabelExpr = dynamic_cast<db::NodeLabelExpression*>(e)) {
+            return newNode(std::nullopt, std::vector<std::string>(nodeLabelExpr->labels()));
+        }
+
+        return nullptr;
     }
 
     Pattern* newPattern() {
@@ -100,6 +128,11 @@ public:
         return projection.get();
     }
 
+    MapLiteral* newMapLiteral() {
+        auto& mapLiteral = _mapLiterals.emplace_back(MapLiteral::create());
+        return mapLiteral.get();
+    }
+
     SinglePartQuery* newSinglePartQuery() {
         auto q = SinglePartQuery::create();
         auto* ptr = q.get();
@@ -122,6 +155,8 @@ private:
     std::vector<std::unique_ptr<ReadingStatementContainer>> _readingStatements;
     std::vector<std::unique_ptr<Projection>> _projections;
     std::vector<std::unique_ptr<Query>> _queries;
+    std::vector<std::unique_ptr<MapLiteral>> _mapLiterals;
+    ;
 
     Scope* _currentScope = nullptr;
 };

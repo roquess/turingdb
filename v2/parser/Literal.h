@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -20,8 +21,16 @@ public:
     MapLiteral& operator=(const MapLiteral&) = default;
     MapLiteral& operator=(MapLiteral&&) = default;
 
+    static std::unique_ptr<MapLiteral> create() {
+        return std::make_unique<MapLiteral>();
+    }
+
     void set(const std::string& key, Expression* value) {
         _map[key] = value;
+    }
+
+    void set(std::string&& key, Expression* value) {
+        _map.emplace(std::move(key), value);
     }
 
 private:
@@ -30,7 +39,7 @@ private:
 
 class Literal {
 public:
-    using ValueType = std::variant<bool, int64_t, double, std::string, char, MapLiteral, std::nullopt_t>;
+    using ValueType = std::variant<bool, int64_t, double, std::string, char, MapLiteral*, std::nullopt_t>;
 
     Literal() = default;
 
@@ -45,6 +54,11 @@ public:
 
     template <typename T>
     const T* as() const {
+        return std::get_if<T>(&_value);
+    }
+
+    template <typename T>
+    T* as() {
         return std::get_if<T>(&_value);
     }
 

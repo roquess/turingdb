@@ -24,8 +24,8 @@ public:
           _labels(std::move(labels)) {
     }
 
-    const Symbol& symbol() { return _symbol; }
-    const std::vector<std::string>& labels() { return _labels; }
+    const Symbol& symbol() const { return _symbol; }
+    const std::vector<std::string>& labels() const { return _labels; }
 
     static std::unique_ptr<NodeLabelExpression> create(Symbol&& symbol,
                                               std::vector<std::string>&& labels) {
