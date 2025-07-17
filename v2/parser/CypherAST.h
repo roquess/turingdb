@@ -2,41 +2,50 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
-#include "Projection.h"
-#include "SinglePartQuery.h"
-#include "expressions/AtomExpression.h"
-#include "expressions/NodeLabelExpression.h"
-#include "pattern/Pattern.h"
-#include "pattern/PatternNode.h"
-#include "pattern/PatternEdge.h"
-#include "statements/ReadingStatementContainer.h"
-#include "statements/Statement.h"
-#include "Scope.h"
-#include "Symbol.h"
-#include "expressions/Expression.h"
-#include "Literal.h"
+#include "statements/StatementContainer.h"
 
 namespace db {
 
+class PatternNode;
+class PatternEdge;
+class PatternPart;
+class PatternEntity;
+class Pattern;
+class Expression;
+class Query;
+class Projection;
+class MapLiteral;
+class SinglePartQuery;
+class Statement;
+class Scope;
+class Symbol;
+
 class CypherAST {
 public:
-    CypherAST() {
-        _rootScope = std::make_unique<Scope>();
-        _currentScope = _rootScope.get();
-    }
+    CypherAST();
+    ~CypherAST();
 
-    void beginScope() {
-        _currentScope = _currentScope->newInnerScope();
-    }
+    CypherAST(const CypherAST&) = delete;
+    CypherAST(CypherAST&&) = delete;
+    CypherAST& operator=(const CypherAST&) = delete;
+    CypherAST& operator=(CypherAST&&) = delete;
 
-    void endScope() {
-        _currentScope = _currentScope->getParentScope();
-    }
+    void beginScope();
+    void endScope();
 
-    Scope& currentScope() {
-        return *_currentScope;
-    }
+    PatternNode* nodeFromExpression(Expression* e);
+    Pattern* newPattern();
+    PatternPart* newPatternPart();
+    PatternEdge* newOutEdge();
+    PatternEdge* newInEdge();
+    Projection* newProjection();
+    MapLiteral* newMapLiteral();
+    SinglePartQuery* newSinglePartQuery();
+    PatternNode* newNode(std::optional<Symbol>&& symbol,
+                         std::optional<std::vector<std::string>>&& labels,
+                         MapLiteral* properties);
 
     template <typename T, typename... Args>
         requires std::is_base_of_v<Statement, T>
@@ -44,6 +53,7 @@ public:
         auto st = T::create(std::forward<Args>(args)...);
         auto* ptr = st.get();
         _statements.emplace_back(std::move(st));
+        _currentStatements->add(ptr);
 
         return ptr;
     }
@@ -58,93 +68,8 @@ public:
         return ptr;
     }
 
-    PatternNode* nodeFromExpression(Expression* e) {
-        if (e == nullptr) {
-            return nullptr;
-        }
-
-        if (auto* atomExpr = dynamic_cast<AtomExpression*>(e)) {
-            if (auto* value = std::get_if<Symbol>(&atomExpr->value())) {
-                return newNode(*value, std::nullopt, nullptr);
-            }
-
-            if (auto* literal = std::get_if<Literal>(&atomExpr->value())) {
-                if (auto* maplit = literal->as<MapLiteral*>()) {
-                    return newNode(std::nullopt, std::nullopt, *maplit);
-                }
-            }
-        }
-
-        else if (const auto* nodeLabelExpr = dynamic_cast<db::NodeLabelExpression*>(e)) {
-            return newNode(nodeLabelExpr->symbol(),
-                           std::vector<std::string>(nodeLabelExpr->labels()),
-                           nullptr);
-        }
-
-        return nullptr;
-    }
-
-    Pattern* newPattern() {
-        auto& pattern = _patterns.emplace_back(Pattern::create());
-        return pattern.get();
-    }
-
-    PatternPart* newPatternPart() {
-        auto& patternPart = _patternParts.emplace_back(PatternPart::create());
-        return patternPart.get();
-    }
-
-    PatternEdge* newOutEdge() {
-        auto edge = PatternEdge::create();
-        auto* ptr = edge.get();
-        _patternEntity.emplace_back(std::move(edge));
-
-        return ptr;
-    }
-
-    PatternEdge* newInEdge() {
-        auto edge = PatternEdge::create();
-        auto* ptr = edge.get();
-        _patternEntity.emplace_back(std::move(edge));
-
-        return ptr;
-    }
-
-    PatternNode* newNode(std::optional<Symbol>&& symbol,
-                         std::optional<std::vector<std::string>>&& labels,
-                         MapLiteral* properties) {
-        auto node = PatternNode::create();
-
-        node->setSymbol(std::move(symbol));
-        node->setLabels(std::move(labels));
-        node->setProperties(properties);
-
-        auto* ptr = node.get();
-        _patternEntity.emplace_back(std::move(node));
-
-        return ptr;
-    }
-
-    ReadingStatementContainer* newReadingStatementContainer() {
-        auto& readingStatements = _readingStatements.emplace_back(ReadingStatementContainer::create());
-        return readingStatements.get();
-    }
-
-    Projection* newProjection() {
-        auto& projection = _projections.emplace_back(Projection::create());
-        return projection.get();
-    }
-
-    MapLiteral* newMapLiteral() {
-        auto& mapLiteral = _mapLiterals.emplace_back(MapLiteral::create());
-        return mapLiteral.get();
-    }
-
-    SinglePartQuery* newSinglePartQuery() {
-        auto q = SinglePartQuery::create();
-        auto* ptr = q.get();
-        _queries.emplace_back(std::move(q));
-        return ptr;
+    Scope& currentScope() {
+        return *_currentScope;
     }
 
     const std::vector<std::unique_ptr<Query>>& queries() const {
@@ -159,12 +84,15 @@ private:
     std::vector<std::unique_ptr<PatternPart>> _patternParts;
     std::vector<std::unique_ptr<PatternEntity>> _patternEntity;
     std::vector<std::unique_ptr<Statement>> _statements;
-    std::vector<std::unique_ptr<ReadingStatementContainer>> _readingStatements;
     std::vector<std::unique_ptr<Projection>> _projections;
     std::vector<std::unique_ptr<Query>> _queries;
     std::vector<std::unique_ptr<MapLiteral>> _mapLiterals;
+    std::vector<std::unique_ptr<StatementContainer>> _statementContainers;
 
     Scope* _currentScope = nullptr;
+    StatementContainer* _currentStatements = nullptr;
+
+    StatementContainer* newStatementContainer();
 };
 
 }

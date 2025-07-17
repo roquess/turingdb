@@ -44,7 +44,8 @@ public:
     Literal() = default;
 
     explicit Literal(ValueType&& vt)
-        : _value(std::move(vt)) {
+        : _value(std::move(vt))
+    {
     }
 
     template <typename T>

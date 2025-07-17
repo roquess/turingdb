@@ -14,6 +14,7 @@ class Expression;
 class Projection {
 public:
     struct All {};
+
     using ItemVector = std::vector<Expression*>;
 
     Projection() = default;

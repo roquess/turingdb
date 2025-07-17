@@ -6,50 +6,32 @@
 
 namespace db {
 
-class Return;
-class ReadingStatementContainer;
+class StatementContainer;
 
 class SinglePartQuery : public Query {
 public:
     SinglePartQuery() = default;
     ~SinglePartQuery() override = default;
 
+    SinglePartQuery(StatementContainer* statements)
+        : _statements(statements) {
+    }
+
     SinglePartQuery(const SinglePartQuery&) = delete;
     SinglePartQuery(SinglePartQuery&&) = delete;
     SinglePartQuery& operator=(const SinglePartQuery&) = delete;
     SinglePartQuery& operator=(SinglePartQuery&&) = delete;
 
-    static std::unique_ptr<SinglePartQuery> create() {
-        return std::make_unique<SinglePartQuery>();
+    static std::unique_ptr<SinglePartQuery> create(StatementContainer* statements) {
+        return std::make_unique<SinglePartQuery>(statements);
     }
 
-    bool hasReturn() const {
-        return _return != nullptr;
-    }
-
-    bool hasReadingStatements() const {
-        return _readingStatements != nullptr;
-    }
-
-    const Return& returnStatement() const {
-        return *_return;
-    }
-
-    const ReadingStatementContainer& readingStatements() const {
-        return *_readingStatements;
-    }
-
-    void setReturn(Return* returnStatement) {
-        _return = returnStatement;
-    }
-
-    void setReadingStatements(ReadingStatementContainer* readingStatements) {
-        _readingStatements = readingStatements;
+    const StatementContainer& getStatements() const {
+        return *_statements;
     }
 
 private:
-    Return* _return {nullptr};
-    ReadingStatementContainer* _readingStatements {nullptr};
+    StatementContainer* _statements {nullptr};
 };
 
 

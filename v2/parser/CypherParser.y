@@ -27,9 +27,10 @@
     #include "pattern/Pattern.h"
     #include "pattern/PatternNode.h"
     #include "pattern/PatternEdge.h"
-    #include "statements/ReadingStatementContainer.h"
+    #include "statements/StatementContainer.h"
     #include "expressions/PathExpression.h"
     #include "statements/Return.h"
+    #include "statements/Match.h"
     #include "SinglePartQuery.h"
     #include "Projection.h"
 
@@ -219,8 +220,7 @@
 %type<db::SinglePartQuery*> singlePartQ
 %type<db::Query*> singleQuery
 %type<db::Query*> query
-%type<db::ReadingStatementContainer*> readingStatements
-%type<db::ReadingStatement> readingStatement
+%type<db::Statement*> readingStatement
 %type<db::Match*> matchSt
 %type<db::Skip*> skipSt
 %type<db::Limit*> limitSt
@@ -337,18 +337,14 @@ singlePartQ
     : returnSt { scanner.notImplemented("Single part query: Return only"); }
     | updatingStatements { scanner.notImplemented("Single part query: Update only"); }
     | updatingStatements returnSt { scanner.notImplemented("Single part query: Update + Return"); }
-    | readingStatements returnSt { 
-        $$ = ast.newSinglePartQuery();
-        $$->setReadingStatements($1);
-        $$->setReturn($2);
-      }
+    | readingStatements returnSt { $$ = ast.newSinglePartQuery(); }
     | readingStatements updatingStatements { scanner.notImplemented("Single part query: Reading statement + Update"); }
     | readingStatements updatingStatements returnSt { scanner.notImplemented("Single part query: Reading statement + Update + Return"); }
     ;
 
 readingStatements
-    : readingStatement { $$ = ast.newReadingStatementContainer(); $$->add($1); }
-    | readingStatements readingStatement { $$ = $1; $$->add($2); }
+    : readingStatement { }
+    | readingStatements readingStatement { }
     ;
 
 updatingStatements
@@ -1015,7 +1011,6 @@ reservedWord
     | ADD { $$ = std::move($1); }
     | DROP { $$ = std::move($1); }
     ;
-
 
 %%
 
