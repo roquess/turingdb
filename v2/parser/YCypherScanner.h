@@ -34,7 +34,7 @@ public:
         _location.lines(1);
     }
 
-    void generateError(const std::string& msg, std::string& errorOutput);
+    void generateError(const std::string& msg, std::string& errorOutput, const location& loc);
     [[noreturn]] void syntaxError(const std::string& msg);
     void notImplemented(std::string_view rawMsg);
 

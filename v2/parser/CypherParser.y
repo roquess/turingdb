@@ -384,7 +384,7 @@ readingStatement
     ;
 
 updatingStatement
-    : createSt { scanner.notImplemented("CREATE"); }
+    : createSt { fmt::print("Finishing updatingStatement..\n"); scanner.notImplemented("CREATE"); }
     | mergeSt { scanner.notImplemented("MERGE"); }
     | deleteSt { scanner.notImplemented("DELETE"); }
     | setSt { scanner.notImplemented("SET"); }
@@ -491,7 +491,7 @@ nodeLabels
     ;
 
 createSt
-    : CREATE pattern { scanner.notImplemented("CREATE"); }
+    : CREATE pattern { fmt::print("Finishing createSt..\n"); scanner.notImplemented("CREATE"); }
     ;
 
 patternWhere
