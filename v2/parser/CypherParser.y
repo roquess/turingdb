@@ -184,11 +184,13 @@
 %type<db::Expression*> powerExpression
 %type<db::Expression*> unaryAddSubExpression
 %type<db::Expression*> atomicExpression
-%type<db::Expression*> listExpression
+//%type<db::Expression*> listExpression
 %type<db::Expression*> stringExpression
 %type<db::Expression*> propertyOrLabelExpression
 %type<db::Expression*> propertyExpression
 %type<db::Expression*> atomExpression
+%type<db::Expression*> pathExpression
+%type<db::Expression*> parenthesizedExpression
 
 %type<db::Expression*> projectionItem
 %type<db::Projection*> projectionItems
@@ -573,16 +575,16 @@ unaryAddSubExpression
 
 atomicExpression
     : propertyOrLabelExpression { $$ = $1; }
-    | atomicExpression listExpression { $$ = nullptr; scanner.notImplemented("List expressions"); }
+    //| atomicExpression listExpression { $$ = nullptr; scanner.notImplemented("List expressions"); }
     ;
 
-listExpression
-    : OBRACK expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression CBRACK"); }
-    | OBRACK expression RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE expression CBRACK"); }
-    | OBRACK RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE expression CBRACK"); }
-    | OBRACK expression RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE CBRACK"); }
-    | OBRACK RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE CBRACK"); }
-    ;
+//listExpression
+//    : OBRACK expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression CBRACK"); }
+//    | OBRACK expression RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE expression CBRACK"); }
+//    | OBRACK RANGE expression CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE expression CBRACK"); }
+//    | OBRACK expression RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK expression RANGE CBRACK"); }
+//    | OBRACK RANGE CBRACK { $$ = nullptr; scanner.notImplemented("OBRACK RANGE CBRACK"); }
+//    ;
 
 propertyOrLabelExpression
     : propertyExpression { $$ = $1; }
@@ -600,21 +602,19 @@ propertyExpression
     ;
 
 atomExpression
-    : literal { ast.newExpression<AtomExpression>(std::move($1)); }
-    | symbol { ast.newExpression<AtomExpression>(std::move($1)); }
+    : pathExpression { $$ = $1; }
+    | literal { $$ = ast.newExpression<AtomExpression>(std::move($1)); }
+    | symbol { $$ = ast.newExpression<AtomExpression>(std::move($1)); }
 
     | parameter { scanner.notImplemented("Parameters"); }
     | caseExpression { scanner.notImplemented("CASE"); }
     | countFunc { scanner.notImplemented("COUNT"); }
     | listComprehension { scanner.notImplemented("List comprehensions"); }
-    | patternComprehension { scanner.notImplemented("Pattern comprehensions"); }
+    //| patternComprehension { scanner.notImplemented("Pattern comprehensions"); }
     | filterWith { scanner.notImplemented("Filter keywords"); }
-    | parenthesizedExpression { scanner.notImplemented("Parenthesized expressions"); }
     | functionInvocation { scanner.notImplemented("Function invocations"); }
     | subqueryExist { scanner.notImplemented("EXISTS"); }
-    //| edgesChainPattern // Enabling this causes conflicts, WE NEED THAT
     ;
-
 
 patternPart
     : patternElem { $$ = $1; }
@@ -633,6 +633,10 @@ patternElemChain
     : edgePattern nodePattern { $$ = std::make_pair($1, $2); }
     ;
 
+properties
+    : mapLit
+    ;
+
 nodePattern
     : OPAREN opt_symbol opt_nodeLabels opt_properties CPAREN { $$ = ast.newNode(std::move($2), std::move($3)); }
     ;
@@ -648,7 +652,7 @@ opt_nodeLabels
     ;
 
 opt_properties
-    : mapLit { scanner.notImplemented("Properties"); }
+    : properties { scanner.notImplemented("Properties"); }
     | /* empty */
     ;
 
@@ -662,9 +666,9 @@ opt_rangeLit
     | /* empty */
     ;
 
-lhs
-    : symbol ASSIGN
-    ;
+//lhs
+//    : symbol ASSIGN
+//    ;
 
 
 edgePattern
@@ -712,8 +716,57 @@ functionInvocation
     | invocationName OPAREN DISTINCT expressionChain CPAREN { scanner.notImplemented("Function invocations"); }
     ;
 
+pathExpression
+    : parenthesizedExpression { $$ = $1; }
+    | OPAREN CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+    | OPAREN symbol properties CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+    | OPAREN symbol nodeLabels properties CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+    | OPAREN nodeLabels CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+    | OPAREN nodeLabels properties CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+
+    // Those three expressions are tricky and cause conflicts with 'OPAREN expression CPAREN'
+
+    //| OPAREN symbol nodeLabels CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+    // Causes conflicts because 'symbol nodeLabels' is a valid expression (propertyOrLabelExpression)
+
+    //| OPAREN symbol CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+    // Causes conflicts because 'symbol' is a valid expression (atomExpression)
+
+    //| OPAREN properties CPAREN patternElemChain { scanner.notImplemented("Parenthesized expressions"); }
+    // Causes conflicts because 'properties' is a valid expression (map literal)
+
+    // Instead, they are handled by the rule below
+    | OPAREN expression CPAREN patternElemChain { 
+        if ($2 == nullptr) {
+          fmt::print("Error!\n");
+          error(@1, "Invalid path expression");
+        }
+
+        if (const auto* atomExpr = dynamic_cast<db::AtomExpression*>($2)) {
+          if (const auto* value = std::get_if<db::Symbol>(&atomExpr->value())) {
+              fmt::print("Path expression with symbol: {}\n", value->_name);
+              YYACCEPT;
+          }
+
+          if (const auto* literal = std::get_if<db::Literal>(&atomExpr->value())) {
+              if ([[maybe_unused]] const auto* maplit = literal->as<db::MapLiteral>()) {
+                  fmt::print("Path expression with properties\n");
+                  YYACCEPT;
+              }
+          }
+        }
+
+        else if ([[maybe_unused]] const auto* nodeLabelExpr = dynamic_cast<db::NodeLabelExpression*>($2)) {
+            fmt::print("Path expression with labels\n");
+            YYACCEPT;
+        }
+
+        error(@1, "Invalid path expression. The root must be a valid node pattern '(symbol? labels? properties?)'");
+      }
+    ;
+
 parenthesizedExpression
-    : OPAREN expression CPAREN { fmt::print("parenthesizedExpression\n"); }
+    : OPAREN expression CPAREN { $$ = $2; }
     ;
 
 filterWith
@@ -727,17 +780,17 @@ filterKeyword
     | SINGLE
     ;
 
-patternComprehension
-    : OBRACK edgesChainPattern PIPE expression CBRACK
-    | OBRACK lhs edgesChainPattern PIPE expression CBRACK
-    | OBRACK edgesChainPattern where PIPE expression CBRACK
-    | OBRACK lhs edgesChainPattern where PIPE expression CBRACK
-    ;
+//patternComprehension
+//    : OBRACK edgesChainPattern PIPE expression CBRACK
+//    | OBRACK lhs edgesChainPattern PIPE expression CBRACK
+//    | OBRACK edgesChainPattern where PIPE expression CBRACK
+//    | OBRACK lhs edgesChainPattern where PIPE expression CBRACK
+//    ;
 
-edgesChainPattern
-    : nodePattern patternElemChain
-    | edgesChainPattern patternElemChain
-    ;
+//edgesChainPattern
+//    : nodePattern patternElemChain
+//    | edgesChainPattern patternElemChain
+//    ;
 
 listComprehension
     : OBRACK filterExpression CBRACK { scanner.notImplemented("List comprehensions"); }
@@ -783,11 +836,11 @@ parameter
     ;
 
 literal
-    : boolLit { $$ = Literal(std::move($1)); }
-    | numLit { $$ = Literal(std::move($1)); }
+    : boolLit { $$ = Literal($1); }
+    | numLit { $$ = Literal($1); }
     | NULL_ { $$ = Literal(std::nullopt); }
     | stringLit { $$ = Literal(std::move($1)); }
-    | charLit { $$ = Literal(std::move($1)); }
+    | charLit { $$ = Literal($1); }
     | listLit { scanner.notImplemented("Lists"); }
     | mapLit { scanner.notImplemented("Maps"); }
     ;
@@ -837,9 +890,9 @@ listLitItem
     | caseExpression { scanner.notImplemented("CASE"); }
     | countFunc { scanner.notImplemented("COUNT"); }
     | listComprehension { scanner.notImplemented("List comprehensions"); }
-    | patternComprehension { scanner.notImplemented("Pattern comprehensions"); }
+    //| patternComprehension { scanner.notImplemented("Pattern comprehensions"); }
     | filterWith { scanner.notImplemented("Filters"); }
-    // | parenthesizedExpression // Enabling this causes conflicts, WE NEED THAT
+    | parenthesizedExpression // Enabling this causes conflicts, not needed?
     | functionInvocation { scanner.notImplemented("Function invocations"); }
     | symbol
     | subqueryExist { scanner.notImplemented("EXISTS"); }
@@ -867,11 +920,11 @@ name
 symbol
     : ESC_LITERAL { $$ = Symbol { ._name = std::move($1)}; }
     | ID { $$ = Symbol { ._name = std::move($1) }; }
-    //| FILTER // We should not need to support these
-    //| EXTRACT
-    //| ANY
-    //| NONE
-    //| SINGLE
+    | FILTER { $$ = Symbol { ._name = std::move($1) }; }
+    | EXTRACT { $$ = Symbol { ._name = std::move($1) }; }
+    //| ANY { $$ = Symbol { ._name = std::move($1) }; } // Causes conflicts
+    //| NONE { $$ = Symbol { ._name = std::move($1) }; } // Causes conflicts
+    //| SINGLE { $$ = Symbol { ._name = std::move($1) }; } // Causes conflicts
     ;
 
 createConstraint

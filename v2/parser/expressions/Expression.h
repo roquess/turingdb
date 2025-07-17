@@ -8,7 +8,8 @@ enum class ExpressionType {
     String,
     NodeLabel,
     Property,
-    Atom
+    Atom,
+    Path,
 };
 
 

@@ -36,6 +36,10 @@ public:
         return std::make_unique<AtomExpression>(std::move(v));
     }
 
+    const ValueType& value() const {
+        return _value;
+    }
+
 private:
     ValueType _value;
 };
