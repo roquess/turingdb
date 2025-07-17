@@ -60,7 +60,6 @@ void Step::execute() {
         const auto& strIndex = nodeStringIndex.at(_pId);
 
         // Get any matches for the query string in the index
-        std::vector<NodeID> owners {};
         strIndex->query<NodeID>(_nodes->getRaw(), _strQuery);
     }
     _dps.reset();
