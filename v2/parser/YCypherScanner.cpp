@@ -1,14 +1,33 @@
 #include "YCypherScanner.h"
 
-#include <sstream>
-
 #include "BioAssert.h"
 #include "ParserException.h"
+
+std::string_view nextLine(std::string_view& str) {
+    const auto pos = str.find('\n');
+    if (pos == std::string_view::npos) {
+        auto line = str;
+        str = str.substr(str.size(), str.size());
+
+        return line;
+    }
+
+    auto line = str.substr(0, pos);
+    str = str.substr(pos + 1, str.size());
+    return line;
+}
+
+void ignoreLines(std::string_view& str, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        nextLine(str);
+    }
+}
 
 void db::YCypherScanner::generateError(const std::string& msg, std::string& errorOutput, bool printErrorBars) {
     bioassert(_query != nullptr);
     errorOutput.clear();
 
+    std::string_view q = _query;
     const auto& loc = _location;
 
     const size_t firstLine = loc.begin.line;
@@ -16,15 +35,11 @@ void db::YCypherScanner::generateError(const std::string& msg, std::string& erro
 
     if (firstLine != lastLine) {
         // Multi-line error
-        std::istringstream ss(*_query, std::ios_base::in);
         size_t lineCount = lastLine - firstLine + 1;
-        std::string line;
-
-        for (size_t i = 0; i < firstLine; i++) {
-            ss.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
+        ignoreLines(q, firstLine - 1);
 
         for (size_t i = 0; i < lineCount; i++) {
+            std::string_view line = nextLine(q);
             const size_t lineNo = firstLine + i;
             std::string prefix = fmt::format("  {:>4} | ", lineNo);
 
@@ -33,8 +48,6 @@ void db::YCypherScanner::generateError(const std::string& msg, std::string& erro
                 errorOutput += fmt::format("{}⌄ \n", blank, firstLine, line);
             }
 
-            line.clear();
-            std::getline(ss, line);
             errorOutput += fmt::format("{}{}\n", prefix, line);
         }
 
@@ -44,21 +57,17 @@ void db::YCypherScanner::generateError(const std::string& msg, std::string& erro
 
     const size_t errLineNo = firstLine;
 
-    std::istringstream ss(*_query, std::ios_base::in);
-
     if (errLineNo != 1) {
-        for (size_t i = 0; i < errLineNo - 2; i++) {
-            ss.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
+        ignoreLines(q, errLineNo - 2);
     }
 
-    std::string errLine;
-    std::getline(ss, errLine);
+    std::string_view errLine = nextLine(q);
 
     if (errLineNo > 1) {
         errorOutput += fmt::format("{:<4} | {}\n", errLineNo - 1, errLine);
-        std::getline(ss, errLine);
     }
+
+    errLine = nextLine(q);
 
     const size_t errLen = loc.end.column - loc.begin.column;
     const std::string errorBars(errLen, '^');
@@ -86,7 +95,7 @@ void db::YCypherScanner::syntaxError(const std::string& msg) {
 }
 
 void db::YCypherScanner::notImplemented(std::string_view rawMsg) {
-    if (!_throwNotImplemented) {
+    if (!_allowNotImplemented) {
         return;
     }
 

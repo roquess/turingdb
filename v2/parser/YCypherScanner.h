@@ -19,10 +19,10 @@ public:
 
     location getLocation() const { return _location; }
 
-    void setQuery(const std::string& query) { _query = &query; }
+    void setQuery(std::string_view query) { _query = query; }
 
-    void setThrowNotImplemented(bool throwNotImplemented) {
-        _throwNotImplemented = throwNotImplemented;
+    void allowNotImplemented(bool allowNotImplemented) {
+        _allowNotImplemented = allowNotImplemented;
     }
 
     void advanceLocation(uint64_t yyleng) {
@@ -40,8 +40,8 @@ public:
 
 private:
     location _location;
-    const std::string* _query = nullptr;
-    bool _throwNotImplemented = true;
+    std::string_view _query;
+    bool _allowNotImplemented = true;
 };
 
 }

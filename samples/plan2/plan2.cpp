@@ -1,12 +1,9 @@
 #include <stdlib.h>
 
-#include <sstream>
-
+#include "CypherParser.h"
 #include "Time.h"
-#include "YCypherScanner.h"
 #include "ParserException.h"
 #include "FileReader.h"
-#include "CypherAST.h"
 
 using namespace db;
 
@@ -38,21 +35,12 @@ int main(int argc, char** argv) {
 }
 
 void runParser2(const std::string& query) {
-    YCypherScanner yscanner;
-    CypherAST ast;
-    yscanner.setThrowNotImplemented(false);
-    yscanner.setQuery(query);
-
-    YCypherParser yparser(yscanner, ast);
-
-    std::istringstream iss;
-    iss.rdbuf()->pubsetbuf((char*)query.data(), query.size());
-
-    yscanner.switch_streams(&iss, NULL);
+    CypherParser parser;
+    parser.allowNotImplemented(true);
 
     try {
         auto t0 = Clock::now();
-        yparser.parse();
+        parser.parse(query);
         auto t1 = Clock::now();
         fmt::print("Query parsed in {} us\n", duration<Microseconds>(t0, t1));
     } catch (const ParserException& e) {

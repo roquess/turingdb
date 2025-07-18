@@ -1,7 +1,3 @@
-CREATE (p:Product {price: 10})
-SET p.discountPrice = p.price * (1 - 0.15)
-RETURN p.discountPrice AS discountPrice;
-
 MATCH (n)
 WHERE (n)-->(m)
 RETURN n;
