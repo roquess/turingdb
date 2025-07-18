@@ -359,7 +359,6 @@ void QueryAnalyzer::analyzeInjectNodes(DeclContext* declContext, InjectedNodes* 
                                     nodes->getKind(),
                                     nodes->getEntityID());
     if (!decl) {
-        // should never happen as injected noes are the first declaration
         throw AnalyzeException("Could Not Create Entity Declaration:\""
                                + var->getName() + "\"");
     }
