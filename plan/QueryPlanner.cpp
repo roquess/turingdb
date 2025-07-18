@@ -137,9 +137,9 @@ bool QueryPlanner::planMatch(const MatchCommand* matchCmd) {
     // This is necessary by convention for Executor
     _pipeline->add<StopStep>();
 
-    if(pathElements[0]->getKind() == DeclKind::INJECT_DECL) {
+    if (pathElements[0]->getKind() == DeclKind::INJECT_DECL) {
         planInjectNodes(pathElements);
-    }else {
+    } else {
         planPath(pathElements);
     }
     planTransformStep();
@@ -1387,9 +1387,9 @@ void QueryPlanner::planProjection(const MatchCommand* matchCmd) {
         if (kind == DeclKind::NODE_DECL || kind == DeclKind::INJECT_DECL) {
             auto* column = decl->getColumn()->cast<ColumnNodeIDs>();
             if (!column) {
-                //For the case where a plan step breaks out before
-                //setting the Decl Column - e.g If an invalid Label
-                //is Filtered On.
+                // For the case where a plan step breaks out before
+                // setting the Decl Column - e.g If an invalid Label
+                // is Filtered On.
                 column = _mem->alloc<ColumnNodeIDs>();
             }
 

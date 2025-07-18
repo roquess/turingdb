@@ -699,7 +699,7 @@ TEST_F(QueryTest, InjectNodes) {
             "Computers",
             "Cooking",
         });
-    
+
     tester.query("MATCH n:Founder@0,1,8,9,11 RETURN n.name")
         .expectOptVector<types::String::Primitive>({"Remy", "Adam"})
         .execute();
@@ -713,11 +713,11 @@ TEST_F(QueryTest, InjectNodes) {
         .execute();
 
     tester.query("MATCH n{hasPhD:True, isFrench:True}@0,1,8,9,11 RETURN n.name")
-        .expectOptVector<types::String::Primitive>({"Remy","Adam","Luc"})
+        .expectOptVector<types::String::Primitive>({"Remy", "Adam", "Luc"})
         .execute();
 
     tester.query("MATCH n:Founder@0,1,8,9,11{hasPhD:True, isFrench:True} RETURN n.name")
-        .expectOptVector<types::String::Primitive>({"Remy","Adam"})
+        .expectOptVector<types::String::Primitive>({"Remy", "Adam"})
         .execute();
 
     tester.query("MATCH n:Founder,Bioinformatics@0,1,8,9,11{hasPhD:True, isFrench:True} RETURN n.name")

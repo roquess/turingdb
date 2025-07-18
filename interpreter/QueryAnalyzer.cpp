@@ -355,23 +355,23 @@ void QueryAnalyzer::analyzeInjectNodes(DeclContext* declContext, InjectedNodes* 
     }
 
     VarDecl* decl = VarDecl::create(_ctxt,
-            declContext,
-            var->getName(),
-            nodes->getKind(),
-            nodes->getEntityID());
+                                    declContext,
+                                    var->getName(),
+                                    nodes->getKind(),
+                                    nodes->getEntityID());
     if (!decl) {
-        //should never happen as injected noes are the first declaration
+        // should never happen as injected noes are the first declaration
         throw AnalyzeException("Could Not Create Entity Declaration:\""
                                + var->getName() + "\"");
     }
     var->setDecl(decl);
 
     const auto& injectedNodes = nodes->nodes();
-    for(const auto& node: injectedNodes) {
-        //make this more efficient!
-        if(!_view.read().graphHasNode(node)){
-        throw AnalyzeException("Could Not Find Injected Node In Graph:\""
-                               + std::to_string(node.getValue()) + "\"");
+    for (const auto& node : injectedNodes) {
+        // make this more efficient!
+        if (!_view.read().graphHasNode(node)) {
+            throw AnalyzeException("Could Not Find Injected Node In Graph:\""
+                                   + std::to_string(node.getValue()) + "\"");
         }
     }
 

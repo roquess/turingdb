@@ -54,7 +54,7 @@ protected:
     virtual ~EntityPattern();
 };
 
-class InjectedNodes : public EntityPattern{
+class InjectedNodes : public EntityPattern {
 public:
     friend ASTContext;
 
@@ -71,7 +71,7 @@ public:
 
 private:
     std::vector<NodeID> _nodeIds;
-    
+
 
     InjectedNodes();
     ~InjectedNodes();

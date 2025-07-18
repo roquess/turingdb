@@ -17,4 +17,3 @@ MatchTarget* MatchTarget::create(ASTContext* ctxt, PathPattern* pattern) {
     ctxt->addMatchTarget(target);
     return target;
 }
-

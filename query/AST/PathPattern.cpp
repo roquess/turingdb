@@ -61,9 +61,9 @@ void PathPattern::addElement(EntityPattern* pattern) {
     _elements.push_back(pattern);
 }
 
-//InjectedNodes
+// InjectedNodes
 InjectedNodes::InjectedNodes()
-    :EntityPattern(nullptr,nullptr, nullptr, UINT64_MAX)
+    : EntityPattern(nullptr, nullptr, nullptr, UINT64_MAX)
 {
     setKind(DeclKind::INJECT_DECL);
 }
