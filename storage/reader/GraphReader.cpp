@@ -10,19 +10,19 @@
 using namespace db;
 
 size_t GraphReader::getNodeCount() const {
-    size_t count = 0;
-    for (const auto& part : _view.dataparts()) {
-        count += part->nodes().getAll()._count;
+    if (_view.dataparts().empty()) {
+        return 0;
     }
-    return count;
+    const auto& part = _view.dataparts().back();
+    return part->getFirstNodeID().getValue() + part->getNodeCount();
 }
 
 size_t GraphReader::getEdgeCount() const {
-    size_t count = 0;
-    for (const auto& part : _view.dataparts()) {
-        count += part->edges().getOuts().size();
+    if (_view.dataparts().empty()) {
+        return 0;
     }
-    return count;
+    const auto& part = _view.dataparts().back();
+    return part->getFirstEdgeID().getValue() + part->getEdgeCount();
 }
 
 LabelSetHandle GraphReader::getNodeLabelSet(NodeID nodeID) const {
@@ -238,12 +238,7 @@ bool GraphReader::nodeHasProperty(PropertyTypeID ptID, NodeID nodeID) const {
 }
 
 bool GraphReader::graphHasNode(NodeID nodeID) const {
-    for (const auto& part : _view.dataparts()) {
-        if (part->hasNode(nodeID)) {
-            return true;
-        }
-    }
-    return false;
+    return (nodeID < getNodeCount());
 }
 
 template <SupportedType T>
