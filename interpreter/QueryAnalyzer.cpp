@@ -23,6 +23,7 @@
 #include "ReturnProjection.h"
 #include "CreateTarget.h"
 #include "VarDecl.h"
+#include "InjectedIDs.h"
 #include "BioAssert.h"
 
 
@@ -174,11 +175,20 @@ void QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
         const auto& elements = pattern->elements();
 
         EntityPattern* entityPattern = elements[0];
-        if(elements[0]->getKind() == DeclKind::INJECT_DECL) {
-            analyzeInjectNodes(declContext,static_cast<InjectedNodes*>(entityPattern));
-        }else {
-            analyzeEntityPattern(declContext, entityPattern, isCreate);
+
+        // The InjectID code can be moved into analyzeEntityPattern
+        // when we support injecting IDs at any node
+        if (elements[0]->getInjectedIDs()) {
+            const auto& injectedNodes = entityPattern->getInjectedIDs()->getIDs();
+            for (const auto& node : injectedNodes) {
+                if (!_view.read().graphHasNode(node)) {
+                    throw AnalyzeException("Could Not Find Injected Node In Graph:\""
+                                           + std::to_string(node.getValue()) + "\"");
+                }
+            }
         }
+
+        analyzeEntityPattern(declContext, entityPattern, isCreate);
 
         if (elements.size() >= 2) {
             bioassert(elements.size() >= 3);
@@ -187,6 +197,12 @@ void QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
                 EntityPattern* target = pair[1];
 
                 analyzeEntityPattern(declContext, edge, isCreate);
+
+                if (target->getInjectedIDs()) {
+                    throw AnalyzeException("Injecting Nodes In Non-Primary Entity Not Supported,"
+                                           "For Entity:\""
+                                           + target->getVar()->getName() + "\"");
+                }
                 analyzeEntityPattern(declContext, target, isCreate);
             }
         }
@@ -264,6 +280,7 @@ void QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
     }
 }
 
+<<<<<<< HEAD
 void QueryAnalyzer::typeCheckBinExprConstr(const PropertyType lhs,
                                            const ExprConst* rhs) {
     // NOTE: Directly accessing struct member
@@ -345,52 +362,8 @@ void QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
     }
 }
 
-void QueryAnalyzer::analyzeInjectNodes(DeclContext* declContext, InjectedNodes* nodes) {
-    //Throw exceptions instead of false
-    VarExpr* var = nodes->getVar();
-    if (!var) {
-        var = VarExpr::create(_ctxt, createVarName());
-        nodes->setVar(var);
-    }
-
-    VarDecl* decl = VarDecl::create(_ctxt,
-                                    declContext,
-                                    var->getName(),
-                                    nodes->getKind(),
-                                    nodes->getEntityID());
-    if (!decl) {
-        throw AnalyzeException("Could Not Create Entity Declaration:\""
-                               + var->getName() + "\"");
-    }
-    var->setDecl(decl);
-
-    const auto& injectedNodes = nodes->nodes();
-    for (const auto& node : injectedNodes) {
-        // make this more efficient!
-        if (!_view.read().graphHasNode(node)) {
-            throw AnalyzeException("Could Not Find Injected Node In Graph:\""
-                                   + std::to_string(node.getValue()) + "\"");
-        }
-    }
-
-    if (auto* exprConstraint = nodes->getExprConstraint()) {
-        for (const auto* binExpr : exprConstraint->getExpressions()) {
-            if (binExpr->getOpType() != BinExpr::OP_EQUAL) {
-                throw AnalyzeException("Expression Type Not Supported:\""
-                                       + std::string(BinExpr::OpTypeName::value(binExpr
-                                        ->getOpType()))+ "\"");
-            }
-        }
-    }
-}
-
 void QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
-                                         EntityPattern* entity,
-                                         bool isCreate) {
-    if(entity->getKind() == DeclKind::INJECT_DECL) {
-        throw AnalyzeException("Injecting Nodes In Non-Primary Entity Not Supported, For Entity:\""
-                               + entity->getVar()->getName() + "\"");
-    }
+                                         EntityPattern* entity,bool isCreate) {
     VarExpr* var = entity->getVar();
     // Handle the case where the entity is unlabeled edge (--)
     if (!var) {

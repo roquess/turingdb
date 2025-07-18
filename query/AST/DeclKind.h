@@ -6,7 +6,6 @@ enum class DeclKind {
     UNKNOWN,
     NODE_DECL,
     EDGE_DECL,
-    INJECT_DECL
 };
 
 }

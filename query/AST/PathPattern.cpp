@@ -8,10 +8,12 @@ using namespace db;
 EntityPattern::EntityPattern(VarExpr* var,
                              TypeConstraint* typeConstr,
                              ExprConstraint* exprConstr,
+                             InjectedIDs* injectedIDs,
                              uint64_t entityID)
     : _var(var),
     _typeConstr(typeConstr),
     _exprConstr(exprConstr),
+    _injectedIDs(injectedIDs),
     _entityID(entityID)
 {
 }
@@ -23,10 +25,12 @@ EntityPattern::~EntityPattern()
 EntityPattern* EntityPattern::create(ASTContext* ctxt,
                                      VarExpr* var,
                                      TypeConstraint* typeConstr,
-                                     ExprConstraint* exprConstr) {
+                                     ExprConstraint* exprConstr,
+                                     InjectedIDs* injectedIDs) {
     EntityPattern* pattern = new EntityPattern(var,
                                                typeConstr,
                                                exprConstr,
+                                               injectedIDs,
                                                UINT64_MAX);
     ctxt->addEntityPattern(pattern);
     return pattern;
@@ -36,6 +40,7 @@ EntityPattern* EntityPattern::create(ASTContext* ctxt,
                                      VarExpr* var,
                                      uint64_t entityID) {
     EntityPattern* pattern = new EntityPattern(var,
+                                               nullptr,
                                                nullptr,
                                                nullptr,
                                                entityID);
@@ -59,24 +64,4 @@ PathPattern* PathPattern::create(ASTContext* ctxt) {
 
 void PathPattern::addElement(EntityPattern* pattern) {
     _elements.push_back(pattern);
-}
-
-// InjectedNodes
-InjectedNodes::InjectedNodes()
-    : EntityPattern(nullptr, nullptr, nullptr, UINT64_MAX)
-{
-    setKind(DeclKind::INJECT_DECL);
-}
-
-InjectedNodes::~InjectedNodes() {
-}
-
-InjectedNodes* InjectedNodes::create(ASTContext* ctxt) {
-    InjectedNodes* pattern = new InjectedNodes();
-    ctxt->addEntityPattern(pattern);
-    return pattern;
-}
-
-void InjectedNodes::addNode(NodeID id) {
-    _nodeIds.push_back(id);
 }

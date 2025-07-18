@@ -20,6 +20,7 @@
 #include "ASTContext.h"
 #include "ReturnProjection.h"
 #include "TypeConstraint.h"
+#include "InjectedIDs.h"
 #include "VarDecl.h"
 
 #include "columns/Block.h"
@@ -137,7 +138,7 @@ bool QueryPlanner::planMatch(const MatchCommand* matchCmd) {
     // This is necessary by convention for Executor
     _pipeline->add<StopStep>();
 
-    if (pathElements[0]->getKind() == DeclKind::INJECT_DECL) {
+    if (pathElements[0]->getInjectedIDs()) {
         planInjectNodes(pathElements);
     } else {
         planPath(pathElements);
@@ -224,12 +225,12 @@ bool QueryPlanner::planCreate(const CreateCommand* createCmd) {
 }
 
 void QueryPlanner::planInjectNodes(const std::vector<EntityPattern*>& path) {
-    const auto* injectedNodes = static_cast<InjectedNodes*>(path[0]);
 
-    _result = _mem->alloc<ColumnNodeIDs>(injectedNodes->nodes());
+    const auto& injectedNodes = path[0]->getInjectedIDs();
+    _result = _mem->alloc<ColumnNodeIDs>(injectedNodes->getIDs());
 
-    const TypeConstraint* injectTypeConstr = injectedNodes->getTypeConstraint();
-    const ExprConstraint* injectExprConstr = injectedNodes->getExprConstraint();
+    const TypeConstraint* injectTypeConstr = path[0]->getTypeConstraint();
+    const ExprConstraint* injectExprConstr = path[0]->getExprConstraint();
 
     if (injectTypeConstr) {
         const LabelSet* injectLabelSet = getOrCreateLabelSet(injectTypeConstr);
@@ -316,7 +317,7 @@ void QueryPlanner::planInjectNodes(const std::vector<EntityPattern*>& path) {
         _result = filterOutNodes;
     }
 
-    const VarExpr* nodeVar = injectedNodes->getVar();
+    const VarExpr* nodeVar = path[0]->getVar();
     if (nodeVar) {
         VarDecl* nodeDecl = nodeVar->getDecl();
         if (nodeDecl->isReturned()) {
@@ -1383,7 +1384,7 @@ void QueryPlanner::planProjection(const MatchCommand* matchCmd) {
         // Skip variables for which no columnIDs have been generated
         const VarDecl* decl = field->getDecl();
         const auto kind = decl->getKind();
-        if (kind == DeclKind::NODE_DECL || kind == DeclKind::INJECT_DECL) {
+        if (kind == DeclKind::NODE_DECL) {
             auto* column = decl->getColumn()->cast<ColumnNodeIDs>();
             if (!column) {
                 // For the case where a plan step breaks out before
