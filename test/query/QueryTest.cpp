@@ -727,4 +727,8 @@ TEST_F(QueryTest, InjectNodes) {
     tester.query("MATCH n@1001 RETURN n")
         .expectError()
         .execute();
+
+    tester.query("MATCH m--n@0 RETURN n")
+        .expectError()
+        .execute();
 }
