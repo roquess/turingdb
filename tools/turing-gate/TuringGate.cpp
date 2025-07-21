@@ -127,21 +127,55 @@ void printUsage(const char* programName) {
     std::cout << "Usage: " << programName << " [options]" << std::endl;
     std::cout << "Options:" << std::endl;
     std::cout << "  -b, --backends <file>    File containing backend servers (one per line, format: host:port)" << std::endl;
+    std::cout << "  -p, --port <port number>  Specify Port Number Of Gateway (defaults to 8080)" << std::endl;
+    std::cout << "  -t, --tls <SSL Certificate File> <SSL Key File>  Run Gateway as a https server" << std::endl;
     std::cout << "  -h, --help               Show this help message" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
     // Parse command line arguments
     std::string backendFile;
-    
+    std::string certFile;
+    std::string keyFile;
+    int port = 8080;
+
     for (int i = 1; i < argc; i++) {
         const std::string arg = argv[i];
-        
+
         if (arg == "-b" || arg == "--backends") {
             if (i + 1 < argc) {
                 backendFile = argv[++i];
             } else {
                 std::cerr << "Error: --backends requires a filename argument" << std::endl;
+                printUsage(argv[0]);
+                return 1;
+            }
+        } else if (arg == "-p" || arg == "--port") {
+            if (i + 1 < argc) {
+                try {
+                    port = std::stoi(argv[++i]);
+                } catch (const std::invalid_argument& e) {
+                    std::cerr << "Error: Invalid port number '" << argv[i] << "'" << std::endl;
+                    printUsage(argv[0]);
+                    return 1;
+                }
+                if (port < 1 || port > 65535) {
+                    std::cerr << "Error: Port must be between 1 and 65535" << std::endl;
+                    printUsage(argv[0]);
+                    return 1;
+                }
+            } else {
+                std::cerr << "Error: --port requires a port number argument" << std::endl;
+                printUsage(argv[0]);
+                return 1;
+            }
+
+        } else if (arg == "-t" || arg == "--tls") {
+            if (i + 2 < argc) {
+                certFile = argv[++i];
+                keyFile = argv[++i];
+            } else {
+                std::cerr << "Error: --tls requires certificate and key file arguments" << std::endl;
                 printUsage(argv[0]);
                 return 1;
             }
@@ -154,7 +188,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
-    
+
     // Determine number of threads based on hardware concurrency
     const unsigned int numThreads = []() {
         const unsigned int detected = std::thread::hardware_concurrency();
@@ -171,7 +205,21 @@ int main(int argc, char* argv[]) {
         std::getenv("SUPABASE_TOKEN_INSTANCE_JOIN_FUNC") ? std::getenv("SUPABASE_TOKEN_INSTANCE_JOIN_FUNC") : "routes");
 
     // Create and start the proxy server
-    std::unique_ptr<HttpProxy> proxy = std::make_unique<HttpProxy>();
+    std::unique_ptr<HttpProxyBase> proxy;
+
+    if (!(certFile.empty() || keyFile.empty())) {
+        proxy = std::make_unique<HttpProxy<httplib::SSLServer>>(certFile, keyFile);
+        if (!proxy->isValid()) {
+            std::cerr << "SSL server is not valid! Check certificate files." << std::endl;
+            return 1;
+        }
+    } else {
+        proxy = std::make_unique<HttpProxy<httplib::Server>>();
+        if (!proxy->isValid()) {
+            std::cerr << "Normal server isn't valid" << std::endl;
+            return 1;
+        }
+    }
 
     if (!backendFile.empty()) {
         std::vector<std::pair<std::string, int>> backends;
@@ -220,7 +268,7 @@ int main(int argc, char* argv[]) {
     });
 
     // Start the proxy server
-    proxy->start("0.0.0.0", 8080, static_cast<int>(numThreads));
+    proxy->start("0.0.0.0", port, static_cast<int>(numThreads));
 
     // Cleanup
     healthCheckRunning = false;
