@@ -684,7 +684,7 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
                                      propValues,
                                      indices,
                                      mask);
-
+            // @CYRUS: Add check to see what operation is done here
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
             filter.addExpression(FilterStep::Expression {
                 ._op = ColumnOperator::OP_EQUAL,
@@ -738,6 +738,7 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
                                      indices,
                                      filterMasks[i]);
 
+            // @CYRUS: Add a check to see what expression is done here
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
             filter.addExpression(FilterStep::Expression {
                 ._op = ColumnOperator::OP_EQUAL,
