@@ -40,6 +40,12 @@ using namespace db;
 "new"|"NEW" { return YParser::make_NEW(getLocation()); }
 "submit"|"SUBMIT" { return YParser::make_SUBMIT(getLocation()); }
 "delete"|"DELETE" { return YParser::make_DELETE(getLocation()); }
+"call"|"CALL" { return YParser::make_CALL(getLocation()); }
+
+"properties"|"PROPERTIES" { return YParser::make_PROPERTIES(getLocation()); }
+"labels"|"LABELS" { return YParser::make_LABELS(getLocation()); }
+"edgetypes"|"EDGETYPES" { return YParser::make_EDGETYPES(getLocation()); }
+"labelsets"|"LABELSETS" { return YParser::make_LABELSETS(getLocation()); }
 
 "." { return YParser::make_POINT(getLocation()); }
 "," { return YParser::make_COMMA(getLocation()); }

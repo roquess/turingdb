@@ -3,6 +3,9 @@
 #include <variant>
 
 #include "ChangeOpType.h"
+#include "CallEdgeTypeStep.h"
+#include "CallLabelSetStep.h"
+#include "CallLabelStep.h"
 #include "PipelineOpcode.h"
 
 #include "operations/ScanNodesStep.h"
@@ -30,6 +33,7 @@
 #include "operations/CreateNodeStep.h"
 #include "operations/CreateEdgeStep.h"
 #include "operations/CommitStep.h"
+#include "operations/CallPropertyStep.h"
 
 #include "FastGet.h"
 
@@ -119,6 +123,19 @@ public:
                  const EntityPattern*,
                  const EntityPattern*);
     PipelineStep(CommitStep::Tag);
+    PipelineStep(CallPropertyStep::Tag,
+                 ColumnVector<PropertyTypeID>* id,
+                 ColumnVector<std::string_view>* name,
+                 ColumnVector<std::string_view>* type);
+    PipelineStep(CallLabelStep::Tag,
+                 ColumnVector<LabelID>* id,
+                 ColumnVector<std::string_view>* name);
+    PipelineStep(CallEdgeTypeStep::Tag,
+                 ColumnVector<EdgeTypeID>* id,
+                 ColumnVector<std::string_view>* name);
+    PipelineStep(CallLabelSetStep::Tag,
+                 ColumnVector<LabelSetID>* id,
+                 ColumnVector<std::string_view>* name);
 
     PROPERTY_STEPS(Int64)
     PROPERTY_STEPS(UInt64)
@@ -194,7 +211,11 @@ private:
                  ChangeStep,
                  CreateNodeStep,
                  CreateEdgeStep,
-                 CommitStep>
+                 CommitStep,
+                 CallPropertyStep,
+                 CallLabelStep,
+                 CallLabelSetStep,
+                 CallEdgeTypeStep>
         _impl;
 };
 

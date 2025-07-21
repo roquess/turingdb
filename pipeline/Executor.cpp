@@ -1,5 +1,7 @@
 #include "Executor.h"
 
+#include "CallEdgeTypeStep.h"
+#include "CallLabelStep.h"
 #include "Pipeline.h"
 #include "PipelineException.h"
 #include "PipelineMacros.h"
@@ -80,6 +82,10 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _activateTbl[(uint64_t)PipelineOpcode::CREATE_NODE] = ACTIVATE_PTR(CreateNodeStep);
         _activateTbl[(uint64_t)PipelineOpcode::CREATE_EDGE] = ACTIVATE_PTR(CreateEdgeStep);
         _activateTbl[(uint64_t)PipelineOpcode::COMMIT] = ACTIVATE_PTR(CommitStep);
+        _activateTbl[(uint64_t)PipelineOpcode::CALL_PROPERTIES] = ACTIVATE_PTR(CallPropertyStep);
+        _activateTbl[(uint64_t)PipelineOpcode::CALL_LABELS] = ACTIVATE_PTR(CallLabelStep);
+        _activateTbl[(uint64_t)PipelineOpcode::CALL_EDGETYPES] = ACTIVATE_PTR(CallEdgeTypeStep);
+        _activateTbl[(uint64_t)PipelineOpcode::CALL_LABELSETS] = ACTIVATE_PTR(CallLabelSetStep);
         _activateTbl[(uint64_t)PipelineOpcode::END] = ACTIVATE_END_PTR();
 
         // RETURN jump table
@@ -133,6 +139,10 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
         _returnTbl[(uint64_t)PipelineOpcode::CREATE_NODE] = RETURN_PTR(CreateNodeStep);
         _returnTbl[(uint64_t)PipelineOpcode::CREATE_EDGE] = RETURN_PTR(CreateEdgeStep);
         _returnTbl[(uint64_t)PipelineOpcode::COMMIT] = RETURN_PTR(CommitStep);
+        _returnTbl[(uint64_t)PipelineOpcode::CALL_PROPERTIES] = RETURN_PTR(CallPropertyStep);
+        _returnTbl[(uint64_t)PipelineOpcode::CALL_LABELS] = RETURN_PTR(CallLabelStep);
+        _returnTbl[(uint64_t)PipelineOpcode::CALL_EDGETYPES] = RETURN_PTR(CallEdgeTypeStep);
+        _returnTbl[(uint64_t)PipelineOpcode::CALL_LABELSETS] = RETURN_PTR(CallLabelSetStep);
         _returnTbl[(uint64_t)PipelineOpcode::END] = GOTOPTR(StopStep);
 
         checkJumpTables();
@@ -226,6 +236,10 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     ACTIVATE_STEP(CreateNodeStep)
     ACTIVATE_STEP(CreateEdgeStep)
     ACTIVATE_STEP(CommitStep)
+    ACTIVATE_STEP(CallPropertyStep)
+    ACTIVATE_STEP(CallLabelStep)
+    ACTIVATE_STEP(CallEdgeTypeStep)
+    ACTIVATE_STEP(CallLabelSetStep)
     ACTIVATE_END()
 
     // RETURN actions
@@ -278,6 +292,10 @@ void Executor::runImpl(ExecutionContext* ctxt, Pipeline* pipeline, bool init) {
     RETURN_STEP(CreateNodeStep)
     RETURN_STEP(CreateEdgeStep)
     RETURN_STEP(CommitStep)
+    RETURN_STEP(CallPropertyStep)
+    RETURN_STEP(CallLabelStep)
+    RETURN_STEP(CallEdgeTypeStep)
+    RETURN_STEP(CallLabelSetStep)
 
 // Exit execution
 ExecutorExit:

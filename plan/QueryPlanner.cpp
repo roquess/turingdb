@@ -103,6 +103,13 @@ bool QueryPlanner::plan(const QueryCommand* query) {
 
         case QueryCommand::Kind::COMMIT_COMMAND:
             return planCommit(static_cast<const CommitCommand*>(query));
+
+        case QueryCommand::Kind::CALL_COMMAND:
+            return planCall(static_cast<const CallCommand*>(query));
+
+        default:
+            spdlog::error("Unsupported query of kind {}", (unsigned)kind);
+            return false;
     }
 
     panic("Unsupported query command");
@@ -1402,6 +1409,66 @@ bool QueryPlanner::planChange(const ChangeCommand* cmd) {
 bool QueryPlanner::planCommit(const CommitCommand* commit) {
     _pipeline->add<StopStep>();
     _pipeline->add<CommitStep>();
+    _pipeline->add<EndStep>();
+
+    return true;
+}
+
+bool QueryPlanner::planCall(const CallCommand* call) {
+
+    _pipeline->add<StopStep>();
+    switch (call->getType()) {
+        case CallCommand::Type::LABELS: {
+            auto* ids = _mem->alloc<ColumnVector<LabelID>>();
+            auto* name = _mem->alloc<ColumnVector<std::string_view>>();
+
+            _pipeline->add<CallLabelStep>(ids, name);
+
+            _output->addColumn(ids);
+            _output->addColumn(name);
+
+            break;
+        }
+        case CallCommand::Type::EDGETYPES: {
+            auto* ids = _mem->alloc<ColumnVector<EdgeTypeID>>();
+            auto* name = _mem->alloc<ColumnVector<std::string_view>>();
+
+            _pipeline->add<CallEdgeTypeStep>(ids, name);
+
+            _output->addColumn(ids);
+            _output->addColumn(name);
+
+            break;
+        }
+        case CallCommand::Type::LABELSETS: {
+            auto* ids = _mem->alloc<ColumnVector<LabelSetID>>();
+            auto* name = _mem->alloc<ColumnVector<std::string_view>>();
+
+            _pipeline->add<CallLabelSetStep>(ids, name);
+
+            _output->addColumn(ids);
+            _output->addColumn(name);
+            break;
+        }
+        case CallCommand::Type::PROPERTIES: {
+            auto* ids = _mem->alloc<ColumnVector<PropertyTypeID>>();
+            auto* name = _mem->alloc<ColumnVector<std::string_view>>();
+            auto* type = _mem->alloc<ColumnVector<std::string_view>>();
+
+            _pipeline->add<CallPropertyStep>(ids, name, type);
+
+            _output->addColumn(ids);
+            _output->addColumn(name);
+            _output->addColumn(type);
+
+            break;
+        }
+        default:
+            spdlog::error("Could not find CALL() type");
+            return false;
+    }
+
+    planOutputLambda();
     _pipeline->add<EndStep>();
 
     return true;

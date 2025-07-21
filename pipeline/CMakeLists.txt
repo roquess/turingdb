@@ -20,6 +20,10 @@ set(pipeline_sources
         operations/CreateNodeStep.cpp
         operations/CreateEdgeStep.cpp
         operations/CommitStep.cpp
+        operations/CallPropertyStep.cpp
+        operations/CallLabelStep.cpp
+        operations/CallEdgeTypeStep.cpp
+        operations/CallLabelSetStep.cpp
         
         PipelineStep.cpp
         Pipeline.cpp

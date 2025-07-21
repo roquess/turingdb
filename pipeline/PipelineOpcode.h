@@ -56,6 +56,10 @@ enum class PipelineOpcode : uint64_t {
     CREATE_EDGE,
     COMMIT,
     END,
+    CALL_PROPERTIES,
+    CALL_LABELS,
+    CALL_EDGETYPES,
+    CALL_LABELSETS,
     MAX
 };
 }

@@ -188,6 +188,39 @@ PipelineStep::PipelineStep(ChangeStep::Tag,
 {
 }
 
+PipelineStep::PipelineStep(CallPropertyStep::Tag,
+             ColumnVector<PropertyTypeID>* id,
+             ColumnVector<std::string_view>* name,
+             ColumnVector<std::string_view>* type)
+    :_opcode(PipelineOpcode::CALL_PROPERTIES),
+    _impl(std::in_place_type<CallPropertyStep>, id, name, type)
+{
+}
+
+PipelineStep::PipelineStep(CallLabelStep::Tag,
+             ColumnVector<LabelID>* id,
+             ColumnVector<std::string_view>* name)
+    :_opcode(PipelineOpcode::CALL_LABELS),
+    _impl(std::in_place_type<CallLabelStep>, id, name)
+{
+}
+
+PipelineStep::PipelineStep(CallEdgeTypeStep::Tag,
+             ColumnVector<EdgeTypeID>* id,
+             ColumnVector<std::string_view>* name)
+    :_opcode(PipelineOpcode::CALL_EDGETYPES),
+    _impl(std::in_place_type<CallEdgeTypeStep>, id, name)
+{
+}
+
+PipelineStep::PipelineStep(CallLabelSetStep::Tag,
+             ColumnVector<LabelSetID>* id,
+             ColumnVector<std::string_view>* name)
+    :_opcode(PipelineOpcode::CALL_LABELSETS),
+    _impl(std::in_place_type<CallLabelSetStep>, id, name)
+{
+}
+
 PipelineStep::PipelineStep(LoadGraphStep::Tag, const std::string& graphName)
     : _opcode(PipelineOpcode::LOAD_GRAPH),
     _impl(std::in_place_type<LoadGraphStep>, graphName)

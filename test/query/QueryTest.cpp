@@ -637,3 +637,27 @@ TEST_F(QueryTest, ChangeQueryErrors) {
         .expectError() // Requires edge type
         .execute();
 }
+TEST_F(QueryTest, CallGraphInfo) {
+    QueryTester tester {_mem, *_interp};
+
+    tester.query("CALL PROPERTIES()")
+        .expectVector<PropertyTypeID>({0, 1, 2, 3, 4, 5, 6})
+        .expectVector<std::string_view>({"name", "dob", "isFrench", "hasPhD", "isReal", "duration", "proficiency"})
+        .expectVector<std::string_view>({"String", "String", "Bool", "Bool", "Bool", "Int64", "String"})
+        .execute();
+
+    tester.query("CALL LABELS()")
+        .expectVector<LabelID>({0, 1, 2, 3, 4, 5, 6, 7})
+        .expectVector<std::string_view>({"Person", "SoftwareEngineering", "Founder", "Bioinformatics", "Interest", "Exotic", "Supernatural", "SleepDisturber"})
+        .execute();
+
+    tester.query("CALL EDGETYPES()")
+        .expectVector<EdgeTypeID>({0, 1})
+        .expectVector<std::string_view>({"KNOWS_WELL", "INTERESTED_IN"})
+        .execute();
+
+    tester.query("CALL LABELSETS()")
+        .expectVector<LabelSetID>({0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 5, 5, 5, 5, 6, 6, 7, 7, 8, 8})
+        .expectVector<std::string_view>({"Person", "SoftwareEngineering", "Founder", "Person", "Founder", "Bioinformatics", "SoftwareEngineering", "Interest", "Interest", "Exotic", "Interest", "Interest", "Exotic", "Supernatural", "SleepDisturber", "Person", "Bioinformatics", "Person", "SoftwareEngineering", "Interest", "SleepDisturber"})
+        .execute();
+}

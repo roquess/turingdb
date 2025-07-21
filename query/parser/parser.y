@@ -108,6 +108,12 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token NEW          "'NEW'"
 %token SUBMIT       "'SUBMIT'"
 %token DELETE       "'DELETE'"
+%token PROPERTIES   "'PROPERTIES'"
+%token CALL         "'CALL'"
+%token LABELS       "'LABELS'"
+%token EDGETYPES    "'EDGETYPES'" 
+%token LABELSETS    "'LABELSETS'"
+
 // Operators
 %token PLUS         "'+'"
 %token MINUS        "'-'"
@@ -177,6 +183,8 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 
 %type <db::ChangeOpType> change_subcmd
 
+%type<db::QueryCommand*> call_cmd
+
 %start query_unit
 
 %%
@@ -194,6 +202,7 @@ cmd: match_cmd { ctxt->setRoot($1); }
    | history_cmd { ctxt->setRoot($1); }
    | change_cmd { ctxt->setRoot($1); }
    | commit_cmd { ctxt->setRoot($1); }
+   | call_cmd { ctxt->setRoot($1); }
    ;
 
 match_cmd: MATCH match_targets RETURN return_fields {
@@ -453,6 +462,23 @@ history_cmd: HISTORY {
                             $$ = history;
                          }
            ;
+// CALL
+call_cmd: CALL PROPERTIES OPAR CPAR {
+                    auto callProperties = CallCommand::create(ctxt, CallCommand::Type::PROPERTIES);
+                    $$ = callProperties;
+                }
+        | CALL LABELS OPAR CPAR {
+                    auto callProperties = CallCommand::create(ctxt, CallCommand::Type::LABELS);
+                    $$ = callProperties;
+                    }
+        | CALL EDGETYPES OPAR CPAR {
+                    auto callProperties = CallCommand::create(ctxt, CallCommand::Type::EDGETYPES);
+                    $$ = callProperties;
+                    }
+        | CALL LABELSETS OPAR CPAR {
+                    auto callProperties = CallCommand::create(ctxt, CallCommand::Type::LABELSETS);
+                    $$ = callProperties;
+                    }
 
 // CHANGE
 change_subcmd: NEW { $$ = ChangeOpType::NEW; }
