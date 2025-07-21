@@ -87,6 +87,8 @@ public:
             return __COUNTER__ - minKind;
         } else if constexpr (std::is_same_v<T, std::optional<types::String::Primitive>>) {
             return __COUNTER__ - minKind;
+        } else if constexpr (std::is_same_v<T, CustomBool>) {
+            return  __COUNTER__ - minKind;
         } else if constexpr (std::is_same_v<T, NodeView>) {
             return __COUNTER__ - minKind;
         } else if constexpr (std::is_same_v<T, const CommitBuilder*>) {
