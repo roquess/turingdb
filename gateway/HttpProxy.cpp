@@ -230,7 +230,9 @@ bool HttpProxy<server>::forwardRequest(const httplib::Request& req,
             res.set_header(header.first, header.second);
         }
     }
+
     return true;
 }
+
 template class HttpProxy<httplib::Server>;
 template class HttpProxy<httplib::SSLServer>;
