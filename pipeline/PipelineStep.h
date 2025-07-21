@@ -135,7 +135,7 @@ public:
                  ColumnVector<std::string_view>* name);
     PipelineStep(CallLabelSetStep::Tag,
                  ColumnVector<LabelSetID>* id,
-                 ColumnVector<std::string>* name);
+                 ColumnVector<std::string_view>* name);
 
     PROPERTY_STEPS(Int64)
     PROPERTY_STEPS(UInt64)

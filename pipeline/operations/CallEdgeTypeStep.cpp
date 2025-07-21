@@ -1,7 +1,7 @@
 #include "CallEdgeTypeStep.h"
 
-#include "GraphMetadata.h"
-#include "types/EdgeTypeMap.h"
+#include "metadata/GraphMetadata.h"
+#include "metadata/EdgeTypeMap.h"
 
 using namespace db;
 
@@ -20,11 +20,10 @@ void CallEdgeTypeStep::execute() {
     _edgeTypeName->clear();
 
     const EdgeTypeMap& edgeTypeMap = _view->metadata().edgeTypes();
-    const std::unordered_map<EdgeTypeID, std::string_view>& idMap = edgeTypeMap._idMap;
 
-    for (const auto& entry : idMap) {
-        _id->emplace_back(entry.first);
-        _edgeTypeName->emplace_back(entry.second);
+    for (const auto& entry : edgeTypeMap) {
+        _id->emplace_back(entry._id);
+        _edgeTypeName->emplace_back(*entry._name);
     };
 }
 

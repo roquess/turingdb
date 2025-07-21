@@ -1,7 +1,7 @@
 #include "CallLabelSetStep.h"
 
-#include "GraphMetadata.h"
-#include "labels/LabelSetMap.h"
+#include "metadata/GraphMetadata.h"
+#include "metadata/LabelSetMap.h"
 
 using namespace db;
 
@@ -20,17 +20,15 @@ void CallLabelSetStep::execute() {
     _labelNames->clear();
 
     const LabelSetMap& labelSetMap = _view->metadata().labelsets();
-    const std::unordered_map<LabelSetID, std::unique_ptr<LabelSet>>& idMap = labelSetMap._forwardMap;
 
     const LabelMap& labelMap = _view->metadata().labels();
-    const std::unordered_map<LabelID, std::string_view>& labelIdMap = labelMap._idMap;
 
-    for (const auto& entry : idMap) {
+    for (const auto& entry : labelSetMap) {
         // Loop through all the existing labelIds to 'decompose' our labelset
-        for (const auto& labelEntry : labelIdMap) {
-            if (entry.second->hasLabel(labelEntry.first)) {
-                _id->emplace_back(entry.first);
-                _labelNames->emplace_back(labelEntry.second);
+        for (const auto& labelEntry : labelMap) {
+            if (entry._value->hasLabel(labelEntry._id)) {
+                _id->emplace_back(entry._id);
+                _labelNames->emplace_back(*labelEntry._name);
             }
         }
     }

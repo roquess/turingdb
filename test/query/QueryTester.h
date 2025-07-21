@@ -104,9 +104,11 @@ public:
 
             for (size_t i = 0; i < colCount; i++) {
                 const Column* col = block.columns()[i];
-                const auto& [expectedCol, checkEquality]= _expectedColumns[i];
+                const auto& [expectedCol, checkEquality] = _expectedColumns[i];
 
                 switch (col->getKind()) {
+                    COL_CASE(ColumnVector<NodeID>)
+                    COL_CASE(ColumnVector<EdgeID>)
                     COL_CASE(ColumnVector<EntityID>)
                     COL_CASE(ColumnVector<PropertyTypeID>)
                     COL_CASE(ColumnVector<LabelSetID>)

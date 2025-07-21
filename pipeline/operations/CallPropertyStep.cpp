@@ -1,7 +1,7 @@
 #include "CallPropertyStep.h"
 
-#include "GraphMetadata.h"
-#include "types/PropertyTypeMap.h"
+#include "metadata/GraphMetadata.h"
+#include "metadata/PropertyTypeMap.h"
 
 using namespace db;
 
@@ -23,13 +23,12 @@ void CallPropertyStep::execute() {
     _propType->clear();
 
     const PropertyTypeMap& propTypeMap = _view->metadata().propTypes();
-    const std::unordered_map<std::string, size_t>& offsetMap = propTypeMap._offsetMap;
 
-    for (const auto& entry : offsetMap) {
-        _propName->emplace_back(entry.first);
-        const auto propType = propTypeMap.get(entry.first);
+    for (const auto& entry : propTypeMap) {
+        _propName->emplace_back(*entry._name);
+        const auto propType = entry._pt;
         _id->emplace_back(propType._id);
-        _propType->emplace_back(PropertyValueTypeDescription::value(propType._valueType));
+        _propType->emplace_back(ValueTypeName::value(propType._valueType));
     };
 }
 

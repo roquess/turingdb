@@ -1,7 +1,7 @@
 #include "CallLabelStep.h"
 
-#include "GraphMetadata.h"
-#include "labels/LabelMap.h"
+#include "metadata/GraphMetadata.h"
+#include "metadata/LabelMap.h"
 
 using namespace db;
 
@@ -20,11 +20,10 @@ void CallLabelStep::execute() {
     _labelName->clear();
 
     const LabelMap& labelMap = _view->metadata().labels();
-    const std::unordered_map<LabelID, std::string_view>& idMap = labelMap._idMap;
 
-    for (const auto& entry : idMap) {
-        _id->emplace_back(entry.first);
-        _labelName->emplace_back(entry.second);
+    for (const auto& entry : labelMap) {
+        _id->emplace_back(entry._id);
+        _labelName->emplace_back(*entry._name);
     };
 }
 
