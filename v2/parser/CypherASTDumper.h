@@ -12,6 +12,7 @@ class Match;
 class Limit;
 class Skip;
 class Return;
+class Projection;
 class Pattern;
 class PatternPart;
 class WhereClause;
@@ -49,6 +50,7 @@ private:
     void dumpLimit(const Limit& lim);
     void dumpSkip(const Skip& skip);
     void dumpReturn(const Return& ret);
+    void dumpProjection(const Projection& projection);
     void dumpPattern(const Pattern& pattern);
     void dumpPatternPart(const PatternPart& part);
     void dumpWhere(const WhereClause& where);

@@ -58,7 +58,15 @@ public:
         return std::holds_alternative<All>(_items);
     }
 
-    const std::vector<Expression*>& getItems() const {
+    const Limit& limit() const {
+        return *_limit;
+    }
+
+    const Skip& skip() const {
+        return *_skip;
+    }
+
+    const std::vector<Expression*>& items() const {
         return std::get<std::vector<Expression*>>(_items);
     }
 

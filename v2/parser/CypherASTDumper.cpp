@@ -12,6 +12,7 @@
 #include "expressions/StringExpression.h"
 #include "expressions/UnaryExpression.h"
 #include "types/Literal.h"
+#include "types/Projection.h"
 #include "types/SinglePartQuery.h"
 #include "statements/StatementContainer.h"
 #include "statements/Match.h"
@@ -33,8 +34,7 @@ std::string sanitizeString(std::string_view str) {
 }
 
 CypherASTDumper::CypherASTDumper(const CypherAST& ast)
-    : _ast(ast)
-{
+    : _ast(ast) {
 }
 
 void CypherASTDumper::dump(std::ostream& output) {
@@ -73,6 +73,17 @@ void CypherASTDumper::dumpQuery(const SinglePartQuery& query) {
             dumpMatch(*matchSt);
             continue;
         }
+
+        if (const auto* retSt = dynamic_cast<const Return*>(st)) {
+            fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
+                           fmt::ptr(&query),
+                           fmt::ptr(retSt));
+
+            dumpReturn(*retSt);
+            continue;
+        }
+
+        throw ParserException("Unknown statement type");
     }
 }
 
@@ -124,6 +135,77 @@ void CypherASTDumper::dumpSkip(const Skip& skip) {
 }
 
 void CypherASTDumper::dumpReturn(const Return& ret) {
+    fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&ret));
+    fmt::format_to(_o, "        ASTType RETURN\n");
+    fmt::format_to(_o, "    }}\n");
+
+    const auto& projection = ret.getProjection();
+
+    fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
+                   fmt::ptr(&ret),
+                   fmt::ptr(&projection));
+
+    dumpProjection(projection);
+}
+
+void CypherASTDumper::dumpProjection(const Projection& projection) {
+    fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&projection));
+    fmt::format_to(_o, "        ASTType Projection\n");
+
+    if (projection.isDistinct()) {
+        fmt::format_to(_o, "        Distinct true\n");
+    }
+
+    if (projection.hasLimit()) {
+        const auto& limit = projection.limit();
+        fmt::format_to(_o, "        Limit _{}\n", fmt::ptr(&limit));
+    }
+
+    if (projection.hasSkip()) {
+        const auto& skip = projection.skip();
+        fmt::format_to(_o, "        Skip _{}\n", fmt::ptr(&skip));
+    }
+
+
+    if (projection.isAll()) {
+        fmt::format_to(_o, "        ProjectAll true\n");
+    } else {
+
+        const auto& items = projection.items();
+        for (const auto& item : items) {
+            fmt::format_to(_o, "        Item _{}\n", fmt::ptr(item));
+        }
+    }
+
+    fmt::format_to(_o, "    }}\n");
+
+    if (projection.hasLimit()) {
+        const auto& limit = projection.limit();
+        fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
+                       fmt::ptr(&projection),
+                       fmt::ptr(&limit));
+        dumpLimit(limit);
+    }
+
+    if (projection.hasSkip()) {
+        const auto& skip = projection.skip();
+        fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
+                       fmt::ptr(&projection),
+                       fmt::ptr(&skip));
+        dumpSkip(skip);
+    }
+
+    if (projection.isAll()) {
+        return;
+    }
+
+    const auto& items = projection.items();
+    for (const auto& item : items) {
+        fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
+                       fmt::ptr(&projection),
+                       fmt::ptr(item));
+        dumpExpression(*item);
+    }
 }
 
 void CypherASTDumper::dumpPattern(const Pattern& pattern) {
