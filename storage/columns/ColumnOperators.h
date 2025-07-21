@@ -8,6 +8,12 @@
 
 namespace db {
 
+template <typename T, typename U>
+concept Stringy = (
+    (std::same_as<T, std::string_view> && std::same_as<std::string, U>) ||
+    (std::same_as<std::string_view, U> && std::same_as<T, std::string>)
+);
+
 class ColumnOperators {
 public:
     /**
@@ -18,6 +24,7 @@ public:
      * @param lhs Light hand side column
      */
     template <typename T, typename U>
+    requires (Stringy<T,U> || std::same_as<T,U>)
     static void equal(ColumnMask& mask,
                       const ColumnVector<T>& lhs,
                       const ColumnVector<U>& rhs) {
@@ -41,6 +48,7 @@ public:
      * @param lhs Light hand side column
      */
     template <typename T, typename U>
+    requires (Stringy<T,U> || std::same_as<T,U>)
     static void equal(ColumnMask& mask,
                       const ColumnVector<T>& lhs,
                       const ColumnConst<U>& rhs) {
@@ -62,6 +70,7 @@ public:
      * @param lhs Light hand side column
      */
     template <typename T, typename U>
+    requires (Stringy<T,U> || std::same_as<T,U>)
     static void equal(ColumnMask& mask,
                       const ColumnConst<T>& lhs,
                       const ColumnVector<U>& rhs) {
@@ -83,6 +92,7 @@ public:
      * @param lhs Light hand side column
      */
     template <typename T, typename U>
+    requires (Stringy<T,U> || std::same_as<T,U>)
     static void equal(ColumnMask& mask,
                       const ColumnConst<T>& lhs,
                       const ColumnConst<U>& rhs) {
@@ -134,6 +144,8 @@ public:
         }
     }
 
+   
+
     /**
      * @brief Fills a mask corresponding to mask[i] = lhs[i] \in rhs
      *
@@ -141,14 +153,14 @@ public:
      * @param lhs Vector of possible candidates
      * @param rhs Lookup set
      */
-    template <typename T>
+    template <typename T, typename U>
+    requires (Stringy<T,U> || std::same_as<T,U>)
     static void inOp(ColumnMask& mask,
                      const ColumnVector<T>& lhs,
-                     const ColumnSet<T>& rhs) {
+                     const ColumnSet<U>& rhs) {
         msgbioassert(lhs.size() == rhs.size() == mask.size(),
                      "Columns must have matching dimensions");
         auto* maskd = mask.data();
-        const auto* lhsd = lhs.data();
         const auto size = lhs.size();
         for (size_t i = 0; i < size; i++) {
             maskd[i] = rhs.contains(lhs[i]);
