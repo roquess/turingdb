@@ -18,8 +18,7 @@ EntityPattern::EntityPattern(VarExpr* var,
 {
 }
 
-EntityPattern::~EntityPattern()
-{
+EntityPattern::~EntityPattern() {
 }
 
 EntityPattern* EntityPattern::create(ASTContext* ctxt,
