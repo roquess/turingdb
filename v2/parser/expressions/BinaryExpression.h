@@ -16,9 +16,9 @@ public:
                      BinaryOperator op,
                      const Expression* right)
         : Expression(ExpressionType::Binary),
-          _left(left),
-          _right(right),
-          _operator(op)
+        _left(left),
+        _right(right),
+        _operator(op)
     {
     }
 

@@ -47,8 +47,9 @@ public:
 
     Literal() = default;
 
-    explicit Literal(const ValueType& vt)
-        : _value(vt) {
+    explicit Literal(const ValueType& value)
+        : _value(value)
+    {
     }
 
     template <typename T>

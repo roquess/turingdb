@@ -14,7 +14,7 @@ public:
 
     PropertyExpression(const QualifiedName& name)
         : Expression(ExpressionType::Property),
-          _name(name)
+        _name(name)
     {
     }
 

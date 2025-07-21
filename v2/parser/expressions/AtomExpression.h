@@ -24,7 +24,7 @@ public:
 
     explicit AtomExpression(const ValueType& symbol)
         : Expression(ExpressionType::Atom),
-          _value(symbol)
+        _value(symbol)
     {
     }
 

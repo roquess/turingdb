@@ -8,7 +8,6 @@
 #include "types/Pattern.h"
 #include "types/PatternNode.h"
 #include "types/PatternEdge.h"
-#include "types/Scope.h"
 #include "types/Literal.h"
 #include "types/Symbol.h"
 #include "statements/Statement.h"
@@ -17,21 +16,11 @@ using namespace db;
 
 
 CypherAST::CypherAST()
+    : _currentStatements(newStatementContainer())
 {
-    _rootScope = std::make_unique<Scope>();
-    _currentStatements = newStatementContainer();
-    _currentScope = _rootScope.get();
 }
 
 CypherAST::~CypherAST() = default;
-
-void CypherAST::beginScope() {
-    _currentScope = _currentScope->newInnerScope();
-}
-
-void CypherAST::endScope() {
-    _currentScope = _currentScope->getParentScope();
-}
 
 PatternNode* CypherAST::nodeFromExpression(Expression* e) {
     if (e == nullptr) {

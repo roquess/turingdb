@@ -34,7 +34,8 @@ std::string sanitizeString(std::string_view str) {
 }
 
 CypherASTDumper::CypherASTDumper(const CypherAST& ast)
-    : _ast(ast) {
+    : _ast(ast)
+{
 }
 
 void CypherASTDumper::dump(std::ostream& output) {

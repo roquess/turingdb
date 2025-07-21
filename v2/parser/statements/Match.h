@@ -26,9 +26,9 @@ public:
           Limit* limit = nullptr,
           bool optional = false)
         : _pattern(pattern),
-          _limit(limit),
-          _skip(skip),
-          _optional(optional)
+        _limit(limit),
+        _skip(skip),
+        _optional(optional)
     {
     }
 

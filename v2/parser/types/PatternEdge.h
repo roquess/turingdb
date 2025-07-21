@@ -12,6 +12,8 @@ class MapLiteral;
 
 class PatternEdge : public PatternEntity {
 public:
+    using EdgeTypeVector = std::vector<std::string_view>;
+
     PatternEdge() = default;
     ~PatternEdge() override = default;
 
@@ -36,12 +38,12 @@ public:
         return _types.has_value();
     }
 
-    void setTypes(std::optional<std::vector<std::string_view>>&& types) {
+    void setTypes(std::optional<EdgeTypeVector>&& types) {
         _types = std::move(types);
     }
 
 private:
-    std::optional<std::vector<std::string_view>> _types;
+    std::optional<EdgeTypeVector> _types;
 };
 
 }

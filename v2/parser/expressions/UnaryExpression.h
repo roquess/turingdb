@@ -10,15 +10,14 @@ namespace db {
 class UnaryExpression : public Expression {
 public:
     UnaryExpression() = delete;
+    ~UnaryExpression() override = default;
 
     UnaryExpression(UnaryOperator op, const Expression* right)
         : Expression(ExpressionType::Unary),
-          _right(right),
-          _operator(op)
+        _right(right),
+        _operator(op)
     {
     }
-
-    ~UnaryExpression() override = default;
 
     UnaryExpression(const UnaryExpression&) = delete;
     UnaryExpression(UnaryExpression&&) = delete;

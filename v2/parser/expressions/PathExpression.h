@@ -19,10 +19,9 @@ public:
 
     explicit PathExpression(PatternPart* pattern)
         : Expression(ExpressionType::Path),
-          _pattern(pattern)
+        _pattern(pattern)
     {
     }
-
 
     static std::unique_ptr<PathExpression> create(PatternPart* pattern) {
         return std::make_unique<PathExpression>(pattern);

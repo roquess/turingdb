@@ -31,7 +31,6 @@ int main(int argc, char** argv) {
     CypherParser parser;
     parser.allowNotImplemented(false);
 
-
     try {
         auto t0 = Clock::now();
         parser.parse(queryStr);

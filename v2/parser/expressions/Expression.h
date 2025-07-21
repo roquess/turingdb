@@ -12,7 +12,6 @@ enum class ExpressionType {
     Path,
 };
 
-
 class Expression {
 public:
     explicit Expression(ExpressionType type)
@@ -21,7 +20,7 @@ public:
     }
 
     Expression() = delete;
-    virtual ~Expression() = default;
+    virtual ~Expression() = 0;
 
     Expression(const Expression&) = delete;
     Expression(Expression&&) = delete;
@@ -43,5 +42,7 @@ public:
 private:
     ExpressionType _type {};
 };
+
+inline Expression::~Expression() = default;
 
 }

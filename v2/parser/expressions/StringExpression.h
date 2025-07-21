@@ -14,9 +14,9 @@ public:
 
     StringExpression(const Expression* left, StringOperator op, const Expression* right)
         : Expression(ExpressionType::String),
-          _left(left),
-          _right(right),
-          _operator(op)
+        _left(left),
+        _right(right),
+        _operator(op)
     {
     }
 

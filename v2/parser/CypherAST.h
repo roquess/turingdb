@@ -20,7 +20,6 @@ class Projection;
 class MapLiteral;
 class SinglePartQuery;
 class Statement;
-class Scope;
 class Symbol;
 
 class CypherAST {
@@ -32,9 +31,6 @@ public:
     CypherAST(CypherAST&&) = delete;
     CypherAST& operator=(const CypherAST&) = delete;
     CypherAST& operator=(CypherAST&&) = delete;
-
-    void beginScope();
-    void endScope();
 
     PatternNode* nodeFromExpression(Expression* e);
     Pattern* newPattern();
@@ -83,17 +79,11 @@ public:
         return ptr;
     }
 
-    Scope& currentScope() {
-        return *_currentScope;
-    }
-
     const std::vector<std::unique_ptr<QueryCompound>>& queries() const {
         return _queries;
     }
 
 private:
-    std::unique_ptr<Scope> _rootScope;
-
     std::vector<std::unique_ptr<Expression>> _expressions;
     std::vector<std::unique_ptr<Pattern>> _patterns;
     std::vector<std::unique_ptr<PatternPart>> _patternParts;
@@ -105,7 +95,6 @@ private:
     std::vector<std::unique_ptr<MapLiteral>> _mapLiterals;
     std::vector<std::unique_ptr<StatementContainer>> _statementContainers;
 
-    Scope* _currentScope = nullptr;
     StatementContainer* _currentStatements = nullptr;
 
     StatementContainer* newStatementContainer();

@@ -12,6 +12,8 @@ class MapLiteral;
 
 class PatternNode : public PatternEntity {
 public:
+    using LabelVector = std::vector<std::string_view>;
+
     PatternNode() = default;
     ~PatternNode() override = default;
 
@@ -36,12 +38,12 @@ public:
         return _labels.has_value();
     }
 
-    void setLabels(std::optional<std::vector<std::string_view>>&& labels) {
+    void setLabels(std::optional<LabelVector>&& labels) {
         _labels = std::move(labels);
     }
 
 private:
-    std::optional<std::vector<std::string_view>> _labels;
+    std::optional<LabelVector> _labels;
 };
 
 }

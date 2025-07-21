@@ -20,8 +20,8 @@ public:
 
     NodeLabelExpression(const Symbol& symbol, std::vector<std::string_view>&& labels)
         : Expression(ExpressionType::NodeLabel),
-          _symbol(symbol),
-          _labels(std::move(labels))
+        _symbol(symbol),
+        _labels(std::move(labels))
     {
     }
 
@@ -29,7 +29,7 @@ public:
     const std::vector<std::string_view>& labels() const { return _labels; }
 
     static std::unique_ptr<NodeLabelExpression> create(const Symbol& symbol,
-                                              std::vector<std::string_view>&& labels) {
+                                                       std::vector<std::string_view>&& labels) {
         return std::make_unique<NodeLabelExpression>(symbol, std::move(labels));
     }
 
