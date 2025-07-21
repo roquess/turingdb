@@ -666,11 +666,11 @@ TEST_F(QueryTest, CallGraphInfo) {
 TEST_F(QueryTest, InjectNodes) {
     QueryTester tester {_mem, *_interp};
 
-    tester.query("MATCH n@0,1,8,9,11 RETURN n.name")
+    tester.query("MATCH (n@0,1,8,9,11) RETURN n.name")
         .expectOptVector<types::String::Primitive>({"Remy", "Adam", "Maxime", "Luc", "Martina"})
         .execute();
 
-    tester.query("MATCH n@0,1,8,9,11--m return n.name,m.name")
+    tester.query("MATCH (n@0,1,8,9,11)--(m) return n.name,m.name")
         .expectOptVector<types::String::Primitive>({
             "Remy",
             "Remy",
@@ -700,35 +700,35 @@ TEST_F(QueryTest, InjectNodes) {
             "Cooking",
         });
 
-    tester.query("MATCH n:Founder@0,1,8,9,11 RETURN n.name")
+    tester.query("MATCH (n:Founder@0,1,8,9,11) RETURN n.name")
         .expectOptVector<types::String::Primitive>({"Remy", "Adam"})
         .execute();
 
-    tester.query("MATCH n:Founder,SoftwareEngineering@0,1,8,9,11 RETURN n.name")
+    tester.query("MATCH (n:Founder,SoftwareEngineering@0,1,8,9,11) RETURN n.name")
         .expectOptVector<types::String::Primitive>({"Remy"})
         .execute();
 
-    tester.query("MATCH n{hasPhD:False}@0,1,8,9,11 RETURN n.name")
+    tester.query("MATCH (n{hasPhD:False}@0,1,8,9,11) RETURN n.name")
         .expectOptVector<types::String::Primitive>({"Maxime"})
         .execute();
 
-    tester.query("MATCH n{hasPhD:True, isFrench:True}@0,1,8,9,11 RETURN n.name")
+    tester.query("MATCH (n{hasPhD:True,isFrench:True}@0,1,8,9,11) RETURN n.name")
         .expectOptVector<types::String::Primitive>({"Remy", "Adam", "Luc"})
         .execute();
 
-    tester.query("MATCH n:Founder@0,1,8,9,11{hasPhD:True, isFrench:True} RETURN n.name")
+    tester.query("MATCH (n:Founder@0,1,8,9,11{hasPhD:True,isFrench:True}) RETURN n.name")
         .expectOptVector<types::String::Primitive>({"Remy", "Adam"})
         .execute();
 
-    tester.query("MATCH n:Founder,Bioinformatics@0,1,8,9,11{hasPhD:True, isFrench:True} RETURN n.name")
+    tester.query("MATCH (n:Founder,Bioinformatics@0,1,8,9,11{hasPhD:True, isFrench:True}) RETURN n.name")
         .expectOptVector<types::String::Primitive>({"Adam"})
         .execute();
 
-    tester.query("MATCH n@1001 RETURN n")
+    tester.query("MATCH (n@1001) RETURN n")
         .expectError()
         .execute();
 
-    tester.query("MATCH m--n@0 RETURN n")
+    tester.query("MATCH (m)--(n@0) RETURN n")
         .expectError()
         .execute();
 }

@@ -31,7 +31,6 @@ class CreateTarget;
 class CreateTargets;
 class PathPattern;
 class EntityPattern;
-class InjectedNodes;
 class TypeConstraint;
 class InjectedIDs;
 class ExprConstraint;
@@ -85,7 +84,6 @@ static db::YParser::symbol_type yylex(db::YScanner& scanner) {
 %token<std::string> ID
 %token COMMA        "','"
 %token COLON        "':'"
-%token SEMICOLON    "';'"
 %token STAR         "'*'"
 %token OBRACK       "'{'"
 %token CBRACK       "'}'"
@@ -218,7 +216,7 @@ match_cmd: MATCH match_targets RETURN return_fields {
                                                     }
          ;
 
-match_targets: match_targets SEMICOLON match_target {
+match_targets: match_targets COMMA match_target {
                                                     $1->addTarget($3);
                                                     $$ = $1; 
                                                 }
@@ -358,11 +356,6 @@ node_pattern: OPAR entity_pattern CPAR
             {
                 $2->setKind(DeclKind::NODE_DECL);
                 $$ = $2;
-            }
-            | entity_pattern
-            {
-                $1->setKind(DeclKind::NODE_DECL);
-                $$ = $1;
             }
             ;
 
