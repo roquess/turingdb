@@ -6,6 +6,8 @@
 #include <unordered_map>
 
 #include "ChangeCommand.h"
+#include "DataPart.h"
+#include "Expr.h"
 #include "ExprConstraint.h"
 #include "QueryCommand.h"
 #include "columns/ColumnIDs.h"
@@ -14,6 +16,7 @@
 #include "VectorHash.h"
 #include "QueryCallback.h"
 #include "metadata/LabelSetHandle.h"
+#include "views/GraphView.h"
 
 namespace db {
 
@@ -75,10 +78,8 @@ private:
 
     // StringApprox functions:
     template <typename T>
-    void addStringApproxSteps(const BinExpr* const expr,
-                                            const ColumnVector<T>* entities,
-                                            ColumnSet<T>* outSet);
-
+    void generateApproxSet(const std::string& queryString, PropertyType propType,
+                           const ColumnVector<T>* entities, ColumnSet<T>* outSet);
 
     // Property Functions
     void generateNodePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
@@ -143,4 +144,31 @@ private:
     bool planCommit(const CommitCommand* commit);
     bool planCall(const CallCommand* call);
 };
+
+template <typename T>
+void QueryPlanner::generateApproxSet(const std::string& queryString,
+                                     PropertyType propType,
+                                     const ColumnVector<T>* entities,
+                                     ColumnSet<T>* outSet) {
+    const auto pID = propType._id;
+    const auto& dps = _view.dataparts();
+    std::vector<T> matches {};
+    for (auto it = dps.begin(); it != dps.end(); it++) {
+        const auto& idx = it->get()->getNodeStrPropIndex();
+
+        // Check if the datapart contains an index of this property ID
+        if (!idx.contains(pID)) {
+            continue;
+        }
+
+        // Get the index for this property
+        const auto& strIndex = idx.at(pID);
+
+        // Get any matches for the query string in the index
+        strIndex->query<EdgeID>(matches, queryString);
+    }
+    for (const auto& e : matches) {
+        outSet->insert(e);
+    }
+}
 }

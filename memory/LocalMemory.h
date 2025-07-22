@@ -6,6 +6,7 @@
 #include "MemoryPool.h"
 #include "TypeValueMap.h"
 
+#include "columns/ColumnSet.h"
 #include "columns/ColumnVector.h"
 #include "columns/ColumnConst.h"
 #include "columns/ColumnMask.h"
@@ -57,7 +58,24 @@ public:
         MakeMemoryPool<ColumnOptVector<types::UInt64::Primitive>>::type,
         MakeMemoryPool<ColumnOptVector<types::Double::Primitive>>::type,
         MakeMemoryPool<ColumnOptVector<types::String::Primitive>>::type,
-        MakeMemoryPool<ColumnOptVector<types::Bool::Primitive>>::type>;
+        MakeMemoryPool<ColumnOptVector<types::Bool::Primitive>>::type,
+
+        MakeMemoryPool<ColumnSet<EntityID>>::type,
+        MakeMemoryPool<ColumnSet<NodeID>>::type,
+        MakeMemoryPool<ColumnSet<EdgeID>>::type,
+        MakeMemoryPool<ColumnSet<LabelSetID>>::type,
+        MakeMemoryPool<ColumnSet<PropertyType>>::type,
+        MakeMemoryPool<ColumnSet<size_t>>::type,
+        MakeMemoryPool<ColumnSet<std::string_view>>::type,
+        MakeMemoryPool<ColumnSet<std::string>>::type,
+        MakeMemoryPool<ColumnSet<types::Int64::Primitive>>::type,
+        MakeMemoryPool<ColumnSet<types::UInt64::Primitive>>::type,
+        MakeMemoryPool<ColumnSet<types::Double::Primitive>>::type,
+        MakeMemoryPool<ColumnSet<types::String::Primitive>>::type,
+        MakeMemoryPool<ColumnSet<types::Bool::Primitive>>::type,
+        MakeMemoryPool<ColumnSet<const CommitBuilder*>>::type,
+        MakeMemoryPool<ColumnSet<const Change*>>::type
+        >;
 
     LocalMemory(const LocalMemory&) = delete;
     LocalMemory(LocalMemory&&) = delete;
