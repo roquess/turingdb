@@ -6,18 +6,13 @@
 #include <unordered_map>
 
 #include "ChangeCommand.h"
-#include "DataPart.h"
-#include "Expr.h"
 #include "ExprConstraint.h"
-#include "ID.h"
 #include "QueryCommand.h"
 #include "columns/ColumnIDs.h"
 #include "columns/ColumnSet.h"
 #include "metadata/LabelSet.h"
 #include "VectorHash.h"
 #include "QueryCallback.h"
-#include "metadata/LabelSetHandle.h"
-#include "views/GraphView.h"
 
 
 namespace db {
@@ -88,6 +83,13 @@ private:
         requires(Identifier<T>)
     void generateApproxSet(const std::string& queryString, PropertyType propType,
                            const ColumnVector<T>* entities, ColumnSet<T>* outSet);
+
+    template <typename T>
+        requires(Identifier<T>)
+    void addGetTStringApproxFilter(ColumnMask* thisFilterMask,
+                                   const ColumnVector<T>* entities,
+                                   const PropertyType propType,
+                                   const std::string& queryString);
     // Property Functions
     void generateNodePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
                                          std::span<const BinExpr* const> expressions,
@@ -151,49 +153,4 @@ private:
     bool planCommit(const CommitCommand* commit);
     bool planCall(const CallCommand* call);
 };
-
-
-
-template <typename T>
-    requires(Identifier<T>)
-void QueryPlanner::generateApproxSet(const std::string& queryString,
-                                     PropertyType propType,
-                                     const ColumnVector<T>* entities,
-                                     ColumnSet<T>* outSet) {
-    const auto pID = propType._id;
-    const auto& dps = _view.dataparts();
-    std::vector<T> matches {};
-    // XXX: Ugly specialisation on getNode/Edge function, should fix
-    for (auto it = dps.begin(); it != dps.end(); it++) {
-        if constexpr (std::same_as<T, EdgeID>) {
-            const auto& idx = it->get()->getEdgeStrPropIndex();
-            // Check if the datapart contains an index of this property ID
-            if (!idx.contains(pID)) {
-                continue;
-            }
-
-            // Get the index for this property
-            const auto& strIndex = idx.at(pID);
-
-            // Get any matches for the query string in the index
-            strIndex->query<EdgeID>(matches, queryString);
-        } else if constexpr (std::same_as<T, NodeID>) {
-
-            const auto& idx = it->get()->getNodeStrPropIndex();
-            // Check if the datapart contains an index of this property ID
-            if (!idx.contains(pID)) {
-                continue;
-            }
-
-            // Get the index for this property
-            const auto& strIndex = idx.at(pID);
-
-            // Get any matches for the query string in the index
-            strIndex->query<NodeID>(matches, queryString);
-        }
-    }
-    for (const auto& e : matches) {
-        outSet->insert(e);
-    }
-}
 }

@@ -664,6 +664,7 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
 
         const VarExpr* leftExpr = static_cast<VarExpr*>(expressions[i]->getLeftExpr());
         ExprConst* rightExpr = static_cast<ExprConst*>(expressions[i]->getRightExpr());
+        const BinExpr::OpType op = expressions[i]->getOpType();
 
         const std::string& varExprName = leftExpr->getName();
         const auto propTypeRes = reader.getMetadata().propTypes().get(varExprName);
@@ -673,6 +674,14 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
 
         const PropertyType propType = propTypeRes.value();
         auto* mask = filterMasks[i];
+
+        
+        if (op == BinExpr::OP_STR_APPROX) {
+            const std::string& queryString = static_cast<StringExprConst*>(rightExpr)->getVal();
+            addGetTStringApproxFilter<NodeID>(filterMasks[i], entities, propType,
+                                              queryString);
+            return;
+        }
 
         const auto treat = [&]<SupportedType Type>() {
             using StepType = GetFilteredNodePropertyStep<Type>;
@@ -708,6 +717,7 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
     }
 }
 
+
 void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
                                                    const std::span<const BinExpr* const> expressions,
                                                    const ColumnEdgeIDs* entities) {
@@ -729,22 +739,9 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
         const PropertyType propType = propTypeRes.value();
 
         if (op == BinExpr::OP_STR_APPROX) {
-            // Gets edges which have the required property
-
             const std::string& queryString = static_cast<StringExprConst*>(rightExpr)->getVal();
-            // Get the set of matching edges
-            auto* lookupSet = _mem->alloc<ColumnSet<EdgeID>>();
-            // Lookup set with EdgeIDs that match
-            generateApproxSet<EdgeID>(queryString, propType,
-                              entities, lookupSet);
-
-            // Fill filtermask[i] with a mask containing the edges that match approx
-            auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
-            filter.addExpression(FilterStep::Expression {
-                ._op = ColumnOperator::OP_IN,
-                ._mask = filterMasks[i],
-                ._lhs = entities,
-                ._rhs = lookupSet});
+            addGetTStringApproxFilter<EdgeID>(filterMasks[i], entities, propType,
+                                              queryString);
             return;
         }
 
@@ -765,7 +762,6 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
                                      indices,
                                      filterMasks[i]);
 
-            // @CYRUS: Add a check to see what expression is done here
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
             filter.addExpression(FilterStep::Expression {
                 ._op = ColumnOperator::OP_EQUAL,
@@ -1653,4 +1649,69 @@ bool QueryPlanner::planCall(const CallCommand* call) {
     _pipeline->add<EndStep>();
 
     return true;
+
+
+
+
+template <typename T>
+    requires(Identifier<T>)
+void QueryPlanner::generateApproxSet(const std::string& queryString,
+                                     PropertyType propType,
+                                     const ColumnVector<T>* entities,
+                                     ColumnSet<T>* outSet) {
+    const auto pID = propType._id;
+    const auto& dps = _view.dataparts();
+    std::vector<T> matches {};
+    // XXX: Ugly specialisation on getNode/Edge function, should fix
+    for (auto it = dps.begin(); it != dps.end(); it++) {
+        if constexpr (std::same_as<T, EdgeID>) {
+            const auto& idx = it->get()->getEdgeStrPropIndex();
+            // Check if the datapart contains an index of this property ID
+            if (!idx.contains(pID)) {
+                continue;
+            }
+
+            // Get the index for this property
+            const auto& strIndex = idx.at(pID);
+
+            // Get any matches for the query string in the index
+            strIndex->query<EdgeID>(matches, queryString);
+        } else if constexpr (std::same_as<T, NodeID>) {
+
+            const auto& idx = it->get()->getNodeStrPropIndex();
+            // Check if the datapart contains an index of this property ID
+            if (!idx.contains(pID)) {
+                continue;
+            }
+
+            // Get the index for this property
+            const auto& strIndex = idx.at(pID);
+
+            // Get any matches for the query string in the index
+            strIndex->query<NodeID>(matches, queryString);
+        }
+    }
+    for (const auto& e : matches) {
+        outSet->insert(e);
+    }
+}
+
+template <typename IDT>
+    requires(Identifier<IDT>)
+void QueryPlanner::addGetTStringApproxFilter(ColumnMask* thisFilterMask,
+                                             const ColumnVector<IDT>* entities,
+                                             const PropertyType propType,
+                                             const std::string& queryString) {
+    // Get the set of matching nodes/edges
+    auto* lookupSet = _mem->alloc<ColumnSet<IDT>>();
+    // Lookup set with Node/EdgeIDs that match
+    generateApproxSet<IDT>(queryString, propType, entities, lookupSet);
+
+    // Fill filtermask[i] with a mask for the Nodes/Edges that match approx
+    auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+    filter.addExpression(FilterStep::Expression {._op = ColumnOperator::OP_IN,
+                                                 ._mask = thisFilterMask,
+                                                 ._lhs = entities,
+                                                 ._rhs = lookupSet});
+>>>>>>> 179042f8b (Refactor into separate function, add it for nodes also (!84))
 }
