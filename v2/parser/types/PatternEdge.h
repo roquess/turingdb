@@ -10,20 +10,20 @@ namespace db {
 
 class MapLiteral;
 
-class PatternEdge : public PatternEntity {
+class EdgePattern : public PatternEntity {
 public:
     using EdgeTypeVector = std::vector<std::string_view>;
 
-    PatternEdge() = default;
-    ~PatternEdge() override = default;
+    EdgePattern() = default;
+    ~EdgePattern() override = default;
 
-    PatternEdge(const PatternEdge&) = default;
-    PatternEdge(PatternEdge&&) = default;
-    PatternEdge& operator=(const PatternEdge&) = default;
-    PatternEdge& operator=(PatternEdge&&) = default;
+    EdgePattern(const EdgePattern&) = default;
+    EdgePattern(EdgePattern&&) = default;
+    EdgePattern& operator=(const EdgePattern&) = default;
+    EdgePattern& operator=(EdgePattern&&) = default;
 
-    static std::unique_ptr<PatternEdge> create() {
-        return std::make_unique<PatternEdge>();
+    static std::unique_ptr<EdgePattern> create() {
+        return std::make_unique<EdgePattern>();
     }
 
     const std::vector<std::string_view>& types() const {

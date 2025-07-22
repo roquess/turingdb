@@ -3,13 +3,13 @@
 #include <vector>
 
 #include "PatternEntity.h"
-#include "PatternNode.h"
+#include "NodePattern.h"
 #include "PatternEdge.h"
 
 namespace db {
 
-class PatternNode;
-class PatternEdge;
+class NodePattern;
+class EdgePattern;
 
 class PatternElement {
 public:
@@ -25,19 +25,19 @@ public:
         return std::make_unique<PatternElement>();
     }
 
-    void addRootNode(PatternNode* node) {
+    void addRootNode(NodePattern* node) {
         _entities.insert(_entities.begin(), (PatternEntity*)node);
     }
 
-    void addRootEdge(PatternEdge* edge) {
+    void addRootEdge(EdgePattern* edge) {
         _entities.insert(_entities.begin(), (PatternEntity*)edge);
     }
 
-    void addNode(PatternNode* node) {
+    void addNode(NodePattern* node) {
         _entities.emplace_back(node);
     }
 
-    void addEdge(PatternEdge* edge) {
+    void addEdge(EdgePattern* edge) {
         _entities.emplace_back(edge);
     }
 

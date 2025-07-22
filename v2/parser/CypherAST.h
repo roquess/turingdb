@@ -9,8 +9,8 @@
 
 namespace db {
 
-class PatternNode;
-class PatternEdge;
+class NodePattern;
+class EdgePattern;
 class PatternElement;
 class PatternEntity;
 class Pattern;
@@ -32,19 +32,19 @@ public:
     CypherAST& operator=(const CypherAST&) = delete;
     CypherAST& operator=(CypherAST&&) = delete;
 
-    PatternNode* nodeFromExpression(Expression* e);
+    NodePattern* nodeFromExpression(Expression* e);
     Pattern* newPattern();
     PatternElement* newPatternElem();
-    PatternEdge* newOutEdge(const std::optional<Symbol>& symbol,
+    EdgePattern* newOutEdge(const std::optional<Symbol>& symbol,
                             std::optional<std::vector<std::string_view>>&& types,
                             MapLiteral* properties);
-    PatternEdge* newInEdge(const std::optional<Symbol>& symbol,
+    EdgePattern* newInEdge(const std::optional<Symbol>& symbol,
                            std::optional<std::vector<std::string_view>>&& types,
                            MapLiteral* properties);
     Projection* newProjection();
     MapLiteral* newMapLiteral();
     SinglePartQuery* newSinglePartQuery();
-    PatternNode* newNode(const std::optional<Symbol>& symbol,
+    NodePattern* newNode(const std::optional<Symbol>& symbol,
                          std::optional<std::vector<std::string_view>>&& labels,
                          MapLiteral* properties);
 

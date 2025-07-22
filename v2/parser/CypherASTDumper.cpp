@@ -239,11 +239,11 @@ void CypherASTDumper::dumpPatternPart(const PatternElement& part) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&part),
                        fmt::ptr(entity));
-        if (auto* node = dynamic_cast<PatternNode*>(entity)) {
+        if (auto* node = dynamic_cast<NodePattern*>(entity)) {
             dumpNode(*node);
         }
 
-        else if (auto* edge = dynamic_cast<PatternEdge*>(entity)) {
+        else if (auto* edge = dynamic_cast<EdgePattern*>(entity)) {
             dumpEdge(*edge);
         }
     }
@@ -261,9 +261,9 @@ void CypherASTDumper::dumpWhere(const WhereClause& where) {
     dumpExpression(expr);
 }
 
-void CypherASTDumper::dumpNode(const PatternNode& node) {
+void CypherASTDumper::dumpNode(const NodePattern& node) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&node));
-    fmt::format_to(_o, "        ASTType PatternNode\n");
+    fmt::format_to(_o, "        ASTType NodePattern\n");
 
     if (node.hasSymbol()) {
         fmt::format_to(_o, "        Symbol {}\n", node.symbol()._name);
@@ -296,9 +296,9 @@ void CypherASTDumper::dumpNode(const PatternNode& node) {
     }
 }
 
-void CypherASTDumper::dumpEdge(const PatternEdge& edge) {
+void CypherASTDumper::dumpEdge(const EdgePattern& edge) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&edge));
-    fmt::format_to(_o, "        ASTType PatternEdge\n");
+    fmt::format_to(_o, "        ASTType EdgePattern\n");
 
     if (edge.hasSymbol()) {
         const auto& symbol = edge.symbol();

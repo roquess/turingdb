@@ -28,7 +28,7 @@
     #include "types/Symbol.h"
     #include "types/WhereClause.h"
     #include "types/Pattern.h"
-    #include "types/PatternNode.h"
+    #include "types/NodePattern.h"
     #include "types/PatternEdge.h"
     #include "types/SinglePartQuery.h"
     #include "types/Projection.h"
@@ -211,10 +211,10 @@
 %type<db::PatternElement*> patternPart
 %type<db::PatternElement*> patternElem
 %type<db::PatternElement*> pathExpressionElem
-%type<db::PatternNode*> nodePattern
-%type<db::PatternEdge*> edgePattern
+%type<db::NodePattern*> nodePattern
+%type<db::EdgePattern*> edgePattern
 %type<std::tuple<std::optional<db::Symbol>, std::optional<std::vector<std::string_view>>, db::MapLiteral*>> edgeDetail
-%type<std::pair<db::PatternEdge*, db::PatternNode*>> patternElemChain
+%type<std::pair<db::EdgePattern*, db::NodePattern*>> patternElemChain
 %type<db::WhereClause> where
 
 %type<db::SinglePartQuery*> singlePartQ

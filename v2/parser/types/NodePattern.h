@@ -10,20 +10,20 @@ namespace db {
 
 class MapLiteral;
 
-class PatternNode : public PatternEntity {
+class NodePattern : public PatternEntity {
 public:
     using LabelVector = std::vector<std::string_view>;
 
-    PatternNode() = default;
-    ~PatternNode() override = default;
+    NodePattern() = default;
+    ~NodePattern() override = default;
 
-    PatternNode(const PatternNode&) = default;
-    PatternNode(PatternNode&&) = default;
-    PatternNode& operator=(const PatternNode&) = default;
-    PatternNode& operator=(PatternNode&&) = default;
+    NodePattern(const NodePattern&) = default;
+    NodePattern(NodePattern&&) = default;
+    NodePattern& operator=(const NodePattern&) = default;
+    NodePattern& operator=(NodePattern&&) = default;
 
-    static std::unique_ptr<PatternNode> create() {
-        return std::make_unique<PatternNode>();
+    static std::unique_ptr<NodePattern> create() {
+        return std::make_unique<NodePattern>();
     }
 
     const std::vector<std::string_view>& labels() const {

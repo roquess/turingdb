@@ -32,11 +32,11 @@ public:
     }
 
 
-    void addNode(PatternNode* node) {
+    void addNode(NodePattern* node) {
         _pattern->addNode(node);
     }
 
-    void addEdge(PatternEdge* edge) {
+    void addEdge(EdgePattern* edge) {
         _pattern->addEdge(edge);
     }
 

@@ -6,7 +6,7 @@
 #include "types/Projection.h"
 #include "types/SinglePartQuery.h"
 #include "types/Pattern.h"
-#include "types/PatternNode.h"
+#include "types/NodePattern.h"
 #include "types/PatternEdge.h"
 #include "types/Literal.h"
 #include "types/Symbol.h"
@@ -22,7 +22,7 @@ CypherAST::CypherAST()
 
 CypherAST::~CypherAST() = default;
 
-PatternNode* CypherAST::nodeFromExpression(Expression* e) {
+NodePattern* CypherAST::nodeFromExpression(Expression* e) {
     if (e == nullptr) {
         return nullptr;
     }
@@ -59,10 +59,10 @@ PatternElement* CypherAST::newPatternElem() {
     return patternPart.get();
 }
 
-PatternEdge* CypherAST::newOutEdge(const std::optional<Symbol>& symbol,
+EdgePattern* CypherAST::newOutEdge(const std::optional<Symbol>& symbol,
                                    std::optional<std::vector<std::string_view>>&& types,
                                    MapLiteral* properties) {
-    auto edge = PatternEdge::create();
+    auto edge = EdgePattern::create();
 
     edge->setSymbol(symbol);
     edge->setTypes(std::move(types));
@@ -74,10 +74,10 @@ PatternEdge* CypherAST::newOutEdge(const std::optional<Symbol>& symbol,
     return ptr;
 }
 
-PatternEdge* CypherAST::newInEdge(const std::optional<Symbol>& symbol,
+EdgePattern* CypherAST::newInEdge(const std::optional<Symbol>& symbol,
                                   std::optional<std::vector<std::string_view>>&& types,
                                   MapLiteral* properties) {
-    auto edge = PatternEdge::create();
+    auto edge = EdgePattern::create();
 
     edge->setSymbol(symbol);
     edge->setTypes(std::move(types));
@@ -89,10 +89,10 @@ PatternEdge* CypherAST::newInEdge(const std::optional<Symbol>& symbol,
     return ptr;
 }
 
-PatternNode* CypherAST::newNode(const std::optional<Symbol>& symbol,
+NodePattern* CypherAST::newNode(const std::optional<Symbol>& symbol,
                                 std::optional<std::vector<std::string_view>>&& labels,
                                 MapLiteral* properties) {
-    auto node = PatternNode::create();
+    auto node = NodePattern::create();
 
     node->setSymbol(symbol);
     node->setLabels(std::move(labels));

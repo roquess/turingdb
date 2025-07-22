@@ -10,7 +10,6 @@ class SubStatement;
 class Pattern;
 class PatternEntity;
 class PatternElement;
-class PatternNode;
 class Projection;
 class MapLiteral;
 class SinglePartQuery;
@@ -24,7 +23,6 @@ public:
                                  Pattern*,
                                  PatternEntity*,
                                  PatternElement*,
-                                 PatternNode*,
                                  Projection*,
                                  MapLiteral*,
                                  SinglePartQuery*,
