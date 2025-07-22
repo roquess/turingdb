@@ -359,7 +359,6 @@ void QueryPlanner::planPath(const std::vector<EntityPattern*>& path) {
 
         if (!(edgeTypeConstr || edgeExprConstr) && (!sourceTypeConstr || !targetTypeConstr)
             && !(sourceExprConstr || targetExprConstr)) {
-            spdlog::info("Using ScanEdges hack");
             return planPathUsingScanEdges(path);
         }
     }
@@ -730,11 +729,22 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
         const PropertyType propType = propTypeRes.value();
 
         if (op == BinExpr::OP_STR_APPROX) {
-            const std::string& queryString = static_cast<StringExprConst*>(rightExpr)->getVal();
-            auto* outSet = _mem->alloc<ColumnSet<EdgeID>>();
-            generateApproxSet<EdgeID>(queryString, propType,
-                              entities, outSet);
+            // Gets edges which have the required property
 
+            const std::string& queryString = static_cast<StringExprConst*>(rightExpr)->getVal();
+            // Get the set of matching edges
+            auto* lookupSet = _mem->alloc<ColumnSet<EdgeID>>();
+            // Lookup set with EdgeIDs that match
+            generateApproxSet<EdgeID>(queryString, propType,
+                              entities, lookupSet);
+
+            // Fill filtermask[i] with a mask containing the edges that match approx
+            auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+            filter.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_IN,
+                ._mask = filterMasks[i],
+                ._lhs = entities,
+                ._rhs = lookupSet});
             return;
         }
 

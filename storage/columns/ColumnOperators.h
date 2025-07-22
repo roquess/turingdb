@@ -158,8 +158,7 @@ public:
     static void inOp(ColumnMask& mask,
                      const ColumnVector<T>& lhs,
                      const ColumnSet<U>& rhs) {
-        msgbioassert(lhs.size() == rhs.size() == mask.size(),
-                     "Columns must have matching dimensions");
+        mask.resize(lhs.size());
         auto* maskd = mask.data();
         const auto size = lhs.size();
         for (size_t i = 0; i < size; i++) {
