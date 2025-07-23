@@ -45,7 +45,6 @@ public:
 
                 // Get the index for this property
                 const auto& strIndex = nodeStringIndex.at(propID);
-                strIndex->print();
 
                 // Get any matches for the query string in the index
                 strIndex->query<IDT>(output, query);
@@ -63,7 +62,6 @@ public:
 
                 // Get the index for this property
                 const auto& strIndex = nodeStringIndex.at(propID);
-                strIndex->print();
 
                 // Get any matches for the query string in the index
                 strIndex->query<IDT>(output, query);

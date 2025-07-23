@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "LocalMemory.h"
+#include "metadata/PropertyType.h"
 #include "versioning/Change.h"
 #include "QueryInterpreter.h"
 #include "TuringDB.h"
@@ -734,12 +735,26 @@ TEST_F(QueryTest, InjectNodes) {
         .execute();
 }
 
+TEST_F(QueryTest, StringApproxSimpleTest) {
+    QueryTester tester {_mem, *_interp};
+
+    const std::string createQuery = "create (n:NewNode{poem=\"the cat jumped\", rating=5u})";
+    tester.query("change new")
+        .expectVector<const Change*>({}, false)
+        .execute();
+    //FAIL() << "Not implemented";
+}
+
 TEST_F(QueryTest, StringApproxTest) {
     QueryTester tester {_mem, *_interp};
     
-    tester.query("CHANGE NEW")
-        .expectVector<const Change*>({}, false)
-        .execute();
+    auto change1Res = tester.query("CHANGE NEW")
+                          .expectVector<const Change*>({}, false)
+                          .execute()
+                          .outputColumnVector<const Change*>(0);
+    const ChangeID change1 = change1Res.value()->back()->id();
+
+    tester.setChangeID(change1);
 
     const std::string createQuery = "create (n:NewNode{name=\"Norbert "
                                     "Norman\"})-[e:NewEdge{name=\"Norbert->Micheal\"}]-("
@@ -749,11 +764,15 @@ TEST_F(QueryTest, StringApproxTest) {
                                     "Norman\"})-[e:NewEdge{name=\"Norbert->Micheal\"}]-("
                                     "m:NewNode{name=\"Micheal Mann\"}) return e.name";
 
-    tester.query(createQuery);
-    tester.query("COMMIT");
+    tester.query(createQuery).execute();
+    tester.query("CHANGE SUBMIT").execute();
+    tester.setChangeID(ChangeID::head());
+
+    using StrOpt = std::optional<types::String::Primitive>;
 
     tester.query(sanityCheck)
-        .expectVector({"Norbert->Micheal"}); // Ensure the edge is created
+        .expectVector<StrOpt>({"Norbert->Micheal"}) // Ensure the edge is created
+        .execute();
 
     // Strict node contraints, approx on edge name
     const std::string approxEdgeNameNorbert =
@@ -766,9 +785,11 @@ TEST_F(QueryTest, StringApproxTest) {
         "m:NewNode{name=\"Micheal Mann\"}) return e.name";
 
     tester.query(approxEdgeNameNorbert)
-        .expectVector({"Norbert->Micheal"});
+        .expectVector<StrOpt>({"Norbert->Micheal"})
+        .execute();
     tester.query(approxEdgeNameMicheal)
-        .expectVector({"Norbert->Micheal"});
+        .expectVector<StrOpt>({"Norbert->Micheal"})
+        .execute();
 
 
     // No name constraints on nodes
@@ -782,9 +803,11 @@ TEST_F(QueryTest, StringApproxTest) {
         "m:NewNode) return e.name";
 
     tester.query(approxEdgeNameNorbertSlim)
-        .expectVector({"Norbert->Micheal"});
+        .expectVector<StrOpt>({"Norbert->Micheal"})
+        .execute();
     tester.query(approxEdgeNameMichealSlim)
-        .expectVector({"Norbert->Micheal"});
+        .expectVector<StrOpt>({"Norbert->Micheal"})
+        .execute();
 
     // Approximate constraints on nodes and edge
     const std::string approxEdgeNameApproxNorbert =
@@ -798,9 +821,11 @@ TEST_F(QueryTest, StringApproxTest) {
         "m:NewNode{name~=\"Micheal\"}) return e.name";
 
     tester.query(approxEdgeNameApproxNorbert)
-        .expectVector({"Norbert->Micheal"});
+        .expectVector<StrOpt>({"Norbert->Micheal"})
+        .execute();
     tester.query(approxEdgeNameApproxMicheal)
-        .expectVector({"Norbert->Micheal"});
+        .expectVector<StrOpt>({"Norbert->Micheal"})
+        .execute();
 
     const std::string allApproxNoLabels =
         "match (n{name~=\"Norbert\"}"
@@ -808,5 +833,6 @@ TEST_F(QueryTest, StringApproxTest) {
         "m{name~=\"Micheal\"}) return e.name";
     
     tester.query(allApproxNoLabels)
-        .expectVector({"Norbert->Micheal"});
+        .expectVector<StrOpt>({"Norbert->Micheal"})
+        .execute();
 }
