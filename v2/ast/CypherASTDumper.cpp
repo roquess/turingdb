@@ -51,7 +51,7 @@ void CypherASTDumper::dump(std::ostream& output) {
 
     for (const auto& query : _ast.queries()) {
         if (const auto* q = dynamic_cast<const SinglePartQuery*>(query.get())) {
-            dumpQuery(*q);
+            dump(*q);
             continue;
         }
 
@@ -59,7 +59,7 @@ void CypherASTDumper::dump(std::ostream& output) {
     }
 }
 
-void CypherASTDumper::dumpQuery(const SinglePartQuery& query) {
+void CypherASTDumper::dump(const SinglePartQuery& query) {
     fmt::format_to(_o, "    script ||--o{{ _{} : _\n", fmt::ptr(&query));
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&query));
     fmt::format_to(_o, "        ASTType SinglePartQuery\n");
@@ -71,7 +71,7 @@ void CypherASTDumper::dumpQuery(const SinglePartQuery& query) {
                            fmt::ptr(&query),
                            fmt::ptr(matchSt));
 
-            dumpMatch(*matchSt);
+            dump(*matchSt);
             continue;
         }
 
@@ -80,7 +80,7 @@ void CypherASTDumper::dumpQuery(const SinglePartQuery& query) {
                            fmt::ptr(&query),
                            fmt::ptr(retSt));
 
-            dumpReturn(*retSt);
+            dump(*retSt);
             continue;
         }
 
@@ -88,7 +88,7 @@ void CypherASTDumper::dumpQuery(const SinglePartQuery& query) {
     }
 }
 
-void CypherASTDumper::dumpMatch(const Match& match) {
+void CypherASTDumper::dump(const Match& match) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&match));
 
     if (match.isOptional()) {
@@ -104,14 +104,14 @@ void CypherASTDumper::dumpMatch(const Match& match) {
                    fmt::ptr(&match),
                    fmt::ptr(&pattern));
 
-    dumpPattern(pattern);
+    dump(pattern);
 
     if (match.hasLimit()) {
         const auto& lim = match.getLimit();
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&match),
                        fmt::ptr(&lim));
-        dumpLimit(lim);
+        dump(lim);
     }
 
     if (match.hasSkip()) {
@@ -119,23 +119,23 @@ void CypherASTDumper::dumpMatch(const Match& match) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&match),
                        fmt::ptr(&skip));
-        dumpSkip(skip);
+        dump(skip);
     }
 }
 
-void CypherASTDumper::dumpLimit(const Limit& lim) {
+void CypherASTDumper::dump(const Limit& lim) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&lim));
     fmt::format_to(_o, "        ASTType LIMIT\n");
     fmt::format_to(_o, "    }}\n");
 }
 
-void CypherASTDumper::dumpSkip(const Skip& skip) {
+void CypherASTDumper::dump(const Skip& skip) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&skip));
     fmt::format_to(_o, "        ASTType SKIP\n");
     fmt::format_to(_o, "    }}\n");
 }
 
-void CypherASTDumper::dumpReturn(const Return& ret) {
+void CypherASTDumper::dump(const Return& ret) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&ret));
     fmt::format_to(_o, "        ASTType RETURN\n");
     fmt::format_to(_o, "    }}\n");
@@ -146,10 +146,10 @@ void CypherASTDumper::dumpReturn(const Return& ret) {
                    fmt::ptr(&ret),
                    fmt::ptr(&projection));
 
-    dumpProjection(projection);
+    dump(projection);
 }
 
-void CypherASTDumper::dumpProjection(const Projection& projection) {
+void CypherASTDumper::dump(const Projection& projection) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&projection));
     fmt::format_to(_o, "        ASTType Projection\n");
 
@@ -185,7 +185,7 @@ void CypherASTDumper::dumpProjection(const Projection& projection) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&projection),
                        fmt::ptr(&limit));
-        dumpLimit(limit);
+        dump(limit);
     }
 
     if (projection.hasSkip()) {
@@ -193,7 +193,7 @@ void CypherASTDumper::dumpProjection(const Projection& projection) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&projection),
                        fmt::ptr(&skip));
-        dumpSkip(skip);
+        dump(skip);
     }
 
     if (projection.isAll()) {
@@ -205,11 +205,11 @@ void CypherASTDumper::dumpProjection(const Projection& projection) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&projection),
                        fmt::ptr(item));
-        dumpExpression(*item);
+        dump(*item);
     }
 }
 
-void CypherASTDumper::dumpPattern(const Pattern& pattern) {
+void CypherASTDumper::dump(const Pattern& pattern) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&pattern));
     fmt::format_to(_o, "        ASTType Pattern\n");
     fmt::format_to(_o, "    }}\n");
@@ -218,7 +218,7 @@ void CypherASTDumper::dumpPattern(const Pattern& pattern) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&pattern),
                        fmt::ptr(part));
-        dumpPatternPart(*part);
+        dump(*part);
     }
 
     if (pattern.hasWhere()) {
@@ -226,11 +226,11 @@ void CypherASTDumper::dumpPattern(const Pattern& pattern) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&pattern),
                        fmt::ptr(&where));
-        dumpWhere(where);
+        dump(where);
     }
 }
 
-void CypherASTDumper::dumpPatternPart(const PatternElement& part) {
+void CypherASTDumper::dump(const PatternElement& part) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&part));
     fmt::format_to(_o, "        ASTType PatternPart\n");
     fmt::format_to(_o, "    }}\n");
@@ -240,16 +240,16 @@ void CypherASTDumper::dumpPatternPart(const PatternElement& part) {
                        fmt::ptr(&part),
                        fmt::ptr(entity));
         if (auto* node = dynamic_cast<NodePattern*>(entity)) {
-            dumpNode(*node);
+            dump(*node);
         }
 
         else if (auto* edge = dynamic_cast<EdgePattern*>(entity)) {
-            dumpEdge(*edge);
+            dump(*edge);
         }
     }
 }
 
-void CypherASTDumper::dumpWhere(const WhereClause& where) {
+void CypherASTDumper::dump(const WhereClause& where) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&where));
     fmt::format_to(_o, "        ASTType WHERE\n");
     fmt::format_to(_o, "    }}\n");
@@ -258,10 +258,10 @@ void CypherASTDumper::dumpWhere(const WhereClause& where) {
     fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                    fmt::ptr(&where),
                    fmt::ptr(&expr));
-    dumpExpression(expr);
+    dump(expr);
 }
 
-void CypherASTDumper::dumpNode(const NodePattern& node) {
+void CypherASTDumper::dump(const NodePattern& node) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&node));
     fmt::format_to(_o, "        ASTType NodePattern\n");
 
@@ -276,7 +276,7 @@ void CypherASTDumper::dumpNode(const NodePattern& node) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&node),
                        fmt::ptr(&symbol));
-        dumpSymbol(symbol);
+        dump(symbol);
     }
 
     if (node.hasProperties()) {
@@ -284,7 +284,7 @@ void CypherASTDumper::dumpNode(const NodePattern& node) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&node),
                        fmt::ptr(&properties));
-        dumpMapLiteral(properties);
+        dump(properties);
     }
 
     if (node.hasLabels()) {
@@ -292,11 +292,11 @@ void CypherASTDumper::dumpNode(const NodePattern& node) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&node),
                        fmt::ptr(&labels));
-        dumpTypes(labels);
+        dump(labels);
     }
 }
 
-void CypherASTDumper::dumpEdge(const EdgePattern& edge) {
+void CypherASTDumper::dump(const EdgePattern& edge) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&edge));
     fmt::format_to(_o, "        ASTType EdgePattern\n");
 
@@ -312,32 +312,32 @@ void CypherASTDumper::dumpEdge(const EdgePattern& edge) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&edge),
                        fmt::ptr(&symbol));
-        dumpSymbol(symbol);
+        dump(symbol);
     }
     if (edge.hasProperties()) {
         const auto& properties = edge.properties();
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&edge),
                        fmt::ptr(&properties));
-        dumpMapLiteral(properties);
+        dump(properties);
     }
     if (edge.hasTypes()) {
         const auto& labels = edge.types();
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&edge),
                        fmt::ptr(&labels));
-        dumpTypes(labels);
+        dump(labels);
     }
 }
 
-void CypherASTDumper::dumpSymbol(const Symbol& symbol) {
+void CypherASTDumper::dump(const Symbol& symbol) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&symbol));
     fmt::format_to(_o, "        ASTType Symbol\n");
     fmt::format_to(_o, "        Name {}\n", symbol._name);
     fmt::format_to(_o, "    }}\n");
 }
 
-void CypherASTDumper::dumpMapLiteral(const MapLiteral& map) {
+void CypherASTDumper::dump(const MapLiteral& map) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&map));
     fmt::format_to(_o, "        ASTType MapLiteral\n");
 
@@ -352,11 +352,11 @@ void CypherASTDumper::dumpMapLiteral(const MapLiteral& map) {
         fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                        fmt::ptr(&map),
                        fmt::ptr(v));
-        dumpExpression(*v);
+        dump(*v);
     }
 }
 
-void CypherASTDumper::dumpTypes(const std::vector<std::string_view>& types) {
+void CypherASTDumper::dump(const std::vector<std::string_view>& types) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&types));
     fmt::format_to(_o, "        ASTType Types\n");
 
@@ -368,46 +368,46 @@ void CypherASTDumper::dumpTypes(const std::vector<std::string_view>& types) {
 }
 
 
-void CypherASTDumper::dumpExpression(const Expression& expr) {
+void CypherASTDumper::dump(const Expression& expr) {
     if (const auto* e = dynamic_cast<const BinaryExpression*>(&expr)) {
-        dumpBinaryExpression(*e);
+        dump(*e);
         return;
     }
 
     if (const auto* e = dynamic_cast<const UnaryExpression*>(&expr)) {
-        dumpUnaryExpression(*e);
+        dump(*e);
         return;
     }
 
     if (const auto* e = dynamic_cast<const AtomExpression*>(&expr)) {
-        dumpAtomExpression(*e);
+        dump(*e);
         return;
     }
 
     if (const auto* e = dynamic_cast<const PathExpression*>(&expr)) {
-        dumpPathExpression(*e);
+        dump(*e);
         return;
     }
 
     if (const auto* e = dynamic_cast<const NodeLabelExpression*>(&expr)) {
-        dumpNodeLabelExpression(*e);
+        dump(*e);
         return;
     }
 
     if (const auto* e = dynamic_cast<const StringExpression*>(&expr)) {
-        dumpStringExpression(*e);
+        dump(*e);
         return;
     }
 
     if (const auto* e = dynamic_cast<const PropertyExpression*>(&expr)) {
-        dumpPropertyExpression(*e);
+        dump(*e);
         return;
     }
 
     throw ASTException("Unknown expression type");
 }
 
-void CypherASTDumper::dumpBinaryExpression(const BinaryExpression& expr) {
+void CypherASTDumper::dump(const BinaryExpression& expr) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&expr));
     fmt::format_to(_o, "        ASTType BinaryExpression\n");
 
@@ -471,16 +471,16 @@ void CypherASTDumper::dumpBinaryExpression(const BinaryExpression& expr) {
                    fmt::ptr(&expr),
                    fmt::ptr(&left));
 
-    dumpExpression(left);
+    dump(left);
 
     fmt::format_to(_o, "    _{} ||--o{{ _{} : _\n",
                    fmt::ptr(&expr),
                    fmt::ptr(&right));
 
-    dumpExpression(right);
+    dump(right);
 }
 
-void CypherASTDumper::dumpUnaryExpression(const UnaryExpression& expr) {
+void CypherASTDumper::dump(const UnaryExpression& expr) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&expr));
     fmt::format_to(_o, "        ASTType UnaryExpression\n");
 
@@ -504,10 +504,10 @@ void CypherASTDumper::dumpUnaryExpression(const UnaryExpression& expr) {
                    fmt::ptr(&expr),
                    fmt::ptr(&right));
 
-    dumpExpression(right);
+    dump(right);
 }
 
-void CypherASTDumper::dumpAtomExpression(const AtomExpression& expr) {
+void CypherASTDumper::dump(const AtomExpression& expr) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&expr));
     fmt::format_to(_o, "        ASTType AtomExpression\n");
 
@@ -518,20 +518,20 @@ void CypherASTDumper::dumpAtomExpression(const AtomExpression& expr) {
             fmt::format_to(_o, "        Symbol {}\n", v._name);
         } else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, Literal>) {
             const auto& l = v.value();
-            if (std::holds_alternative<bool>(l)) {
-                fmt::format_to(_o, "        BoolLiteral {}\n", std::get<bool>(l));
-            } else if (std::holds_alternative<int64_t>(l)) {
-                fmt::format_to(_o, "        IntLiteral _{}\n", std::get<int64_t>(l));
-            } else if (std::holds_alternative<double>(l)) {
-                fmt::format_to(_o, "        DoubleLiteral _{}\n", std::get<double>(l));
-            } else if (std::holds_alternative<std::string_view>(l)) {
-                fmt::format_to(_o, "        StringLiteral {}\n", sanitizeString(std::get<std::string_view>(l)));
-            } else if (std::holds_alternative<char>(l)) {
-                fmt::format_to(_o, "        CharLiteral _{}\n", std::get<char>(l));
-            } else if (std::holds_alternative<MapLiteral*>(l)) {
-                fmt::format_to(_o, "        MapLiteral _{}\n", fmt::ptr(std::get<MapLiteral*>(l)));
-            } else if (std::holds_alternative<std::nullopt_t>(l)) {
+            if (const auto* v = std::get_if<std::monostate>(&l)) {
                 fmt::format_to(_o, "        NullLiteral _\n");
+            } else if (const auto* v = std::get_if<bool>(&l)) {
+                fmt::format_to(_o, "        BoolLiteral {}\n", *v);
+            } else if (const auto* v = std::get_if<int64_t>(&l)) {
+                fmt::format_to(_o, "        IntLiteral _{}\n", *v);
+            } else if (const auto* v = std::get_if<double>(&l)) {
+                fmt::format_to(_o, "        DoubleLiteral _{}\n", *v);
+            } else if (const auto* v = std::get_if<std::string_view>(&l)) {
+                fmt::format_to(_o, "        StringLiteral {}\n", sanitizeString(*v));
+            } else if (const auto* v = std::get_if<char>(&l)) {
+                fmt::format_to(_o, "        CharLiteral _{}\n", *v);
+            } else if (const auto* v = std::get_if<MapLiteral*>(&l)) {
+                fmt::format_to(_o, "        MapLiteral _{}\n", fmt::ptr(*v));
             }
 
         } else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, Parameter>) {
@@ -545,19 +545,19 @@ void CypherASTDumper::dumpAtomExpression(const AtomExpression& expr) {
     fmt::format_to(_o, "    }}\n");
 }
 
-void CypherASTDumper::dumpPathExpression(const PathExpression& expr) {
+void CypherASTDumper::dump(const PathExpression& expr) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&expr));
     fmt::format_to(_o, "        ASTType PathExpression\n");
     fmt::format_to(_o, "    }}\n");
 }
 
-void CypherASTDumper::dumpNodeLabelExpression(const NodeLabelExpression& expr) {
+void CypherASTDumper::dump(const NodeLabelExpression& expr) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&expr));
     fmt::format_to(_o, "        ASTType NodeLabelExpression\n");
     fmt::format_to(_o, "    }}\n");
 }
 
-void CypherASTDumper::dumpStringExpression(const StringExpression& expr) {
+void CypherASTDumper::dump(const StringExpression& expr) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&expr));
     fmt::format_to(_o, "        ASTType StringExpression\n");
 
@@ -586,11 +586,11 @@ void CypherASTDumper::dumpStringExpression(const StringExpression& expr) {
                    fmt::ptr(&expr),
                    fmt::ptr(&left));
 
-    dumpExpression(left);
-    dumpExpression(right);
+    dump(left);
+    dump(right);
 }
 
-void CypherASTDumper::dumpPropertyExpression(const PropertyExpression& expr) {
+void CypherASTDumper::dump(const PropertyExpression& expr) {
     fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&expr));
     fmt::format_to(_o, "        ASTType PropertyExpression\n");
     fmt::format_to(_o, "        QualifiedName ");

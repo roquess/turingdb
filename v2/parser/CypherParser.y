@@ -837,7 +837,7 @@ parameter
 literal
     : boolLit { $$ = Literal($1); }
     | numLit { $$ = Literal($1); }
-    | NULL_ { $$ = Literal(std::nullopt); }
+    | NULL_ { $$ = Literal(); }
     | stringLit { $$ = Literal($1); }
     | charLit { $$ = Literal($1); }
     | listLit { scanner.notImplemented("Lists"); }

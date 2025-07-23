@@ -2,6 +2,7 @@
 
 #include "attribution/VariableDecl.h"
 #include "metadata/LabelSet.h"
+#include "types/Literal.h"
 
 namespace db {
 
@@ -34,6 +35,22 @@ struct NodeLabelExpressionData {
     }
 
     static void cleanUp(NodeLabelExpressionData* ptr) {
+        delete ptr;
+    }
+};
+
+struct LiteralExpressionData {
+    const Literal* _value;
+
+    using UniquePtr = std::unique_ptr<LiteralExpressionData, void (*)(LiteralExpressionData*)>;
+
+    static UniquePtr create(const Literal* literal) {
+        return UniquePtr {
+            new LiteralExpressionData {literal},
+            &cleanUp};
+    }
+
+    static void cleanUp(LiteralExpressionData* ptr) {
         delete ptr;
     }
 };

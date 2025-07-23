@@ -7,6 +7,7 @@ namespace db {
 
 struct PropertyExpressionData;
 struct NodeLabelExpressionData;
+struct LiteralExpressionData;
 
 class VariableData {
 public:
@@ -15,7 +16,8 @@ public:
 
     using Variant = std::variant<std::monostate,
                                  UniquePtr<PropertyExpressionData>,
-                                 UniquePtr<NodeLabelExpressionData>>;
+                                 UniquePtr<NodeLabelExpressionData>,
+                                 UniquePtr<LiteralExpressionData>>;
     VariableData();
     ~VariableData();
 

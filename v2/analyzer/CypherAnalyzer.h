@@ -39,6 +39,10 @@ public:
 
     void analyze();
 
+    const CypherAST& getAST() const {
+        return *_ast;
+    }
+
 private:
     std::unique_ptr<CypherAST> _ast;
     GraphView _graphView;

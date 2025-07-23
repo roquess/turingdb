@@ -19,6 +19,7 @@
 #include "expressions/UnaryExpression.h"
 
 #include "types/SinglePartQuery.h"
+#include "types/Projection.h"
 
 #include "statements/Match.h"
 #include "statements/Skip.h"
@@ -51,7 +52,6 @@ void CypherAnalyzer::analyze() {
 void CypherAnalyzer::analyze(const SinglePartQuery& query) {
     for (const auto* statement : query.getStatements()) {
         if (const auto* s = dynamic_cast<const Match*>(statement)) {
-            fmt::print("Analyzing match statement\n");
             analyze(*s);
         }
 
@@ -93,11 +93,29 @@ void CypherAnalyzer::analyze(const Limit& limitSt) {
 }
 
 void CypherAnalyzer::analyze(const Return& returnSt) {
-    throw AnalyzeException("RETURN not supported");
+    const auto& projection = returnSt.getProjection();
+    if (projection.isDistinct()) {
+        throw AnalyzeException("DISTINCT not supported");
+    }
+
+    if (projection.hasSkip()) {
+        throw AnalyzeException("SKIP not supported");
+    }
+
+    if (projection.hasLimit()) {
+        throw AnalyzeException("LIMIT not supported");
+    }
+
+    if (projection.isAll()) {
+        return;
+    }
+
+    for (Expression* item : projection.items()) {
+        analyze(*item);
+    }
 }
 
 void CypherAnalyzer::analyze(const Pattern& pattern) {
-    fmt::print("Analyzing pattern\n");
     for (const auto& element : pattern.elements()) {
         analyze(*element);
     }
@@ -105,24 +123,20 @@ void CypherAnalyzer::analyze(const Pattern& pattern) {
     if (pattern.hasWhere()) {
         analyze(pattern.getWhere().getExpression());
     }
-
-    fmt::print("Done analyzing pattern\n");
 }
 
 void CypherAnalyzer::analyze(const PatternElement& element) {
-    fmt::print("Analyzing pattern element\n");
     const auto& entities = element.getEntities();
 
     for (const auto& entity : entities) {
-        fmt::print("Analyzing pattern entity\n");
         if (auto* node = dynamic_cast<NodePattern*>(entity)) {
             analyze(*node);
         } else if (auto* edge = dynamic_cast<EdgePattern*>(entity)) {
             analyze(*edge);
+        } else {
+            throw AnalyzeException("Unsupported pattern entity type");
         }
     }
-
-    fmt::print("Done analyzing pattern element\n");
 }
 
 void CypherAnalyzer::analyze(NodePattern& node) {
@@ -142,7 +156,6 @@ void CypherAnalyzer::analyze(EdgePattern& edge) {
 }
 
 void CypherAnalyzer::analyze(Expression& expr) {
-    fmt::print("Analyzing expression\n");
     if (auto* e = dynamic_cast<BinaryExpression*>(&expr)) {
         analyze(*e);
     } else if (auto* e = dynamic_cast<UnaryExpression*>(&expr)) {
@@ -157,6 +170,8 @@ void CypherAnalyzer::analyze(Expression& expr) {
         analyze(*e);
     } else if (auto* e = dynamic_cast<PathExpression*>(&expr)) {
         analyze(*e);
+    } else {
+        throw AnalyzeException("Unsupported expression type");
     }
 }
 
@@ -164,29 +179,171 @@ void CypherAnalyzer::analyze(BinaryExpression& expr) {
     auto& lhs = expr.left();
     auto& rhs = expr.right();
 
-    if (!lhs.id().valid()) {
-        analyze(lhs);
+    analyze(lhs);
+    analyze(rhs);
+
+    VariableDecl lhsVar = _ctxt->getUnnamedVariable(lhs.id());
+    VariableDecl rhsVar = _ctxt->getUnnamedVariable(rhs.id());
+
+    const VariableType lhsType = lhsVar.type();
+    const VariableType rhsType = rhsVar.type();
+
+    VariableType type = VariableType::Invalid;
+
+    constexpr auto listOrMap = [](VariableType a, VariableType b) {
+        return a == VariableType::List
+            || a == VariableType::Map
+            || b == VariableType::List
+            || b == VariableType::Map;
+    };
+
+    constexpr auto compatible = [](VariableType a, VariableType b) {
+        return a == b
+            || (a == VariableType::Integer && b == VariableType::Double)
+            || (a == VariableType::Double && b == VariableType::Integer)
+            || (a == VariableType::String && b == VariableType::Char)
+            || (a == VariableType::Char && b == VariableType::String);
+    };
+
+    switch (expr.getBinaryOperator()) {
+        case BinaryOperator::Or:
+        case BinaryOperator::Xor:
+        case BinaryOperator::And: {
+            // Binary operation
+            if (lhsType != VariableType::Bool || rhsType != VariableType::Bool) {
+                throw AnalyzeException("Operands must be booleans");
+            }
+
+            type = VariableType::Bool;
+        } break;
+
+        case BinaryOperator::NotEqual:
+        case BinaryOperator::Equal: {
+            case BinaryOperator::LessThan:
+            case BinaryOperator::GreaterThan:
+            case BinaryOperator::LessThanOrEqual:
+            case BinaryOperator::GreaterThanOrEqual: {
+                if (listOrMap(lhsType, rhsType)) {
+                    throw AnalyzeException("Lists and maps cannot be compared");
+                }
+
+                if (!compatible(lhsType, rhsType)) {
+                    throw AnalyzeException("Operands must be compatible types");
+                }
+
+                type = VariableType::Bool;
+            } break;
+
+            case BinaryOperator::Add:
+            case BinaryOperator::Sub:
+            case BinaryOperator::Mult:
+            case BinaryOperator::Div:
+            case BinaryOperator::Mod:
+            case BinaryOperator::Pow: {
+                if (!compatible(lhsType, rhsType)) {
+                    throw AnalyzeException("Operands must be compatible types");
+                }
+
+                if (lhsType == VariableType::Double || rhsType == VariableType::Double) {
+                    type = VariableType::Double;
+                } else if (lhsType == VariableType::String || rhsType == VariableType::String) {
+                    type = VariableType::String;
+                } else {
+                    type = lhsType;
+                }
+
+            } break;
+
+            case BinaryOperator::In: {
+                if (rhsType != VariableType::List) {
+                    throw AnalyzeException("IN operand must be a list or map");
+                }
+
+                if (lhsType == VariableType::List || lhsType == VariableType::Map) {
+                    throw AnalyzeException("Left operand must be a scalar");
+                }
+
+                type = VariableType::Bool;
+            } break;
+        }
     }
 
-    if (!rhs.id().valid()) {
-        analyze(rhs);
-    }
-
-    throw AnalyzeException("Binary expressions not supported");
+    VariableDecl exprVar = _ctxt->createUnnamedVariable(type);
+    expr.setID(exprVar.id());
 }
 
 void CypherAnalyzer::analyze(UnaryExpression& expr) {
     auto& operand = expr.right();
+    analyze(operand);
 
-    if (!operand.id().valid()) {
-        analyze(operand);
+    VariableDecl operandVar = _ctxt->getUnnamedVariable(operand.id());
+    VariableType type = VariableType::Invalid;
+
+    switch (expr.getUnaryOperator()) {
+        case UnaryOperator::Not: {
+            if (operandVar.type() != VariableType::Bool) {
+                throw AnalyzeException("NOT operand must be a boolean");
+            }
+
+            type = VariableType::Bool;
+        } break;
+
+        case UnaryOperator::Minus:
+        case UnaryOperator::Plus: {
+            if (operandVar.type() == VariableType::Integer) {
+                type = VariableType::Integer;
+            } else if (operandVar.type() == VariableType::Double) {
+                type = VariableType::Double;
+            } else {
+                throw AnalyzeException("Operand must be an integer or double");
+            }
+
+        } break;
     }
 
-    throw AnalyzeException("Unary expressions not supported");
+    const VariableDecl var = _ctxt->createUnnamedVariable(type);
+    expr.setID(var.id());
 }
 
 void CypherAnalyzer::analyze(AtomExpression& expr) {
-    throw AnalyzeException("Atom expressions not supported");
+    const auto& atom = expr.value();
+    if (const auto* symbol = std::get_if<Symbol>(&atom)) {
+        const VariableDecl var = _ctxt->getVariable(symbol->_name);
+        expr.setID(var.id());
+
+    } else if (const auto* literal = std::get_if<Literal>(&atom)) {
+        VariableType type = VariableType::Invalid;
+
+        switch (literal->type()) {
+            case Literal::type<std::monostate>(): {
+            } break;
+            case Literal::type<bool>(): {
+                type = VariableType::Bool;
+            } break;
+            case Literal::type<int64_t>(): {
+                type = VariableType::Integer;
+            } break;
+            case Literal::type<double>(): {
+                type = VariableType::Double;
+            } break;
+            case Literal::type<std::string_view>(): {
+                type = VariableType::String;
+            } break;
+            case Literal::type<char>(): {
+                type = VariableType::Char;
+            } break;
+            case Literal::type<MapLiteral*>(): {
+                type = VariableType::Map;
+            } break;
+        }
+
+        VariableDecl var = _ctxt->createUnnamedVariable(type);
+        expr.setID(var.id());
+        var.setData(VariableData::create<LiteralExpressionData>(literal));
+
+    } else if ([[maybe_unused]] const auto* param = std::get_if<Parameter>(&atom)) {
+        throw AnalyzeException("Parameters not supported");
+    }
 }
 
 void CypherAnalyzer::analyze(PropertyExpression& expr) {

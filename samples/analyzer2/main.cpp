@@ -1,3 +1,6 @@
+#include <iostream>
+
+#include "CypherASTDumper.h"
 #include "CypherAnalyzer.h"
 #include "CypherParser.h"
 #include "Graph.h"
@@ -59,6 +62,10 @@ int main(int argc, char** argv) {
             fmt::print("{}\n", e.what());
             return EXIT_FAILURE;
         }
+
+
+        CypherASTDumper dumper(analyzer.getAST());
+        dumper.dump(std::cout);
     }
 
     return EXIT_SUCCESS;
