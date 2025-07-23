@@ -16,6 +16,7 @@
 #include "operations/ScanEdgesStep.h"
 #include "operations/ScanInEdgesByLabelStep.h"
 #include "operations/ScanOutEdgesByLabelStep.h"
+#include "operations/ScanNodesStringApproxStep.h"
 #include "operations/GetOutEdgesStep.h"
 #include "operations/TransformStep.h"
 #include "operations/CountStep.h"
@@ -27,6 +28,7 @@
 #include "operations/ListGraphStep.h"
 #include "operations/GetLabelSetIDStep.h"
 #include "operations/LoadGraphStep.h"
+#include "operations/QueryIndexStep.h"
 #include "operations/GetPropertyStep.h"
 #include "operations/GetFilteredPropertyStep.h"
 #include "operations/HistoryStep.h"
@@ -121,6 +123,15 @@ public:
                  ChangeOpType,
                  ColumnVector<const Change*>*);
     PipelineStep(LoadGraphStep::Tag, const std::string& graphName);
+
+    PipelineStep(QueryNodeIndexStep::Tag, ColumnSet<NodeID>* outSet,
+                 const GraphView& view, PropertyTypeID propID,
+                 const std::string& strQuery);
+
+    PipelineStep(QueryEdgeIndexStep::Tag, ColumnSet<EdgeID>* outSet,
+                 const GraphView& view, PropertyTypeID propID,
+                 const std::string& strQuery);
+
     PipelineStep(CreateNodeStep::Tag, const EntityPattern*);
     PipelineStep(CreateEdgeStep::Tag,
                  const EntityPattern*,
@@ -181,6 +192,8 @@ private:
                  CreateGraphStep,
                  ListGraphStep,
                  LoadGraphStep,
+                 QueryNodeIndexStep,
+                 QueryEdgeIndexStep,
                  ScanNodesByPropertyInt64Step,
                  ScanNodesByPropertyUInt64Step,
                  ScanNodesByPropertyDoubleStep,

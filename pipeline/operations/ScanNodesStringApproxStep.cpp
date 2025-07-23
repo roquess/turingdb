@@ -1,6 +1,5 @@
 #include "ScanNodesStringApproxStep.h"
 
-#include <memory>
 #include <sstream>
 
 #include "DataPart.h"
@@ -26,7 +25,8 @@ Step::ScanNodesStringApproxStep(ColumnVector<NodeID>* nodes, const GraphView& vi
 {
 }
 
-Step::~ScanNodesStringApproxStep() {
+Step::~ScanNodesStringApproxStep()
+{
 }
 
 void Step::describe(std::string& descr) const {

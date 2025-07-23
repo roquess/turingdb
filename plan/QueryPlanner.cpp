@@ -680,8 +680,17 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
         
         if (op == BinExpr::OP_STR_APPROX) {
             const std::string& queryString = static_cast<StringExprConst*>(rightExpr)->getVal();
-            addGetTStringApproxFilter<NodeID>(filterMasks[i], entities, propType,
-                                              queryString);
+
+            // Step to generate lookup set with Node/EdgeIDs that match
+            auto* lookupSet = _mem->alloc<ColumnSet<NodeID>>();
+            _pipeline->add<QueryNodeIndexStep>(lookupSet, _view, propType._id, queryString);
+
+            // Fill filtermask[i] with a mask for the Nodes/Edges that match approx
+            auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+            filter.addExpression(FilterStep::Expression {._op = ColumnOperator::OP_IN,
+                                                         ._mask = filterMasks[i],
+                                                         ._lhs = entities,
+                                                         ._rhs = lookupSet});
             return;
         }
 
@@ -747,7 +756,7 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
             auto* lookupSet = _mem->alloc<ColumnSet<EdgeID>>();
 
             // Step to generate lookup set with Node/EdgeIDs that match
-            _pipeline->add<QueryIndexStep<EdgeID>>(lookupSet, _view, propType._id, queryString);
+            _pipeline->add<QueryEdgeIndexStep>(lookupSet, _view, propType._id, queryString);
 
             // Fill filtermask[i] with a mask for the Nodes/Edges that match approx
             auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();

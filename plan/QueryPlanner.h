@@ -33,10 +33,6 @@ class VarDecl;
 class ReturnField;
 class Block;
 
-template <typename T>
-concept Identifier = (
-    (std::same_as<T, NodeID> || std::same_as<T, EdgeID>)
-);
 
 class QueryPlanner {
 public:
@@ -78,18 +74,6 @@ private:
     void getMatchingLabelSets(std::vector<LabelSetID>& labelSets,
                               const LabelSet* targetLabelSet);
 
-    // StringApprox functions:
-    template <typename T>
-        requires(Identifier<T>)
-    void generateApproxSet(const std::string& queryString, PropertyType propType,
-                           const ColumnVector<T>* entities, ColumnSet<T>* outSet);
-
-    template <typename T>
-        requires(Identifier<T>)
-    void addGetTStringApproxFilter(ColumnMask* thisFilterMask,
-                                   const ColumnVector<T>* entities,
-                                   const PropertyType propType,
-                                   const std::string& queryString);
     // Property Functions
     void generateNodePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
                                          std::span<const BinExpr* const> expressions,
