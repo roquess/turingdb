@@ -115,7 +115,7 @@ MapLiteral* CypherAST::newMapLiteral() {
 }
 
 SinglePartQuery* CypherAST::newSinglePartQuery() {
-    auto q = SinglePartQuery::create(_currentStatements);
+    auto q = SinglePartQuery::create(&_decls, _currentStatements);
     auto* ptr = q.get();
     _queries.emplace_back(std::move(q));
 

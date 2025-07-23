@@ -1,19 +1,24 @@
-#include <stdlib.h>
-
-#include "AnalyzeException.h"
+#include "CypherAnalyzer.h"
 #include "CypherParser.h"
+#include "Graph.h"
 #include "Time.h"
 #include "ParserException.h"
-#include "CypherAnalyzer.h"
 #include "FileReader.h"
+#include "SimpleGraph.h"
 #include "CypherAST.h"
+#include "AnalyzeException.h"
+#include "versioning/Transaction.h"
 
 using namespace db;
 
-void runAnalyzer2(const std::string& query);
-
 int main(int argc, char** argv) {
     std::string queryStr;
+
+    std::unique_ptr<Graph> graph = Graph::create();
+    SimpleGraph::createSimpleGraph(graph.get());
+
+    const Transaction transaction = graph->openTransaction();
+    const GraphView view = transaction.viewGraph();
 
     if (argc > 1 && strlen(argv[1]) > 0) {
         queryStr = argv[1];
@@ -32,32 +37,29 @@ int main(int argc, char** argv) {
         queryStr = it.get<char>(file.getInfo()._size);
     }
 
-    runAnalyzer2(queryStr);
+    {
+        CypherParser parser;
+        parser.allowNotImplemented(false);
+
+        try {
+            auto t0 = Clock::now();
+            parser.parse(queryStr);
+            auto t1 = Clock::now();
+            fmt::print("Query parsed in {} us\n", duration<Microseconds>(t0, t1));
+        } catch (const ParserException& e) {
+            fmt::print("{}\n", e.what());
+            return 0;
+        }
+
+        CypherAnalyzer analyzer(parser.takeAST(), view);
+
+        try {
+            analyzer.analyze();
+        } catch (const AnalyzeException& e) {
+            fmt::print("{}\n", e.what());
+            return EXIT_FAILURE;
+        }
+    }
 
     return EXIT_SUCCESS;
-}
-
-void runAnalyzer2(const std::string& query) {
-    CypherParser parser;
-    parser.allowNotImplemented(true);
-
-    try {
-        auto t0 = Clock::now();
-        parser.parse(query);
-        auto t1 = Clock::now();
-        fmt::print("Query parsed in {} us\n", duration<Microseconds>(t0, t1));
-    } catch (const ParserException& e) {
-        fmt::print("{}\n", e.what());
-    }
-
-    CypherAnalyzer analyzer {parser.takeAST()};
-
-    try {
-        auto t0 = Clock::now();
-        analyzer.analyze();
-        auto t1 = Clock::now();
-        fmt::print("Query analyzed in {} us\n", duration<Microseconds>(t0, t1));
-    } catch (const AnalyzeException& e) {
-        fmt::print("{}\n", e.what());
-    }
 }

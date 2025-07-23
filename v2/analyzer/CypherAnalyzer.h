@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "views/GraphView.h"
+
 namespace db {
 
 class CypherAST;
@@ -26,7 +28,8 @@ class DeclContext;
 
 class CypherAnalyzer {
 public:
-    CypherAnalyzer(std::unique_ptr<CypherAST> ast);
+    CypherAnalyzer(std::unique_ptr<CypherAST> ast,
+                   GraphView graphView);
     ~CypherAnalyzer();
 
     CypherAnalyzer(const CypherAnalyzer&) = delete;
@@ -38,8 +41,10 @@ public:
 
 private:
     std::unique_ptr<CypherAST> _ast;
+    GraphView _graphView;
+    const GraphMetadata& _graphMetadata;
 
-    std::unique_ptr<DeclContext> _rootCtxt;;
+    std::unique_ptr<DeclContext> _rootCtxt;
     DeclContext* _ctxt {nullptr};
 
     // Query types

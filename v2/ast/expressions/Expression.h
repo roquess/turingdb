@@ -1,5 +1,7 @@
 #pragma once
 
+#include "attribution/DeclID.h"
+
 namespace db {
 
 enum class ExpressionType {
@@ -39,7 +41,12 @@ public:
         return dynamic_cast<const T*>(this);
     }
 
+    DeclID id() const { return _id; }
+
+    void setID(DeclID id) { _id = id; }
+
 private:
+    DeclID _id {-1};
     ExpressionType _type {};
 };
 

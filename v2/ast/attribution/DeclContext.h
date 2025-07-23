@@ -3,20 +3,19 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
-#include "VariableType.h"
+#include "attribution/DeclID.h"
+#include "attribution/VariableType.h"
 
 namespace db {
 
-class VarDecl;
+class DeclContainer;
+class VariableDecl;
 
 class DeclContext {
 public:
-    DeclContext();
+    DeclContext(DeclContainer* container, DeclContext* parent = nullptr);
     ~DeclContext();
-
-    explicit DeclContext(DeclContext* parent);
 
     DeclContext(const DeclContext&) = delete;
     DeclContext& operator=(const DeclContext&) = delete;
@@ -27,16 +26,21 @@ public:
         return _parent != nullptr;
     }
 
-    VarDecl* getOrCreateNamedVariable(std::string_view name, VariableType type);
-    VarDecl* createUnnamedVariable(VariableType type);
-    VarDecl* tryGetDecl(std::string_view name) const;
+    VariableDecl tryGetVariable(std::string_view name) const;
+    VariableDecl getVariable(std::string_view name) const;
+    VariableDecl getUnnamedVariable(DeclID id) const;
+    bool hasVariable(std::string_view name) const;
+
+    VariableDecl getOrCreateNamedVariable(std::string_view name, VariableType type);
+    VariableDecl createNamedVariable(std::string_view name, VariableType type);
+    VariableDecl createUnnamedVariable(VariableType type);
 
 private:
+    DeclContainer* _container {nullptr};
     DeclContext* _parent {nullptr};
     std::vector<DeclContext*> _children;
 
-    std::vector<std::unique_ptr<VarDecl>> _unnamedVars;
-    std::unordered_map<std::string_view, std::unique_ptr<VarDecl>> _vars;
+    std::unordered_map<std::string_view, DeclID> _decls;
 };
 
 }

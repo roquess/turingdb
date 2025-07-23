@@ -4,11 +4,19 @@
 
 namespace db {
 
-enum class VariableType {
+enum class VariableType : uint8_t {
     Node = 0,
     Edge,
 
-    Value, // UInt, Int, Float, String, Boolean
+    Null,
+    Integer,
+    Double,
+    String,
+    Bool,
+    List,
+    Map,
+
+    Invalid,
 
     _SIZE,
 };
@@ -16,6 +24,13 @@ enum class VariableType {
 using VariableTypeName = EnumToString<VariableType>::Create<
     EnumStringPair<VariableType::Node, "Node">,
     EnumStringPair<VariableType::Edge, "Edge">,
-    EnumStringPair<VariableType::Value, "Value">>;
+    EnumStringPair<VariableType::Null, "Null">,
+    EnumStringPair<VariableType::Integer, "Integer">,
+    EnumStringPair<VariableType::Double, "Double">,
+    EnumStringPair<VariableType::String, "String">,
+    EnumStringPair<VariableType::Bool, "Bool">,
+    EnumStringPair<VariableType::List, "List">,
+    EnumStringPair<VariableType::Map, "Map">,
+    EnumStringPair<VariableType::Invalid, "Invalid">>;
 
 }

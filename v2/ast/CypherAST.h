@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 
+#include "attribution/DeclContainer.h"
 #include "statements/StatementContainer.h"
 #include "statements/SubStatement.h"
 
@@ -21,6 +22,7 @@ class MapLiteral;
 class SinglePartQuery;
 class Statement;
 class Symbol;
+class ExprData;
 
 class CypherAST {
 public:
@@ -96,6 +98,7 @@ private:
     std::vector<std::unique_ptr<StatementContainer>> _statementContainers;
 
     StatementContainer* _currentStatements = nullptr;
+    DeclContainer _decls;
 
     StatementContainer* newStatementContainer();
 };

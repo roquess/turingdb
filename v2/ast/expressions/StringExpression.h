@@ -12,7 +12,7 @@ public:
     StringExpression() = delete;
     ~StringExpression() override = default;
 
-    StringExpression(const Expression* left, StringOperator op, const Expression* right)
+    StringExpression(Expression* left, StringOperator op, Expression* right)
         : Expression(ExpressionType::String),
         _left(left),
         _right(right),
@@ -30,16 +30,18 @@ public:
     const Expression& left() const { return *_left; }
     const Expression& right() const { return *_right; }
 
+    Expression& left() { return *_left; }
+    Expression& right() { return *_right; }
 
-    static std::unique_ptr<StringExpression> create(const Expression* left,
+    static std::unique_ptr<StringExpression> create(Expression* left,
                                                     StringOperator op,
-                                                    const Expression* right) {
+                                                    Expression* right) {
         return std::make_unique<StringExpression>(left, op, right);
     }
 
 private:
-    const Expression* _left {nullptr};
-    const Expression* _right {nullptr};
+    Expression* _left {nullptr};
+    Expression* _right {nullptr};
     StringOperator _operator {};
 };
 

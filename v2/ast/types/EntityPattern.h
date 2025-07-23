@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "Symbol.h"
+#include "attribution/DeclID.h"
 
 namespace db {
 
@@ -60,16 +61,12 @@ public:
         _properties = properties;
     }
 
-    const VarDecl* decl() const {
-        return _decl;
-    }
+    DeclID id() const { return _id; }
 
-    void setDecl(VarDecl* decl) {
-        _decl = decl;
-    }
+    void setID(DeclID id) { _id = id; }
 
 private:
-    VarDecl* _decl {nullptr};
+    DeclID _id {-1};
     std::optional<Symbol> _symbol;
     MapLiteral* _properties {nullptr};
 };

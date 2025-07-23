@@ -42,7 +42,7 @@ LabelMap& LabelMap::operator=(const LabelMap& other) {
     return *this;
 }
 
-std::optional<LabelID> LabelMap::get(const std::string& name) const {
+std::optional<LabelID> LabelMap::get(std::string_view name) const {
     auto it = _nameMap.find(name);
     if (it == _nameMap.end()) {
         return std::nullopt;

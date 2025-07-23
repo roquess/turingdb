@@ -5,10 +5,11 @@
 namespace db {
 
 class DeclContext;
+class DeclContainer;
 
 class QueryCommand {
 public:
-    QueryCommand();
+    explicit QueryCommand(DeclContainer* declContainer);
     virtual ~QueryCommand() = 0;
 
     QueryCommand(const QueryCommand&) = delete;
