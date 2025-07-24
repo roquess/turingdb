@@ -8,31 +8,43 @@
 
 using namespace db;
 
-DeclContext::DeclContext(DeclContainer* container, DeclContext* parent)
+DeclContext::DeclContext(DeclContainer& container, DeclContext* parent)
     : _container(container),
-      _parent(parent)
-{
+      _parent(parent) {
 }
 
 DeclContext::~DeclContext() = default;
 
-VariableDecl DeclContext::tryGetVariable(std::string_view name) const {
+const VariableDecl* DeclContext::tryGetVariable(std::string_view name) const {
     auto it = _decls.find(name);
     if (it != _decls.end()) {
-        VariableDecl decl(*_container, it->second);
+        return it->second;
     }
 
     if (_parent != nullptr) {
         return _parent->tryGetVariable(name);
     }
 
-    return VariableDecl {*_container};
+    return nullptr; // Invalid
 }
 
-VariableDecl DeclContext::getVariable(std::string_view name) const {
+VariableDecl* DeclContext::tryGetVariable(std::string_view name) {
     auto it = _decls.find(name);
     if (it != _decls.end()) {
-        return VariableDecl(*_container, it->second);
+        return it->second;
+    }
+
+    if (_parent != nullptr) {
+        return _parent->tryGetVariable(name);
+    }
+
+    return nullptr; // Invalid
+}
+
+const VariableDecl& DeclContext::getVariable(std::string_view name) const {
+    auto it = _decls.find(name);
+    if (it != _decls.end()) {
+        return *it->second;
     }
 
     if (_parent != nullptr) {
@@ -42,12 +54,17 @@ VariableDecl DeclContext::getVariable(std::string_view name) const {
     throw ASTException(fmt::format("Variable '{}' not found", name));
 }
 
-VariableDecl DeclContext::getUnnamedVariable(DeclID id) const {
-    if (!id.valid()) {
-        throw ASTException("Variable does not exist (ID is invalid)");
+VariableDecl& DeclContext::getVariable(std::string_view name) {
+    auto it = _decls.find(name);
+    if (it != _decls.end()) {
+        return *it->second;
     }
 
-    return VariableDecl(*_container, id);
+    if (_parent != nullptr) {
+        return _parent->getVariable(name);
+    }
+
+    throw ASTException(fmt::format("Variable '{}' not found", name));
 }
 
 bool DeclContext::hasVariable(std::string_view name) const {
@@ -63,12 +80,12 @@ bool DeclContext::hasVariable(std::string_view name) const {
     return false;
 }
 
-VariableDecl DeclContext::getOrCreateNamedVariable(std::string_view name, VariableType type) {
+VariableDecl& DeclContext::getOrCreateNamedVariable(VariableType type, std::string_view name) {
     // Search in current scope
 
     auto it = _decls.find(name);
     if (it != _decls.end()) {
-        const VariableType typeFirstOccurrence = _container->getType(it->second);
+        const VariableType typeFirstOccurrence = it->second->type();
 
         if (type != typeFirstOccurrence) {
             throw ASTException(fmt::format("Variable type mismatch. Variable is of type '{}', first occurrence was '{}'",
@@ -76,45 +93,45 @@ VariableDecl DeclContext::getOrCreateNamedVariable(std::string_view name, Variab
                                            VariableTypeName::value(typeFirstOccurrence)));
         }
 
-        return VariableDecl (*_container, it->second);
+        return *it->second;
     }
 
     // Search in parent scope
     if (_parent != nullptr) {
-        const VariableDecl decl = _parent->tryGetVariable(name);
+        VariableDecl* decl = _parent->tryGetVariable(name);
 
-        if (decl.valid()) {
+        if (decl) {
             // Found it, checking type match
-            if (decl.type() != type) {
+            if (decl->type() != type) {
                 throw ASTException(fmt::format("Variable type mismatch. Variable is of type '{}', first occurrence was '{}'",
                                                VariableTypeName::value(type),
-                                               VariableTypeName::value(decl.type())));
+                                               VariableTypeName::value(decl->type())));
             }
 
-            return decl;
+            return *decl;
         }
     }
 
     // Not found anywhere, create it
-    const DeclID id = _container->newVariable(type, name);
-    _decls.emplace(name, id);
+    VariableDecl& decl = _container.newDecl(type, name);
+    _decls.emplace(name, &decl);
 
-    return VariableDecl(*_container, id);
+    return decl;
 }
 
-VariableDecl DeclContext::createNamedVariable(std::string_view name, VariableType type) {
+VariableDecl& DeclContext::createNamedVariable(VariableType type, std::string_view name) {
     if (_decls.contains(name)) {
         throw ASTException(fmt::format("Variable '{}' already exists", name));
     }
 
-    const DeclID id = _container->newVariable(type, name);
-    _decls.emplace(name, id);
+    VariableDecl& decl = _container.newDecl(type, name);
+    _decls.emplace(name, &decl);
 
-    return VariableDecl(*_container, id);
+    return decl;
 }
 
-VariableDecl DeclContext::createUnnamedVariable(VariableType type) {
-    return VariableDecl(*_container, _container->newVariable(type));
+VariableDecl& DeclContext::createUnnamedVariable(VariableType type) {
+    return _container.newDecl(type);
 }
 
 

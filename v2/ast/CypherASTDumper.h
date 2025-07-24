@@ -29,7 +29,10 @@ class NodeLabelExpression;
 class StringExpression;
 class PropertyExpression;
 class ConstVariableDecl;
+class VariableData;
 
+struct NodePatternData;
+struct EdgePatternData;
 struct PropertyExpressionData;
 struct NodeLabelExpressionData;
 struct LiteralExpressionData;
@@ -72,10 +75,7 @@ private:
     void dump(const NodeLabelExpression& expr);
     void dump(const StringExpression& expr);
     void dump(const PropertyExpression& expr);
-    void dump(const ConstVariableDecl& var);
-    void dump(const ConstVariableDecl& var, const PropertyExpressionData& data);
-    void dump(const ConstVariableDecl& var, const NodeLabelExpressionData& data);
-    void dump(const ConstVariableDecl& var, const LiteralExpressionData& data);
+    void dump(const ConstVariableDecl& decl);
 };
 
 }

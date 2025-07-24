@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "attribution/ASTNodeID.h"
+#include "attribution/VariableType.h"
 #include "views/GraphView.h"
 
 namespace db {
@@ -25,6 +27,8 @@ class StringExpression;
 class NodeLabelExpression;
 class PathExpression;
 class DeclContext;
+class VariableDecl;
+class VariableData;
 
 class CypherAnalyzer {
 public:
@@ -75,6 +79,9 @@ private:
     void analyze(StringExpression& expr);
     void analyze(NodeLabelExpression& expr);
     void analyze(PathExpression& expr);
+
+    std::tuple<ASTNodeID, VariableData*, VariableDecl*> getOrCreateDecl(VariableType type, std::string_view name);
+    std::tuple<ASTNodeID, VariableData*, VariableDecl*> createDecl(VariableType type);
 };
 
 }

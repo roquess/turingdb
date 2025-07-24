@@ -4,7 +4,7 @@
 #include <optional>
 
 #include "Symbol.h"
-#include "attribution/DeclID.h"
+#include "attribution/ASTNodeID.h"
 
 namespace db {
 
@@ -61,12 +61,12 @@ public:
         _properties = properties;
     }
 
-    DeclID id() const { return _id; }
+    ASTNodeID id() const { return _id; }
 
-    void setID(DeclID id) { _id = id; }
+    void setID(ASTNodeID id) { _id = id; }
 
 private:
-    DeclID _id {-1};
+    ASTNodeID _id;
     std::optional<Symbol> _symbol;
     MapLiteral* _properties {nullptr};
 };

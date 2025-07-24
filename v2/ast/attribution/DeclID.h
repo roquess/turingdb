@@ -38,6 +38,17 @@ public:
         return !(*this == other);
     }
 
+    DeclID& operator++() {
+        ++_value;
+        return *this;
+    }
+
+    DeclID operator++(int) {
+        DeclID tmp(*this);
+        ++_value;
+        return tmp;
+    }
+
 private:
     ValueType _value {-1};
 };

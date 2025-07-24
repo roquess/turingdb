@@ -1,8 +1,7 @@
 #pragma once
 
-#include "VariableType.h"
 #include "attribution/DeclID.h"
-#include "attribution/DeclContainer.h"
+#include "attribution/VariableType.h"
 
 namespace db {
 
@@ -12,14 +11,14 @@ class VariableDecl {
 public:
     ~VariableDecl() = default;
 
-    VariableDecl(DeclContainer& container, DeclID id = {-1})
-        : _container(container),
-          _id(id)
+    VariableDecl(VariableType type = VariableType::Invalid, DeclID id = -1)
+        : _id(id),
+          _type(type)
     {
     }
 
-    VariableDecl(const VariableDecl&) = default;
-    VariableDecl(VariableDecl&&) = default;
+    VariableDecl(const VariableDecl&) = delete;
+    VariableDecl(VariableDecl&&) = delete;
     VariableDecl& operator=(const VariableDecl&) = delete;
     VariableDecl& operator=(VariableDecl&&) = delete;
 
@@ -33,42 +32,32 @@ public:
         return _id.valid();
     }
 
-    DeclContainer& container() {
-        return _container;
-    }
-
-    const DeclContainer& container() const {
-        return _container;
-    }
-
     VariableType type() const {
-        return _container.getType(_id);
+        return _type;
     }
 
-    const VariableData& data() const {
-        return _container.getData(_id);
+    const std::string_view& name() const {
+        return _name;
     }
 
-    void setData(VariableData&& data) {
-        _container.setData(_id, std::move(data));
-    }
-
-    std::string_view name() const {
-        return _container.getName(_id);
+    void setName(std::string_view name) {
+        _name = name;
     }
 
 private:
-    DeclContainer& _container;
     DeclID _id;
+    VariableType _type {VariableType::Invalid};
+    std::string_view _name;
 };
 
 class ConstVariableDecl {
 public:
     ~ConstVariableDecl() = default;
 
-    ConstVariableDecl(const DeclContainer& container, DeclID id = {-1})
-        : _container(container),
-          _id(id)
+    ConstVariableDecl(VariableType type = VariableType::Invalid, DeclID id = -1, std::string_view name = "")
+        : _id(id),
+          _type(type),
+          _name(name)
     {
     }
 
@@ -85,29 +74,22 @@ public:
         return _id.valid();
     }
 
-    const DeclContainer& container() const {
-        return _container;
-    }
-
     VariableType type() const {
-        return _container.getType(_id);
+        return _type;
     }
 
-    const VariableData& data() const {
-        return _container.getData(_id);
-    }
-
-    std::string_view name() const {
-        return _container.getName(_id);
+    const std::string_view& name() const {
+        return _name;
     }
 
 private:
-    const DeclContainer& _container;
     DeclID _id;
+    VariableType _type {VariableType::Invalid};
+    std::string_view _name;
 };
 
 inline VariableDecl::operator ConstVariableDecl() const {
-    return ConstVariableDecl {_container, _id};
+    return ConstVariableDecl {_type, _id, _name};
 }
 
 }

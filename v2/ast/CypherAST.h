@@ -4,8 +4,8 @@
 #include <optional>
 #include <vector>
 
+#include "attribution/ASTDataContainer.h"
 #include "attribution/DeclContainer.h"
-#include "attribution/VariableDecl.h"
 #include "statements/StatementContainer.h"
 #include "statements/SubStatement.h"
 
@@ -86,8 +86,25 @@ public:
         return _queries;
     }
 
-    ConstVariableDecl getVariable(DeclID id) const {
-        return ConstVariableDecl(_decls, id);
+    ASTDataContainer& dataContainer() {
+        return _dataContainer;
+    }
+
+    const ASTDataContainer& dataContainer() const {
+        return _dataContainer;
+    }
+
+    const VariableData& getVariableData(ASTNodeID id) const {
+        return _dataContainer.getData(id);
+    }
+
+    const VariableDecl& getVarDecl(DeclID id) const {
+        return _declContainer.getVariable(id);
+    }
+
+    const VariableDecl& getVarDecl(ASTNodeID id) const {
+        const auto& data = _dataContainer.getData(id);
+        return data.decl();
     }
 
 private:
@@ -103,7 +120,8 @@ private:
     std::vector<std::unique_ptr<StatementContainer>> _statementContainers;
 
     StatementContainer* _currentStatements = nullptr;
-    DeclContainer _decls;
+    ASTDataContainer _dataContainer;
+    DeclContainer _declContainer;
 
     StatementContainer* newStatementContainer();
 };

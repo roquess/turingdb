@@ -1,5 +1,6 @@
 #include "CypherAST.h"
 
+#include "attribution/ASTNodeDataStructs.h"
 #include "expressions/AtomExpression.h"
 #include "expressions/NodeLabelExpression.h"
 #include "expressions/Expression.h"
@@ -16,8 +17,7 @@ using namespace db;
 
 
 CypherAST::CypherAST()
-    : _currentStatements(newStatementContainer())
-{
+    : _currentStatements(newStatementContainer()) {
 }
 
 CypherAST::~CypherAST() = default;
@@ -115,7 +115,7 @@ MapLiteral* CypherAST::newMapLiteral() {
 }
 
 SinglePartQuery* CypherAST::newSinglePartQuery() {
-    auto q = SinglePartQuery::create(&_decls, _currentStatements);
+    auto q = SinglePartQuery::create(_declContainer, _currentStatements);
     auto* ptr = q.get();
     _queries.emplace_back(std::move(q));
 

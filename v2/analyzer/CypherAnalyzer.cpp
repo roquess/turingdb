@@ -6,9 +6,9 @@
 #include "CypherAST.h"
 
 #include "attribution/DeclContext.h"
+#include "attribution/ASTNodeDataStructs.h"
 #include "attribution/VariableDecl.h"
 #include "attribution/VariableType.h"
-#include "attribution/ExpressionData.h"
 
 #include "expressions/AtomExpression.h"
 #include "expressions/BinaryExpression.h"
@@ -32,8 +32,7 @@ CypherAnalyzer::CypherAnalyzer(std::unique_ptr<CypherAST> ast,
                                GraphView graphView)
     : _ast(std::move(ast)),
       _graphView(graphView),
-      _graphMetadata(graphView.metadata())
-{
+      _graphMetadata(graphView.metadata()) {
 }
 
 CypherAnalyzer::~CypherAnalyzer() = default;
@@ -117,6 +116,8 @@ void CypherAnalyzer::analyze(const Return& returnSt) {
 }
 
 void CypherAnalyzer::analyze(const Pattern& pattern) {
+    const auto& dataContainer = _ast->dataContainer();
+
     for (const auto& element : pattern.elements()) {
         analyze(*element);
     }
@@ -125,9 +126,9 @@ void CypherAnalyzer::analyze(const Pattern& pattern) {
         auto& whereExpr = pattern.getWhere().getExpression();
         analyze(whereExpr);
 
-        const auto whereVar = _ctxt->getUnnamedVariable(whereExpr.id());
+        const auto& whereData = dataContainer.getData(whereExpr.id());
 
-        if (whereVar.type() != VariableType::Bool) {
+        if (whereData.type() != VariableType::Bool) {
             throw AnalyzeException("WHERE expression must be a boolean");
         }
     }
@@ -148,19 +149,143 @@ void CypherAnalyzer::analyze(const PatternElement& element) {
 }
 
 void CypherAnalyzer::analyze(NodePattern& node) {
-    const VariableDecl var = node.hasSymbol()
-                               ? _ctxt->getOrCreateNamedVariable(node.symbol()._name, VariableType::Node)
-                               : _ctxt->createUnnamedVariable(VariableType::Node);
+    auto [varID, varData, varDecl] = node.hasSymbol()
+                                       ? getOrCreateDecl(VariableType::NodePattern, node.symbol()._name)
+                                       : createDecl(VariableType::NodePattern);
 
-    node.setID(var.id());
+    auto& data = varData->emplace<NodePatternData>();
+
+    if (node.hasLabels()) {
+        const auto& labelMap = _graphMetadata.labels();
+
+        for (const auto& label : node.labels()) {
+            const std::optional<LabelID> labelID = labelMap.get(label);
+
+            if (!labelID) {
+                throw AnalyzeException(fmt::format("Unknown label: {}", label));
+            }
+
+            data._labelConstraints.set(labelID.value());
+        }
+    }
+
+    constexpr auto compatible = [](ValueType vt, VariableType exprType) {
+        switch (exprType) {
+            case VariableType::Null:
+            case VariableType::NodePattern:
+            case VariableType::EdgePattern:
+                return false;
+            case VariableType::Integer:
+                return vt == ValueType::Int64 || vt == ValueType::UInt64 || vt == ValueType::Double;
+            case VariableType::Double:
+                return vt == ValueType::Double;
+            case VariableType::String:
+            case VariableType::Char:
+                return vt == ValueType::String;
+            case VariableType::Bool:
+                return vt == ValueType::Bool;
+            case VariableType::List:
+            case VariableType::Map:
+                return false;
+            case VariableType::Invalid:
+            case VariableType::_SIZE:
+                throw AnalyzeException("Invalid variable type");
+        }
+
+        return false;
+    };
+
+    if (node.hasProperties()) {
+        const auto& propTypeMap = _graphMetadata.propTypes();
+
+        for (const auto& [propName, expr] : node.properties()) {
+            const std::optional<PropertyType> propType = propTypeMap.get(propName);
+
+            if (!propType) {
+                throw AnalyzeException(fmt::format("Unknown property: {}", propName));
+            }
+
+            data._exprConstraints.emplace_back(propType.value(), expr);
+
+            if (!compatible(propType->_valueType, varData->type())) {
+                throw AnalyzeException(fmt::format("Cannot evaluate node property: types '{}' and '{}' are incompatible",
+                                                   ValueTypeName::value(propType->_valueType),
+                                                   VariableTypeName::value(varData->type())));
+            }
+        }
+    }
+
+    node.setID(varID);
 }
 
 void CypherAnalyzer::analyze(EdgePattern& edge) {
-    const VariableDecl var = edge.hasSymbol()
-                               ? _ctxt->getOrCreateNamedVariable(edge.symbol()._name, VariableType::Edge)
-                               : _ctxt->createUnnamedVariable(VariableType::Edge);
+    auto [varID, varData, varDecl] = edge.hasSymbol()
+                                       ? getOrCreateDecl(VariableType::EdgePattern, edge.symbol()._name)
+                                       : createDecl(VariableType::EdgePattern);
 
-    edge.setID(var.id());
+    auto& data = varData->emplace<EdgePatternData>();
+
+    if (edge.hasTypes()) {
+        const auto& edgeTypeMap = _graphMetadata.edgeTypes();
+
+        for (const auto& et : edge.types()) {
+            const std::optional<EdgeTypeID> etID = edgeTypeMap.get(et);
+
+            if (!etID) {
+                throw AnalyzeException(fmt::format("Unknown edge type: {}", et));
+            }
+
+            data._edgeTypeConstraints.push_back(etID.value());
+        }
+    }
+
+    constexpr auto compatible = [](ValueType vt, VariableType exprType) {
+        switch (exprType) {
+            case VariableType::Null:
+            case VariableType::NodePattern:
+            case VariableType::EdgePattern:
+                return false;
+            case VariableType::Integer:
+                return vt == ValueType::Int64 || vt == ValueType::UInt64 || vt == ValueType::Double;
+            case VariableType::Double:
+                return vt == ValueType::Double;
+            case VariableType::String:
+            case VariableType::Char:
+                return vt == ValueType::String;
+            case VariableType::Bool:
+                return vt == ValueType::Bool;
+            case VariableType::List:
+            case VariableType::Map:
+                return false;
+            case VariableType::Invalid:
+            case VariableType::_SIZE:
+                throw AnalyzeException("Invalid variable type");
+        }
+
+        return false;
+    };
+
+    if (edge.hasProperties()) {
+        const auto& propTypeMap = _graphMetadata.propTypes();
+
+        for (const auto& [propName, expr] : edge.properties()) {
+            const std::optional<PropertyType> propType = propTypeMap.get(propName);
+
+            if (!propType) {
+                throw AnalyzeException(fmt::format("Unknown property: {}", propName));
+            }
+
+            data._exprConstraints.emplace_back(propType.value(), expr);
+
+            if (!compatible(propType->_valueType, varData->type())) {
+                throw AnalyzeException(fmt::format("Cannot evaluate edge property: types '{}' and '{}' are incompatible",
+                                                   ValueTypeName::value(propType->_valueType),
+                                                   VariableTypeName::value(varData->type())));
+            }
+        }
+    }
+
+    edge.setID(varID);
 }
 
 void CypherAnalyzer::analyze(Expression& expr) {
@@ -190,11 +315,13 @@ void CypherAnalyzer::analyze(BinaryExpression& expr) {
     analyze(lhs);
     analyze(rhs);
 
-    VariableDecl lhsVar = _ctxt->getUnnamedVariable(lhs.id());
-    VariableDecl rhsVar = _ctxt->getUnnamedVariable(rhs.id());
+    auto& dataContainer = _ast->dataContainer();
 
-    const VariableType lhsType = lhsVar.type();
-    const VariableType rhsType = rhsVar.type();
+    const VariableData& lhsVarData = dataContainer.getData(lhs.id());
+    const VariableData& rhsVarData = dataContainer.getData(rhs.id());
+
+    const VariableType lhsType = lhsVarData.type();
+    const VariableType rhsType = rhsVarData.type();
 
     VariableType type = VariableType::Invalid;
 
@@ -276,20 +403,22 @@ void CypherAnalyzer::analyze(BinaryExpression& expr) {
         }
     }
 
-    VariableDecl exprVar = _ctxt->createUnnamedVariable(type);
-    expr.setID(exprVar.id());
+    const auto [exprID, data, varDecl] = createDecl(type);
+    expr.setID(exprID);
 }
 
 void CypherAnalyzer::analyze(UnaryExpression& expr) {
+    auto& dataContainer = _ast->dataContainer();
+
     auto& operand = expr.right();
     analyze(operand);
 
-    VariableDecl operandVar = _ctxt->getUnnamedVariable(operand.id());
+    const auto& operandVarData = dataContainer.getData(operand.id());
     VariableType type = VariableType::Invalid;
 
     switch (expr.getUnaryOperator()) {
         case UnaryOperator::Not: {
-            if (operandVar.type() != VariableType::Bool) {
+            if (operandVarData.type() != VariableType::Bool) {
                 throw AnalyzeException("NOT operand must be a boolean");
             }
 
@@ -298,9 +427,9 @@ void CypherAnalyzer::analyze(UnaryExpression& expr) {
 
         case UnaryOperator::Minus:
         case UnaryOperator::Plus: {
-            if (operandVar.type() == VariableType::Integer) {
+            if (operandVarData.type() == VariableType::Integer) {
                 type = VariableType::Integer;
-            } else if (operandVar.type() == VariableType::Double) {
+            } else if (operandVarData.type() == VariableType::Double) {
                 type = VariableType::Double;
             } else {
                 throw AnalyzeException("Operand must be an integer or double");
@@ -309,15 +438,19 @@ void CypherAnalyzer::analyze(UnaryExpression& expr) {
         } break;
     }
 
-    const VariableDecl var = _ctxt->createUnnamedVariable(type);
-    expr.setID(var.id());
+    const auto [varID, data, varDecl] = createDecl(type);
+    expr.setID(varID);
 }
 
 void CypherAnalyzer::analyze(AtomExpression& expr) {
     const auto& atom = expr.value();
+
     if (const auto* symbol = std::get_if<Symbol>(&atom)) {
-        const VariableDecl var = _ctxt->getVariable(symbol->_name);
-        expr.setID(var.id());
+        VariableDecl& var = _ctxt->getVariable(symbol->_name);
+        const auto [varID, varData] = _ast->dataContainer().newVariable(var.type());
+        varData->setDecl(&var);
+
+        expr.setID(varID);
 
     } else if (const auto* literal = std::get_if<Literal>(&atom)) {
         VariableType type = VariableType::Invalid;
@@ -345,9 +478,9 @@ void CypherAnalyzer::analyze(AtomExpression& expr) {
             } break;
         }
 
-        VariableDecl var = _ctxt->createUnnamedVariable(type);
-        expr.setID(var.id());
-        var.setData(VariableData::create<LiteralExpressionData>(literal));
+        const auto [varID, varData, varDecl] = createDecl(type);
+        varData->emplace<LiteralExpressionData>(literal);
+        expr.setID(varID);
 
     } else if ([[maybe_unused]] const auto* param = std::get_if<Parameter>(&atom)) {
         throw AnalyzeException("Parameters not supported");
@@ -364,9 +497,9 @@ void CypherAnalyzer::analyze(PropertyExpression& expr) {
     std::string_view varName = qualifiedName.get(0);
     std::string_view propName = qualifiedName.get(1);
 
-    const VariableDecl var = _ctxt->getVariable(varName);
+    const VariableDecl& var = _ctxt->getVariable(varName);
 
-    if (var.type() != VariableType::Node && var.type() != VariableType::Edge) {
+    if (var.type() != VariableType::NodePattern && var.type() != VariableType::EdgePattern) {
         throw AnalyzeException(fmt::format("Variable '{}' is not a node or edge", varName));
     }
 
@@ -397,12 +530,14 @@ void CypherAnalyzer::analyze(PropertyExpression& expr) {
             throw AnalyzeException("Invalid property type");
     }
 
-    VariableDecl exprVar = _ctxt->createUnnamedVariable(type);
-    expr.setID(exprVar.id());
-    exprVar.setData(VariableData::create<PropertyExpressionData>(var));
+    const auto [varID, varData, varDecl] = createDecl(type);
+    expr.setID(varID);
+    varData->emplace<PropertyExpressionData>(var);
 }
 
 void CypherAnalyzer::analyze(StringExpression& expr) {
+    auto& dataContainer = _ast->dataContainer();
+
     auto& lhs = expr.left();
     auto& rhs = expr.right();
 
@@ -414,27 +549,26 @@ void CypherAnalyzer::analyze(StringExpression& expr) {
         analyze(rhs);
     }
 
-    const VariableDecl lhsVar = _ctxt->getUnnamedVariable(lhs.id());
-    const VariableDecl rhsVar = _ctxt->getUnnamedVariable(rhs.id());
+    const auto& lhsVarData = dataContainer.getData(lhs.id());
+    const auto& rhsVarData = dataContainer.getData(rhs.id());
 
-    if (lhsVar.type() != VariableType::String || rhsVar.type() != VariableType::String) {
+    if (lhsVarData.type() != VariableType::String || rhsVarData.type() != VariableType::String) {
         throw AnalyzeException("String expressions operands must be strings");
     }
 
-    VariableDecl exprVar = _ctxt->createUnnamedVariable(VariableType::Bool);
-    expr.setID(exprVar.id());
+    const auto [varID, data, varDecl] = createDecl(VariableType::Bool);
+    expr.setID(varID);
 }
 
 void CypherAnalyzer::analyze(NodeLabelExpression& expr) {
     const auto& labelMap = _graphMetadata.labels();
 
-    const VariableDecl var = _ctxt->getVariable(expr.symbol()._name);
-    VariableDecl exprVar = _ctxt->createUnnamedVariable(VariableType::Bool);
-    expr.setID(exprVar.id());
+    const VariableDecl& var = _ctxt->getVariable(expr.symbol()._name);
+    const auto [varID, varData, varDecl] = createDecl(VariableType::Bool);
+    expr.setID(varID);
 
-    VariableData data = VariableData::create<NodeLabelExpressionData>(var);
-    NodeLabelExpressionData& labelData = data.as<NodeLabelExpressionData>();
-    LabelSet& labelset = labelData._labels;
+    auto& data = varData->emplace<NodeLabelExpressionData>(var);
+    LabelSet& labelset = data._labels;
 
     for (const auto& label : expr.labels()) {
         const std::optional<LabelID> labelID = labelMap.get(label);
@@ -444,10 +578,22 @@ void CypherAnalyzer::analyze(NodeLabelExpression& expr) {
 
         labelset.set(labelID.value());
     }
-
-    exprVar.setData(std::move(data));
 }
 
 void CypherAnalyzer::analyze(PathExpression& expr) {
     throw AnalyzeException("Path expressions not supported");
+}
+
+std::tuple<ASTNodeID, VariableData*, VariableDecl*> CypherAnalyzer::getOrCreateDecl(VariableType type, std::string_view name) {
+    auto [varID, data] = _ast->dataContainer().newVariable(type, name);
+    VariableDecl& decl = _ctxt->getOrCreateNamedVariable(type, name);
+    data->setDecl(&decl);
+    return std::make_tuple(varID, data, &decl);
+}
+
+std::tuple<ASTNodeID, VariableData*, VariableDecl*> CypherAnalyzer::createDecl(VariableType type) {
+    const auto [varID, data] = _ast->dataContainer().newVariable(type);
+    VariableDecl& decl = _ctxt->createUnnamedVariable(type);
+    data->setDecl(&decl);
+    return std::make_tuple(varID, data, &decl);
 }

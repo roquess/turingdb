@@ -4,7 +4,7 @@
 
 using namespace db;
 
-QueryCommand::QueryCommand(DeclContainer* declContainer)
+QueryCommand::QueryCommand(DeclContainer& declContainer)
     : _rootCtxt(std::make_unique<DeclContext>(declContainer))
 {
 }

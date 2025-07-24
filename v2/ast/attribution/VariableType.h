@@ -5,8 +5,10 @@
 namespace db {
 
 enum class VariableType : uint8_t {
-    Node = 0,
-    Edge,
+    Invalid = 0,
+
+    NodePattern,
+    EdgePattern,
 
     Null,
     Integer,
@@ -17,14 +19,13 @@ enum class VariableType : uint8_t {
     List,
     Map,
 
-    Invalid,
-
     _SIZE,
 };
 
 using VariableTypeName = EnumToString<VariableType>::Create<
-    EnumStringPair<VariableType::Node, "Node">,
-    EnumStringPair<VariableType::Edge, "Edge">,
+    EnumStringPair<VariableType::Invalid, "Invalid">,
+    EnumStringPair<VariableType::NodePattern, "NodePattern">,
+    EnumStringPair<VariableType::EdgePattern, "EdgePattern">,
     EnumStringPair<VariableType::Null, "Null">,
     EnumStringPair<VariableType::Integer, "Integer">,
     EnumStringPair<VariableType::Double, "Double">,
@@ -32,7 +33,5 @@ using VariableTypeName = EnumToString<VariableType>::Create<
     EnumStringPair<VariableType::Char, "Char">,
     EnumStringPair<VariableType::Bool, "Bool">,
     EnumStringPair<VariableType::List, "List">,
-    EnumStringPair<VariableType::Map, "Map">,
-    EnumStringPair<VariableType::Invalid, "Invalid">>;
-
+    EnumStringPair<VariableType::Map, "Map">>;
 }

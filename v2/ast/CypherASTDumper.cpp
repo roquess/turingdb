@@ -4,7 +4,7 @@
 
 #include "CypherAST.h"
 #include "ASTException.h"
-#include "attribution/ExpressionData.h"
+#include "attribution/ASTNodeDataStructs.h"
 #include "expressions/AtomExpression.h"
 #include "expressions/BinaryExpression.h"
 #include "expressions/NodeLabelExpression.h"
@@ -35,8 +35,7 @@ std::string sanitizeString(std::string_view str) {
 }
 
 CypherASTDumper::CypherASTDumper(const CypherAST& ast)
-    : _ast(ast)
-{
+    : _ast(ast) {
 }
 
 void CypherASTDumper::dump(std::ostream& output) {
@@ -45,8 +44,6 @@ void CypherASTDumper::dump(std::ostream& output) {
     fmt::format_to(_o, "---\n");
     fmt::format_to(_o, "config:\n");
     fmt::format_to(_o, "  layout: elk\n");
-    fmt::format_to(_o, "  elk:\n");
-    fmt::format_to(_o, "    mergeEdges: true\n");
 
     fmt::format_to(_o, "---\n");
     fmt::format_to(_o, "erDiagram\n");
@@ -308,7 +305,7 @@ void CypherASTDumper::dump(const NodePattern& node) {
         fmt::format_to(_o, "    _{} ||--o{{ _NOT_ANALYZED : _\n",
                        fmt::ptr(&node));
     } else {
-        const auto var = _ast.getVariable(node.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(node.id());
         fmt::format_to(_o, "    _{} ||--o{{ VAR_{} : _\n",
                        fmt::ptr(&node),
                        var.id());
@@ -344,7 +341,7 @@ void CypherASTDumper::dump(const EdgePattern& edge) {
         fmt::format_to(_o, "    _{} ||--o{{ _NOT_ANALYZED : _\n",
                        fmt::ptr(&edge));
     } else {
-        const auto var = _ast.getVariable(edge.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(edge.id());
         fmt::format_to(_o, "    _{} ||--o{{ VAR_{} : _\n",
                        fmt::ptr(&edge),
                        var.id());
@@ -391,7 +388,7 @@ void CypherASTDumper::dump(const Expression& expr) {
     }
 
     if (expr.id().valid()) {
-        const auto var = _ast.getVariable(expr.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(expr.id());
         fmt::format_to(_o, "    _{} ||--o{{ VAR_{} : _\n",
                        fmt::ptr(&expr),
                        var.id());
@@ -404,7 +401,7 @@ void CypherASTDumper::dump(const BinaryExpression& expr) {
     fmt::format_to(_o, "        ASTType BinaryExpression\n");
 
     if (expr.id().valid()) {
-        const auto var = _ast.getVariable(expr.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(expr.id());
         fmt::format_to(_o, "        ValueType {}\n", VariableTypeName::value(var.type()));
     } else {
         fmt::format_to(_o, "        ValueType NOT_EVALUATED\n");
@@ -484,7 +481,7 @@ void CypherASTDumper::dump(const UnaryExpression& expr) {
     fmt::format_to(_o, "        ASTType UnaryExpression\n");
 
     if (expr.id().valid()) {
-        const auto var = _ast.getVariable(expr.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(expr.id());
         fmt::format_to(_o, "        ValueType {}\n", VariableTypeName::value(var.type()));
     } else {
         fmt::format_to(_o, "        ValueType NOT_EVALUATED\n");
@@ -518,7 +515,7 @@ void CypherASTDumper::dump(const AtomExpression& expr) {
     fmt::format_to(_o, "        ASTType AtomExpression\n");
 
     if (expr.id().valid()) {
-        const auto var = _ast.getVariable(expr.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(expr.id());
         fmt::format_to(_o, "        ValueType {}\n", VariableTypeName::value(var.type()));
     } else {
         fmt::format_to(_o, "        ValueType NOT_EVALUATED\n");
@@ -563,7 +560,7 @@ void CypherASTDumper::dump(const PathExpression& expr) {
     fmt::format_to(_o, "        ASTType PathExpression\n");
 
     if (expr.id().valid()) {
-        const auto var = _ast.getVariable(expr.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(expr.id());
         fmt::format_to(_o, "        ValueType {}\n", VariableTypeName::value(var.type()));
     } else {
         fmt::format_to(_o, "        ValueType NOT_EVALUATED\n");
@@ -582,13 +579,20 @@ void CypherASTDumper::dump(const NodeLabelExpression& expr) {
     }
 
     if (expr.id().valid()) {
-        const auto var = _ast.getVariable(expr.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(expr.id());
         fmt::format_to(_o, "        ValueType {}\n", VariableTypeName::value(var.type()));
     } else {
         fmt::format_to(_o, "        ValueType NOT_EVALUATED\n");
     }
 
     fmt::format_to(_o, "    }}\n");
+
+    if (expr.id().valid()) {
+        const auto& data = _ast.getVariableData(expr.id()).as<NodeLabelExpressionData>();
+        fmt::format_to(_o, "    _{} ||--o{{ VAR_{} : _\n",
+                       fmt::ptr(&expr),
+                       data._var.id());
+    }
 }
 
 void CypherASTDumper::dump(const StringExpression& expr) {
@@ -596,7 +600,7 @@ void CypherASTDumper::dump(const StringExpression& expr) {
     fmt::format_to(_o, "        ASTType StringExpression\n");
 
     if (expr.id().valid()) {
-        const auto var = _ast.getVariable(expr.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(expr.id());
         fmt::format_to(_o, "        ValueType {}\n", VariableTypeName::value(var.type()));
     } else {
         fmt::format_to(_o, "        ValueType NOT_EVALUATED\n");
@@ -636,7 +640,7 @@ void CypherASTDumper::dump(const PropertyExpression& expr) {
     fmt::format_to(_o, "        ASTType PropertyExpression\n");
 
     if (expr.id().valid()) {
-        const auto var = _ast.getVariable(expr.id());
+        const ConstVariableDecl& var = _ast.getVarDecl(expr.id());
         fmt::format_to(_o, "        ValueType {}\n", VariableTypeName::value(var.type()));
     } else {
         fmt::format_to(_o, "        ValueType NOT_EVALUATED\n");
@@ -653,100 +657,32 @@ void CypherASTDumper::dump(const PropertyExpression& expr) {
         fmt::format_to(_o, "{}", name);
         i++;
     }
+
     fmt::format_to(_o, "\n    }}\n");
+
+    if (expr.id().valid()) {
+        const auto& data = _ast.getVariableData(expr.id()).as<PropertyExpressionData>();
+        fmt::format_to(_o, "    _{} ||--o{{ VAR_{} : _\n",
+                       fmt::ptr(&expr),
+                       data._var.id());
+    }
 }
 
-void CypherASTDumper::dump(const ConstVariableDecl& var) {
-    if (_dumpedVariables.contains(var.id())) {
+void CypherASTDumper::dump(const ConstVariableDecl& decl) {
+    if (_dumpedVariables.contains(decl.id())) {
         return;
     }
 
-    _dumpedVariables.insert(var.id());
+    _dumpedVariables.insert(decl.id());
 
-    const auto& data = var.data();
+    fmt::format_to(_o, "    VAR_{} {{\n", decl.id());
+    fmt::format_to(_o, "        Type {}\n", VariableTypeName::value(decl.type()));
 
-    if (data.is<NodeLabelExpressionData>()) {
-        const auto& d = data.as<NodeLabelExpressionData>();
-        dump(var, d);
-        return;
+    const auto& name = decl.name();
+
+    if (!name.empty()) {
+        fmt::format_to(_o, "        Name {}\n", name);
     }
-
-    if (data.is<LiteralExpressionData>()) {
-        const auto& d = data.as<LiteralExpressionData>();
-        dump(var, d);
-        return;
-    }
-
-    if (data.is<PropertyExpressionData>()) {
-        const auto& d = data.as<PropertyExpressionData>();
-        dump(var, d);
-        return;
-    }
-
-    // Dump variable that has no data
-    const std::string_view name = var.name();
-
-    fmt::format_to(_o, "    VAR_{} {{\n", var.id());
-    fmt::format_to(_o, "        VariableType {}\n", VariableTypeName::value(var.type()));
-
-    name.empty()
-        ? fmt::format_to(_o, "        Name UNNAMED\n")
-        : fmt::format_to(_o, "        Name {}\n", name);
-
-    fmt::format_to(_o, "    }}\n");
-}
-
-void CypherASTDumper::dump(const ConstVariableDecl& var, const PropertyExpressionData& data) {
-    const std::string_view name = var.name();
-
-    fmt::format_to(_o, "    VAR_{} {{\n", var.id());
-    fmt::format_to(_o, "        VariableType {}\n", VariableTypeName::value(var.type()));
-
-    name.empty()
-        ? fmt::format_to(_o, "        Name UNNAMED\n")
-        : fmt::format_to(_o, "        Name {}\n", name);
-
-    fmt::format_to(_o, "        ExprDataType PropertyExpressionData\n", name);
-    fmt::format_to(_o, "        DependsOn {}\n", data._var.name());
-
-    fmt::format_to(_o, "    }}\n");
-
-    fmt::format_to(_o, "    VAR_{} ||--o{{ VAR_{} : _\n",
-                   data._var.id(),
-                   var.id());
-}
-
-void CypherASTDumper::dump(const ConstVariableDecl& var, const NodeLabelExpressionData& data) {
-    const std::string_view name = var.name();
-
-    fmt::format_to(_o, "    VAR_{} {{\n", var.id());
-    fmt::format_to(_o, "        VariableType {}\n", VariableTypeName::value(var.type()));
-
-    name.empty()
-        ? fmt::format_to(_o, "        Name UNNAMED\n")
-        : fmt::format_to(_o, "        Name {}\n", name);
-
-    fmt::format_to(_o, "        ExprDataType NodeLabelExpressionData\n", name);
-    fmt::format_to(_o, "        DependsOn {}\n", data._var.name());
-
-    fmt::format_to(_o, "    }}\n");
-
-    fmt::format_to(_o, "    VAR_{} ||--o{{ VAR_{} : _\n",
-                   data._var.id(),
-                   var.id());
-}
-
-void CypherASTDumper::dump(const ConstVariableDecl& var, const LiteralExpressionData& data) {
-    const std::string_view name = var.name();
-
-    fmt::format_to(_o, "    VAR_{} {{\n", var.id());
-    fmt::format_to(_o, "        VariableType {}\n", VariableTypeName::value(var.type()));
-
-    name.empty()
-        ? fmt::format_to(_o, "        Name UNNAMED\n")
-        : fmt::format_to(_o, "        Name {}\n", name);
-
-    fmt::format_to(_o, "        ExprDataType LiteralExpressionData\n", name);
 
     fmt::format_to(_o, "    }}\n");
 }

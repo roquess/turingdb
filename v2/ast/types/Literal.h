@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <memory>
-#include <numeric>
+#include <limits>
 #include <string_view>
 #include <unordered_map>
 #include <variant>

@@ -14,7 +14,7 @@ class DeclContainer;
 
 class DeclContext {
 public:
-    DeclContext(DeclContainer* container, DeclContext* parent = nullptr);
+    DeclContext(DeclContainer& container, DeclContext* parent = nullptr);
     ~DeclContext();
 
     DeclContext(const DeclContext&) = delete;
@@ -26,21 +26,23 @@ public:
         return _parent != nullptr;
     }
 
-    VariableDecl tryGetVariable(std::string_view name) const;
-    VariableDecl getVariable(std::string_view name) const;
-    VariableDecl getUnnamedVariable(DeclID id) const;
+    const VariableDecl* tryGetVariable(std::string_view name) const;
+    VariableDecl* tryGetVariable(std::string_view name);
+    const VariableDecl& getVariable(std::string_view name) const;
+    VariableDecl& getVariable(std::string_view name);
+    const VariableDecl& getUnnamedVariable(DeclID id) const;
     bool hasVariable(std::string_view name) const;
 
-    VariableDecl getOrCreateNamedVariable(std::string_view name, VariableType type);
-    VariableDecl createNamedVariable(std::string_view name, VariableType type);
-    VariableDecl createUnnamedVariable(VariableType type);
+    VariableDecl& getOrCreateNamedVariable(VariableType type, std::string_view name);
+    VariableDecl& createNamedVariable(VariableType type, std::string_view name);
+    VariableDecl& createUnnamedVariable(VariableType type);
 
 private:
-    DeclContainer* _container {nullptr};
+    DeclContainer& _container;
     DeclContext* _parent {nullptr};
     std::vector<DeclContext*> _children;
 
-    std::unordered_map<std::string_view, DeclID> _decls;
+    std::unordered_map<std::string_view, VariableDecl*> _decls;
 };
 
 }

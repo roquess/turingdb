@@ -9,7 +9,7 @@ class DeclContainer;
 
 class QueryCommand {
 public:
-    explicit QueryCommand(DeclContainer* declContainer);
+    explicit QueryCommand(DeclContainer& declContainer);
     virtual ~QueryCommand() = 0;
 
     QueryCommand(const QueryCommand&) = delete;

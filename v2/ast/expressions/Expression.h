@@ -1,6 +1,6 @@
 #pragma once
 
-#include "attribution/DeclID.h"
+#include "attribution/ASTNodeID.h"
 
 namespace db {
 
@@ -41,12 +41,12 @@ public:
         return dynamic_cast<const T*>(this);
     }
 
-    DeclID id() const { return _id; }
+    ASTNodeID id() const { return _id; }
 
-    void setID(DeclID id) { _id = id; }
+    void setID(ASTNodeID id) { _id = id; }
 
 private:
-    DeclID _id {-1};
+    ASTNodeID _id;
     ExpressionType _type {};
 };
 

@@ -3,11 +3,18 @@
 #include <variant>
 #include <memory>
 
+#include "ASTException.h"
+#include "attribution/VariableType.h"
+
 namespace db {
+
+class VariableDecl;
 
 struct PropertyExpressionData;
 struct NodeLabelExpressionData;
 struct LiteralExpressionData;
+struct NodePatternData;
+struct EdgePatternData;
 
 class VariableData {
 public:
@@ -17,11 +24,13 @@ public:
     using Variant = std::variant<std::monostate,
                                  UniquePtr<PropertyExpressionData>,
                                  UniquePtr<NodeLabelExpressionData>,
-                                 UniquePtr<LiteralExpressionData>>;
+                                 UniquePtr<LiteralExpressionData>,
+                                 UniquePtr<NodePatternData>,
+                                 UniquePtr<EdgePatternData>>;
     VariableData();
     ~VariableData();
 
-    explicit VariableData(Variant&& data);
+    VariableData(VariableType type);
 
     VariableData(const VariableData&) = delete;
     VariableData(VariableData&&) = default;
@@ -44,12 +53,30 @@ public:
     }
 
     template <typename T, typename... Args>
-    static VariableData create(Args&&... args) {
-        return VariableData {T::create(std::forward<Args>(args)...)};
+    T& emplace(Args&&... args) {
+        return *_data.emplace<UniquePtr<T>>(T::create(std::forward<Args>(args)...));
+    }
+
+    VariableType type() const {
+        return _type;
+    }
+
+    const VariableDecl& decl() const {
+        if (_decl == nullptr) {
+            throw ASTException("VariableData has no variable declaration");
+        }
+
+        return *_decl;
+    }
+
+    void setDecl(VariableDecl* decl) {
+        _decl = decl;
     }
 
 private:
     Variant _data;
+    VariableType _type {};
+    VariableDecl* _decl {nullptr};
 };
 
 
