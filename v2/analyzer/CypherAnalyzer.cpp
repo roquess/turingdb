@@ -280,26 +280,34 @@ void CypherAnalyzer::analyze(EdgePattern& edge) {
 }
 
 void CypherAnalyzer::analyze(Expression& expr) {
-    if (auto* e = dynamic_cast<BinaryExpression*>(&expr)) {
-        analyze(*e);
-    } else if (auto* e = dynamic_cast<UnaryExpression*>(&expr)) {
-        analyze(*e);
-    } else if (auto* e = dynamic_cast<SymbolExpression*>(&expr)) {
-        analyze(*e);
-    } else if (auto* e = dynamic_cast<LiteralExpression*>(&expr)) {
-        analyze(*e);
-    } else if (auto* e = dynamic_cast<LiteralExpression*>(&expr)) {
-        analyze(*e);
-    } else if (auto* e = dynamic_cast<PropertyExpression*>(&expr)) {
-        analyze(*e);
-    } else if (auto* e = dynamic_cast<StringExpression*>(&expr)) {
-        analyze(*e);
-    } else if (auto* e = dynamic_cast<NodeLabelExpression*>(&expr)) {
-        analyze(*e);
-    } else if (auto* e = dynamic_cast<PathExpression*>(&expr)) {
-        analyze(*e);
-    } else {
-        throw AnalyzeException("Unsupported expression type");
+    switch (expr.kind()) {
+        case ExpressionType::Binary:
+            analyze(*expr.as<BinaryExpression>());
+            break;
+        case ExpressionType::Unary:
+            analyze(*expr.as<UnaryExpression>());
+            break;
+        case ExpressionType::String:
+            analyze(*expr.as<StringExpression>());
+            break;
+        case ExpressionType::NodeLabel:
+            analyze(*expr.as<NodeLabelExpression>());
+            break;
+        case ExpressionType::Property:
+            analyze(*expr.as<PropertyExpression>());
+            break;
+        case ExpressionType::Path:
+            analyze(*expr.as<PathExpression>());
+            break;
+        case ExpressionType::Symbol:
+            analyze(*expr.as<SymbolExpression>());
+            break;
+        case ExpressionType::Literal:
+            analyze(*expr.as<LiteralExpression>());
+            break;
+        case ExpressionType::Parameter:
+            analyze(*expr.as<ParameterExpression>());
+            break;
     }
 }
 

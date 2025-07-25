@@ -33,7 +33,8 @@ std::string sanitizeString(std::string_view str) {
 }
 
 CypherASTDumper::CypherASTDumper(const CypherAST& ast)
-    : _ast(ast) {
+    : _ast(ast)
+{
 }
 
 void CypherASTDumper::dump(std::ostream& output) {
@@ -365,26 +366,34 @@ void CypherASTDumper::dump(const MapLiteral& map) {
 }
 
 void CypherASTDumper::dump(const Expression& expr) {
-    if (const auto* e = dynamic_cast<const BinaryExpression*>(&expr)) {
-        dump(*e);
-    } else if (const auto* e = dynamic_cast<const UnaryExpression*>(&expr)) {
-        dump(*e);
-    } else if (const auto* e = dynamic_cast<const SymbolExpression*>(&expr)) {
-        dump(*e);
-    } else if (const auto* e = dynamic_cast<const LiteralExpression*>(&expr)) {
-        dump(*e);
-    } else if (const auto* e = dynamic_cast<const ParameterExpression*>(&expr)) {
-        dump(*e);
-    } else if (const auto* e = dynamic_cast<const PathExpression*>(&expr)) {
-        dump(*e);
-    } else if (const auto* e = dynamic_cast<const NodeLabelExpression*>(&expr)) {
-        dump(*e);
-    } else if (const auto* e = dynamic_cast<const StringExpression*>(&expr)) {
-        dump(*e);
-    } else if (const auto* e = dynamic_cast<const PropertyExpression*>(&expr)) {
-        dump(*e);
-    } else {
-        throw ASTException("Unknown expression type");
+    switch (expr.kind()) {
+        case ExpressionType::Binary:
+            dump(*expr.as<BinaryExpression>());
+            break;
+        case ExpressionType::Unary:
+            dump(*expr.as<UnaryExpression>());
+            break;
+        case ExpressionType::String:
+            dump(*expr.as<StringExpression>());
+            break;
+        case ExpressionType::NodeLabel:
+            dump(*expr.as<NodeLabelExpression>());
+            break;
+        case ExpressionType::Property:
+            dump(*expr.as<PropertyExpression>());
+            break;
+        case ExpressionType::Path:
+            dump(*expr.as<PathExpression>());
+            break;
+        case ExpressionType::Symbol:
+            dump(*expr.as<SymbolExpression>());
+            break;
+        case ExpressionType::Literal:
+            dump(*expr.as<LiteralExpression>());
+            break;
+        case ExpressionType::Parameter:
+            dump(*expr.as<ParameterExpression>());
+            break;
     }
 }
 

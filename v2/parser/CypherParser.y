@@ -269,7 +269,7 @@ singleQuery
     ;
 
 returnSt
-    : RETURN projectionBody { $$ = ast.newStatement<Return>($2); }
+    : RETURN projectionBody { $$ = ast.newStatement<Return>($2); LOC($$, @$);}
     ;
 
 withSt
@@ -278,11 +278,11 @@ withSt
     ;
 
 skipSSt
-    : SKIP expression { $$ = ast.newSubStatement<Skip>($2); }
+    : SKIP expression { $$ = ast.newSubStatement<Skip>($2); LOC($$, @$);}
     ;
 
 limitSSt
-    : LIMIT expression { $$ = ast.newSubStatement<Limit>($2); }
+    : LIMIT expression { $$ = ast.newSubStatement<Limit>($2); LOC($$, @$); }
     ;
 
 projectionBody
@@ -315,8 +315,8 @@ opt_limitSSt
     ;
 
 projectionItems
-    : MULT { $$ = ast.newProjection(); $$->setAll(); }
-    | projectionItem { $$ = ast.newProjection(); $$->add($1); }
+    : MULT { $$ = ast.newProjection(); $$->setAll(); LOC($$, @$); }
+    | projectionItem { $$ = ast.newProjection(); $$->add($1); LOC($$, @$); }
     | projectionItems COMMA projectionItem { $$ = $1; $$->add($3); }
     ;
 
@@ -342,7 +342,7 @@ singlePartQ
     : returnSt { scanner.notImplemented(@$, "Single part query: Return only"); }
     | updatingStatements { scanner.notImplemented(@$, "Single part query: Update only"); }
     | updatingStatements returnSt { scanner.notImplemented(@$, "Single part query: Update + Return"); }
-    | readingStatements returnSt { $$ = ast.newSinglePartQuery(); }
+    | readingStatements returnSt { $$ = ast.newSinglePartQuery(); LOC($$, @$); }
     | readingStatements updatingStatements { scanner.notImplemented(@$, "Single part query: Reading statement + Update"); }
     | readingStatements updatingStatements returnSt { scanner.notImplemented(@$, "Single part query: Reading statement + Update + Return"); }
     ;
@@ -370,8 +370,8 @@ updateWithSt
     ;
 
 matchSt
-    : MATCH patternWhere opt_orderSSt opt_skipSSt opt_limitSSt { $$ = ast.newStatement<Match>($2, $4, $5); }
-    | OPTIONAL MATCH patternWhere opt_orderSSt opt_skipSSt opt_limitSSt { $$ = ast.newStatement<Match>($3, $5, $6, true); }
+    : MATCH patternWhere opt_orderSSt opt_skipSSt opt_limitSSt { $$ = ast.newStatement<Match>($2, $4, $5); LOC($$, @$); }
+    | OPTIONAL MATCH patternWhere opt_orderSSt opt_skipSSt opt_limitSSt { $$ = ast.newStatement<Match>($3, $5, $6, true); LOC($$, @$); }
     ;
 
 unwindSt
@@ -505,7 +505,7 @@ where
     ;
 
 pattern
-    : patternPart { $$ = ast.newPattern(); $$->addElem($1); }
+    : patternPart { $$ = ast.newPattern(); $$->addElem($1); LOC($$, @$); }
     | pattern COMMA patternPart { $$ = $1, $$->addElem($3); }
     ;
 
@@ -607,13 +607,13 @@ propertyOrLabelExpression
 
 propertyExpression
     : atomExpression { $$ = $1; }
-    | qualifiedName DOT name { $1.addName($3); $$ = ast.newExpression<PropertyExpression>(std::move($1)); }
+    | qualifiedName DOT name { $1.addName($3); $$ = ast.newExpression<PropertyExpression>(std::move($1)); LOC($$, @$); }
     ;
 
 atomExpression
     : pathExpression { $$ = $1; }
-    | literal { $$ = ast.newExpression<LiteralExpression>($1); }
-    | symbol { $$ = ast.newExpression<SymbolExpression>($1); }
+    | literal { $$ = ast.newExpression<LiteralExpression>($1); LOC($$, @$); }
+    | symbol { $$ = ast.newExpression<SymbolExpression>($1); LOC($$, @$); }
 
     | parameter { scanner.notImplemented(@$, "Parameters"); }
     | caseExpression { scanner.notImplemented(@$, "CASE"); }
@@ -641,7 +641,7 @@ patternAlias
     : symbol ASSIGN patternElem { scanner.notImplemented(@$, "Pattern alias: Symbol = ()-[]-()-[]-()..."); }
 
 patternElem
-    : nodePattern { $$ = ast.newPatternElem(); $$->addNode($1); }
+    : nodePattern { $$ = ast.newPatternElem(); $$->addNode($1); LOC($$, @$); }
     | patternElem patternElemChain { $$ = $1; $$->addEdge($2.first); $$->addNode($2.second); }
     ;
 
@@ -654,7 +654,7 @@ properties
     ;
 
 nodePattern
-    : OPAREN opt_symbol opt_nodeLabels opt_properties CPAREN { $$ = ast.newNode($2, std::move($3), $4); }
+    : OPAREN opt_symbol opt_nodeLabels opt_properties CPAREN { $$ = ast.newNode($2, std::move($3), $4); LOC($$, @$); }
     ;
 
 opt_symbol
@@ -688,12 +688,12 @@ opt_rangeLit
 
 
 edgePattern
-    : TAIL_TAIL     { $$ = ast.newOutEdge(std::nullopt, std::nullopt, nullptr); }
-    | TIP_TAIL_TAIL { $$ = ast.newInEdge(std::nullopt, std::nullopt, nullptr); }
-    | TAIL_TAIL_TIP { $$ = ast.newOutEdge(std::nullopt, std::nullopt, nullptr); }
-    | TAIL_BRACKET edgeDetail BRACKET_TAIL     { $$ = ast.newOutEdge(std::get<0>($2), std::move(std::get<1>($2)), std::get<2>($2)); }
-    | TIP_TAIL_BRACKET edgeDetail BRACKET_TAIL { $$ = ast.newInEdge(std::get<0>($2), std::move(std::get<1>($2)), std::get<2>($2)); }
-    | TAIL_BRACKET edgeDetail BRACKET_TAIL_TIP { $$ = ast.newOutEdge(std::get<0>($2), std::move(std::get<1>($2)), std::get<2>($2)); }
+    : TAIL_TAIL     { $$ = ast.newOutEdge(std::nullopt, std::nullopt, nullptr); LOC($$, @$); }
+    | TIP_TAIL_TAIL { $$ = ast.newInEdge(std::nullopt, std::nullopt, nullptr); LOC($$, @$); }
+    | TAIL_TAIL_TIP { $$ = ast.newOutEdge(std::nullopt, std::nullopt, nullptr); LOC($$, @$); }
+    | TAIL_BRACKET edgeDetail BRACKET_TAIL     { $$ = ast.newOutEdge(std::get<0>($2), std::move(std::get<1>($2)), std::get<2>($2)); LOC($$, @$); }
+    | TIP_TAIL_BRACKET edgeDetail BRACKET_TAIL { $$ = ast.newInEdge(std::get<0>($2), std::move(std::get<1>($2)), std::get<2>($2)); LOC($$, @$); }
+    | TAIL_BRACKET edgeDetail BRACKET_TAIL_TIP { $$ = ast.newOutEdge(std::get<0>($2), std::move(std::get<1>($2)), std::get<2>($2)); LOC($$, @$); }
     ;
 
 edgeDetail
@@ -734,11 +734,23 @@ functionInvocation
 
 pathExpression
     : parenthesizedExpression { $$ = $1; }
-    | OPAREN CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($3); }
-    | OPAREN symbol properties CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($5); $5->addRootNode(ast.newNode($2, std::nullopt, $3)); }
-    | OPAREN symbol nodeLabels properties CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($6); $6->addRootNode(ast.newNode($2, std::move($3), $4)); }
-    | OPAREN nodeLabels CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($4); $4->addRootNode(ast.newNode(std::nullopt, std::move($2), nullptr)); }
-    | OPAREN nodeLabels properties CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($5); $5->addRootNode(ast.newNode(std::nullopt, std::move($2), nullptr)); }
+    | OPAREN CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($3); LOC($$, @$); }
+    | OPAREN symbol properties CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($5); $5->addRootNode(ast.newNode($2, std::nullopt, $3)); LOC($$, @$); }
+    | OPAREN symbol nodeLabels properties CPAREN pathExpressionElem { $$ = ast.newExpression<PathExpression>($6); $6->addRootNode(ast.newNode($2, std::move($3), $4)); LOC($$, @$); }
+    | OPAREN nodeLabels CPAREN pathExpressionElem {
+        $$ = ast.newExpression<PathExpression>($4);
+        auto* node = ast.newNode(std::nullopt, std::move($2), nullptr);
+        $4->addRootNode(node);
+        LOC($$, @$);
+        LOC(node, @$);
+      }
+    | OPAREN nodeLabels properties CPAREN pathExpressionElem {
+        $$ = ast.newExpression<PathExpression>($5);
+        auto* node = ast.newNode(std::nullopt, std::move($2), nullptr);
+        $5->addRootNode(node);
+        LOC($$, @$);
+        LOC(node, @$);
+      }
 
     // Those three expressions are tricky and cause conflicts with 'OPAREN expression CPAREN'
 
@@ -758,14 +770,17 @@ pathExpression
 
           if (auto* node = ast.nodeFromExpression($2)) {
               $4->addRootNode(node);
+              LOC(node, @$);
           } else {
               error(@1, "Invalid path expression. Root must be a valid node pattern '(symbol? nodeLabels? properties?)'");
           }
+
+          LOC($$, @$);
       }
     ;
 
 pathExpressionElem
-: patternElemChain { $$ = ast.newPatternElem(); $$->addRootNode($1.second); $$->addRootEdge($1.first); }
+: patternElemChain { $$ = ast.newPatternElem(); $$->addRootNode($1.second); $$->addRootEdge($1.first); LOC($$, @$);}
     | pathExpressionElem patternElemChain { $$ = $1; $$->addRootNode($2.second); $$->addRootEdge($2.first); }
     ;
 
@@ -903,12 +918,12 @@ listLitItem
     ;
 
 mapLit
-    : OBRACE CBRACE { $$ = Literal(ast.newMapLiteral()); }
+    : OBRACE CBRACE { auto* map = ast.newMapLiteral(); $$ = Literal(map); LOC(map, @$); }
     | OBRACE mapPairChain CBRACE { $$ = Literal($2);}
     ;
 
 mapPairChain
-    : mapPair { $$ = ast.newMapLiteral(); $$->set($1.first, $1.second); }
+    : mapPair { $$ = ast.newMapLiteral(); $$->set($1.first, $1.second); LOC($$, @$); }
     | mapPairChain COMMA mapPair { $$ = $1; $$->set($3.first, $3.second); }
     ;
 
