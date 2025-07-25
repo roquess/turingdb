@@ -586,7 +586,7 @@ void QueryPlanner::planScanNodesWithPropertyAndLabelConstraints(ColumnNodeIDs* c
     const PropertyType propType = propTypeRes.value();
     auto* filterMask = _mem->alloc<ColumnMask>();
 
-    const auto treat = [&]<SupportedType Type> {
+    const auto process = [&]<SupportedType Type> {
         using StepType = ScanNodesByPropertyAndLabel<Type>;
         using Primitive = typename Type::Primitive;
 
@@ -699,7 +699,7 @@ void QueryPlanner::planScanNodesWithPropertyAndLabelConstraints(ColumnNodeIDs* c
         }
     };
 
-    PropertyTypeDispatcher {propType._valueType}.execute(treat);
+    PropertyTypeDispatcher {propType._valueType}.execute(process);
 }
 
 void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filterMasks,
@@ -739,7 +739,7 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
             return;
         }
 
-        const auto treat = [&]<SupportedType Type>() {
+        const auto process = [&]<SupportedType Type>() {
             using StepType = GetFilteredNodePropertyStep<Type>;
             using Primitive = typename Type::Primitive;
 
@@ -768,7 +768,7 @@ void QueryPlanner::generateNodePropertyFilterMasks(std::vector<ColumnMask*> filt
                 ._rhs = propValFilterMask});
         };
 
-        PropertyTypeDispatcher {propType._valueType}.execute(treat);
+        PropertyTypeDispatcher {propType._valueType}.execute(process);
     }
 }
 
@@ -811,7 +811,7 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
             return;
         }
 
-        const auto treat = [&]<SupportedType Type>() {
+        const auto process = [&]<SupportedType Type>() {
             using StepType = GetFilteredEdgePropertyStep<Type>;
             using Primitive = typename Type::Primitive;
 
@@ -841,7 +841,7 @@ void QueryPlanner::generateEdgePropertyFilterMasks(std::vector<ColumnMask*> filt
                 ._rhs = propValFilterMask});
         };
 
-        PropertyTypeDispatcher {propType._valueType}.execute(treat);
+        PropertyTypeDispatcher {propType._valueType}.execute(process);
     }
 }
 
@@ -1546,7 +1546,7 @@ void QueryPlanner::planPropertyProjection(ColumnNodeIDs* columnIDs,
                                           const ReturnField* field) {
     const auto& propType = field->getMemberType();
 
-    const auto treat = [&]<SupportedType T> {
+    const auto process = [&]<SupportedType T> {
         auto propValues = _mem->alloc<ColumnOptVector<typename T::Primitive>>();
         _pipeline->add<GetNodePropertyStep<T>>(columnIDs,
                                                propType,
@@ -1554,7 +1554,7 @@ void QueryPlanner::planPropertyProjection(ColumnNodeIDs* columnIDs,
         _output->addColumn(propValues);
     };
 
-    PropertyTypeDispatcher {propType._valueType}.execute(treat);
+    PropertyTypeDispatcher {propType._valueType}.execute(process);
 }
 
 void QueryPlanner::planPropertyProjection(ColumnEdgeIDs* columnIDs,
@@ -1562,7 +1562,7 @@ void QueryPlanner::planPropertyProjection(ColumnEdgeIDs* columnIDs,
                                           const ReturnField* field) {
     const auto& propType = field->getMemberType();
 
-    const auto treat = [&]<SupportedType T> {
+    const auto process = [&]<SupportedType T> {
         auto propValues = _mem->alloc<ColumnOptVector<typename T::Primitive>>();
         _pipeline->add<GetEdgePropertyStep<T>>(columnIDs,
                                                propType,
@@ -1570,7 +1570,7 @@ void QueryPlanner::planPropertyProjection(ColumnEdgeIDs* columnIDs,
         _output->addColumn(propValues);
     };
 
-    PropertyTypeDispatcher {propType._valueType}.execute(treat);
+    PropertyTypeDispatcher {propType._valueType}.execute(process);
 }
 
 void QueryPlanner::planTransformStep() {
