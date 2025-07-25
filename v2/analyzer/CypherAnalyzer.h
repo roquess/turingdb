@@ -27,7 +27,7 @@ class StringExpression;
 class NodeLabelExpression;
 class PathExpression;
 class DeclContext;
-class VariableDecl;
+class VarDecl;
 class AnalysisData;
 
 class CypherAnalyzer {

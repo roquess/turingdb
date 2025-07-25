@@ -305,7 +305,7 @@ void CypherASTDumper::dump(const NodePattern& node) {
         fmt::format_to(_o, "    _{} ||--o{{ _NOT_ANALYZED : _\n",
                        fmt::ptr(&node));
     } else {
-        const VariableDecl* var = node.data().as<NodePatternData>()._decl;
+        const VarDecl* var = node.data().as<NodePatternData>()._decl;
         if (var) {
             fmt::format_to(_o, "    _{} ||--o{{ VAR_{} : _\n",
                            fmt::ptr(&node),
@@ -343,7 +343,7 @@ void CypherASTDumper::dump(const EdgePattern& edge) {
         fmt::format_to(_o, "    _{} ||--o{{ _NOT_ANALYZED : _\n",
                        fmt::ptr(&edge));
     } else {
-        const VariableDecl* var = edge.data().as<EdgePatternData>()._decl;
+        const VarDecl* var = edge.data().as<EdgePatternData>()._decl;
         if (var) {
             fmt::format_to(_o, "    _{} ||--o{{ VAR_{} : _\n",
                            fmt::ptr(&edge),
@@ -652,7 +652,7 @@ void CypherASTDumper::dump(const PropertyExpression& expr) {
     }
 }
 
-void CypherASTDumper::dump(const ConstVariableDecl& decl) {
+void CypherASTDumper::dump(const VarDecl& decl) {
     if (_dumpedVariables.contains(decl.id())) {
         return;
     }

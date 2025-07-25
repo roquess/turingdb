@@ -4,7 +4,7 @@
 
 #include "ASTException.h"
 #include "attribution/DeclContainer.h"
-#include "attribution/VariableDecl.h"
+#include "attribution/VarDecl.h"
 
 using namespace db;
 
@@ -15,7 +15,7 @@ DeclContext::DeclContext(DeclContainer& container, DeclContext* parent)
 
 DeclContext::~DeclContext() = default;
 
-const VariableDecl* DeclContext::tryGetVariable(std::string_view name) const {
+const VarDecl* DeclContext::tryGetVariable(std::string_view name) const {
     auto it = _decls.find(name);
     if (it != _decls.end()) {
         return it->second;
@@ -28,7 +28,7 @@ const VariableDecl* DeclContext::tryGetVariable(std::string_view name) const {
     return nullptr; // Invalid
 }
 
-VariableDecl* DeclContext::tryGetVariable(std::string_view name) {
+VarDecl* DeclContext::tryGetVariable(std::string_view name) {
     auto it = _decls.find(name);
     if (it != _decls.end()) {
         return it->second;
@@ -41,7 +41,7 @@ VariableDecl* DeclContext::tryGetVariable(std::string_view name) {
     return nullptr; // Invalid
 }
 
-const VariableDecl& DeclContext::getVariable(std::string_view name) const {
+const VarDecl& DeclContext::getVariable(std::string_view name) const {
     auto it = _decls.find(name);
     if (it != _decls.end()) {
         return *it->second;
@@ -54,7 +54,7 @@ const VariableDecl& DeclContext::getVariable(std::string_view name) const {
     throw ASTException(fmt::format("Variable '{}' not found", name));
 }
 
-VariableDecl& DeclContext::getVariable(std::string_view name) {
+VarDecl& DeclContext::getVariable(std::string_view name) {
     auto it = _decls.find(name);
     if (it != _decls.end()) {
         return *it->second;
@@ -80,7 +80,7 @@ bool DeclContext::hasVariable(std::string_view name) const {
     return false;
 }
 
-VariableDecl& DeclContext::getOrCreateNamedVariable(EvaluatedType type, std::string_view name) {
+VarDecl& DeclContext::getOrCreateNamedVariable(EvaluatedType type, std::string_view name) {
     // Search in current scope
 
     auto it = _decls.find(name);
@@ -98,7 +98,7 @@ VariableDecl& DeclContext::getOrCreateNamedVariable(EvaluatedType type, std::str
 
     // Search in parent scope
     if (_parent != nullptr) {
-        VariableDecl* decl = _parent->tryGetVariable(name);
+        VarDecl* decl = _parent->tryGetVariable(name);
 
         if (decl) {
             // Found it, checking type match
@@ -113,24 +113,24 @@ VariableDecl& DeclContext::getOrCreateNamedVariable(EvaluatedType type, std::str
     }
 
     // Not found anywhere, create it
-    VariableDecl& decl = _container.newDecl(type, name);
+    VarDecl& decl = _container.newDecl(type, name);
     _decls.emplace(name, &decl);
 
     return decl;
 }
 
-VariableDecl& DeclContext::createNamedVariable(EvaluatedType type, std::string_view name) {
+VarDecl& DeclContext::createNamedVariable(EvaluatedType type, std::string_view name) {
     if (_decls.contains(name)) {
         throw ASTException(fmt::format("Variable '{}' already exists", name));
     }
 
-    VariableDecl& decl = _container.newDecl(type, name);
+    VarDecl& decl = _container.newDecl(type, name);
     _decls.emplace(name, &decl);
 
     return decl;
 }
 
-VariableDecl& DeclContext::createUnnamedVariable(EvaluatedType type) {
+VarDecl& DeclContext::createUnnamedVariable(EvaluatedType type) {
     return _container.newDecl(type);
 }
 

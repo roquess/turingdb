@@ -28,7 +28,7 @@ class PathExpression;
 class NodeLabelExpression;
 class StringExpression;
 class PropertyExpression;
-class ConstVariableDecl;
+class VarDecl;
 class AnalysisData;
 
 struct NodePatternData;
@@ -75,7 +75,7 @@ private:
     void dump(const NodeLabelExpression& expr);
     void dump(const StringExpression& expr);
     void dump(const PropertyExpression& expr);
-    void dump(const ConstVariableDecl& decl);
+    void dump(const VarDecl& decl);
 };
 
 }

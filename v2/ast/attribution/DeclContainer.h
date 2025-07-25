@@ -7,7 +7,7 @@
 
 namespace db {
 
-class VariableDecl;
+class VarDecl;
 
 class DeclContainer {
 public:
@@ -19,19 +19,19 @@ public:
     DeclContainer& operator=(const DeclContainer&) = delete;
     DeclContainer& operator=(DeclContainer&&) = delete;
 
-    VariableDecl& newDecl(EvaluatedType type);
-    VariableDecl& newDecl(EvaluatedType type, std::string_view name);
+    VarDecl& newDecl(EvaluatedType type);
+    VarDecl& newDecl(EvaluatedType type, std::string_view name);
 
-    VariableDecl& getVariable(DeclID id) {
+    VarDecl& getVariable(DeclID id) {
         return *_decls[id.value()];
     }
 
-    const VariableDecl& getDecl(DeclID id) const {
+    const VarDecl& getDecl(DeclID id) const {
         return *_decls[id.value()];
     }
 
 private:
-    std::vector<std::unique_ptr<VariableDecl>> _decls;
+    std::vector<std::unique_ptr<VarDecl>> _decls;
     DeclID _nextID {0};
 };
 

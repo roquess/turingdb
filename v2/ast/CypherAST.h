@@ -106,7 +106,7 @@ public:
         return _dataContainer.get(id);
     }
 
-    const VariableDecl& getVarDecl(DeclID id) const {
+    const VarDecl& getVarDecl(DeclID id) const {
         return _declContainer.getDecl(id);
     }
 

@@ -9,7 +9,7 @@
 
 namespace db {
 
-class VariableDecl;
+class VarDecl;
 
 struct PropertyExpressionData;
 struct NodeLabelExpressionData;

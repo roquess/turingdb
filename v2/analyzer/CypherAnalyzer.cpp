@@ -7,7 +7,7 @@
 
 #include "attribution/DeclContext.h"
 #include "attribution/ASTNodeDataStructs.h"
-#include "attribution/VariableDecl.h"
+#include "attribution/VarDecl.h"
 #include "attribution/EvaluatedType.h"
 
 #include "expressions/AtomExpression.h"
@@ -151,7 +151,7 @@ void CypherAnalyzer::analyze(const PatternElement& element) {
 void CypherAnalyzer::analyze(NodePattern& node) {
     if (node.hasSymbol()) {
         auto& data = _ast->newAnalysisData(EvaluatedType::NodePattern);
-        VariableDecl& decl = _ctxt->getOrCreateNamedVariable(EvaluatedType::NodePattern, node.symbol()._name);
+        VarDecl& decl = _ctxt->getOrCreateNamedVariable(EvaluatedType::NodePattern, node.symbol()._name);
         data.emplace<NodePatternData>(&decl);
         node.setData(&data);
     } else {
@@ -227,7 +227,7 @@ void CypherAnalyzer::analyze(NodePattern& node) {
 void CypherAnalyzer::analyze(EdgePattern& edge) {
     if (edge.hasSymbol()) {
         auto& data = _ast->newAnalysisData(EvaluatedType::EdgePattern);
-        VariableDecl& decl = _ctxt->getOrCreateNamedVariable(EvaluatedType::EdgePattern, edge.symbol()._name);
+        VarDecl& decl = _ctxt->getOrCreateNamedVariable(EvaluatedType::EdgePattern, edge.symbol()._name);
         data.emplace<EdgePatternData>(&decl);
         edge.setData(&data);
     } else {
@@ -457,7 +457,7 @@ void CypherAnalyzer::analyze(AtomExpression& expr) {
     const auto& atom = expr.value();
 
     if (const auto* symbol = std::get_if<Symbol>(&atom)) {
-        VariableDecl& var = _ctxt->getVariable(symbol->_name);
+        VarDecl& var = _ctxt->getVariable(symbol->_name);
 
         auto& data = _ast->newAnalysisData(var.type());
         data.emplace<SymbolData>(var);
@@ -507,7 +507,7 @@ void CypherAnalyzer::analyze(PropertyExpression& expr) {
     std::string_view varName = qualifiedName.get(0);
     std::string_view propName = qualifiedName.get(1);
 
-    const VariableDecl& var = _ctxt->getVariable(varName);
+    const VarDecl& var = _ctxt->getVariable(varName);
 
     if (var.type() != EvaluatedType::NodePattern && var.type() != EvaluatedType::EdgePattern) {
         throw AnalyzeException(fmt::format("Variable '{}' is not a node or edge", varName));
@@ -573,7 +573,7 @@ void CypherAnalyzer::analyze(StringExpression& expr) {
 void CypherAnalyzer::analyze(NodeLabelExpression& expr) {
     const auto& labelMap = _graphMetadata.labels();
 
-    const VariableDecl& var = _ctxt->getVariable(expr.symbol()._name);
+    const VarDecl& var = _ctxt->getVariable(expr.symbol()._name);
     auto& varData = _ast->newAnalysisData(EvaluatedType::Bool);
     expr.setID(varData.id());
 
