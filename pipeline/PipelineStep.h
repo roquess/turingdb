@@ -28,7 +28,7 @@
 #include "operations/ListGraphStep.h"
 #include "operations/GetLabelSetIDStep.h"
 #include "operations/LoadGraphStep.h"
-#include "operations/QueryIndexStep.h"
+#include "operations/LookupStringIndexStep.h"
 #include "operations/GetPropertyStep.h"
 #include "operations/GetFilteredPropertyStep.h"
 #include "operations/HistoryStep.h"
@@ -193,7 +193,7 @@ private:
                  ListGraphStep,
                  LoadGraphStep,
                  LookupNodeStringIndexStep,
-                 LookupEdgeIndexStep,
+                 LookupEdgeStringIndexStep,
                  ScanNodesByPropertyInt64Step,
                  ScanNodesByPropertyUInt64Step,
                  ScanNodesByPropertyDoubleStep,
