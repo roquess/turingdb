@@ -5,6 +5,7 @@
 %define api.value.type variant
 %define parse.assert
 %define parse.error detailed
+%define api.location.type { SourceLocation }
 %define api.namespace { db }
 %parse-param {db::YCypherScanner& scanner}
 %parse-param {db::CypherAST& ast}
@@ -19,6 +20,8 @@
     #include <spdlog/fmt/bundled/core.h>
     #include <optional>
     #include <vector>
+
+    #include "SourceLocation.h"
 
     #include "statements/StatementContainer.h"
     #include "statements/Return.h"
@@ -1015,7 +1018,6 @@ reservedWord
 %%
 
 void db::YCypherParser::error(const location_type& l, const std::string& m) {
-    location turingLoc = scanner.getLocation();
     scanner.syntaxError(m);
 }
 

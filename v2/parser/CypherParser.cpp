@@ -8,13 +8,14 @@
 using namespace db;
 
 CypherParser::CypherParser()
-    : _ast(std::make_unique<CypherAST>())
 {
 }
 
 CypherParser::~CypherParser() = default;
 
 void CypherParser::parse(std::string_view query) {
+    _ast = std::make_unique<CypherAST>(query);
+
     YCypherScanner yscanner;
     yscanner.allowNotImplemented(_allowNotImplemented);
     yscanner.setQuery(query);

@@ -27,7 +27,7 @@ class ExprData;
 
 class CypherAST {
 public:
-    CypherAST();
+    CypherAST(std::string_view query);
     ~CypherAST();
 
     CypherAST(const CypherAST&) = delete;
@@ -111,6 +111,8 @@ public:
     }
 
 private:
+    std::string_view _query;
+
     std::vector<std::unique_ptr<Expression>> _expressions;
     std::vector<std::unique_ptr<Pattern>> _patterns;
     std::vector<std::unique_ptr<PatternElement>> _patternElems;

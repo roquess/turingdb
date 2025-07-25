@@ -1,8 +1,22 @@
 #pragma once
 
+#include "SourceLocation.h"
 #if !defined(yyFlexLexerOnce)
 #include <FlexLexer.h>
 #endif
+
+#define YYLLOC_DEFAULT(Current, Rhs, N) \
+    do { \
+        if (N) { \
+            (Current).beginLine = YYRHSLOC(Rhs, 1).beginLine; \
+            (Current).beginColumn = YYRHSLOC(Rhs, 1).beginColumn; \
+            (Current).endLine = YYRHSLOC(Rhs, N).endLine; \
+            (Current).endColumn = YYRHSLOC(Rhs, N).endColumn; \
+        } else { \
+            (Current).beginLine = (Current).endLine = YYRHSLOC(Rhs, 0).endLine; \
+            (Current).beginColumn = (Current).endColumn = YYRHSLOC(Rhs, 0).endColumn; \
+        } \
+    } while (0)
 
 #include "GeneratedCypherParser.h"
 
@@ -11,13 +25,13 @@ namespace db {
 #undef YY_DECL
 
 #define YY_DECL \
-    db::YCypherParser::token_type YCypherScanner::lex(db::YCypherParser::semantic_type* yylval, location* yylloc)
+    db::YCypherParser::token_type YCypherScanner::lex(db::YCypherParser::semantic_type* yylval, SourceLocation* yylloc)
 
 class YCypherScanner : public yyFlexLexer {
 public:
-    virtual YCypherParser::token_type lex(YCypherParser::semantic_type* yylval, location* yylloc);
+    virtual YCypherParser::token_type lex(YCypherParser::semantic_type* yylval, SourceLocation* yylloc);
 
-    location getLocation() const { return _location; }
+    SourceLocation getLocation() const { return _location; }
 
     void setQuery(std::string_view query) { _query = query; }
 
@@ -43,7 +57,7 @@ public:
 private:
     size_t _nextOffset = 0;
     size_t _offset = 0;
-    location _location;
+    SourceLocation _location;
     std::string_view _query;
     bool _allowNotImplemented = true;
 

@@ -34,8 +34,8 @@ void db::YCypherScanner::generateError(const std::string& msg, std::string& erro
     std::string_view q = _query;
     const auto& loc = _location;
 
-    const size_t firstLine = loc.begin.line;
-    const size_t lastLine = loc.end.line;
+    const size_t firstLine = loc.beginLine;
+    const size_t lastLine = loc.endLine;
 
     if (firstLine != lastLine) {
         // Multi-line error
@@ -48,7 +48,7 @@ void db::YCypherScanner::generateError(const std::string& msg, std::string& erro
             std::string prefix = fmt::format("  {:>4} | ", lineNo);
 
             if (i == 1) {
-                const std::string blank(prefix.size() + loc.begin.column - 1, ' ');
+                const std::string blank(prefix.size() + loc.beginColumn - 1, ' ');
                 errorOutput += fmt::format("{}⌄ \n", blank, firstLine, line);
             }
 
@@ -72,11 +72,11 @@ void db::YCypherScanner::generateError(const std::string& msg, std::string& erro
         errLine = nextLine(q);
     }
 
-    const size_t errLen = loc.end.column - loc.begin.column;
+    const size_t errLen = loc.endColumn - loc.beginColumn;
     const std::string errorBars(errLen, '^');
 
     std::string prefixLine = fmt::format("{:<4} | ", errLineNo);
-    const size_t blankLen = prefixLine.size() + loc.begin.column - 1;
+    const size_t blankLen = prefixLine.size() + loc.beginColumn - 1;
     const std::string blank(blankLen, ' ');
 
     errorOutput += fmt::format("{}{}\n", prefixLine, errLine);
