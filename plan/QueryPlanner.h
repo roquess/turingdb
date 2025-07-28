@@ -9,7 +9,6 @@
 #include "ExprConstraint.h"
 #include "QueryCommand.h"
 #include "columns/ColumnIDs.h"
-#include "columns/ColumnSet.h"
 #include "metadata/LabelSet.h"
 #include "VectorHash.h"
 #include "QueryCallback.h"
@@ -137,6 +136,11 @@ private:
     bool planCommit(const CommitCommand* commit);
     bool planCall(const CallCommand* call);
 
+    /*
+     * @brief Dispatches correct pipeline steps in the case where the first expression
+     * constraint is a String constraint. Uses the approx index where necessary. Also
+     * dispatches additional (possibly non-string) constraint filters.
+     */
     void caseScanNodesStringConstraint(const std::vector<const BinExpr*>& exprs,
                                        PropertyType propType, ColumnNodeIDs* outNodes);
 };
