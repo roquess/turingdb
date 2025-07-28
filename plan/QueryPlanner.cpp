@@ -421,51 +421,62 @@ void QueryPlanner::caseScanNodesStringConstraint(const std::vector<const BinExpr
 
     // We examine the first expression
     BinExpr::OpType firstOperator = exprs[0]->getOpType();
-    if (firstOperator == BinExpr::OP_EQUAL) {
-        auto* scannedNodes = _mem->alloc<ColumnNodeIDs>();
-        auto* propValues = _mem->alloc<ColumnVector<types::String::Primitive>>();
 
-        auto* filterConstVal = _mem->alloc<ColumnConst<types::String::Primitive>>();
-        filterConstVal->set(queryString);
+    switch (firstOperator) {
+        case BinExpr::OP_EQUAL: { // Scan nodes by property -> filter.
+            auto* scannedNodes = _mem->alloc<ColumnNodeIDs>();
+            auto* propValues = _mem->alloc<ColumnVector<types::String::Primitive>>();
 
-        // Gets nodes that have the property of the type in `propType`, putting the values
-        // of these properties into `propValues`
-        _pipeline->add<ScanNodesByPropertyStringStep>(scannedNodes, propType, propValues);
+            auto* filterConstVal = _mem->alloc<ColumnConst<types::String::Primitive>>();
+            filterConstVal->set(queryString);
 
-        ColumnNodeIDs* firstStageOutput = exprs.size() == 1 ? outNodes : filteredScannedNodes;
+            // Gets nodes that have the property of the type in `propType`, putting the values
+            // of these properties into `propValues`
+            _pipeline->add<ScanNodesByPropertyStringStep>(scannedNodes, propType, propValues);
 
-        // Mask for the first constraint
-        auto* filterMask = _mem->alloc<ColumnMask>();
+            ColumnNodeIDs* firstStageOutput = exprs.size() == 1 ? outNodes : filteredScannedNodes;
 
-        // Apply a filter: returning only those nodes who match the constraint string
-        auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
-        // Filter by comparing each node's property value with the queried value
-        // Produced output mask in @ref filterMask
-        filter.addExpression(FilterStep::Expression {
-            ._op = ColumnOperator::OP_EQUAL,
-            ._mask = filterMask,
-            ._lhs = propValues,
-            ._rhs = filterConstVal});
-        // Apply the mask in @ref filterMask to all nodes (stored in @ref
-        // scannedNodes), outputting to @ref outputNodes
-        filter.addOperand(FilterStep::Operand {
-            ._mask = filterMask,
-            ._src = scannedNodes,
-            ._dest = firstStageOutput}); // Output to @ref outNodes in the case of single expression
+            // Mask for the first constraint
+            auto* filterMask = _mem->alloc<ColumnMask>();
 
-        // Single expression case: we are done
-        if (exprs.size() == 1 ) {
-            return;
+            // Apply a filter: returning only those nodes who match the constraint string
+            auto& filter = _pipeline->add<FilterStep>().get<FilterStep>();
+            // Filter by comparing each node's property value with the queried value
+            // Produced output mask in @ref filterMask
+            filter.addExpression(FilterStep::Expression {
+                ._op = ColumnOperator::OP_EQUAL,
+                ._mask = filterMask,
+                ._lhs = propValues,
+                ._rhs = filterConstVal});
+            // Apply the mask in @ref filterMask to all nodes (stored in @ref
+            // scannedNodes), outputting to @ref outputNodes
+            filter.addOperand(FilterStep::Operand {
+                ._mask = filterMask,
+                ._src = scannedNodes,
+                ._dest = firstStageOutput}); // Output to @ref outNodes in the case of single expression
+
+            // Single expression case: we are done
+            if (exprs.size() == 1 ) {
+                return;
+            }
+        break;
         }
-    } else { // String approx case
-        // Only returns nodes which match (no need to filter after scan as above)
-        _pipeline->add<ScanNodesStringApproxStep>(firstStageOutput, _view,
-                                                 propType._id, queryString);
 
-        // Single expression case: we are done
-        if (exprs.size() == 1 ) {
-            return;
+        case BinExpr::OP_STR_APPROX: { // Scan nodes with index.
+            // Only returns nodes which match (no need to filter after scan as above)
+            _pipeline->add<ScanNodesStringApproxStep>(firstStageOutput, _view,
+                                                     propType._id, queryString);
+
+            // Single expression case: we are done
+            if (exprs.size() == 1 ) {
+                return;
+            }
+        break;
         }
+
+        default:
+            throw PlannerException("Unsupported operator for type 'String'");
+        break;
     }
     // If we are here then we have filtered the nodes based on the first property
     // constraint, but there are more to filter on (i.e. exprs.size() > 1)
