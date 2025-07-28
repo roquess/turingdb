@@ -10,7 +10,6 @@ struct SourceLocation {
     uint32_t endLine {1};
     uint32_t endColumn {1};
 
-
     void step() {
         beginLine = endLine;
         beginColumn = endColumn;

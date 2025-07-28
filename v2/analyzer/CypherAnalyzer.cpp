@@ -26,8 +26,8 @@ using namespace db;
 CypherAnalyzer::CypherAnalyzer(CypherAST& ast,
                                GraphView graphView)
     : _ast(&ast),
-      _graphView(graphView),
-      _graphMetadata(graphView.metadata())
+    _graphView(graphView),
+    _graphMetadata(graphView.metadata())
 {
 }
 
@@ -110,6 +110,10 @@ void CypherAnalyzer::analyze(const Return& returnSt) {
 }
 
 void CypherAnalyzer::analyze(const Pattern& pattern) {
+    if (pattern.elements().empty()) {
+        throwError("Empty pattern", &pattern);
+    }
+
     for (const auto& element : pattern.elements()) {
         analyze(*element);
     }
