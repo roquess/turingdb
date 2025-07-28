@@ -9,7 +9,10 @@ namespace db {
 
 class CypherError {
 public:
-    explicit CypherError(std::string_view query) : _query(query) {}
+    explicit CypherError(std::string_view query)
+        :_query(query)
+    {
+    }
 
     void generate(std::string& errorOutput);
 

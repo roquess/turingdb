@@ -28,6 +28,9 @@ class ExprData;
 
 class CypherAST {
 public:
+    template <typename T>
+    using UniquePtrVector = std::vector<std::unique_ptr<T>>;
+
     CypherAST(std::string_view query);
     ~CypherAST();
 
@@ -89,7 +92,7 @@ public:
         return data.emplace<T>(std::forward<Args>(args)...);
     }
 
-    const std::vector<std::unique_ptr<QueryCommand>>& queries() const {
+    const UniquePtrVector<QueryCommand>& queries() const {
         return _queries;
     }
 
@@ -125,24 +128,24 @@ public:
 private:
     std::string_view _query;
 
-    std::vector<std::unique_ptr<Expression>> _expressions;
-    std::vector<std::unique_ptr<Pattern>> _patterns;
-    std::vector<std::unique_ptr<PatternElement>> _patternElems;
-    std::vector<std::unique_ptr<EntityPattern>> _patternEntity;
-    std::vector<std::unique_ptr<Statement>> _statements;
-    std::vector<std::unique_ptr<SubStatement>> _subStatements;
-    std::vector<std::unique_ptr<Projection>> _projections;
-    std::vector<std::unique_ptr<QueryCommand>> _queries;
-    std::vector<std::unique_ptr<MapLiteral>> _mapLiterals;
-    std::vector<std::unique_ptr<StatementContainer>> _statementContainers;
+    UniquePtrVector<Expression> _expressions;
+    UniquePtrVector<Pattern> _patterns;
+    UniquePtrVector<PatternElement> _patternElems;
+    UniquePtrVector<EntityPattern> _patternEntity;
+    UniquePtrVector<Statement> _statements;
+    UniquePtrVector<SubStatement> _subStatements;
+    UniquePtrVector<Projection> _projections;
+    UniquePtrVector<QueryCommand> _queries;
+    UniquePtrVector<MapLiteral> _mapLiterals;
+    UniquePtrVector<StatementContainer> _statementContainers;
     std::vector<AnalysisData> _data;
 
     std::unordered_map<std::uintptr_t, SourceLocation> _locationMap;
 
-    StatementContainer* _currentStatements = nullptr;
+    StatementContainer* _currentStatements {nullptr};
     DeclContainer _declContainer;
 
-    bool _debugLocation = true;
+    bool _debugLocation {true};
 
     StatementContainer* newStatementContainer();
 };
