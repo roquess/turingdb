@@ -22,6 +22,10 @@ public:
     std::vector<std::string_view>::const_iterator begin() const { return _names.begin(); }
     std::vector<std::string_view>::const_iterator end() const { return _names.end(); }
 
+    size_t size() const { return _names.size(); }
+
+    std::string_view get(size_t index) const { return _names[index]; }
+
 private:
     std::vector<std::string_view> _names;
 };

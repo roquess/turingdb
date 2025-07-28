@@ -27,7 +27,7 @@ public:
     EdgeTypeMap& operator=(const EdgeTypeMap&);
     EdgeTypeMap& operator=(EdgeTypeMap&&) noexcept = default;
 
-    [[nodiscard]] std::optional<EdgeTypeID> get(const std::string& name) const;
+    [[nodiscard]] std::optional<EdgeTypeID> get(std::string_view name) const;
     [[nodiscard]] std::optional<std::string_view> getName(EdgeTypeID id) const;
     [[nodiscard]] size_t getCount() const;
 

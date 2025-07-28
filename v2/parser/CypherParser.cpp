@@ -7,12 +7,10 @@
 
 using namespace db;
 
-CypherParser::CypherParser()
-    : _ast(std::make_unique<CypherAST>())
+CypherParser::CypherParser(CypherAST& ast)
+    : _ast(&ast)
 {
 }
-
-CypherParser::~CypherParser() = default;
 
 void CypherParser::parse(std::string_view query) {
     YCypherScanner yscanner;

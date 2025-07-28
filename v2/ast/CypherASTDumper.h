@@ -1,8 +1,9 @@
 #pragma once
 
+#include "attribution/DeclID.h"
 #include <iterator>
 #include <ostream>
-#include <vector>
+#include <unordered_set>
 
 namespace db {
 
@@ -19,15 +20,24 @@ class WhereClause;
 class Expression;
 class NodePattern;
 class EdgePattern;
-class Symbol;
 class MapLiteral;
 class BinaryExpression;
 class UnaryExpression;
-class AtomExpression;
+class SymbolExpression;
+class LiteralExpression;
+class ParameterExpression;
 class PathExpression;
 class NodeLabelExpression;
 class StringExpression;
 class PropertyExpression;
+class VarDecl;
+class AnalysisData;
+
+struct NodePatternData;
+struct EdgePatternData;
+struct PropertyExpressionData;
+struct NodeLabelExpressionData;
+struct LiteralExpressionData;
 
 class CypherASTDumper {
 public:
@@ -45,28 +55,31 @@ private:
     const CypherAST& _ast;
     std::ostream_iterator<char> _o;
 
-    void dumpQuery(const SinglePartQuery& query);
-    void dumpMatch(const Match& match);
-    void dumpLimit(const Limit& lim);
-    void dumpSkip(const Skip& skip);
-    void dumpReturn(const Return& ret);
-    void dumpProjection(const Projection& projection);
-    void dumpPattern(const Pattern& pattern);
-    void dumpPatternPart(const PatternElement& part);
-    void dumpWhere(const WhereClause& where);
-    void dumpNode(const NodePattern& node);
-    void dumpEdge(const EdgePattern& edge);
-    void dumpSymbol(const Symbol& symbol);
-    void dumpMapLiteral(const MapLiteral& map);
-    void dumpTypes(const std::vector<std::string_view>& types);
-    void dumpExpression(const Expression& expr);
-    void dumpBinaryExpression(const BinaryExpression& expr);
-    void dumpUnaryExpression(const UnaryExpression& expr);
-    void dumpAtomExpression(const AtomExpression& expr);
-    void dumpPathExpression(const PathExpression& expr);
-    void dumpNodeLabelExpression(const NodeLabelExpression& expr);
-    void dumpStringExpression(const StringExpression& expr);
-    void dumpPropertyExpression(const PropertyExpression& expr);
+    std::unordered_set<DeclID> _dumpedVariables;
+
+    void dump(const SinglePartQuery& query);
+    void dump(const Match& match);
+    void dump(const Limit& lim);
+    void dump(const Skip& skip);
+    void dump(const Return& ret);
+    void dump(const Projection& projection);
+    void dump(const Pattern& pattern);
+    void dump(const PatternElement& elem);
+    void dump(const WhereClause& where);
+    void dump(const NodePattern& node);
+    void dump(const EdgePattern& edge);
+    void dump(const MapLiteral& map);
+    void dump(const Expression& expr);
+    void dump(const BinaryExpression& expr);
+    void dump(const UnaryExpression& expr);
+    void dump(const SymbolExpression& expr);
+    void dump(const LiteralExpression& expr);
+    void dump(const ParameterExpression& expr);
+    void dump(const PathExpression& expr);
+    void dump(const NodeLabelExpression& expr);
+    void dump(const StringExpression& expr);
+    void dump(const PropertyExpression& expr);
+    void dump(const VarDecl& decl);
 };
 
 }

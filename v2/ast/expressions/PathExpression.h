@@ -27,10 +27,9 @@ public:
         return std::make_unique<PathExpression>(pattern);
     }
 
-    const PatternElement* pattern() const {
-        return _pattern;
+    const PatternElement& pattern() const {
+        return *_pattern;
     }
-
 
     void addNode(NodePattern* node) {
         _pattern->addNode(node);

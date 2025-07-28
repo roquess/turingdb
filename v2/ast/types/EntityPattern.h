@@ -8,6 +8,8 @@
 namespace db {
 
 class MapLiteral;
+class VarDecl;
+class AnalysisData;
 
 class EntityPattern {
 public:
@@ -59,7 +61,20 @@ public:
         _properties = properties;
     }
 
+    bool analyzed() const {
+        return _data != nullptr;
+    }
+
+    const AnalysisData& data() const { return *_data; }
+
+    AnalysisData& data() { return *_data; }
+
+    void setData(AnalysisData* data) {
+        _data = data;
+    }
+
 private:
+    AnalysisData* _data {nullptr};
     std::optional<Symbol> _symbol;
     MapLiteral* _properties {nullptr};
 };

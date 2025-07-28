@@ -1,13 +1,13 @@
 #include "CypherAST.h"
 
-#include "expressions/AtomExpression.h"
+#include "expressions/SymbolExpression.h"
+#include "expressions/LiteralExpression.h"
 #include "expressions/NodeLabelExpression.h"
-#include "expressions/Expression.h"
 #include "types/Projection.h"
 #include "types/SinglePartQuery.h"
 #include "types/Pattern.h"
 #include "types/NodePattern.h"
-#include "types/PatternEdge.h"
+#include "types/EdgePattern.h"
 #include "types/Literal.h"
 #include "types/Symbol.h"
 #include "statements/Statement.h"
@@ -15,8 +15,9 @@
 using namespace db;
 
 
-CypherAST::CypherAST()
-    : _currentStatements(newStatementContainer())
+CypherAST::CypherAST(std::string_view query)
+    : _query(query),
+      _currentStatements(newStatementContainer())
 {
 }
 
@@ -27,21 +28,19 @@ NodePattern* CypherAST::nodeFromExpression(Expression* e) {
         return nullptr;
     }
 
-    if (auto* atomExpr = dynamic_cast<AtomExpression*>(e)) {
-        if (auto* value = std::get_if<Symbol>(&atomExpr->atom())) {
-            return newNode(*value, std::nullopt, nullptr);
-        }
+    if (auto* symbolExpr = dynamic_cast<SymbolExpression*>(e)) {
+        return newNode(symbolExpr->symbol(), std::nullopt, nullptr);
+    }
 
-        if (auto* literal = std::get_if<Literal>(&atomExpr->atom())) {
-            if (auto* maplit = literal->as<MapLiteral*>()) {
-                return newNode(std::nullopt, std::nullopt, *maplit);
-            }
+    if (const auto* literalExpr = dynamic_cast<db::LiteralExpression*>(e)) {
+        if (const auto* maplit = literalExpr->literal().as<MapLiteral*>()) {
+            return newNode(std::nullopt, std::nullopt, *maplit);
         }
     }
 
     else if (const auto* nodeLabelExpr = dynamic_cast<db::NodeLabelExpression*>(e)) {
         return newNode(nodeLabelExpr->symbol(),
-                       std::vector<std::string_view>(nodeLabelExpr->labels()),
+                       std::vector<std::string_view>(nodeLabelExpr->labelNames()),
                        nullptr);
     }
 
@@ -115,7 +114,7 @@ MapLiteral* CypherAST::newMapLiteral() {
 }
 
 SinglePartQuery* CypherAST::newSinglePartQuery() {
-    auto q = SinglePartQuery::create(_currentStatements);
+    auto q = SinglePartQuery::create(_declContainer, _currentStatements);
     auto* ptr = q.get();
     _queries.emplace_back(std::move(q));
 

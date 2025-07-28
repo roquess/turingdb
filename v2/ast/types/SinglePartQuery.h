@@ -10,11 +10,12 @@ class StatementContainer;
 
 class SinglePartQuery : public QueryCommand {
 public:
-    SinglePartQuery() = default;
     ~SinglePartQuery() override = default;
 
-    SinglePartQuery(StatementContainer* statements)
-        : _statements(statements)
+    SinglePartQuery(DeclContainer& declContainer,
+                    StatementContainer* statements)
+        : QueryCommand(declContainer),
+        _statements(statements)
     {
     }
 
@@ -23,8 +24,9 @@ public:
     SinglePartQuery& operator=(const SinglePartQuery&) = delete;
     SinglePartQuery& operator=(SinglePartQuery&&) = delete;
 
-    static std::unique_ptr<SinglePartQuery> create(StatementContainer* statements) {
-        return std::make_unique<SinglePartQuery>(statements);
+    static std::unique_ptr<SinglePartQuery> create(DeclContainer& declContainer,
+                                                   StatementContainer* statements) {
+        return std::make_unique<SinglePartQuery>(declContainer, statements);
     }
 
     const StatementContainer& getStatements() const {

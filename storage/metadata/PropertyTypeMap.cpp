@@ -53,7 +53,7 @@ std::optional<PropertyType> PropertyTypeMap::get(PropertyTypeID ptID) const {
     return _container[offset]._pt;
 }
 
-std::optional<PropertyType> PropertyTypeMap::get(const std::string& name) const {
+std::optional<PropertyType> PropertyTypeMap::get(const std::string_view name) const {
     auto it = _nameMap.find(name);
     if (it == _nameMap.end()) {
         return std::nullopt;

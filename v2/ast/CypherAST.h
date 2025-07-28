@@ -4,6 +4,9 @@
 #include <optional>
 #include <vector>
 
+#include "SourceLocation.h"
+#include "attribution/AnalysisData.h"
+#include "attribution/DeclContainer.h"
 #include "statements/StatementContainer.h"
 #include "statements/SubStatement.h"
 
@@ -21,10 +24,14 @@ class MapLiteral;
 class SinglePartQuery;
 class Statement;
 class Symbol;
+class ExprData;
 
 class CypherAST {
 public:
-    CypherAST();
+    template <typename T>
+    using UniquePtrVector = std::vector<std::unique_ptr<T>>;
+
+    CypherAST(std::string_view query);
     ~CypherAST();
 
     CypherAST(const CypherAST&) = delete;
@@ -79,23 +86,66 @@ public:
         return ptr;
     }
 
-    const std::vector<std::unique_ptr<QueryCommand>>& queries() const {
+    template <typename T, typename... Args>
+    T& newAnalysisData(EvaluatedType type, Args&&... args) {
+        auto& data = _data.emplace_back();
+        return data.emplace<T>(std::forward<Args>(args)...);
+    }
+
+    const UniquePtrVector<QueryCommand>& queries() const {
         return _queries;
     }
 
-private:
-    std::vector<std::unique_ptr<Expression>> _expressions;
-    std::vector<std::unique_ptr<Pattern>> _patterns;
-    std::vector<std::unique_ptr<PatternElement>> _patternElems;
-    std::vector<std::unique_ptr<EntityPattern>> _patternEntity;
-    std::vector<std::unique_ptr<Statement>> _statements;
-    std::vector<std::unique_ptr<SubStatement>> _subStatements;
-    std::vector<std::unique_ptr<Projection>> _projections;
-    std::vector<std::unique_ptr<QueryCommand>> _queries;
-    std::vector<std::unique_ptr<MapLiteral>> _mapLiterals;
-    std::vector<std::unique_ptr<StatementContainer>> _statementContainers;
+    const VarDecl& getVarDecl(DeclID id) const {
+        return _declContainer.getDecl(id);
+    }
 
-    StatementContainer* _currentStatements = nullptr;
+    template <typename T>
+    void setLocation(const T* ptr, const SourceLocation& loc) {
+        if (!_debugLocation) {
+            return;
+        }
+
+        _locationMap[(std::uintptr_t)ptr] = loc;
+    }
+
+    const SourceLocation* getLocation(uintptr_t ptr) const {
+        auto it = _locationMap.find(ptr);
+        if (it != _locationMap.end()) {
+            return &it->second;
+        }
+        return nullptr;
+    }
+
+    const std::string_view& query() const {
+        return _query;
+    }
+
+    void setDebugLocation(bool debug) {
+        _debugLocation = debug;
+    }
+
+private:
+    std::string_view _query;
+
+    UniquePtrVector<Expression> _expressions;
+    UniquePtrVector<Pattern> _patterns;
+    UniquePtrVector<PatternElement> _patternElems;
+    UniquePtrVector<EntityPattern> _patternEntity;
+    UniquePtrVector<Statement> _statements;
+    UniquePtrVector<SubStatement> _subStatements;
+    UniquePtrVector<Projection> _projections;
+    UniquePtrVector<QueryCommand> _queries;
+    UniquePtrVector<MapLiteral> _mapLiterals;
+    UniquePtrVector<StatementContainer> _statementContainers;
+    std::vector<AnalysisData> _data;
+
+    std::unordered_map<std::uintptr_t, SourceLocation> _locationMap;
+
+    StatementContainer* _currentStatements {nullptr};
+    DeclContainer _declContainer;
+
+    bool _debugLocation {true};
 
     StatementContainer* newStatementContainer();
 };

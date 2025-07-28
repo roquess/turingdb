@@ -27,7 +27,7 @@ public:
     LabelMap& operator=(const LabelMap&);
     LabelMap& operator=(LabelMap&&) noexcept = default;
 
-    [[nodiscard]] std::optional<LabelID> get(const std::string& name) const;
+    [[nodiscard]] std::optional<LabelID> get(std::string_view name) const;
     [[nodiscard]] std::optional<std::string_view> getName(LabelID id) const;
     [[nodiscard]] size_t getCount() const;
 
