@@ -23,8 +23,6 @@ public:
 
     size_t size() const { return _indexer.size(); }
 
-    auto begin() const { return _indexer.begin(); }
-
 private:
     std::unordered_map<PropertyTypeID, std::unique_ptr<StringIndex>> _indexer {};
 
