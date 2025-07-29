@@ -12,8 +12,7 @@ namespace db {
 
 class ExecutionContext;
 
-template <typename IDT>
-    requires(Identifier<IDT>)
+template <TypedInternalID IDT>
 class LookupStringIndexStep {
 public:
     struct Tag {};

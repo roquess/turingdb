@@ -12,9 +12,6 @@ namespace db {
 class GraphView;
 class StringIndex;
 
-template <typename IDT>
-concept Identifier = (std::same_as<IDT, NodeID> || std::same_as<IDT, EdgeID>);
-
 class StringIndexUtils {
 public:
     /*
@@ -25,8 +22,7 @@ public:
      * @param propType The property type to query against
      * @param query The string to query against
      */
-    template <typename IDT>
-        requires(Identifier<IDT>)
+    template <TypedInternalID IDT>
     static void getMatches(std::vector<IDT>& output, const GraphView& view,
                            PropertyTypeID propID, const std::string& query) {
         const auto& dps = view.dataparts();
