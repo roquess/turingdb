@@ -130,21 +130,21 @@ TEST_F(StringIndexTest, simpleIndex) {
     // Get the prefix trie corresponding to the "name" property
     auto& nameIdx = nodePropIdx.at(0);
 
-    std::vector<EntityID> owners1 {};
+    std::vector<NodeID> owners1 {};
     nameIdx->query(owners1, "Cyrus");
     ASSERT_EQ(1, owners1.size());
     EXPECT_EQ(FIRSTNODEID, owners1.at(0));
 
-    std::vector<EntityID> owners2 {};
+    std::vector<NodeID> owners2 {};
     nameIdx->query(owners2, "Suhas");
     ASSERT_EQ(1, owners2.size());
     EXPECT_EQ(SECONDNODEID, owners2.at(0));
 
-    std::vector<EntityID> owners3 {};
+    std::vector<NodeID> owners3 {};
     nameIdx->query(owners3, "Remy");
     EXPECT_EQ(0, owners3.size());
 
-    std::vector<EntityID> owners4 {};
+    std::vector<NodeID> owners4 {};
     nameIdx->query(owners4, "Cy");
     ASSERT_EQ(1, owners4.size());
     EXPECT_EQ(FIRSTNODEID, owners4.at(0));
@@ -155,31 +155,31 @@ TEST_F(StringIndexTest, simpleIndex) {
     // Get the prefix trie corresponding to the "For" property
     auto& [propId2, forIdx] = *edgePropIdx.cbegin();
 
-    std::vector<EntityID> owners5 {};
+    std::vector<EdgeID> owners5 {};
     forIdx->query(owners5, "2 weeks");
     ASSERT_EQ(1, owners5.size());
     EXPECT_EQ(FIRSTEDGEID, owners5.at(0));
 
-    std::vector<EntityID> owners6 {};
+    std::vector<EdgeID> owners6 {};
     forIdx->query(owners6, "2");
     ASSERT_EQ(1, owners6.size());
     EXPECT_EQ(FIRSTEDGEID, owners6.at(0));
 
-    std::vector<EntityID> owners7 {};
+    std::vector<EdgeID> owners7 {};
     forIdx->query(owners7, "weeks");
     ASSERT_EQ(1, owners7.size());
     EXPECT_EQ(FIRSTEDGEID, owners7.at(0));
 
-    std::vector<EntityID> owners8 {};
+    std::vector<EdgeID> owners8 {};
     forIdx->query(owners8, "we");
     ASSERT_EQ(1, owners8.size());
     EXPECT_EQ(FIRSTEDGEID, owners8.at(0));
 
-    std::vector<EntityID> owners9 {};
+    std::vector<EdgeID> owners9 {};
     forIdx->query(owners9, "eeks");
     EXPECT_EQ(0, owners9.size());
 
-    std::vector<EntityID> owners10 {};
+    std::vector<EdgeID> owners10 {};
     forIdx->query(owners10, "10 years");
     EXPECT_EQ(0, owners10.size());
 }
@@ -207,7 +207,7 @@ TEST_F(StringIndexTest, stringApproximation) {
     // Get the prefix trie corresponding to the "name" property
     auto& nameIdx = nodePropIdx.at(NAMEPROPID);
 
-    std::vector<EntityID> owners {};
+    std::vector<NodeID> owners;
     nameIdx->query(owners, "APOE");
     EXPECT_THAT(owners, UnorderedElementsAre(0, 1, 2, 3)) << "Query for 'APOE' failed";
 

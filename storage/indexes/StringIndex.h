@@ -50,6 +50,7 @@ public:
 
     StringIndex(const StringIndex&) = delete;
     StringIndex& operator=(const StringIndex&) = delete;
+    StringIndex& operator=(const StringIndex&&) = delete;
     StringIndex(StringIndex&&) = delete;
 
     /**
@@ -70,10 +71,10 @@ public:
      * @warn Does not empty/clear @param result
      * @param str The string to query
      */
-    template <typename T>
-    const void query(std::vector<T>& result, std::string_view queryString) const {
+    template <TypedInternalID IDT>
+    void query(std::vector<IDT>& result, std::string_view queryString) const {
         // Track owners in a set to avoid duplicates
-        std::unordered_set<T> resSet;
+        std::unordered_set<IDT> resSet;
 
         std::vector<std::string> tokens {};
         preprocess(tokens, queryString);
@@ -104,7 +105,7 @@ public:
                     // XXX: Need better option of conversion here
                     auto& owners = n->_owners;
                     for (const EntityID& id : owners) {
-                        resSet.emplace(T(id.getValue()));
+                        resSet.emplace(IDT(id.getValue()));
                     }
                 }
             }
@@ -117,7 +118,7 @@ public:
      * @param in The string to preprocess
      * @param res The resultant tokens of preprocessing @param in
      */
-    static void preprocess(std::vector<std::string>& res, const std::string_view in);
+    static void preprocess(std::vector<std::string>& res, std::string_view in);
 
 private:
     std::unique_ptr<PrefixTreeNode> _root {};
