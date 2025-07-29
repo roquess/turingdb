@@ -13,7 +13,6 @@
 #include "VectorHash.h"
 #include "QueryCallback.h"
 
-
 namespace db {
 
 class QueryCommand;

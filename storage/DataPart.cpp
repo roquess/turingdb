@@ -43,18 +43,16 @@ void DataPart::initialiseIndexTrie(PropertyTypeID propertyID, bool isNode) {
     index.try_emplace(propertyID, std::make_unique<StringIndex>());
 }
 
-void DataPart::addStringPropertyToIndex(PropertyTypeID propertyID,
-                                const TypedPropertyContainer<types::String>&
-                                    stringPropertyContainer,
-                                bool isNode) {
+void DataPart::addStringPropertyToIndex(
+    PropertyTypeID propertyID,
+    const TypedPropertyContainer<types::String>& stringPropertyContainer, bool isNode) {
     // Get the index map for this property type
     const auto& index = isNode ? _nodeStrPropIdx : _edgeStrPropIdx;
 
     StringIndex* trie = index.at(propertyID).get();
     if (!trie) {
-        throw TuringException(
-            "Tree is nullpointer at property index " +
-            std::to_string(propertyID.getValue()));
+        throw TuringException("Tree is nullpointer at property index "
+                              + std::to_string(propertyID.getValue()));
     }
 
     // Get [nodeID, stringValue] pairs
@@ -79,7 +77,7 @@ void DataPart::buildIndex(
     }
 
     for (const auto& [ptID, props] : toIndex) {
-        
+
         const TypedPropertyContainer<types::String>& strPropContainer =
             props->cast<types::String>();
         addStringPropertyToIndex(ptID, strPropContainer, isNode);

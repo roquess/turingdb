@@ -10,14 +10,12 @@
 #include "indexes/StringIndexUtils.h"
 #include "views/GraphView.h"
 
-
-
 using namespace db;
 using Step = ScanNodesStringApproxStep;
 
 
-Step::ScanNodesStringApproxStep(ColumnVector<NodeID>* nodes, const GraphView& view, PropertyTypeID propID,
-                                std::string_view strQuery)
+Step::ScanNodesStringApproxStep(ColumnVector<NodeID>* nodes, const GraphView& view,
+                                PropertyTypeID propID, std::string_view strQuery)
     : _nodes(nodes),
       _view(view),
       _pId(propID),
@@ -42,7 +40,6 @@ void Step::prepare(ExecutionContext* ctxt) {
 }
 
 void Step::reset() {
-    
 }
 
 void Step::execute() {
