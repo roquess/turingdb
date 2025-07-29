@@ -9,6 +9,7 @@
 namespace db {
 
 class PropertyTypeMap;
+class GraphView;
 class ASTContext;
 class QueryCommand;
 class MatchCommand;
@@ -48,5 +49,4 @@ private:
     void analyzeExplain(ExplainCommand* cmd);
     std::string createVarName();
 };
-
 }

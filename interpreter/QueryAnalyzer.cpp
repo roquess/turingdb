@@ -1,11 +1,12 @@
 #include "QueryAnalyzer.h"
 
-#include <cstdint>
 #include <optional>
 #include <range/v3/view.hpp>
 #include <range/v3/action/sort.hpp>
 #include <range/v3/algorithm/adjacent_find.hpp>
 
+#include "views/GraphView.h"
+#include "reader/GraphReader.h"
 #include "AnalyzeException.h"
 #include "Profiler.h"
 #include "metadata/PropertyType.h"
@@ -21,6 +22,7 @@
 #include "ReturnProjection.h"
 #include "CreateTarget.h"
 #include "VarDecl.h"
+#include "InjectedIDs.h"
 #include "BioAssert.h"
 
 
@@ -172,7 +174,19 @@ void QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
         const auto& elements = pattern->elements();
 
         EntityPattern* entityPattern = elements[0];
-        entityPattern->setKind(DeclKind::NODE_DECL);
+
+        // The InjectID code can be moved into analyzeEntityPattern
+        // when we support injecting IDs at any node
+        if (elements[0]->getInjectedIDs()) {
+            const auto& injectedNodes = entityPattern->getInjectedIDs()->getIDs();
+            for (const auto& node : injectedNodes) {
+                if (!_view.read().graphHasNode(node)) {
+                    throw AnalyzeException("Could Not Find Injected Node In Graph:\""
+                                           + std::to_string(node.getValue()) + "\"");
+                }
+            }
+        }
+
         analyzeEntityPattern(declContext, entityPattern, isCreate);
 
         if (elements.size() >= 2) {
@@ -181,10 +195,13 @@ void QueryAnalyzer::analyzeMatch(MatchCommand* cmd) {
                 EntityPattern* edge = pair[0];
                 EntityPattern* target = pair[1];
 
-                edge->setKind(DeclKind::EDGE_DECL);
-                target->setKind(DeclKind::NODE_DECL);
-
                 analyzeEntityPattern(declContext, edge, isCreate);
+
+                if (target->getInjectedIDs()) {
+                    throw AnalyzeException("Injecting Nodes In Non-Primary Entity Not Supported,"
+                                           "For Entity:\""
+                                           + target->getVar()->getName() + "\"");
+                }
                 analyzeEntityPattern(declContext, target, isCreate);
             }
         }
@@ -246,7 +263,6 @@ void QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
             throw AnalyzeException("Entity pattern has no elements.");
         }
 
-        entityPattern->setKind(DeclKind::NODE_DECL);
         analyzeEntityPattern(declContext, entityPattern, isCreate);
 
         if (elements.size() >= 2) {
@@ -255,10 +271,8 @@ void QueryAnalyzer::analyzeCreate(CreateCommand* cmd) {
                 EntityPattern* edge = pair[0];
                 EntityPattern* target = pair[1];
 
-                edge->setKind(DeclKind::EDGE_DECL);
-                target->setKind(DeclKind::NODE_DECL);
-
                 analyzeEntityPattern(declContext, edge, isCreate);
+
                 analyzeEntityPattern(declContext, target, isCreate);
             }
         }
@@ -347,8 +361,7 @@ void QueryAnalyzer::analyzeBinExprConstraint(const BinExpr* binExpr,
 }
 
 void QueryAnalyzer::analyzeEntityPattern(DeclContext* declContext,
-                                         EntityPattern* entity,
-                                         bool isCreate) {
+                                         EntityPattern* entity,bool isCreate) {
     VarExpr* var = entity->getVar();
     // Handle the case where the entity is unlabeled edge (--)
     if (!var) {

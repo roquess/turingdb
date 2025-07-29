@@ -11,6 +11,7 @@ class MatchTargets;
 class CreateTarget;
 class CreateTargets;
 class PathPattern;
+class InjectedIDs;
 class EntityPattern;
 class TypeConstraint;
 class ExprConstraint;
@@ -29,6 +30,7 @@ public:
     friend PathPattern;
     friend EntityPattern;
     friend TypeConstraint;
+    friend InjectedIDs;
     friend ExprConstraint;
     friend Expr;
     friend VarDecl;
@@ -59,6 +61,7 @@ private:
     std::vector<PathPattern*> _pathPatterns;
     std::vector<EntityPattern*> _entityPatterns;
     std::vector<TypeConstraint*> _typeConstraints;
+    std::vector<InjectedIDs*> _injectedIDs;
     std::vector<ExprConstraint*> _exprConstraints;
     std::vector<CreateTarget*> _createTargets;
     std::vector<CreateTargets*> _createTargetVectors;
@@ -75,6 +78,7 @@ private:
     void addPathPattern(PathPattern* pattern);
     void addEntityPattern(EntityPattern* pattern);
     void addTypeConstraint(TypeConstraint* constr);
+    void addInjectedIDs(InjectedIDs* injectedIDs);
     void addExprConstraint(ExprConstraint* constr);
     void addExpr(Expr* expr);
     void addVarDecl(VarDecl* decl);

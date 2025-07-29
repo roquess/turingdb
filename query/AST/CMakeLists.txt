@@ -11,6 +11,7 @@ set(AST_sources
         QueryCommand.cpp 
         ReturnField.cpp 
         TypeConstraint.cpp 
+        InjectedIDs.cpp
         VarDecl.cpp
         ReturnProjection.cpp)
 

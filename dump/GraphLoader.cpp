@@ -47,8 +47,6 @@ DumpResult<void> GraphLoader::load(Graph* graph, const fs::Path& path) {
     static constexpr std::string_view COMMIT_FOLDER_PREFIX = "commit-";
 
     graph->_versionController = std::make_unique<VersionController>(graph);
-    graph->_versionController->_dataManager = std::make_unique<ArcManager<CommitData>>();
-    graph->_versionController->_partManager = std::make_unique<ArcManager<DataPart>>();
 
     std::map<uint64_t, std::pair<CommitHash, fs::Path>> commitInfo;
 

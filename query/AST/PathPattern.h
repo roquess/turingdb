@@ -11,6 +11,7 @@ class ASTContext;
 class VarExpr;
 class TypeConstraint;
 class ExprConstraint;
+class InjectedIDs;
 
 class EntityPattern {
 public:
@@ -19,7 +20,8 @@ public:
     static EntityPattern* create(ASTContext* ctxt,
                                  VarExpr* var,
                                  TypeConstraint* typeConstr,
-                                 ExprConstraint* exprConstr);
+                                 ExprConstraint* exprConstr,
+                                 InjectedIDs* injectedIDs);
 
     // User defined entityID for create_node_pattern
     static EntityPattern* create(ASTContext* ctxt,
@@ -30,10 +32,14 @@ public:
     DeclKind getKind() const { return _kind; }
 
     void setVar(VarExpr* var) { _var = var; }
+    void setTypeConstraint(TypeConstraint* typeConstr) { _typeConstr = typeConstr; }
+    void setExprConstraint(ExprConstraint* exprConstr) { _exprConstr = exprConstr; }
+    void setInjectedIDs(InjectedIDs* injectedIDs) { _injectedIDs = injectedIDs; }
 
     VarExpr* getVar() const { return _var; }
     TypeConstraint* getTypeConstraint() const { return _typeConstr; }
     ExprConstraint* getExprConstraint() const { return _exprConstr; }
+    InjectedIDs* getInjectedIDs() const { return _injectedIDs; }
     uint64_t getEntityID() const { return _entityID; }
 
 private:
@@ -41,11 +47,13 @@ private:
     VarExpr* _var {nullptr};
     TypeConstraint* _typeConstr {nullptr};
     ExprConstraint* _exprConstr {nullptr};
+    InjectedIDs* _injectedIDs {nullptr};
     uint64_t _entityID {UINT64_MAX};
 
     EntityPattern(VarExpr* var,
                   TypeConstraint* typeConstr,
                   ExprConstraint* exprConstr,
+                  InjectedIDs* injectedIDs,
                   uint64_t entityID);
     ~EntityPattern();
 };
@@ -67,5 +75,4 @@ private:
     PathPattern();
     ~PathPattern();
 };
-
 }

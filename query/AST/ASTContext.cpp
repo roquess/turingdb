@@ -10,6 +10,7 @@
 #include "ReturnField.h"
 #include "ReturnProjection.h"
 #include "TypeConstraint.h"
+#include "InjectedIDs.h"
 #include "VarDecl.h"
 
 using namespace db;
@@ -110,6 +111,10 @@ void ASTContext::addExpr(Expr* expr) {
 
 void ASTContext::addTypeConstraint(TypeConstraint* constr) {
     _typeConstraints.push_back(constr);
+}
+
+void ASTContext::addInjectedIDs(InjectedIDs* injectedIDs) {
+    _injectedIDs.push_back(injectedIDs);
 }
 
 void ASTContext::addExprConstraint(ExprConstraint* constr) {

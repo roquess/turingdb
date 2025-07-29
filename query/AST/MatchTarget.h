@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PathPattern.h"
+
 namespace db {
 
 class ASTContext;
@@ -16,8 +18,7 @@ public:
 private:
     PathPattern* _pattern {nullptr};
 
-    MatchTarget(PathPattern* pattern);
+    explicit MatchTarget(PathPattern*);
     ~MatchTarget();
 };
-
 }

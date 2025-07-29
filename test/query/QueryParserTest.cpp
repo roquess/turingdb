@@ -142,3 +142,43 @@ TEST_F(QueryParserTest, parseErrors) {
         )
     );
 }
+
+TEST_F(QueryParserTest, injectNodes) {
+    ASTContext ctxt;
+    QueryParser parser(&ctxt);
+
+    const auto query1 = "MATCH (n@0)--(m) RETURN n.name";
+    const auto query2 = "MATCH (n:Label@0)--(m) RETURN n.name";
+    const auto query3 = "MATCH (n:Label@0{key:\"value\"})--(m) RETURN n.name";
+    const auto query4 = "MATCH (n:Label{key:\"value\"}@0)--(m) RETURN n.name";
+    const auto query5 = "MATCH (n@0{key:\"value\"})--(m) RETURN n.name";
+    const auto query6 = "MATCH (n{key:\"value\"}@0)--(m) RETURN n.name";
+
+    const auto query7 = "MATCH (n)-[e@0]-(m) RETURN n.name";
+    const auto query8 = "MATCH (n@0:Label)--(m) RETURN n.name";
+
+    ASSERT_TRUE(parser.parse(query1));
+    ASSERT_TRUE(parser.parse(query2));
+    ASSERT_TRUE(parser.parse(query3));
+    ASSERT_TRUE(parser.parse(query4));
+    ASSERT_TRUE(parser.parse(query5));
+    ASSERT_TRUE(parser.parse(query6));
+
+    EXPECT_THAT([&]() { parser.parse(query7); },
+                testing::Throws<ParserException>(
+                    testing::Property(&std::exception::what,
+                                      testing::AllOf(
+                                          testing::HasSubstr("syntax error"),
+                                          testing::HasSubstr("line 1"),
+                                          testing::HasSubstr("column 13"),
+                                          testing::HasSubstr("column 14")))));
+
+    EXPECT_THAT([&]() { parser.parse(query8); },
+                testing::Throws<ParserException>(
+                    testing::Property(&std::exception::what,
+                                      testing::AllOf(
+                                          testing::HasSubstr("syntax error"),
+                                          testing::HasSubstr("line 1"),
+                                          testing::HasSubstr("column 11"),
+                                          testing::HasSubstr("column 12")))));
+}
