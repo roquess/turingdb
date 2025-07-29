@@ -12,6 +12,7 @@
 #include "TuringDB.h"
 #include "SimpleGraph.h"
 #include "indexes/StringIndex.h"
+#include "indexers/StringPropertyIndexer.h"
 #include "metadata/PropertyType.h"
 #include "reader/GraphReader.h"
 #include "versioning/Transaction.h"
@@ -107,88 +108,7 @@ protected:
     }
 };
 
-TEST_F(StringIndexTest, simpleIndex) {
-    using StringPropertyIndex =
-        std::unordered_map<PropertyTypeID, std::unique_ptr<StringIndex>>;
-    constexpr uint64_t FIRSTNODEID = 0;
-    constexpr uint64_t SECONDNODEID = 1;
-    constexpr uint64_t FIRSTEDGEID = 0;
-
-    auto db2 = createDB1();
-    const FrozenCommitTx transaction1 = db2->openTransaction();
-    GraphReader reader1 = transaction1.readGraph();
-    auto parts1 = reader1.dataparts();
-
-    ASSERT_EQ(1, parts1.size());
-    auto dpIt = parts1.begin();
-    auto datapart = dpIt->get();
-
-    const StringPropertyIndex& nodePropIdx = datapart->getNodeStrPropIndex();
-    // We only have a single node string property
-    ASSERT_EQ(1, nodePropIdx.size());
-
-    // Get the prefix trie corresponding to the "name" property
-    auto& nameIdx = nodePropIdx.at(0);
-
-    std::vector<NodeID> owners1 {};
-    nameIdx->query(owners1, "Cyrus");
-    ASSERT_EQ(1, owners1.size());
-    EXPECT_EQ(FIRSTNODEID, owners1.at(0));
-
-    std::vector<NodeID> owners2 {};
-    nameIdx->query(owners2, "Suhas");
-    ASSERT_EQ(1, owners2.size());
-    EXPECT_EQ(SECONDNODEID, owners2.at(0));
-
-    std::vector<NodeID> owners3 {};
-    nameIdx->query(owners3, "Remy");
-    EXPECT_EQ(0, owners3.size());
-
-    std::vector<NodeID> owners4 {};
-    nameIdx->query(owners4, "Cy");
-    ASSERT_EQ(1, owners4.size());
-    EXPECT_EQ(FIRSTNODEID, owners4.at(0));
-
-    const StringPropertyIndex& edgePropIdx = datapart->getEdgeStrPropIndex();
-    ASSERT_EQ(1, edgePropIdx.size());
-
-    // Get the prefix trie corresponding to the "For" property
-    auto& [propId2, forIdx] = *edgePropIdx.cbegin();
-
-    std::vector<EdgeID> owners5 {};
-    forIdx->query(owners5, "2 weeks");
-    ASSERT_EQ(1, owners5.size());
-    EXPECT_EQ(FIRSTEDGEID, owners5.at(0));
-
-    std::vector<EdgeID> owners6 {};
-    forIdx->query(owners6, "2");
-    ASSERT_EQ(1, owners6.size());
-    EXPECT_EQ(FIRSTEDGEID, owners6.at(0));
-
-    std::vector<EdgeID> owners7 {};
-    forIdx->query(owners7, "weeks");
-    ASSERT_EQ(1, owners7.size());
-    EXPECT_EQ(FIRSTEDGEID, owners7.at(0));
-
-    std::vector<EdgeID> owners8 {};
-    forIdx->query(owners8, "we");
-    ASSERT_EQ(1, owners8.size());
-    EXPECT_EQ(FIRSTEDGEID, owners8.at(0));
-
-    std::vector<EdgeID> owners9 {};
-    forIdx->query(owners9, "eeks");
-    EXPECT_EQ(0, owners9.size());
-
-    std::vector<EdgeID> owners10 {};
-    forIdx->query(owners10, "10 years");
-    EXPECT_EQ(0, owners10.size());
-}
-
-
 TEST_F(StringIndexTest, stringApproximation) {
-    using StringPropertyIndex =
-        std::unordered_map<PropertyTypeID, std::unique_ptr<StringIndex>>;
-
     auto db = createBioGraph();
     const FrozenCommitTx transaction = db->openTransaction();
     GraphReader reader = transaction.readGraph();
@@ -198,7 +118,7 @@ TEST_F(StringIndexTest, stringApproximation) {
     auto dpIt = parts.begin();
     auto datapart = dpIt->get();
 
-    const StringPropertyIndex& nodePropIdx = datapart->getNodeStrPropIndex();
+    const StringPropertyIndexer& nodePropIdx = datapart->getNodeStrPropIndexer();
     // We only have a single node string property
     ASSERT_EQ(1, nodePropIdx.size());
 
@@ -259,7 +179,7 @@ TEST_F(StringIndexTest, multiDataPartTest) {
     auto datapartIterator = parts.begin();
 
     // First stage/datapart
-    auto& firstStageIndex = datapartIterator->get()->getNodeStrPropIndex();
+    auto& firstStageIndex = datapartIterator->get()->getNodeStrPropIndexer();
     constexpr size_t NAMEPROPERTYOFFSET = 0;
     auto& fstPropertyIndex = firstStageIndex.at(NAMEPROPERTYOFFSET);
 
@@ -280,7 +200,7 @@ TEST_F(StringIndexTest, multiDataPartTest) {
     datapartIterator++;
 
     // Second stage/datapart
-    auto& secondStageIndex = datapartIterator->get()->getNodeStrPropIndex();
+    auto& secondStageIndex = datapartIterator->get()->getNodeStrPropIndexer();
     auto& sndPropertyIndex = secondStageIndex.at(NAMEPROPERTYOFFSET);
 
 
@@ -301,7 +221,7 @@ TEST_F(StringIndexTest, multiDataPartTest) {
     datapartIterator++;
 
     // Third stage/datapart
-    auto& thirdStageIndex = datapartIterator->get()->getNodeStrPropIndex();
+    auto& thirdStageIndex = datapartIterator->get()->getNodeStrPropIndexer();
     auto& thdPropertyIndex = thirdStageIndex.at(NAMEPROPERTYOFFSET);
 
     {

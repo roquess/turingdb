@@ -37,6 +37,7 @@ set(storage_sources
         indexers/EdgeIndexer.cpp
 
         indexes/StringIndex.cpp
+        indexers/StringPropertyIndexer.cpp
 
         properties/PropertyManager.cpp
 

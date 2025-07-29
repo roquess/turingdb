@@ -5,6 +5,7 @@
 #include "DataPart.h"
 #include "DataPartSpan.h"
 #include "ID.h"
+#include "indexers/StringPropertyIndexer.h"
 #include "views/GraphView.h"
 
 namespace db {
@@ -32,7 +33,7 @@ public:
             // For each datapart
             for (DataPartIterator it = dps.begin(); it != dps.end(); it++) {
                 // Get PropertyID -> Index map
-                const auto& nodeStringIndex = it->get()->getNodeStrPropIndex();
+                const auto& nodeStringIndex = it->get()->getNodeStrPropIndexer();
 
                 // Check if the datapart contains an index of this property ID
                 if (!nodeStringIndex.contains(propID)) {
@@ -49,7 +50,7 @@ public:
             // For each datapart
             for (DataPartIterator it = dps.begin(); it != dps.end(); it++) {
                 // Get PropertyID -> Index map
-                const auto& nodeStringIndex = it->get()->getEdgeStrPropIndex();
+                const auto& nodeStringIndex = it->get()->getEdgeStrPropIndexer();
 
                 // Check if the datapart contains an index of this property ID
                 if (!nodeStringIndex.contains(propID)) {

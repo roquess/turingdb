@@ -1,16 +1,16 @@
 #include "DataPart.h"
 
+#include <memory>
 #include <numeric>
 #include <range/v3/action/sort.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/transform.hpp>
-#include <string>
 
 #include "ID.h"
 #include "NodeContainer.h"
 #include "EdgeContainer.h"
-#include "TuringException.h"
 #include "indexers/EdgeIndexer.h"
+#include "indexers/StringPropertyIndexer.h"
 #include "metadata/PropertyType.h"
 #include "properties/PropertyContainer.h"
 #include "views/GraphView.h"
@@ -19,7 +19,6 @@
 #include "JobSystem.h"
 #include "JobGroup.h"
 #include "Profiler.h"
-#include "indexes/StringIndex.h"
 
 using namespace db;
 
@@ -29,60 +28,14 @@ namespace rg = ranges;
 DataPart::DataPart(NodeID firstNodeID,
                    EdgeID firstEdgeID)
     : _firstNodeID(firstNodeID),
-    _firstEdgeID(firstEdgeID)
+    _firstEdgeID(firstEdgeID),
+    _nodeStrPropIdx(std::make_unique<StringPropertyIndexer>()),
+    _edgeStrPropIdx(std::make_unique<StringPropertyIndexer>())
+    
 {
 }
 
 DataPart::~DataPart() = default;
-
-void DataPart::initialiseIndexTrie(PropertyTypeID propertyID, bool isNode) {
-    // Get the index map for this property type
-    auto& index = isNode ? _nodeStrPropIdx : _edgeStrPropIdx;
-
-    // Initialise trie at key if not already there
-    index.try_emplace(propertyID, std::make_unique<StringIndex>());
-}
-
-void DataPart::addStringPropertyToIndex(
-    PropertyTypeID propertyID,
-    const TypedPropertyContainer<types::String>& stringPropertyContainer, bool isNode) {
-    // Get the index map for this property type
-    const auto& index = isNode ? _nodeStrPropIdx : _edgeStrPropIdx;
-
-    StringIndex* trie = index.at(propertyID).get();
-    if (!trie) {
-        throw TuringException("Tree is nullpointer at property index "
-                              + std::to_string(propertyID.getValue()));
-    }
-
-    // Get [nodeID, stringValue] pairs
-    const auto zipped = stringPropertyContainer.zipped();
-    std::vector<std::string> tokens;
-    for (const auto&& [id, stringValue] : zipped) {
-        // Preprocess and tokenise the string into alphanumeric subwords
-        StringIndex::preprocess(tokens, stringValue);
-        // Insert each subword
-        for (const auto& token : tokens) {
-            trie->insert(token, id.getValue());
-        }
-        tokens.clear();
-    }
-}
-
-void DataPart::buildIndex(
-    std::vector<std::pair<PropertyTypeID, PropertyContainer*>>& toIndex, bool isNode) {
-    // Initialise tries for all present string property IDs
-    for (const auto& [ptID, _] : toIndex) {
-        initialiseIndexTrie(ptID, isNode);
-    }
-
-    for (const auto& [ptID, props] : toIndex) {
-
-        const TypedPropertyContainer<types::String>& strPropContainer =
-            props->cast<types::String>();
-        addStringPropertyToIndex(ptID, strPropContainer, isNode);
-    }
-}
 
 bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder& builder) {
     Profile profile {"DataPart::load"};
@@ -155,10 +108,7 @@ bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder
 
     // Build indexes for noted node properties.
     // Do this in separate loop as more cache friendly.
-    {
-        constexpr bool isNode {true};
-        buildIndex(nodesToIndex, isNode); // TODO: Async with jobs
-    }
+    _nodeStrPropIdx->buildIndex(nodesToIndex); // TODO: Async with jobs
 
     for (const auto& [ptID, props] : *_nodeProperties) {
         jobs.submit<void>([&, ptID, props = props.get()](Promise*) {
@@ -203,7 +153,7 @@ bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder
 
     // Edge properties: Add index*ers* and note properties to *index*
     _edgeProperties = std::move(edgeProperties);
-    std::vector<std::pair<PropertyTypeID, PropertyContainer*>> edgesToIndex {};
+    std::vector<std::pair<PropertyTypeID, PropertyContainer*>> edgesToIndex;
     for (const auto& [ptID, props] : *_edgeProperties) {
         _edgeProperties->addIndexer(ptID);
 
@@ -215,10 +165,7 @@ bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder
 
     // Build indexes for noted edge properties.
     // Do this in separate loop as more cache friendly
-    {
-        constexpr bool isNode {false};
-        buildIndex(edgesToIndex, isNode); // TODO: Async with jobs
-    }
+    _edgeStrPropIdx->buildIndex(edgesToIndex); // TODO: Async with jobs
 
     const auto& tmpToFinalEdgeIDs = _edges->getTmpToFinalEdgeIDs();
 
