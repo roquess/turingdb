@@ -5,6 +5,7 @@
 #include "DataPart.h"
 #include "DataPartSpan.h"
 #include "ID.h"
+#include "TuringException.h"
 #include "indexers/StringPropertyIndexer.h"
 #include "views/GraphView.h"
 
@@ -35,6 +36,11 @@ public:
                 // Get PropertyID -> Index map
                 const auto& nodeStringIndex = it->get()->getNodeStrPropIndexer();
 
+                if (!nodeStringIndex.isInitialised()) {
+                    throw TuringException(std::move(_uninitialisedErrMsg));
+                }
+
+
                 // Check if the datapart contains an index of this property ID
                 if (!nodeStringIndex.contains(propID)) {
                     continue;
@@ -50,20 +56,28 @@ public:
             // For each datapart
             for (DataPartIterator it = dps.begin(); it != dps.end(); it++) {
                 // Get PropertyID -> Index map
-                const auto& nodeStringIndex = it->get()->getEdgeStrPropIndexer();
+                const auto& edgeStringIndex = it->get()->getEdgeStrPropIndexer();
+                if (!edgeStringIndex.isInitialised()) {
+                    throw TuringException(std::move(_uninitialisedErrMsg));
+                }
 
                 // Check if the datapart contains an index of this property ID
-                if (!nodeStringIndex.contains(propID)) {
+                if (!edgeStringIndex.contains(propID)) {
                     continue;
                 }
 
                 // Get the index for this property
-                const auto& strIndex = nodeStringIndex.at(propID);
+                const auto& strIndex = edgeStringIndex.at(propID);
 
                 // Get any matches for the query string in the index
                 strIndex->query<IDT>(output, query);
             }
         }
     }
+private:
+    inline static std::string _uninitialisedErrMsg =
+        "Approximate string index was not initialised."
+        "\nThis may be due to the graph having no string properties, "
+        "or if a graph was not loaded correctly.";
 };
 }

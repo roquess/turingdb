@@ -44,7 +44,6 @@ void StringPropertyIndexer::buildIndex(
     }
 
     for (const auto& [ptID, props] : toIndex) {
-
         const TypedPropertyContainer<types::String>& strPropContainer =
             props->cast<types::String>();
         addStringPropertyToIndex(ptID, strPropContainer);

@@ -23,8 +23,13 @@ public:
 
     size_t size() const { return _indexer.size(); }
 
+    void setInitialised() { _initialised = true; }
+
+    bool isInitialised() const { return _initialised; }
+
 private:
     std::unordered_map<PropertyTypeID, std::unique_ptr<StringIndex>> _indexer {};
+    bool _initialised {false};
 
     void initialiseIndexTrie(PropertyTypeID propertyID);
     void addStringPropertyToIndex(

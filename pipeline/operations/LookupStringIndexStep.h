@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "ID.h"
+#include "PipelineException.h"
 #include "ScanNodesStringApproxStep.h"
 #include "indexes/StringIndexUtils.h"
 #include "columns/ColumnSet.h"
@@ -46,7 +47,11 @@ public:
     void execute() {
         std::vector<IDT> matchesVec {};
 
-        StringIndexUtils::getMatches(matchesVec, _view, _pId, _strQuery);
+        try {
+            StringIndexUtils::getMatches(matchesVec, _view, _pId, _strQuery);
+        } catch (const TuringException& e) {
+            throw PipelineException(e.what());
+        }
 
         for (const auto& match : matchesVec) {
             _set->insert(match);

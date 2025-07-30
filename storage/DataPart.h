@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "ID.h"
+#include "TuringException.h"
 #include "metadata/LabelSetHandle.h"
 #include "metadata/SupportedType.h"
 
@@ -52,8 +53,18 @@ public:
     const PropertyManager& edgeProperties() const { return *_edgeProperties; }
     const EdgeContainer& edges() const { return *_edges; }
     const EdgeIndexer& edgeIndexer() const { return *_edgeIndexer; }
-    const StringPropertyIndexer& getNodeStrPropIndexer() const { return *_nodeStrPropIdx; }
-    const StringPropertyIndexer& getEdgeStrPropIndexer() const { return *_edgeStrPropIdx; }
+    const StringPropertyIndexer& getNodeStrPropIndexer() const {
+        if (!_nodeStrPropIdx) {
+            throw TuringException("Node String Index was not initialised");
+        }
+        return *_nodeStrPropIdx;
+    }
+    const StringPropertyIndexer& getEdgeStrPropIndexer() const {
+        if (!_edgeStrPropIdx) {
+            throw TuringException("Edge String Index was not initialised");
+        }
+        return *_edgeStrPropIdx;
+    }
 
 private:
     friend DataPartInfoLoader;
@@ -73,8 +84,8 @@ private:
     std::unique_ptr<PropertyManager> _nodeProperties;
     std::unique_ptr<PropertyManager> _edgeProperties;
     std::unique_ptr<EdgeIndexer> _edgeIndexer;
-    std::unique_ptr<StringPropertyIndexer> _nodeStrPropIdx {};
-    std::unique_ptr<StringPropertyIndexer> _edgeStrPropIdx {};
+    std::unique_ptr<StringPropertyIndexer> _nodeStrPropIdx;
+    std::unique_ptr<StringPropertyIndexer> _edgeStrPropIdx;
 };
 
 }
