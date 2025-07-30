@@ -81,7 +81,6 @@ TEST_F(StringApproxIndexSerialisationTest, indexInitialisation) {
     }
 }
 
-
 int main(int argc, char** argv) {
     return turingTestMain(argc, argv, [] {
         testing::GTEST_FLAG(repeat) = 3;
