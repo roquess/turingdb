@@ -66,8 +66,14 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
         if (!cmd) {
             return QueryStatus(QueryStatus::Status::PARSE_ERROR);
         }
-    } catch (const ParserException& e){
+    } catch (const ParserException& e) {
         return QueryStatus(QueryStatus::Status::PARSE_ERROR, e.what());
+    } catch (const std::exception& e) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR,
+                           std::string("Unexpected exception: ") + e.what());
+    } catch (...) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR,
+                           "Unknown exception occurred");
     }
 
     // Analyze query
@@ -76,6 +82,12 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
         analyzer.analyze(cmd);
     } catch (const AnalyzeException& e) {
         return QueryStatus(QueryStatus::Status::ANALYZE_ERROR, e.what());
+    } catch (const std::exception& e) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR,
+                           std::string("Unexpected exception: ") + e.what());
+    } catch (...) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR,
+                           "Unknown exception occurred");
     }
 
     // Query plan
@@ -86,6 +98,12 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
         }
     } catch (const PlannerException& e) {
         return QueryStatus(QueryStatus::Status::PLAN_ERROR, e.what());
+    } catch (const std::exception& e) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR,
+                           std::string("Unexpected exception: ") + e.what());
+    } catch (...) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR,
+                           "Unknown exception occurred");
     }
 
     headerCallback(cmd);
@@ -96,6 +114,12 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
         _executor->run(&execCtxt, planner.getPipeline());
     } catch (const PipelineException& e) {
         return QueryStatus(QueryStatus::Status::EXEC_ERROR, e.what());
+    } catch (const std::exception& e) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR,
+                           std::string("Unexpected exception: ") + e.what());
+    } catch (...) {
+        return QueryStatus(QueryStatus::Status::PARSE_ERROR,
+                           "Unknown exception occurred");
     }
 
     const auto end = Clock::now();
