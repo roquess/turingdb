@@ -107,10 +107,8 @@ bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder
     }
 
     // Build indexes for noted node properties.
-    if (!nodesToIndex.empty()) {
-        _nodeStrPropIdx->buildIndex(nodesToIndex); // TODO: Async with jobs
-        _nodeStrPropIdx->setInitialised();
-    }
+    _nodeStrPropIdx->buildIndex(nodesToIndex); // TODO: Async with jobs
+    _nodeStrPropIdx->setInitialised();
 
     for (const auto& [ptID, props] : *_nodeProperties) {
         jobs.submit<void>([&, ptID, props = props.get()](Promise*) {
@@ -166,10 +164,8 @@ bool DataPart::load(const GraphView& view, JobSystem& jobSystem, DataPartBuilder
     }
 
     // Build indexes for noted edge properties.
-    if (!edgesToIndex.empty()) {
-        _edgeStrPropIdx->buildIndex(edgesToIndex); // TODO: Async with jobs
-        _edgeStrPropIdx->setInitialised();
-    }
+    _edgeStrPropIdx->buildIndex(edgesToIndex); // TODO: Async with jobs
+    _edgeStrPropIdx->setInitialised();
 
     const auto& tmpToFinalEdgeIDs = _edges->getTmpToFinalEdgeIDs();
 
