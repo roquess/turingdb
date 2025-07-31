@@ -39,7 +39,9 @@ public:
                 const auto& nodeStringIndex = it->get()->getNodeStrPropIndexer();
 
                 if (!nodeStringIndex.isInitialised()) {
-                    throw TuringException(std::move(_uninitialisedErrMsg));
+                    throw TuringException(
+                        "Approximate string index was not initialised. The current graph "
+                        "was likely loaded incorrectly.");
                 }
 
 
@@ -60,7 +62,9 @@ public:
                 // Get PropertyID -> Index map
                 const auto& edgeStringIndex = it->get()->getEdgeStrPropIndexer();
                 if (!edgeStringIndex.isInitialised()) {
-                    throw TuringException(std::move(_uninitialisedErrMsg));
+                    throw TuringException(
+                        "Approximate string index was not initialised. The current graph "
+                        "was likely loaded incorrectly.");
                 }
 
                 // Check if the datapart contains an index of this property ID
@@ -76,9 +80,5 @@ public:
             }
         }
     }
-private:
-    inline static std::string _uninitialisedErrMsg =
-        "Approximate string index was not initialised. "
-        "The current graph was likely loaded incorrectly.";
 };
 }
