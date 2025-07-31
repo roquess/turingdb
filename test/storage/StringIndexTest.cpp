@@ -97,6 +97,8 @@ protected:
         writer.addNodeProperty<types::String>(poliwrath, "name", "Poliwrath");
         writer.addNodeProperty<types::String>(poliwrath, "stage", "evolution stage three");
 
+        writer.submit();
+
         return graph;
     }
 
@@ -128,6 +130,8 @@ TEST_F(StringIndexTest, prefixSemanticsTest) {
 
     // Get the prefix trie corresponding to the "name" property
     auto& nameIdx = nodePropIdx.at(0);
+    ASSERT_TRUE(nameIdx);
+    nameIdx->print();
 
     const std::string PLAYFULLY = "playfully";
     const std::string PLAYFUL = "playful";
@@ -171,7 +175,7 @@ TEST_F(StringIndexTest, simpleIndex) {
     ASSERT_EQ(1, nodePropIdx.size());
 
     // Get the prefix trie corresponding to the "name" property
-    auto& nameIdx = nodePropIdx.at(0);
+    auto& [prop, nameIdx] = *nodePropIdx.begin();
 
     std::vector<NodeID> owners1 {};
     nameIdx->query(owners1, "Cyrus");
@@ -196,7 +200,7 @@ TEST_F(StringIndexTest, simpleIndex) {
     ASSERT_EQ(1, edgePropIdx.size());
 
     // Get the prefix trie corresponding to the "For" property
-    auto& forIdx = edgePropIdx.at(0);
+    auto& [eprop, forIdx] = *edgePropIdx.begin();
 
     std::vector<EdgeID> owners5 {};
     forIdx->query(owners5, "2 weeks");

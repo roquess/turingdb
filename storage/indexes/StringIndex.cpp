@@ -26,14 +26,19 @@ size_t StringIndex::charToIndex(char c) {
 
     // NOTE: Converts upper-case characters to lower to calculate index,
     // but the value of the node is still uppercase
-    if (isalpha(c)) return std::tolower(c, std::locale()) - 'a';
-    else if (isdigit(c)) return 26 + c - '0';
-    else throw TuringException("Invalid character: " + std::to_string(c));
+    if (isalpha(c))  {
+        return std::tolower(c, std::locale()) - 'a';
+    } else if (isdigit(c)) {
+        return 26 + c - '0';
+    } else
+        throw TuringException("Invalid character: " + std::to_string(c));
 }
 
 void StringIndex::alphaNumericise(const std::string_view in, std::string& out) {
-    out.clear();            // Does not deallocate space
-    if (in.empty()) return;
+    out.clear();
+    if (in.empty()) {
+        return;
+    }
 
     std::locale loc {"C"};  // NOTE: Only support ASCII, remove all else
     auto ppxChar = [&loc](char c) {
@@ -101,6 +106,7 @@ void StringIndex::insert(std::string_view str, EntityID owner) {
         throw TuringException("Could not get root of string indexer");
     }
     node->_owners.push_back(owner);
+    node->_isComplete = true;
 }
 
 StringIndex::StringIndexIterator StringIndex::find(std::string_view sv) const {
