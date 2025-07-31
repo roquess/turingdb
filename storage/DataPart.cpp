@@ -253,13 +253,13 @@ bool DataPart::hasEdge(EdgeID edgeID) const {
     return (edgeID - _firstEdgeID) < _edges->size();
 }
 
-
 const StringPropertyIndexer& DataPart::getNodeStrPropIndexer() const {
     if (!_nodeStrPropIdx) {
         throw TuringException("Node String Index was not initialised");
     }
     return *_nodeStrPropIdx;
 }
+
 const StringPropertyIndexer& DataPart::getEdgeStrPropIndexer() const {
     if (!_edgeStrPropIdx) {
         throw TuringException("Edge String Index was not initialised");

@@ -110,7 +110,6 @@ private:
 
 template <TypedInternalID IDT>
 void StringIndex::query(std::vector<IDT>& result, std::string_view queryString) const {
-
     // Track owners in a set to avoid duplicates
     std::unordered_set<IDT> resSet;
 

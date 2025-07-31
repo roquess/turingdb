@@ -30,7 +30,6 @@ protected:
 
     std::unique_ptr<db::JobSystem> _jobSystem;
 
-
     [[nodiscard]] std::unique_ptr<Graph> createDB1() {
         auto graph = Graph::create();
         GraphWriter writer {graph.get()};

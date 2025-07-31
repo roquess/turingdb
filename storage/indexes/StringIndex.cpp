@@ -167,8 +167,7 @@ void StringIndex::printTree(StringIndex::PrefixTreeNode* node,
     }
 }
 
-StringIndex::PrefixTreeNode*
-StringIndex::getPrefixThreshold(std::string_view query) const {
+StringIndex::PrefixTreeNode* StringIndex::getPrefixThreshold(std::string_view query) const {
     if (query.empty()) {
         return nullptr;
     }
@@ -183,7 +182,7 @@ StringIndex::getPrefixThreshold(std::string_view query) const {
     const size_t minPrefixLength = _prefixThreshold * query.size();
     PrefixTreeNode* thresholdPoint {nullptr};
 
-    for (size_t i {0}; const char c : query) {
+    for (size_t i = 0; const char c : query) {
         const size_t idx = charToIndex(c);
         if (!node->_children[idx]) {
             return thresholdPoint;
@@ -191,7 +190,8 @@ StringIndex::getPrefixThreshold(std::string_view query) const {
         // Return the earliest point in the tree at which we find a matching prefix of
         // sufficient length
         if (i >= minPrefixLength) {
-            return thresholdPoint = node;
+            thresholdPoint = node;
+            return thresholdPoint;
         }
         node = node->_children[idx].get();
         i++;

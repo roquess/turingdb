@@ -27,8 +27,9 @@ class PropertyContainer;
 class StringPropertyIndexer;
 
 class DataPart {
-    using StringPropertyContainer = TypedPropertyContainer<types::String>;
 public:
+    using StringPropertyContainer = TypedPropertyContainer<types::String>;
+
     DataPart(NodeID firstNodeID,
              EdgeID firstEdgeID);
 
