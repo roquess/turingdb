@@ -1,5 +1,4 @@
-
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.10)
 
 project(turingdb)
 
@@ -13,11 +12,8 @@ if (${NOEOLATEOF} EQUAL 1)
     message(FATAL_ERROR "Found files without EOL at EOF")
 endif ()
 
-# C++ compiler
-set(CLANG_NEEDED_VERSION "9.4.0")
-
 # C++ standard
-set(CPP_STANDARD "c++20")
+set(CPP_STANDARD "c++23")
 
 # C++ warning flags
 set(CPP_WARNINGS "-Wall -Werror -Wunused-function -Wunused-variable")
@@ -88,6 +84,8 @@ execute_process(
         ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
 )
 
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/dependencies)
+
 # Threads
 find_package(Threads REQUIRED)
 
@@ -98,8 +96,56 @@ find_package(CURL REQUIRED)
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
+# Use Homebrew for Flex and Bison on macOS
+if(APPLE)
+    find_program(BREW_EXECUTABLE brew)
+    if(NOT BREW_EXECUTABLE)
+        message(FATAL_ERROR "Homebrew not found")
+    endif()
+
+    execute_process(
+        COMMAND ${BREW_EXECUTABLE} --prefix flex
+        OUTPUT_VARIABLE HOMEBREW_FLEX_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(NOT HOMEBREW_FLEX_PREFIX)
+        message(FATAL_ERROR "Homebrew Flex prefix not found. Please install Flex using Homebrew.")
+    endif()
+
+    set(FLEX_INCLUDE_DIRS "${HOMEBREW_FLEX_PREFIX}/include")
+    set(FLEX_EXECUTABLE "${HOMEBREW_FLEX_PREFIX}/bin/flex")
+    set(FLEX_LIBRARIES "${HOMEBREW_FLEX_PREFIX}/lib/libfl.a")
+    message(STATUS "Using Homebrew Flex include directory: ${FLEX_INCLUDE_DIRS}")
+endif()
+
+if(APPLE)
+    find_program(BREW_EXECUTABLE brew)
+    if(NOT BREW_EXECUTABLE)
+        message(FATAL_ERROR "Homebrew not found")
+    endif()
+
+    execute_process(
+        COMMAND ${BREW_EXECUTABLE} --prefix bison
+        OUTPUT_VARIABLE HOMEBREW_BISON_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(NOT HOMEBREW_BISON_PREFIX)
+        message(FATAL_ERROR "Homebrew Bison prefix not found. Please install Bison using Homebrew.")
+    endif()
+
+    set(BISON_INCLUDE_DIRS "${HOMEBREW_BISON_PREFIX}/include")
+    set(BISON_EXECUTABLE "${HOMEBREW_BISON_PREFIX}/bin/bison")
+    set(BISON_LIBRARIES "${HOMEBREW_BISON_PREFIX}/lib/liby.a")
+    message(STATUS "Using Homebrew Bison include directory: ${BISON_INCLUDE_DIRS}")
+endif()
+
 # aws-sdk-cpp
-find_package(AWSSDK REQUIRED COMPONENTS s3 s3-crt)
+find_package(AWSSDK REQUIRED COMPONENTS s3 s3-crt ec2
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/external/dependencies/
+)
+
+# openssl
+find_package(OpenSSL REQUIRED)
 
 enable_testing()
 
