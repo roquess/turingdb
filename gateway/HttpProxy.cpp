@@ -144,20 +144,6 @@ bool HttpProxy<server>::validateRoute(const std::string& token, const std::strin
     return true;
 }
 
-std::pair<std::string, int> parseAddress(const std::string& localAddress) {
-    Profile profile {"HttpProxy::parseAddress"};
-    size_t seperatorPos = localAddress.find_last_of(':');
-
-    if (seperatorPos == std::string::npos) {
-        return std::pair<std::string, int>();
-    }
-
-    std::string host = localAddress.substr(0, seperatorPos);
-    int port = std::stoi(localAddress.substr(seperatorPos + 1));
-
-    return std::pair<std::string, int>(host, port);
-}
-
 // Forward request to backend server
 template <ServerType server>
 bool HttpProxy<server>::forwardRequest(const httplib::Request& req,
@@ -186,8 +172,7 @@ bool HttpProxy<server>::forwardRequest(const httplib::Request& req,
         return false;
     }
 
-    const auto& [host, port] = parseAddress(address);
-    httplib::Client client(host, port);
+    httplib::Client client(address, 6666);
     client.set_connection_timeout(5, 0); // 5 seconds
     client.set_read_timeout(30, 0);      // 30 seconds
 
