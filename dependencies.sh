@@ -77,6 +77,17 @@ else
     fi
 fi
 
+# Install boost
+if [[ "$(uname)" != "Darwin" ]]; then
+    if command -v apt-get &> /dev/null; then
+        echo "Install boost"
+        sudo apt install -qqy libboost1.83-all-dev
+    else
+        echo "apt-get not found. Please install bison and flex manually."
+        exit 1
+    fi
+fi
+
 # Build aws-sdk-cpp
 mkdir -p $BUILD_DIR/aws-sdk-cpp
 cd $BUILD_DIR/aws-sdk-cpp

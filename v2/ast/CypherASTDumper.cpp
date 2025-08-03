@@ -1,7 +1,5 @@
 #include "CypherASTDumper.h"
 
-#include <spdlog/fmt/bundled/format.h>
-
 #include "CypherAST.h"
 #include "ASTException.h"
 #include "expressions/All.h"
@@ -37,21 +35,19 @@ CypherASTDumper::CypherASTDumper(const CypherAST& ast)
 {
 }
 
-void CypherASTDumper::dump(std::ostream& output) {
-    _o = std::ostream_iterator<char>(output);
+void CypherASTDumper::dump(std::ostream& out) {
+    out << "---\n";
+    out << "config:\n";
+    out << "  layout: elk\n";
 
-    fmt::format_to(_o, "---\n");
-    fmt::format_to(_o, "config:\n");
-    fmt::format_to(_o, "  layout: elk\n");
+    out << "---\n";
+    out << "erDiagram\n";
 
-    fmt::format_to(_o, "---\n");
-    fmt::format_to(_o, "erDiagram\n");
-
-    fmt::format_to(_o, "    script {{ }} \n");
+    out << "    script {{ }} \n";
 
     for (const auto& query : _ast.queries()) {
         if (const auto* q = dynamic_cast<const SinglePartQuery*>(query.get())) {
-            dump(*q);
+            dump(out, *q);
             continue;
         }
 
@@ -59,11 +55,11 @@ void CypherASTDumper::dump(std::ostream& output) {
     }
 }
 
-void CypherASTDumper::dump(const SinglePartQuery& query) {
-    fmt::format_to(_o, "    script ||--o{{ _{} : _\n", fmt::ptr(&query));
-    fmt::format_to(_o, "    _{} {{\n", fmt::ptr(&query));
-    fmt::format_to(_o, "        ASTType SinglePartQuery\n");
-    fmt::format_to(_o, "    }}\n");
+void CypherASTDumper::dump(std::ostream& out, const SinglePartQuery& query) {
+    out << "    script ||--o{{ _" << std::hex << &query << " : _\n";
+    out << "    _" << std::hex << &query << " {{\n";
+    out << "        ASTType SinglePartQuery\n";
+    out << "    }}\n";
 
     for (const auto& st : query.getStatements()) {
         if (const auto* matchSt = dynamic_cast<const Match*>(st)) {

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "attribution/DeclID.h"
 #include <iterator>
 #include <ostream>
 #include <unordered_set>
+
+#include "attribution/DeclID.h"
 
 namespace db {
 
@@ -53,8 +54,6 @@ public:
 
 private:
     const CypherAST& _ast;
-    std::ostream_iterator<char> _o;
-
     std::unordered_set<DeclID> _dumpedVariables;
 
     void dump(const SinglePartQuery& query);
