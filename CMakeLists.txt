@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.10)
 
 project(turingdb)
 
+# Set CMAKE_INSTALL_PREFIX to build/turing_install if not set
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/turing_install"
+        CACHE PATH "Default install path" FORCE)
+endif()
+
 # Check of newlines at EOF
 message(STATUS "Checking for newlines at EOF")
 execute_process(
