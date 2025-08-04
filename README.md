@@ -1,5 +1,7 @@
 # TuringDB
 
+[![CI Ubuntu](https://github.com/turing-db/turingdb/actions/workflows/ci_ubuntu.yml/badge.svg)](https://github.com/turing-db/turingdb/actions/workflows/ci_ubuntu.yml)
+
 ## Build
 
 Install dependencies by running the dependencies.sh script once:
