@@ -13,6 +13,7 @@
 #include "PlannerException.h"
 #include "ParserException.h"
 #include "PipelineException.h"
+#include "versioning/VersionControlException.h"
 
 #include "Profiler.h"
 #include "TuringTime.h"
@@ -110,6 +111,8 @@ QueryStatus QueryInterpreter::execute(std::string_view query,
         Executor executor;
         executor.run(&execCtxt, planner.getPipeline());
     } catch (const PipelineException& e) {
+        return QueryStatus(QueryStatus::Status::EXEC_ERROR, e.what());
+    } catch (const VersionControlException& e) {
         return QueryStatus(QueryStatus::Status::EXEC_ERROR, e.what());
     } catch (const std::exception& e) {
         return QueryStatus(QueryStatus::Status::EXEC_ERROR,
