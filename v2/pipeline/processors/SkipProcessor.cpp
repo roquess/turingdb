@@ -42,8 +42,7 @@ void SkipProcessor::prepare(ExecutionContext* ctxt) {
 }
 
 void SkipProcessor::reset() {
-    _currentRowCount = 0;
-    _skipping = true;
+    markAsReset();
 }
 
 void SkipProcessor::execute() {
