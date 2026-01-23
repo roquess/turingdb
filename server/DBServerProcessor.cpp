@@ -1254,7 +1254,6 @@ void DBServerProcessor::get_node_edges() {
         payload.end(); // node
     }
 
-
     payload.end();
 }
 
