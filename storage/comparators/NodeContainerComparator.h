@@ -22,7 +22,7 @@ public:
             return false;
         }
 
-        for (const auto [labelsetA, rangeA] : indexerA) {
+        for (const auto& [labelsetA, rangeA] : indexerA) {
             const auto itB = indexerB.find(labelsetA);
 
             if (itB == indexerB.end()) {
