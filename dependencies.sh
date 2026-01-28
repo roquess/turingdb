@@ -15,20 +15,20 @@ BUILD_DIR=$DEPENDENCIES_DIR/build
 mkdir -p $DEPENDENCIES_DIR
 mkdir -p $BUILD_DIR
 
-# Detect package manager (apt-get or dnf)
-if command -v apt-get &> /dev/null; then
-    PKG_MANAGER="apt-get"
-    PKG_INSTALL="install -qqy"
-elif command -v dnf &> /dev/null; then
-    PKG_MANAGER="dnf"
-    PKG_INSTALL="install -y"
-else
-    echo "Neither apt-get nor dnf found. Please install dependencies manually."
-    exit 1
-fi
-
-# Update package cache if Linux
+# Detect package manager (apt-get or dnf) on Linux only
 if [[ "$(uname)" != "Darwin" ]]; then
+    if command -v apt-get &> /dev/null; then
+        PKG_MANAGER="apt-get"
+        PKG_INSTALL="install -qqy"
+    elif command -v dnf &> /dev/null; then
+        PKG_MANAGER="dnf"
+        PKG_INSTALL="install -y"
+    else
+        echo "Neither apt-get nor dnf found. Please install dependencies manually."
+        exit 1
+    fi
+    
+    # Update package cache
     echo "Updating $PKG_MANAGER cache..."
     sudo $PKG_MANAGER update
 fi
@@ -154,4 +154,3 @@ fi
 cmake "${FAISS_CMAKE_ARGS[@]}" $SOURCE_DIR/external/faiss-1.13.1
 cmake --build $BUILD_DIR/faiss -j $NUM_JOBS
 cmake --install $BUILD_DIR/faiss
-
