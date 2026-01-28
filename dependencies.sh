@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 # Restrict number of jobs to 4 on macOS to avoid freeze
@@ -10,17 +9,28 @@ else
 fi
 
 SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
 DEPENDENCIES_DIR=$SOURCE_DIR/external/dependencies
 BUILD_DIR=$DEPENDENCIES_DIR/build
 
 mkdir -p $DEPENDENCIES_DIR
 mkdir -p $BUILD_DIR
 
-# Update apt cache if linux
+# Detect package manager (apt-get or dnf)
 if command -v apt-get &> /dev/null; then
-    echo "Updating apt cache..."
-    sudo apt-get update
+    PKG_MANAGER="apt-get"
+    PKG_INSTALL="install -qqy"
+elif command -v dnf &> /dev/null; then
+    PKG_MANAGER="dnf"
+    PKG_INSTALL="install -y"
+else
+    echo "Neither apt-get nor dnf found. Please install dependencies manually."
+    exit 1
+fi
+
+# Update package cache if Linux
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo "Updating $PKG_MANAGER cache..."
+    sudo $PKG_MANAGER update
 fi
 
 # Install curl, openssl, and zlib
@@ -52,31 +62,21 @@ if [[ "$(uname)" == "Darwin" ]]; then
         echo "zlib is already installed"
     fi
 else
-    # Linux - use apt
-    if command -v apt-get &> /dev/null; then
-        echo "Installing curl via apt..."
-        sudo apt-get install -qqy curl libcurl4-openssl-dev zlib1g-dev libssl-dev
-    else
-        echo "apt-get not found. Please install curl manually."
-        exit 1
-    fi
+    # Linux - use detected package manager
+    echo "Installing curl, openssl, and zlib via $PKG_MANAGER..."
+    sudo $PKG_MANAGER $PKG_INSTALL curl libcurl4-openssl-dev zlib1g-dev libssl-dev
 fi
 
 # Install bison and flex
 if [[ "$(uname)" == "Darwin" ]]; then
     # macOS - use Homebrew
-    if ! command -v brew &> /dev/null; then
-        echo "Homebrew not found. Please install Homebrew first."
-        exit 1
-    fi
-
     if ! brew list bison &> /dev/null; then
         echo "Installing bison via Homebrew..."
         brew install bison
     else
         echo "bison is already installed"
     fi
-    
+
     if ! brew list flex &> /dev/null; then
         echo "Installing flex via Homebrew..."
         brew install flex
@@ -84,24 +84,14 @@ if [[ "$(uname)" == "Darwin" ]]; then
         echo "flex is already installed"
     fi
 else
-    # Linux - use apt
-    if command -v apt-get &> /dev/null; then
-        echo "Installing bison and flex via apt..."
-        sudo apt-get install -qqy bison flex libfl-dev
-    else
-        echo "apt-get not found. Please install bison and flex manually."
-        exit 1
-    fi
+    # Linux - use detected package manager
+    echo "Installing bison and flex via $PKG_MANAGER..."
+    sudo $PKG_MANAGER $PKG_INSTALL bison flex libfl-dev
 fi
 
 # Install BLAS
 if [[ "$(uname)" == "Darwin" ]]; then
     # macOS - use Homebrew
-    if ! command -v brew &> /dev/null; then
-        echo "Homebrew not found. Please install Homebrew first."
-        exit 1
-    fi
-
     if ! brew list openblas &> /dev/null; then
         echo "Installing openblas via Homebrew..."
         brew install openblas
@@ -117,14 +107,9 @@ if [[ "$(uname)" == "Darwin" ]]; then
         echo "libomp is already installed"
     fi
 else
-    # Linux - use apt
-    if command -v apt-get &> /dev/null; then
-        echo "Installing BLAS via apt..."
-        sudo apt-get install -qqy libopenblas-dev
-    else
-        echo "apt-get not found. Please install BLAS manually."
-        exit 1
-    fi
+    # Linux - use detected package manager
+    echo "Installing BLAS via $PKG_MANAGER..."
+    sudo $PKG_MANAGER $PKG_INSTALL libopenblas-dev
 fi
 
 # Skip building if cache was hit (set by CI)
@@ -169,3 +154,4 @@ fi
 cmake "${FAISS_CMAKE_ARGS[@]}" $SOURCE_DIR/external/faiss-1.13.1
 cmake --build $BUILD_DIR/faiss -j $NUM_JOBS
 cmake --install $BUILD_DIR/faiss
+
