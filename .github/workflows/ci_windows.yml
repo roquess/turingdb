@@ -1,0 +1,87 @@
+name: CI Windows 11
+
+on:
+  workflow_dispatch:  # Permet de déclencher manuellement le workflow
+  push:
+    branches:
+      - 'feature/windows-build'  # Uniquement sur cette branche si vous souhaitez tester
+  pull_request:
+    branches:
+      - 'feature/windows-build'
+
+jobs:
+  build-windows:
+    runs-on: windows-2022  # Windows Server 2022 (équivalent Windows 11)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    
+    - name: Install Chocolatey packages
+      run: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+        choco install make -y
+        choco install git -y
+      shell: powershell
+    
+    - name: Verify installations
+      run: |
+        cmake --version
+        make --version
+        git --version
+      shell: powershell
+    
+    - name: Install vcpkg
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+        C:\vcpkg\bootstrap-vcpkg.bat
+        echo "VCPKG_ROOT=C:\vcpkg" >> $env:GITHUB_ENV
+      shell: powershell
+    
+    - name: Install dependencies with vcpkg
+      run: |
+        C:\vcpkg\vcpkg install boost-system:x64-windows
+        C:\vcpkg\vcpkg install boost-filesystem:x64-windows
+        C:\vcpkg\vcpkg install curl:x64-windows
+        C:\vcpkg\vcpkg install openssl:x64-windows
+      shell: powershell
+      continue-on-error: true
+    
+    - name: Create build directory
+      run: mkdir build
+      shell: powershell
+    
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake .. -G "Visual Studio 17 2022" -A x64 `
+          -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
+          -DCMAKE_BUILD_TYPE=Release
+      shell: powershell
+    
+    - name: Build with CMake
+      run: |
+        cd build
+        cmake --build . --config Release -j 4
+      shell: powershell
+    
+    - name: List build artifacts
+      run: |
+        Get-ChildItem -Path build -Recurse -Filter "*.exe" | Select-Object FullName
+      shell: powershell
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: turingdb-windows-build
+        path: |
+          build/**/*.exe
+          build/**/*.dll
+        retention-days: 7
