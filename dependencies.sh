@@ -5,7 +5,7 @@ set -e
 if [[ "$(uname)" == "Darwin" ]]; then
     NUM_JOBS=4
 else
-    NUM_JOBS=$(nproc)
+    NUM_JOBS=$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)
 fi
 
 SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -15,7 +15,7 @@ BUILD_DIR=$DEPENDENCIES_DIR/build
 mkdir -p $DEPENDENCIES_DIR
 mkdir -p $BUILD_DIR
 
-# Detect package manager (apt-get or dnf) on Linux only
+# Detect package manager (apt-get, dnf or zypper) on Linux only
 if [[ "$(uname)" != "Darwin" ]]; then
     if command -v apt-get &> /dev/null; then
         PKG_MANAGER="apt-get"
@@ -23,14 +23,22 @@ if [[ "$(uname)" != "Darwin" ]]; then
     elif command -v dnf &> /dev/null; then
         PKG_MANAGER="dnf"
         PKG_INSTALL="install -y"
+    elif command -v zypper &> /dev/null; then
+        PKG_MANAGER="zypper"
+        PKG_INSTALL="--non-interactive install -y"
+
     else
-        echo "Neither apt-get nor dnf found. Please install dependencies manually."
+        echo "Neither apt-get, dnf nor zypper found. Please install dependencies manually."
         exit 1
     fi
     
     # Update package cache
     echo "Updating $PKG_MANAGER cache..."
-    sudo $PKG_MANAGER update
+    if [[ "$PKG_MANAGER" == "zypper" ]]; then
+        sudo $PKG_MANAGER --non-interactive refresh
+    else
+        sudo $PKG_MANAGER update
+    fi
 fi
 
 # Install curl, openssl, and zlib
@@ -64,7 +72,11 @@ if [[ "$(uname)" == "Darwin" ]]; then
 else
     # Linux - use detected package manager
     echo "Installing curl, openssl, and zlib via $PKG_MANAGER..."
-    sudo $PKG_MANAGER $PKG_INSTALL curl libcurl4-openssl-dev zlib1g-dev libssl-dev
+    if [[ "$PKG_MANAGER" == "zypper" ]]; then
+        sudo $PKG_MANAGER $PKG_INSTALL curl libcurl-devel zlib-devel libopenssl-devel
+    else
+        sudo $PKG_MANAGER $PKG_INSTALL curl libcurl4-openssl-dev zlib1g-dev libssl-dev
+    fi
 fi
 
 # Install bison and flex
@@ -86,7 +98,11 @@ if [[ "$(uname)" == "Darwin" ]]; then
 else
     # Linux - use detected package manager
     echo "Installing bison and flex via $PKG_MANAGER..."
-    sudo $PKG_MANAGER $PKG_INSTALL bison flex libfl-dev
+    if [[ "$PKG_MANAGER" == "zypper" ]]; then
+        sudo zypper $PKG_INSTALL bison flex
+    else
+        sudo $PKG_MANAGER $PKG_INSTALL bison flex libfl-dev
+    fi
 fi
 
 # Install BLAS
@@ -109,7 +125,29 @@ if [[ "$(uname)" == "Darwin" ]]; then
 else
     # Linux - use detected package manager
     echo "Installing BLAS via $PKG_MANAGER..."
-    sudo $PKG_MANAGER $PKG_INSTALL libopenblas-dev
+    if [[ "$PKG_MANAGER" == "zypper" ]]; then
+        sudo $PKG_MANAGER $PKG_INSTALL openblas-devel
+    else
+        sudo $PKG_MANAGER $PKG_INSTALL libopenblas-dev
+    fi
+fi
+
+# Check for required build tools (cmake + C++ compiler)
+if [[ "$(uname)" != "Darwin" ]] && [[ "$PKG_MANAGER" == "zypper" ]]; then
+    if ! command -v cmake &> /dev/null || (! command -v g++ &> /dev/null && ! command -v clang++ &> /dev/null); then
+        echo "Installing build tools (cmake + gcc-c++) via zypper..."
+        sudo $PKG_MANAGER $PKG_INSTALL cmake gcc-c++
+    fi
+else
+    if ! command -v cmake &> /dev/null; then
+        echo "cmake not found. Please install cmake before running this script."
+        exit 1
+    fi
+
+    if ! command -v g++ &> /dev/null && ! command -v clang++ &> /dev/null; then
+        echo "No C++ compiler found (g++ or clang++). Please install one before running this script."
+        exit 1
+    fi
 fi
 
 # Skip building if cache was hit (set by CI)
