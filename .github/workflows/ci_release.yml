@@ -1,0 +1,118 @@
+name: CI Release
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      os_list: '["ubuntu-24.04", "macos-14", "macos-15", "macos-26"]'
+      python_version_list: '["3.10", "3.11", "3.12", "3.13", "3.14"]'
+    steps:
+      - run: echo "Defining matrix"
+
+  build-release:
+    needs: setup
+    uses: ./.github/workflows/ci_build.yml
+    with:
+      os_list: ${{ needs.setup.outputs.os_list }}
+      python_version_list: ${{ needs.setup.outputs.python_version_list }}
+
+  publish:
+    name: Publish to PyPI
+    needs: build-release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    environment:
+      name: pypi
+      url: https://pypi.org/p/turingdb
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: turingdb-wheel-*
+          path: wheel/
+          merge-multiple: true
+
+      - name: Extract version from wheel filename
+        id: get-version
+        run: |
+          WHEEL=$(ls wheel/*.whl | head -1)
+          VERSION=$(basename "$WHEEL" | sed 's/^turingdb-\([^-]*\)-.*/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: wheel/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheel/
+          skip-existing: true
+
+  test-published-wheel:
+    name: Test published wheel (${{ matrix.os }}, py${{ matrix.python_version }})
+    needs: [publish, setup]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.setup.outputs.os_list) }}
+        python_version: ${{ fromJson(needs.setup.outputs.python_version_list) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Setup Python
+        run: uv python install ${{ matrix.python_version }}
+
+      - name: Install turingdb from PyPI
+        run: |
+          uv venv .venv --python ${{ matrix.python_version }}
+          for i in 1 2 3 4 5; do
+            uv pip install turingdb==${{ needs.publish.outputs.version }} --prerelease allow --python .venv/bin/python && break
+            echo "Attempt $i failed, retrying in 30s..."
+            sleep 30
+          done
+
+      - name: Verify installed version matches
+        run: |
+          INSTALLED=$(.venv/bin/python -c "import importlib.metadata; print(importlib.metadata.version('turingdb'))")
+          EXPECTED="${{ needs.publish.outputs.version }}"
+          echo "Installed: $INSTALLED"
+          echo "Expected:  $EXPECTED"
+          if [ "$INSTALLED" != "$EXPECTED" ]; then
+            echo "ERROR: Version mismatch!"
+            exit 1
+          fi
+
+      - name: Verify turingdb launches
+        run: .venv/bin/turingdb --help
+
+      - name: Test exception handling with incorrect query
+        run: |
+          echo "THIS IS NOT VALID CYPHER;" | .venv/bin/turingdb
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -eq 139 ] || [ $EXIT_CODE -eq 134 ]; then
+            echo "turingdb crashed with signal (exit code $EXIT_CODE)"
+            exit 1
+          fi
+          echo "turingdb handled invalid query gracefully (exit code $EXIT_CODE)"
