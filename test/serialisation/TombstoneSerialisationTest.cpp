@@ -136,7 +136,7 @@ TEST_F(TombstoneSerialisationTest, deleteNodesThenLoad) {
         _env->getSystemManager().getGraph(_workingGraphName)->getPath());
     ASSERT_TRUE(res);
 
-    const Tombstones& tombstones =
+    const auto tombstones =
         _loadedGraph->openTransaction().viewGraph().commits().back().tombstones();
 
     const Tombstones::NodeTombstones& nodeTombstones = tombstones.nodeTombstones();
