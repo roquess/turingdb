@@ -670,7 +670,8 @@ TEST_F(MultiHopPatternTest, forwardChain_personKnowsPersonInterest) {
             ColumnNodeIDs bNodes;
             bNodes.push_back(personB);
 
-            for (const EdgeRecord& e2 : read().getOutEdges(&bNodes)) {
+            auto edges = read().getOutEdges(&bNodes);
+	    for (const EdgeRecord& e2 : edges) {
                 if (read().getEdgeTypeID(e2._edgeID) != INTERESTED_IN_TYPEID) continue;
                 if (!read().getNodeView(e2._otherID).labelset().hasLabel(interestLabelID)) continue;
 
@@ -742,7 +743,8 @@ TEST_F(MultiHopPatternTest, forwardChain_withFilters) {
             ColumnNodeIDs bNodes;
             bNodes.push_back(personB);
 
-            for (const EdgeRecord& e2 : read().getOutEdges(&bNodes)) {
+	    auto edges = read().getOutEdges(&bNodes);
+            for (const EdgeRecord& e2 : edges) {
                 if (read().getEdgeTypeID(e2._edgeID) != INTERESTED_IN_TYPEID) continue;
                 if (!read().getNodeView(e2._otherID).labelset().hasLabel(interestLabelID)) continue;
 
@@ -806,7 +808,8 @@ TEST_F(MultiHopPatternTest, forwardChain_deadEnd) {
             iNodes.push_back(interestI);
 
             // Look for any outgoing edges from Interest node
-            for (const EdgeRecord& e2 : read().getOutEdges(&iNodes)) {
+	    auto edges = read().getOutEdges(&iNodes);
+            for (const EdgeRecord& e2 : edges) {
                 const NodeID nodeX = e2._otherID;
 
                 const auto* nameP =
