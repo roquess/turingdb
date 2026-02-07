@@ -34,6 +34,7 @@ public:
         MakeMemoryPool<ColumnVector<EntityID>>::type,
         MakeMemoryPool<ColumnVector<NodeID>>::type,
         MakeMemoryPool<ColumnVector<EdgeID>>::type,
+        MakeMemoryPool<ColumnVector<Path>>::type,
         MakeMemoryPool<ColumnVector<LabelID>>::type,
         MakeMemoryPool<ColumnVector<LabelSetID>>::type,
         MakeMemoryPool<ColumnVector<EdgeTypeID>>::type,
@@ -58,6 +59,13 @@ public:
         MakeMemoryPool<ColumnConst<types::String::Primitive>>::type,
         MakeMemoryPool<ColumnConst<types::Bool::Primitive>>::type,
 
+        MakeMemoryPool<ColumnConst<std::optional<types::Int64::Primitive>>>::type,
+        MakeMemoryPool<ColumnConst<std::optional<types::Int64::Primitive>>>::type,
+        MakeMemoryPool<ColumnConst<std::optional<types::UInt64::Primitive>>>::type,
+        MakeMemoryPool<ColumnConst<std::optional<types::Double::Primitive>>>::type,
+        MakeMemoryPool<ColumnConst<std::optional<types::String::Primitive>>>::type,
+        MakeMemoryPool<ColumnConst<std::optional<types::Bool::Primitive>>>::type,
+
         MakeMemoryPool<ColumnConst<PropertyNull>>::type,
 
         MakeMemoryPool<ColumnVector<types::Int64::Primitive>>::type,
@@ -74,8 +82,7 @@ public:
         MakeMemoryPool<ColumnOptVector<types::String::Primitive>>::type,
         MakeMemoryPool<ColumnOptVector<types::Bool::Primitive>>::type,
         MakeMemoryPool<ColumnSet<NodeID>>::type,
-        MakeMemoryPool<ColumnSet<EdgeID>>::type
-        >;
+        MakeMemoryPool<ColumnSet<EdgeID>>::type>;
 
     template <typename KeyT, typename ValueT>
     struct ClearTransform {

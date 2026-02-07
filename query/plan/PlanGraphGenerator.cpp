@@ -5,6 +5,7 @@
 #include "Projection.h"
 #include "QualifiedName.h"
 #include "Symbol.h"
+#include "decl/DeclContext.h"
 #include "expr/Expr.h"
 #include "expr/FunctionInvocationExpr.h"
 #include "ExprDependencies.h"
@@ -13,6 +14,7 @@
 #include "stmt/Limit.h"
 #include "stmt/OrderBy.h"
 #include "stmt/ReturnStmt.h"
+#include "stmt/ShortestPathStmt.h"
 #include "stmt/Skip.h"
 #include "stmt/StmtContainer.h"
 #include "views/GraphView.h"
@@ -37,9 +39,11 @@
 #include "nodes/CreateGraphNode.h"
 #include "nodes/LoadGMLNode.h"
 #include "nodes/LoadNeo4jNode.h"
+#include "nodes/LoadJsonlNode.h"
 #include "nodes/S3ConnectNode.h"
 #include "nodes/S3TransferNode.h"
 #include "nodes/ShowProceduresNode.h"
+#include "nodes/ShortestPathNode.h"
 
 #include "QueryCommand.h"
 #include "SinglePartQuery.h"
@@ -53,6 +57,7 @@
 #include "LoadGraphQuery.h"
 #include "LoadGMLQuery.h"
 #include "LoadNeo4jQuery.h"
+#include "LoadJsonlQuery.h"
 
 #include "decl/VarDecl.h"
 #include "decl/PatternData.h"
@@ -88,6 +93,10 @@ void PlanGraphGenerator::generate(const QueryCommand* query) {
 
         case QueryCommand::Kind::LOAD_NEO4J_QUERY:
             generateLoadNeo4jQuery(static_cast<const LoadNeo4jQuery*>(query));
+        break;
+
+        case QueryCommand::Kind::LOAD_JSONL_QUERY:
+            generateLoadJsonlQuery(static_cast<const LoadJsonlQuery*>(query));
         break;
 
         case QueryCommand::Kind::CHANGE_QUERY:
@@ -139,6 +148,7 @@ void PlanGraphGenerator::generateCommitQuery(const CommitQuery* query) {
 void PlanGraphGenerator::generateSinglePartQuery(const SinglePartQuery* query) {
     const StmtContainer* readStmts = query->getReadStmts();
     const StmtContainer* updateStmts = query->getUpdateStmts();
+    const ShortestPathStmt* shortestPathStmt = query->getShortestPathStmt();
     const ReturnStmt* returnStmt = query->getReturnStmt();
 
     PlanGraphNode* currentNode = nullptr;
@@ -159,6 +169,30 @@ void PlanGraphGenerator::generateSinglePartQuery(const SinglePartQuery* query) {
 
         // Place joins based on procedures calls
         readGenerator.placeJoinsOnProcedures();
+
+        // Insert ShortestPath Node
+        if (shortestPathStmt) {
+            const auto* declContext = query->getDeclContext();
+            auto sourceName = shortestPathStmt->getSource()->getName();
+            auto targetName = shortestPathStmt->getTarget()->getName();
+            const auto propertyType = _view.metadata().propTypes().get(shortestPathStmt->getEdgeProperty()->getName()).value();
+            auto distName = shortestPathStmt->getDistVar()->getName();
+            auto pathName = shortestPathStmt->getPathVar()->getName();
+
+            const auto* sourceDecl = declContext->getDecl(sourceName);
+            const auto* targetDecl = declContext->getDecl(targetName);
+            const auto* distDecl = declContext->getDecl(distName);
+            const auto* pathDecl = declContext->getDecl(pathName);
+
+            auto* sourceNode = _variables->getVarNode(sourceDecl);
+            auto* targetNode = _variables->getVarNode(targetDecl);
+
+            readGenerator.insertShortestPathNode(sourceNode,
+                                                 targetNode,
+                                                 propertyType,
+                                                 distDecl,
+                                                 pathDecl);
+        }
 
         // Place joins that generate the endpoint, and retrieve it
         currentNode = readGenerator.generateEndpoint();
@@ -215,6 +249,11 @@ void PlanGraphGenerator::generateLoadNeo4jQuery(const LoadNeo4jQuery* query) {
     _tree.newOut<ProduceResultsNode>(n);
 }
 
+void PlanGraphGenerator::generateLoadJsonlQuery(const LoadJsonlQuery* query) {
+    LoadJsonlNode* n = _tree.create<LoadJsonlNode>(query->getFilePath(), query->getGraphName());
+    _tree.newOut<ProduceResultsNode>(n);
+}
+
 void PlanGraphGenerator::generateS3ConnectQuery(const S3ConnectQuery* query) {
     S3ConnectNode* s3ConnectNode = _tree.create<S3ConnectNode>(query->getAccessId(),
                                                                query->getSecretKey(),
@@ -257,7 +296,13 @@ PlanGraphNode* PlanGraphGenerator::generateReturnStmt(const ReturnStmt* stmt, Pl
     GetPropertyCache& getPropertyCache = _tree.getGetPropertyCache();
     GetEntityTypeCache& getEntityTypeCache = _tree.getGetEntityTypeCache();
 
-    for (Expr* item : proj->items()) {
+    for (const Projection::ReturnItem& returnItem : proj->items()) {
+        const auto* exprPtr = std::get_if<Expr*>(&returnItem);
+        if (!exprPtr) {
+            continue;
+        }
+
+        Expr* item = *exprPtr;
         ExprDependencies deps;
         deps.genExprDependencies(*_variables, item);
 

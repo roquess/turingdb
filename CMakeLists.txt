@@ -2,13 +2,17 @@ cmake_minimum_required(VERSION 3.15)
 
 project(turingdb)
 
+if (NIX_BUILD)
+    message(STATUS Building with nix)
+endif()
+
 # On macOS, require LLVM Clang (not AppleClang) with version >= 15
 # AppleClang has compatibility issues with C++23 features and missing headers
 if(APPLE)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
         message(FATAL_ERROR
-            "AppleClang is not supported. Please use LLVM Clang from Homebrew.\n"
-            "Install with: brew install llvm\n"
+            "AppleClang is not supported. Please use LLVM Clang.\n"
+            "Installation with brew: brew install llvm\n"
             "Then configure with: cmake -DCMAKE_C_COMPILER=$(brew --prefix llvm)/bin/clang "
             "-DCMAKE_CXX_COMPILER=$(brew --prefix llvm)/bin/clang++ .."
         )
@@ -87,6 +91,13 @@ if (${TURING_DEV})
     add_definitions(-DTURING_DEV)
 endif()
 
+# Detect TURING_PROFILE
+set(TURING_PROFILE 0)
+if ($ENV{TURING_PROFILE})
+    set(TURING_PROFILE 1)
+    message(STATUS "Turing profile mode enabled")
+endif()
+
 # Debug settings
 if (${DEBUG_BUILD})
     message(STATUS "Debug build")
@@ -104,14 +115,20 @@ endif()
 # C++ flags
 set(CMAKE_CXX_FLAGS "-std=${CPP_STANDARD} ${CPP_WARNINGS} ${OPTIMIZE_FLAGS}")
 
-# When using LLVM clang from Homebrew on macOS, add libc++ library path for linker
-if(APPLE)
+# When using LLVM clang from Homebrew on macOS, configure libc++ paths
+if(APPLE AND NOT NIX_BUILD)
     get_filename_component(COMPILER_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
     get_filename_component(LLVM_ROOT ${COMPILER_DIR} DIRECTORY)
     if(EXISTS "${LLVM_ROOT}/lib/c++")
+        # Add libc++ library path for linker
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LLVM_ROOT}/lib/c++ -Wl,-rpath,${LLVM_ROOT}/lib/c++")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -L${LLVM_ROOT}/lib/c++ -Wl,-rpath,${LLVM_ROOT}/lib/c++")
         message(STATUS "Using LLVM libc++ from: ${LLVM_ROOT}/lib/c++")
+    endif()
+    # Use LLVM's libc++ and add include path for headers (required for LLVM 21+ on macOS 15+)
+    if(EXISTS "${LLVM_ROOT}/include/c++/v1")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -isystem ${LLVM_ROOT}/include/c++/v1")
+        message(STATUS "Using LLVM libc++ headers from: ${LLVM_ROOT}/include/c++/v1")
     endif()
 endif()
 
@@ -126,6 +143,7 @@ execute_process(
 set(EXTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/dependencies)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Threads
 find_package(Threads REQUIRED)
@@ -142,7 +160,7 @@ find_package(Faiss REQUIRED)
 
 # OpenMP (required by Faiss)
 # On macOS, AppleClang doesn't include OpenMP, so we need to use Homebrew's libomp
-if(APPLE)
+if(APPLE AND NOT NIX_BUILD)
     find_program(BREW_EXECUTABLE brew)
     if(BREW_EXECUTABLE)
         execute_process(
@@ -163,7 +181,7 @@ find_package(OpenMP REQUIRED)
 
 
 # Use Homebrew for Flex and Bison on macOS
-if(APPLE)
+if(APPLE AND NOT NIX_BUILD)
     find_program(BREW_EXECUTABLE brew)
     if(NOT BREW_EXECUTABLE)
         message(FATAL_ERROR "Homebrew not found")
@@ -182,13 +200,6 @@ if(APPLE)
     set(FLEX_EXECUTABLE "${HOMEBREW_FLEX_PREFIX}/bin/flex")
     set(FLEX_LIBRARIES "${HOMEBREW_FLEX_PREFIX}/lib/libfl.a")
     message(STATUS "Using Homebrew Flex include directory: ${FLEX_INCLUDE_DIRS}")
-endif()
-
-if(APPLE)
-    find_program(BREW_EXECUTABLE brew)
-    if(NOT BREW_EXECUTABLE)
-        message(FATAL_ERROR "Homebrew not found")
-    endif()
 
     execute_process(
         COMMAND ${BREW_EXECUTABLE} --prefix bison
@@ -205,12 +216,8 @@ if(APPLE)
     message(STATUS "Using Homebrew Bison include directory: ${BISON_INCLUDE_DIRS}")
 endif()
 
+# zlib
 find_package(ZLIB REQUIRED)
-
-# aws-sdk-cpp
-find_package(AWSSDK REQUIRED COMPONENTS s3 s3-crt ec2
-    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/external/dependencies/
-)
 
 # openssl
 find_package(OpenSSL REQUIRED)
@@ -230,6 +237,10 @@ execute_process(COMMAND git show --no-patch --format=%at
 
 add_subdirectory(cmake)
 add_subdirectory(external)
+
+# miniocpp (MinIO S3 client)
+find_package(miniocpp REQUIRED)
+
 add_subdirectory(common)
 add_subdirectory(base)
 add_subdirectory(log)

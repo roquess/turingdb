@@ -6,6 +6,7 @@ set(pipeline_sources
     PipelinePort.cpp
     PipelineBuilder.cpp
     PipelineExecutor.cpp
+    PipelineException.cpp
     interfaces/PipelineInterface.cpp)
 
 set(processors_sources
@@ -30,6 +31,7 @@ set(processors_sources
     processors/LambdaSourceProcessor.cpp
     processors/LambdaTransformProcessor.cpp
     processors/CartesianProductProcessor.cpp
+    processors/ShortestPathProcessor.cpp
     processors/HashJoinProcessor.cpp
     processors/WriteProcessor.cpp
     processors/GetLabelSetIDProcessor.cpp
@@ -39,6 +41,7 @@ set(processors_sources
     processors/CreateGraphProcessor.cpp
     processors/LoadGMLProcessor.cpp
     processors/LoadNeo4jProcessor.cpp
+    processors/LoadJsonlProcessor.cpp
     processors/S3ConnectProcessor.cpp
     processors/S3PullProcessor.cpp
     processors/S3PushProcessor.cpp

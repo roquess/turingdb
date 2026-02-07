@@ -28,6 +28,7 @@
     #include "stmt/StmtContainer.h"
     #include "stmt/ReturnStmt.h"
     #include "stmt/MatchStmt.h"
+    #include "stmt/ShortestPathStmt.h"
     #include "stmt/CallStmt.h"
     #include "stmt/CreateStmt.h"
     #include "stmt/SetStmt.h"
@@ -60,6 +61,7 @@
     #include "LoadGraphQuery.h"
     #include "LoadGMLQuery.h"
     #include "LoadNeo4jQuery.h"
+    #include "LoadJsonlQuery.h"
     #include "ShowProceduresQuery.h"
 
     namespace db {
@@ -118,6 +120,7 @@
 
 // Keywords
 %token<std::string_view> PROCEDURES
+%token<std::string_view> SHORTESTPATH 
 %token<std::string_view> DESCENDING
 %token<std::string_view> CONSTRAINT
 %token<std::string_view> MANDATORY
@@ -156,6 +159,7 @@
 %token<std::string_view> COUNT
 %token<std::string_view> GRAPH
 %token<std::string_view> NEO4J
+%token<std::string_view> JSONL
 %token<std::string_view> LIST
 %token<std::string_view> DESC
 %token<std::string_view> CALL
@@ -286,12 +290,14 @@
 %type<db::LoadGraphQuery*> loadGraph
 %type<db::LoadGMLQuery*> loadGML
 %type<db::LoadNeo4jQuery*> loadNeo4j
+%type<db::LoadJsonlQuery*> loadJsonl
 %type<db::Stmt*> readingStatement
 %type<db::Stmt*> updatingStatement
 %type<db::StmtContainer*> readingStatements
 %type<db::StmtContainer*> updatingStatements
 %type<db::ChangeOp> changeOp
 %type<db::MatchStmt*> matchSt
+%type<db::ShortestPathStmt*> shortestPathSt
 %type<db::CallStmt*> callSt
 %type<db::CreateStmt*> createSt
 %type<db::SetStmt*> setSt
@@ -345,6 +351,7 @@ singleQuery
     | createGraphQuery { $$ = $1; }
     | loadGML { $$ = $1; }
     | loadNeo4j { $$ = $1; }
+    | loadJsonl { $$ = $1; }
     | s3ConnectQuery { $$ = $1; }
     | s3TransferQuery { $$ = $1; }
     | showProceduresQuery { $$ = $1; }
@@ -358,6 +365,15 @@ loadNeo4j
     : LOAD NEO4J STRING_LITERAL { $$ = LoadNeo4jQuery::create(ast, fs::Path(std::string($3))); LOC($$, @$); }
     | LOAD NEO4J STRING_LITERAL AS ID {
         $$ = LoadNeo4jQuery::create(ast, fs::Path(std::string($3)));
+        $$->setGraphName($5);
+        LOC($$, @$);
+      }
+    ;
+
+loadJsonl
+    : LOAD JSONL STRING_LITERAL { $$ = LoadJsonlQuery::create(ast, fs::Path(std::string($3))); LOC($$, @$); }
+    | LOAD JSONL STRING_LITERAL AS ID {
+        $$ = LoadJsonlQuery::create(ast, fs::Path(std::string($3)));
         $$->setGraphName($5);
         LOC($$, @$);
       }
@@ -445,9 +461,9 @@ opt_limitSSt
     ;
 
 projectionItems
-    : MULT { $$ = Projection::create(ast); $$->setAll(); LOC($$, @$); }
-    | projectionItem { $$ = Projection::create(ast); $$->add($1); LOC($$, @$); }
-    | projectionItems COMMA projectionItem { $$ = $1; $$->add($3); }
+    : MULT { $$ = Projection::create(ast); $$->setReturnAll(); LOC($$, @$); }
+    | projectionItem { $$ = Projection::create(ast); $$->addExpr($1); LOC($$, @$); }
+    | projectionItems COMMA projectionItem { $$ = $1; $$->addExpr($3); LOC($$, @$); }
     ;
 
 projectionItem
@@ -465,7 +481,7 @@ orderByItem
 
 orderBySSt
     : ORDER BY orderByItem { $$ = OrderBy::create(ast); $$->addItem($3); LOC($$, @$); }
-    | orderBySSt COMMA orderByItem { $$ = $1; $$->addItem($3); }
+    | orderBySSt COMMA orderByItem { $$ = $1; $$->addItem($3); LOC($$, @$); }
     ;
 
 singlePartQuery
@@ -483,6 +499,12 @@ singlePartQuery
     | readingStatements returnSt { $$ = SinglePartQuery::create(ast); $$->setReadStmts($1); $$->setReturnStmt($2); LOC($$, @$); }
     | readingStatements updatingStatements { $$ = SinglePartQuery::create(ast); $$->setReadStmts($1); $$->setUpdateStmts($2); LOC($$, @$); }
     | readingStatements updatingStatements returnSt { $$ = SinglePartQuery::create(ast); $$->setReadStmts($1); $$->setUpdateStmts($2); $$->setReturnStmt($3); LOC($$, @$); }
+    | readingStatements shortestPathSt returnSt { 
+        $$ = SinglePartQuery::create(ast);
+        $$->setReadStmts($1);
+        $$->setShortestPathStmt($2);
+        $$->setReturnStmt($3);
+        LOC($$, @$); }
     ;
 
 changeQuery
@@ -502,12 +524,12 @@ commitQuery
 
 readingStatements
     : readingStatement { $$ = StmtContainer::create(ast); $$->add($1); LOC($$, @$); }
-    | readingStatements readingStatement { $$ = $1; $$->add($2); }
+    | readingStatements readingStatement { $$ = $1; $$->add($2); LOC($$, @$); }
     ;
 
 updatingStatements
     : updatingStatement { $$ = StmtContainer::create(ast); $$->add($1); LOC($$, @$); }
-    | updatingStatements updatingStatement { $$ = $1; $$->add($2); }
+    | updatingStatements updatingStatement { $$ = $1; $$->add($2); LOC($$, @$); }
     ;
  
 multiPartQuery
@@ -536,6 +558,13 @@ matchSt
         $$->setSkip($5);
         $$->setLimit($6);
         $$->setOptional(true);
+        LOC($$, @$);
+      }
+    ;
+
+shortestPathSt
+    : SHORTESTPATH OPAREN symbol COMMA symbol COMMA name COMMA symbol COMMA symbol CPAREN {
+        $$ = ShortestPathStmt::create(ast,$3,$5,$7,$9,$11);
         LOC($$, @$);
       }
     ;
@@ -627,28 +656,28 @@ callCapture
     ;
 
 exprChain
-    : expr { $$ = ExprChain::create(ast); $$->add($1); }
-    | exprChain COMMA expr { $$ = $1; $$->add($3); }
+    : expr { $$ = ExprChain::create(ast); $$->add($1); LOC($$, @$); }
+    | exprChain COMMA expr { $$ = $1; $$->add($3); LOC($$, @$); }
     ;
 
 yieldClause
-    : YIELD yieldItems { $$ = YieldClause::create(ast); $$->setItems($2); }
-    | YIELD MULT { $$ = YieldClause::create(ast); }
+    : YIELD yieldItems { $$ = YieldClause::create(ast); $$->setItems($2); LOC($$, @$); }
+    | YIELD MULT { $$ = YieldClause::create(ast); LOC($$, @$); }
     ;
 
 parenExprChain
-    : OPAREN exprChain CPAREN { $$ = $2; }
-    | OPAREN CPAREN { $$ = ExprChain::create(ast); }
+    : OPAREN exprChain CPAREN { $$ = $2; LOC($$, @$); }
+    | OPAREN CPAREN { $$ = ExprChain::create(ast); LOC($$, @$); }
     ;
 
 yieldItems
-    : yieldItemChain { $$ = $1; }
-    | yieldItemChain whereClause { $$ = $1; $$->setWhere($2); }
+    : yieldItemChain { $$ = $1; LOC($$, @$); }
+    | yieldItemChain whereClause { $$ = $1; $$->setWhere($2); LOC($$, @$); }
     ;
 
 yieldItemChain
-    : yieldItem { $$ = YieldItems::create(ast); $$->add($1); }
-    | yieldItemChain COMMA yieldItem { $$ = $1; $$->add($3); }
+    : yieldItem { $$ = YieldItems::create(ast); $$->add($1); LOC($$, @$); }
+    | yieldItemChain COMMA yieldItem { $$ = $1; $$->add($3); LOC($$, @$); }
     ;
 
 yieldItem
@@ -1265,6 +1294,8 @@ reservedWord
     | UNION { $$ = Symbol::create(ast, $1); }
     | FALSE { $$ = Symbol::create(ast, $1); }
     | COUNT { $$ = Symbol::create(ast, $1); }
+    | NEO4J { $$ = Symbol::create(ast, $1); }
+    | JSONL { $$ = Symbol::create(ast, $1); }
     | LIST { $$ = Symbol::create(ast, $1); }
     | DESC { $$ = Symbol::create(ast, $1); }
     | CALL { $$ = Symbol::create(ast, $1); }

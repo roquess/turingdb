@@ -11,7 +11,6 @@ class LocalMemory;
 
 namespace db {
 
-class SourceManager;
 class ProcedureBlueprintMap;
 class PlanGraph;
 class PipelineV2;
@@ -38,6 +37,7 @@ class WriteNode;
 class ScanNodesByLabelNode;
 class LoadGraphNode;
 class LoadNeo4jNode;
+class LoadJsonlNode;
 class ChangeNode;
 class ListGraphNode;
 class CreateGraphNode;
@@ -45,6 +45,7 @@ class LoadGMLNode;
 class S3ConnectNode;
 class S3TransferNode;
 class ShowProceduresNode;
+class ShortestPathNode;
 class CommitNode;
 
 class PipelineGenerator {
@@ -53,7 +54,6 @@ public:
                       const GraphView& view,
                       PipelineV2* pipeline,
                       LocalMemory* mem,
-                      SourceManager* sourceManager,
                       const ProcedureBlueprintMap& blueprints,
                       const QueryCallbackV2& callback)
         : _graph(graph),
@@ -61,7 +61,6 @@ public:
         _view(view),
         _pipeline(pipeline),
         _mem(mem),
-        _sourceManager(sourceManager),
         _callback(callback),
         _builder(mem, pipeline)
     {
@@ -91,7 +90,6 @@ private:
     GraphView _view;
     PipelineV2* _pipeline {nullptr};
     LocalMemory* _mem {nullptr};
-    SourceManager* _sourceManager {nullptr};
     QueryCallbackV2 _callback;
     PipelineBuilder _builder;
 
@@ -124,6 +122,7 @@ private:
     PipelineOutputInterface* translateScanNodesByLabelNode(ScanNodesByLabelNode* node);
     PipelineOutputInterface* translateLoadGraph(LoadGraphNode* node);
     PipelineOutputInterface* translateLoadNeo4j(LoadNeo4jNode* node);
+    PipelineOutputInterface* translateLoadJsonl(LoadJsonlNode* node);
     PipelineOutputInterface* translateChangeNode(ChangeNode* node);
     PipelineOutputInterface* translateCommitNode(CommitNode* node);
     PipelineOutputInterface* translateListGraphNode(ListGraphNode* node);
@@ -132,6 +131,7 @@ private:
     PipelineOutputInterface* translateS3ConnectNode(S3ConnectNode* node);
     PipelineOutputInterface* translateS3TransferNode(S3TransferNode* node);
     PipelineOutputInterface* translateShowProceduresNode(ShowProceduresNode* node);
+    PipelineOutputInterface* translateShortestPathNode(ShortestPathNode* node);
 };
 
 }

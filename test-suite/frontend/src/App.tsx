@@ -26,7 +26,7 @@ import {
   SidebarTrigger,
   useSidebar
 } from "@/components/ui/sidebar";
-import { AlertTriangle, Ban, CheckCircle2, Clock3, FilePlus, GitCompareArrows, PanelLeft, Play, PlayCircle, Plus, Share2, Trash2 } from "lucide-react";
+import { AlertTriangle, Ban, Bug, CheckCircle2, Clock3, Copy, FilePlus, GitCompareArrows, PanelLeft, Play, PlayCircle, Plus, Share2, Trash2 } from "lucide-react";
 
 type TestMeta = {
   name: string;
@@ -127,6 +127,7 @@ export default function App() {
   const [newTestOpen, setNewTestOpen] = React.useState(false);
   const [newTestName, setNewTestName] = React.useState("");
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [duplicateOpen, setDuplicateOpen] = React.useState(false);
   const [planSvg, setPlanSvg] = React.useState<string | null>(null);
   const [planSvgExpected, setPlanSvgExpected] = React.useState<string | null>(null);
   const [planSvgMain, setPlanSvgMain] = React.useState<string | null>(null);
@@ -149,6 +150,14 @@ export default function App() {
   const loadTests = React.useCallback(async (preferName?: string) => {
     try {
       const res = await fetch(`${API_BASE}/tests`);
+      if (!res.ok) {
+        const details = await res.json().catch(() => null);
+        const message =
+          typeof details?.error === "string"
+            ? `${details.error}${details.details ? `: ${details.details}` : ""}`
+            : "Failed to load test list";
+        throw new Error(message);
+      }
       const data = (await res.json()) as TestMeta[];
       setTests(data);
       setSelected((prev) => {
@@ -615,6 +624,42 @@ export default function App() {
     }
   };
 
+  const duplicateSelectedTest = async () => {
+    if (!selected) return;
+    setDuplicateOpen(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/duplicate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: selected.name })
+      });
+      if (!res.ok) {
+        const details = await res.json().catch(() => null);
+        const message =
+          typeof details?.error === "string"
+            ? `${details.error}${details.details ? `: ${details.details}` : ""}`
+            : "Failed to duplicate test";
+        throw new Error(message);
+      }
+      const payload = (await res.json()) as { name?: string };
+      const loaded = await loadTests(payload.name);
+      if (payload.name) {
+        const created = loaded.find((test) => test.name === payload.name);
+        if (created) {
+          setSelected(created);
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to duplicate test.";
+      setError(message);
+    } finally {
+      setLoading(false);
+      setDuplicateOpen(false);
+    }
+  };
+
   const deleteTest = async () => {
     if (!selected) return;
     setLoading(true);
@@ -675,6 +720,42 @@ export default function App() {
         setShareNotice(null);
       }, 2000);
     }
+  };
+
+  const reportSelectedTestIssue = () => {
+    if (!selected) return;
+    const testUrl = `http://localhost:5555/?test=${encodeURIComponent(selected.name)}`;
+    const title = `[Test] ${selected.name}`;
+    const lines = [
+      "## Test Details",
+      `- Name: \`${selected.name}\``,
+      `- URL: ${testUrl}`,
+      `- Enabled: ${selected.enabled ? "true" : "false"}`,
+      `- Write required: ${selected.writeRequired ? "true" : "false"}`,
+      `- Tags: ${(selected.tags ?? []).join(", ") || "(none)"}`,
+      "",
+      "## Query",
+      "```cypher",
+      selected.query ?? "",
+      "```"
+    ];
+    if (selectedResult) {
+      lines.push(
+        "",
+        "## Last Run",
+        `- Plan matched: ${selectedResult.planMatched ? "true" : "false"}`,
+        `- Result matched: ${selectedResult.resultMatched ? "true" : "false"}`,
+        typeof selectedResult.timeUs === "number"
+          ? `- Time: ${selectedResult.timeUs} μs`
+          : "- Time: (not available)"
+      );
+    }
+    const params = new URLSearchParams({
+      title,
+      body: lines.join("\n")
+    });
+    const issueUrl = `https://github.com/turing-db/turingdb/issues/new?${params.toString()}`;
+    window.open(issueUrl, "_blank", "noopener,noreferrer");
   };
 
   const selectedResult = selected ? results[selected.name] : undefined;
@@ -1126,6 +1207,10 @@ export default function App() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              <Button variant="ghost" onClick={duplicateSelectedTest} disabled={!selected || loading}>
+                <Copy />
+                Duplicate
+              </Button>
               <Button variant="ghost" onClick={shareSelected} disabled={!selected}>
                 <Share2 />
                 Share
@@ -1170,6 +1255,13 @@ export default function App() {
               {failNotice}
             </div>
           )}
+          {duplicateOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+              <div className="surface rounded-2xl border border-white/10 px-6 py-4 text-sm text-ink">
+                Duplicating test...
+              </div>
+            </div>
+          )}
 
           <main className="mx-auto mt-8 flex w-full max-w-6xl flex-1 gap-6 overflow-hidden">
             <section className="surface min-w-0 flex-1 rounded-3xl p-6">
@@ -1181,6 +1273,20 @@ export default function App() {
               <span>Result</span>
             </div>
           </div>
+
+          {!selected && tests.length === 0 && (
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-steel/40 p-10 text-center">
+              <AlertTriangle className="h-8 w-8 text-amber-400/80" />
+              <p className="text-sm text-ink/80">
+                {error
+                  ? "Could not load the test list. Check that the backend server and CLI binary are available."
+                  : "No tests available."}
+              </p>
+              <Button variant="ghost" size="sm" onClick={() => { setError(null); loadTests(); }}>
+                Retry
+              </Button>
+            </div>
+          )}
 
           {selected && (
             <div className="mt-4 rounded-2xl border border-white/10 bg-steel/40 p-4">
@@ -1238,6 +1344,16 @@ export default function App() {
                 />
                 Enabled
               </label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={reportSelectedTestIssue}
+                disabled={!selected}
+                className="mt-3"
+              >
+                <Bug />
+                Report Issue
+              </Button>
               {!selected.enabled && (
                 <div className="mt-3">
                   <label className="text-[10px] uppercase tracking-[0.2em] text-ink/60">
@@ -1308,7 +1424,7 @@ export default function App() {
             </div>
           )}
 
-          {error && (
+          {error && selected && (
             <div className="mt-6 rounded-2xl border border-accent/40 bg-accent/10 p-4 text-sm text-ink">
               {error}
             </div>

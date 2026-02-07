@@ -8,12 +8,15 @@ class CypherAST;
 class ReadStmtAnalyzer;
 class WriteStmtAnalyzer;
 class ExprAnalyzer;
+class QueryCommand;
 class SinglePartQuery;
 class LoadGraphQuery;
 class CreateGraphQuery;
+class DeclContext;
 class ChangeQuery;
 class LoadGMLQuery;
 class LoadNeo4jQuery;
+class LoadJsonlQuery;
 class ChangeQuery;
 class S3ConnectQuery;
 class S3TransferQuery;
@@ -43,6 +46,7 @@ public:
     void analyze(const CreateGraphQuery* createGraph);
     void analyze(LoadGMLQuery* loadGML);
     void analyze(LoadNeo4jQuery* loadNeo4j);
+    void analyze(LoadJsonlQuery* loadJsonl);
     void analyze(const S3ConnectQuery* s3Connect);
     void analyze(S3TransferQuery* s3Transfer);
 
@@ -55,6 +59,7 @@ private:
     CypherAST* _ast {nullptr};
     GraphView _graphView;
     const GraphMetadata& _graphMetadata;
+    DeclContext* _ctxt {nullptr};
 
     std::unique_ptr<ExprAnalyzer> _exprAnalyzer;
     std::unique_ptr<ReadStmtAnalyzer> _readAnalyzer;

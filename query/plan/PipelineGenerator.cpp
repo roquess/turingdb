@@ -29,7 +29,6 @@
 #include "processors/WriteProcessor.h"
 #include "processors/WriteProcessorTypes.h"
 #include "reader/GraphReader.h"
-#include "SourceManager.h"
 
 #include "processors/MaterializeProcessor.h"
 
@@ -59,9 +58,11 @@
 #include "nodes/CreateGraphNode.h"
 #include "nodes/LoadGMLNode.h"
 #include "nodes/LoadNeo4jNode.h"
+#include "nodes/LoadJsonlNode.h"
 #include "nodes/S3ConnectNode.h"
 #include "nodes/S3TransferNode.h"
 #include "nodes/ShowProceduresNode.h"
+#include "nodes/ShortestPathNode.h"
 
 #include "Projection.h"
 #include "decl/VarDecl.h"
@@ -316,6 +317,10 @@ PipelineOutputInterface* PipelineGenerator::translateNode(PlanGraphNode* node) {
             return translateLoadNeo4j(static_cast<LoadNeo4jNode*>(node));
         break;
 
+        case PlanGraphOpcode::LOAD_JSONL:
+            return translateLoadJsonl(static_cast<LoadJsonlNode*>(node));
+        break;
+
         case PlanGraphOpcode::CHANGE:
             return translateChangeNode(static_cast<ChangeNode*>(node));
         break;
@@ -346,7 +351,11 @@ PipelineOutputInterface* PipelineGenerator::translateNode(PlanGraphNode* node) {
 
         case PlanGraphOpcode::SHOW_PROCEDURES:
             return translateShowProceduresNode(static_cast<ShowProceduresNode*>(node));
-        break;
+            break;
+
+        case PlanGraphOpcode::SHORTEST_PATH:
+            return translateShortestPathNode(static_cast<ShortestPathNode*>(node));
+            break;
 
         case PlanGraphOpcode::GET_ENTITY_TYPE:
         case PlanGraphOpcode::PROJECT_RESULTS:
@@ -665,26 +674,34 @@ PipelineOutputInterface* PipelineGenerator::translateProduceResultsNode(ProduceR
     // in which case, we can simply output the whole dataframe
     if (projNode) {
         std::vector<ProjectionItem> items;
-        for (const Expr* item : projNode->items()) {
-            const VarDecl* decl = item->getExprVarDecl();
+        for (const Projection::ReturnItem& item : projNode->items()) {
+            if (const auto* exprPtr = std::get_if<Expr*>(&item)) {
+                const Expr* item = *exprPtr;
+                const VarDecl* decl = item->getExprVarDecl();
 
-            if (!decl) {
-                throw PlannerException("Projection item does not have a variable declaration");
+                if (!decl) {
+                    throw PlannerException("Projection item does not have a variable declaration");
+                }
+
+                const ColumnTag tag = _declToColumn.at(decl);
+                const std::optional<std::string_view> name = projNode->getName(item);
+                if (!name) {
+                    continue;
+                }
+
+                items.push_back({tag, *name});
+
+            } else if (const auto* declPtr = std::get_if<VarDecl*>(&item)) {
+                const VarDecl* decl = *declPtr;
+                const ColumnTag tag = _declToColumn.at(decl);
+                const std::optional<std::string_view> name = projNode->getName(decl);
+
+                if (!name) {
+                    continue;
+                }
+
+                items.push_back({tag, *name});
             }
-
-            const auto findColIt = _declToColumn.find(decl);
-            if (findColIt == _declToColumn.end()) {
-                throw PlannerException(fmt::format("Unregistered variable {}.", decl->getName()));
-            }
-
-            const ColumnTag tag = findColIt->second;
-            const std::string_view name = item->getName();
-
-            const std::string_view repr = name.empty()
-                ? _sourceManager->getStringRepr((std::uintptr_t)item)
-                : name;
-
-            items.push_back({tag, repr});
         }
 
         _builder.addProjection(items);
@@ -941,7 +958,7 @@ PipelineOutputInterface* PipelineGenerator::translateProcedureEvalNode(Procedure
         throw PlannerException(fmt::format("Procedure '{}' does not exist", signature->_fullName));
     }
 
-    if (!yield) {
+    if (!yield || !yield->getItems()) {
         blueprint->returnAll(yieldItems);
     } else {
         for (const auto* item : *yield->getItems()) {
@@ -1151,6 +1168,11 @@ PipelineOutputInterface* PipelineGenerator::translateLoadNeo4j(LoadNeo4jNode* no
     return _builder.getPendingOutputInterface();
 }
 
+PipelineOutputInterface* PipelineGenerator::translateLoadJsonl(LoadJsonlNode* node) {
+    _builder.addLoadJsonl(node->getGraphName(), node->getFilePath());
+    return _builder.getPendingOutputInterface();
+}
+
 PipelineOutputInterface* PipelineGenerator::translateChangeNode(ChangeNode* node) {
     _builder.addChangeOp(node->getOp());
     return _builder.getPendingOutputInterface();
@@ -1198,5 +1220,51 @@ PipelineOutputInterface* PipelineGenerator::translateS3TransferNode(S3TransferNo
 
 PipelineOutputInterface* PipelineGenerator::translateShowProceduresNode(ShowProceduresNode* node) {
     _builder.addShowProcedures();
+    return _builder.getPendingOutputInterface();
+}
+
+PipelineOutputInterface* PipelineGenerator::translateShortestPathNode(ShortestPathNode* node) {
+    if (!_binaryVisitedMap.contains(node)) {
+        throw PipelineException("Attempted to translate ShortestPath Node which was "
+                                "not already encountered.");
+    }
+
+    PipelineOutputInterface* inputA = _builder.getPendingOutputInterface();
+    auto& [inputB, isBLhs] = _binaryVisitedMap.at(node);
+
+    PipelineOutputInterface* lhs = isBLhs ? inputB : inputA;
+    PipelineOutputInterface* rhs = isBLhs ? inputA : inputB;
+
+    // LHS is implicit in @ref _pendingOutput
+    _builder.getPendingOutput().updateInterface(lhs);
+
+    NamedColumn* distCol {nullptr};
+    NamedColumn* pathCol {nullptr};
+
+    PipelineBlockOutputInterface* output = nullptr;
+
+    const PropertyType edgeType = node->getEdgeType();
+    const auto process = [&]<SupportedType Type>() {
+        if constexpr (std::is_arithmetic_v<typename Type::Primitive>) {
+            output = &_builder.addShortestPath<Type>(rhs,
+                                                     _declToColumn[node->getSource()],
+                                                     _declToColumn[node->getTarget()],
+                                                     node->getEdgeType(),
+                                                     distCol,
+                                                     pathCol);
+            distCol->rename(node->getDistance()->getName());
+            pathCol->rename(node->getPath()->getName());
+        } else {
+            throw PlannerException("Unsupported Edge Weight Type");
+        }
+    };
+    PropertyTypeDispatcher {edgeType._valueType}.execute(process);
+
+    _declToColumn[node->getDistance()] = distCol->getTag();
+    _declToColumn[node->getPath()] = pathCol->getTag();
+
+    _builder.setMaterializeProc(MaterializeProcessor::createFromDf(_pipeline,
+                                                                   _mem,
+                                                                   output->getDataframe()));
     return _builder.getPendingOutputInterface();
 }

@@ -14,6 +14,7 @@
 #include "stmt/Limit.h"
 #include "stmt/Skip.h"
 #include "stmt/CreateStmt.h"
+#include "stmt/ShortestPathStmt.h"
 #include "Projection.h"
 #include "Pattern.h"
 #include "PatternElement.h"
@@ -30,6 +31,7 @@
 #include "CreateGraphQuery.h"
 #include "LoadGMLQuery.h"
 #include "LoadNeo4jQuery.h"
+#include "LoadJsonlQuery.h"
 #include "S3ConnectQuery.h"
 #include "S3TransferQuery.h"
 #include "YieldClause.h"
@@ -97,6 +99,10 @@ void CypherASTDumper::dump(std::ostream& out) {
 
             case QueryCommand::Kind::LOAD_NEO4J_QUERY:
                 dump(out, static_cast<const LoadNeo4jQuery*>(query));
+            break;
+
+            case QueryCommand::Kind::LOAD_JSONL_QUERY:
+                dump(out, static_cast<const LoadJsonlQuery*>(query));
             break;
 
             case QueryCommand::Kind::CHANGE_QUERY:
@@ -184,6 +190,13 @@ void CypherASTDumper::dump(std::ostream& out, const SinglePartQuery* query) {
                     dump(out, setStmt);
                 }
                 break;
+
+                case Stmt::Kind::SHORTESTPATH: {
+                    const ShortestPathStmt* shortestPathStmt = static_cast<const ShortestPathStmt*>(stmt);
+                    out << "    _" << std::hex << query << " ||--o{ _" << std::hex << shortestPathStmt << " : \"\"\n";
+                    dump(out, shortestPathStmt);
+                }
+                break;
             }
         }
     };
@@ -212,7 +225,14 @@ void CypherASTDumper::dump(std::ostream& out, const LoadGraphQuery* query) {
 void CypherASTDumper::dump(std::ostream& out, const LoadNeo4jQuery* query) {
     out << "    script ||--o{ _" << std::hex << query << " : \"\"\n";
     out << "    _" << std::hex << query << " {\n";
-    out << "        ASTType LoadGraphQuery\n";
+    out << "        ASTType LoadNeo4jQuery\n";
+    out << "    }\n";
+}
+
+void CypherASTDumper::dump(std::ostream& out, const LoadJsonlQuery* query) {
+    out << "    script ||--o{ _" << std::hex << query << " : \"\"\n";
+    out << "    _" << std::hex << query << " {\n";
+    out << "        ASTType LoadJsonlQuery\n";
     out << "    }\n";
 }
 
@@ -503,12 +523,20 @@ void CypherASTDumper::dump(std::ostream& out, const Projection* projection) {
         out << "        Skip _" << std::hex << skip << "\n";
     }
 
-    if (projection->isAll()) {
+    if (projection->isReturningAll()) {
         out << "        ProjectAll true\n";
-    } else {
-        const auto& items = projection->items();
-        for (const auto& item : items) {
-            out << "        Item _" << std::hex << item << "\n";
+    }
+
+    const auto& items = projection->items();
+    for (const auto& item : items) {
+        if (const auto* exprPtr = std::get_if<Expr*>(&item)) {
+            const Expr* expr = *exprPtr;
+            out << "        Item _" << std::hex << expr << "\n";
+        } else if (const auto* declPtr = std::get_if<VarDecl*>(&item)) {
+            const VarDecl* decl = *declPtr;
+            out << "        Item VAR_" << decl << "\n";
+        } else {
+            throw TuringException("Unknown projection item type");
         }
     }
 
@@ -526,14 +554,8 @@ void CypherASTDumper::dump(std::ostream& out, const Projection* projection) {
         dump(out, skip);
     }
 
-    if (projection->isAll()) {
+    if (projection->isReturningAll()) {
         return;
-    }
-
-    const auto& items = projection->items();
-    for (const auto& item : items) {
-        out << "    _" << std::hex << projection << " ||--o{ _" << std::hex << item << " : \"\"\n";
-        dump(out, item);
     }
 }
 
@@ -963,4 +985,13 @@ void CypherASTDumper::dump(std::ostream& out, const VarDecl* decl) {
     out << "    }\n";
 
     _dumpedVariables.insert(decl);
+}
+
+void CypherASTDumper::dump(std::ostream& out, const ShortestPathStmt* stmt) {
+    out << "    SHORTEST PATH:" << " {\n";
+    out << "    SOURCE:" << stmt->getSource()->getName() << ",\n";
+    out << "    TARGET:" << stmt->getTarget()->getName() << ",\n";
+    out << "    WEIGHT:" << stmt->getEdgeProperty()->getName() << "\n";
+
+    out << "    }\n";
 }

@@ -8,6 +8,7 @@
 #include "TypeUtils.h"
 
 #include "BioAssert.h"
+#include "PipelineException.h"
 
 namespace db {
 
@@ -114,7 +115,7 @@ struct BinaryOpExecutor {
  * accordingly
  */
 template <typename F>
-struct BinaryOperator {
+struct BinaryOp {
     template<typename T, typename U>
         requires TypeUtils::is_optional_v<T> || TypeUtils::is_optional_v<U>
     inline decltype(auto) operator()(T&& a, U&& b) {
@@ -127,11 +128,22 @@ struct BinaryOperator {
     }
 };
 
+struct SafeDivides {
+    template <typename T, typename U>
+    inline auto operator()(T&& a, U&& b) {
+        if (b == 0) {
+            throw PipelineException("Attempted to divide by zero.");
+        }
+        return std::divides<> {}(std::forward<T>(a), std::forward<U>(b));
+    }
+};
+
 }
 
-using Add = BinaryOperator<std::plus<>>;
-using Sub = BinaryOperator<std::minus<>>;
-using Mul = BinaryOperator<std::multiplies<>>;
+using Add = BinaryOp<std::plus<>>;
+using Sub = BinaryOp<std::minus<>>;
+using Mul = BinaryOp<std::multiplies<>>;
+using Div = BinaryOp<SafeDivides>;
 
 }
 

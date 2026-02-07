@@ -5,6 +5,8 @@
 #include "CypherAST.h"
 #include "DiagnosticsManager.h"
 #include "ReadStmtAnalyzer.h"
+#include "Symbol.h"
+#include "SourceManager.h"
 #include "WriteStmtAnalyzer.h"
 #include "ExprAnalyzer.h"
 #include "QueryCommand.h"
@@ -13,10 +15,15 @@
 #include "CreateGraphQuery.h"
 #include "LoadGMLQuery.h"
 #include "LoadNeo4jQuery.h"
+#include "LoadJsonlQuery.h"
 #include "S3ConnectQuery.h"
 #include "S3TransferQuery.h"
 #include "Projection.h"
+#include "decl/DeclContext.h"
 #include "expr/Expr.h"
+#include "stmt/ShortestPathStmt.h"
+#include "decl/VarDecl.h"
+#include "expr/SymbolExpr.h"
 #include "stmt/StmtContainer.h"
 #include "stmt/ReturnStmt.h"
 #include "stmt/OrderBy.h"
@@ -46,11 +53,11 @@ CypherAnalyzer::~CypherAnalyzer() {
 
 void CypherAnalyzer::analyze() {
     for (QueryCommand* query : _ast->queries()) {
-        DeclContext* ctxt = query->getDeclContext();
+        _ctxt = query->getDeclContext();
 
-        _exprAnalyzer->setDeclContext(ctxt);
-        _readAnalyzer->setDeclContext(ctxt);
-        _writeAnalyzer->setDeclContext(ctxt);
+        _exprAnalyzer->setDeclContext(_ctxt);
+        _readAnalyzer->setDeclContext(_ctxt);
+        _writeAnalyzer->setDeclContext(_ctxt);
 
         switch (query->getKind()) {
             case QueryCommand::Kind::SINGLE_PART_QUERY:
@@ -73,6 +80,10 @@ void CypherAnalyzer::analyze() {
                 analyze(static_cast<LoadNeo4jQuery*>(query));
             break;
 
+            case QueryCommand::Kind::LOAD_JSONL_QUERY:
+                analyze(static_cast<LoadJsonlQuery*>(query));
+            break;
+
             case QueryCommand::Kind::S3_CONNECT_QUERY:
                 analyze(static_cast<const S3ConnectQuery*>(query));
             break;
@@ -89,15 +100,18 @@ void CypherAnalyzer::analyze() {
             break;
 
             default:
-                 throwError("Unsupported query type", query);
+                throwError("Unsupported query type", query);
             break;
         }
     }
 }
 
 void CypherAnalyzer::analyze(const SinglePartQuery* query) {
+    DeclContext* ctxt = query->getDeclContext();
+
     const StmtContainer* readStmts = query->getReadStmts();
     const StmtContainer* updateStmts = query->getUpdateStmts();
+    const ShortestPathStmt* shortestPathStmt = query->getShortestPathStmt();
     const ReturnStmt* returnStmt = query->getReturnStmt();
 
     bool returnMandatory = updateStmts == nullptr;
@@ -112,6 +126,22 @@ void CypherAnalyzer::analyze(const SinglePartQuery* query) {
             }
             _readAnalyzer->analyze(stmt);
         }
+    }
+
+    if (shortestPathStmt) {
+        const PropertyTypeMap& propTypeMap = _graphMetadata.propTypes();
+        auto propName = shortestPathStmt->getEdgeProperty()->getName();
+
+        const std::optional<PropertyType> propType = propTypeMap.get(propName);
+        if (!propType) {
+            throwError(fmt::format("Unknown property: {}", propName));
+        }
+        ctxt->getOrCreateNamedVariable(_ast,
+                                       EvaluatedType::Integer,
+                                       shortestPathStmt->getDistVar()->getName());
+        ctxt->getOrCreateNamedVariable(_ast,
+                                       EvaluatedType::GraphPath,
+                                       shortestPathStmt->getPathVar()->getName());
     }
 
     // Generate update statements (optional)
@@ -155,8 +185,68 @@ void CypherAnalyzer::analyze(const ReturnStmt* returnSt) {
     bool isAggregate = false;
     bool hasGroupingKeys = false;
 
-    for (Expr* item : projection->items()) {
+    if (projection->isReturningAll()) {
+        // Return all variables defined in the current query
+
+        bioassert(_ctxt, "Query context is invalid");
+
+        // Iterate the decls in reverse declaration order. Since we call `pushFrontDecl()`
+        // The decls end up in order. e.g. MATCH (a), (b), (c) RETURN *, a.name
+        // - Initial projection items: ['a.name'];
+        // - After first `pushFrontDecl()`: ['c', 'a.name'];
+        // - After second `pushFrontDecl()`: ['b', 'c', 'a.name'];
+        // - After third `pushFrontDecl()`: ['a', 'b', 'c', 'a.name'];
+        for (VarDecl* decl : std::views::reverse(*_ctxt)) {
+            if (decl->isUnnamed()) {
+                continue;
+            }
+
+            // Push at the front since '*' is only allowed at the beginning of the return statement
+            projection->pushFrontDecl(decl);
+            projection->setName(decl, decl->getName());
+        }
+    }
+
+    const SourceManager* srcMan = _ast->getSourceManager();
+
+    for (const Projection::ReturnItem& returnItem : projection->items()) {
+        const auto* exprPtr = std::get_if<Expr*>(&returnItem);
+        if (!exprPtr) {
+            continue;
+        }
+
+        Expr* item = *exprPtr;
+        std::string_view name;
+
+        if (auto* symbolExpr = dynamic_cast<SymbolExpr*>(item)) {
+            Symbol* symbol = symbolExpr->getSymbol();
+            name = symbol->getName();
+        } else {
+            name = item->getName();
+            if (name.empty()) {
+                const std::string_view name = srcMan->getStringRepr(std::bit_cast<std::uintptr_t>(item));
+                if (name.empty()) [[unlikely]] {
+                    throwError("Failed to generate name for projection item", item);
+                }
+
+                item->setName(name);
+            }
+
+            name = item->getName();
+        }
+
         _exprAnalyzer->analyzeRootExpr(item);
+
+        if (name.empty()) {
+            continue;
+        }
+
+        if (projection->hasName(name)) {
+            continue; // Already added this name (added by wildcard)
+        }
+
+        projection->setName(item, name);
+
         isAggregate |= item->isAggregate();
         hasGroupingKeys |= !item->isAggregate();
 
@@ -261,6 +351,25 @@ void CypherAnalyzer::analyze(LoadNeo4jQuery* loadNeo4j) {
                                    "character '{}' not allowed.",
                                    c),
                        loadNeo4j);
+        }
+    }
+}
+
+void CypherAnalyzer::analyze(LoadJsonlQuery* loadJsonl) {
+    std::string_view graphName = loadJsonl->getGraphName();
+    if (graphName.empty()) {
+        graphName = loadJsonl->getFilePath().basename();
+    }
+
+    loadJsonl->setGraphName(graphName);
+
+    // Check that the graph name is only [A-Z0-9_]+
+    for (char c : graphName) {
+        if (!(isalnum(c) || c == '_')) {
+            throwError(fmt::format("Graph name must only contain alphanumeric characters or '_': "
+                                   "character '{}' not allowed.",
+                                   c),
+                       loadJsonl);
         }
     }
 }

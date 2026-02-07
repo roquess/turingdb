@@ -4,6 +4,7 @@
 
 #include "PipelineGenerator.h"
 #include "columns/AllowedKinds.h"
+#include "columns/BinaryOperators.h"
 #include "columns/BinaryPredicates.h"
 #include "columns/ColumnCombinations.h"
 #include "columns/ColumnOperatorDispatcher.h"
@@ -92,6 +93,22 @@ ColumnOperator ExprProgramGenerator::binaryOperatorToColumnOperator(BinaryOperat
 
         case BinaryOperator::LessThanOrEqual:
             return ColumnOperator::OP_LESS_THAN_OR_EQUAL;
+        break;
+
+        case BinaryOperator::Add:
+            return ColumnOperator::OP_ADD;
+        break;
+
+        case BinaryOperator::Sub:
+            return ColumnOperator::OP_SUB;
+        break;
+
+        case BinaryOperator::Mult:
+            return ColumnOperator::OP_MUL;
+        break;
+
+        case BinaryOperator::Div:
+            return ColumnOperator::OP_DIV;
         break;
 
         case BinaryOperator::_SIZE:
@@ -306,62 +323,73 @@ Column* ExprProgramGenerator::allocUnaryResultCol(const Expr* expr) {
     }
 }
 
-// Allocate the result column, determined by operator functor and arguments
-#define ALLOCATOR_CASE(Operator, Functor)                                                \
-    case (Operator): {                                                                   \
-        using ResultType = ColumnCombination<Functor, T, U>::ResultColumnType;           \
-        _resultCol = _gen->memory().alloc<ResultType>();                                 \
-        return;                                                                          \
-    }                                                                                    \
-    break;                                                                               \
-
+template <ColumnOperator Op>
 struct ResultAllocator {
     Column*& _resultCol;
     PipelineGenerator* _gen {nullptr};
-    ColumnOperator _op {ColumnOperator::_SIZE};
-
+    
     template <typename T, typename U>
     void operator()(const T* lhs, const U* rhs) {
         bioassert(lhs && rhs,
                   "Attempted to allocate a result column with null operands.");
-
-        switch (_op) {
-            ALLOCATOR_CASE(OP_EQUAL, Eq)
-            ALLOCATOR_CASE(OP_NOT_EQUAL, Ne)
-
-            ALLOCATOR_CASE(OP_GREATER_THAN, Gt)
-            ALLOCATOR_CASE(OP_LESS_THAN, Lt)
-
-            ALLOCATOR_CASE(OP_GREATER_THAN_OR_EQUAL, Gte)
-            ALLOCATOR_CASE(OP_LESS_THAN_OR_EQUAL, Lte)
-
-            ALLOCATOR_CASE(OP_AND, And)
-            ALLOCATOR_CASE(OP_OR, Or)
-
-            default:
-                throw FatalException("Unsupported allocator.");
-            break;
+        
+        if constexpr (Op == OP_EQUAL) {
+            using ResultType = typename ColumnCombination<Eq, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_NOT_EQUAL) {
+            using ResultType = typename ColumnCombination<Ne, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_GREATER_THAN) {
+            using ResultType = typename ColumnCombination<Gt, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_LESS_THAN) {
+            using ResultType = typename ColumnCombination<Lt, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_GREATER_THAN_OR_EQUAL) {
+            using ResultType = typename ColumnCombination<Gte, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_LESS_THAN_OR_EQUAL) {
+            using ResultType = typename ColumnCombination<Lte, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_AND) {
+            using ResultType = typename ColumnCombination<And, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_OR) {
+            using ResultType = typename ColumnCombination<Or, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_ADD) {
+            using ResultType = typename ColumnCombination<Add, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_SUB) {
+            using ResultType = typename ColumnCombination<Sub, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_MUL) {
+            using ResultType = typename ColumnCombination<Mul, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else if constexpr (Op == OP_DIV) {
+            using ResultType = typename ColumnCombination<Div, T, U>::ResultColumnType;
+            _resultCol = _gen->memory().alloc<ResultType>();
+        } else {
+            throw FatalException("Unsupported allocator.");
         }
-
-        throw FatalException("Fatal allocator.");
     }
 };
 
 // Uses Column dispatching to dispatch a functor which allocates the result column
 #define DISPATCHER_CASE(Operator)                                                        \
     case (Operator): {                                                                   \
+        ResultAllocator<Operator> allocator(result, _gen);                               \
         using Pairs = PairRestrictions<Operator>;                                        \
-        ColumnDoubleDispatcher<Pairs::Allowed, Pairs::AllowedMixed, ResultAllocator,     \
+        ColumnDoubleDispatcher<Pairs::Allowed, Pairs::AllowedMixed,                      \
+                               ResultAllocator<Operator>,                                \
                                Pairs::Excluded>::dispatch(lhs, rhs, allocator);          \
-    }                                                                                    \
-    break;                                                                               \
+    } break;
 
 Column* ExprProgramGenerator::allocBinaryResultCol(ColumnOperator op,
                                                    const Column* lhs,
                                                    const Column* rhs) {
     Column* result = nullptr;
 
-    ResultAllocator allocator(result, _gen, op);
 
     switch (op) {
         DISPATCHER_CASE(OP_EQUAL)
@@ -374,6 +402,11 @@ Column* ExprProgramGenerator::allocBinaryResultCol(ColumnOperator op,
 
         DISPATCHER_CASE(OP_AND)
         DISPATCHER_CASE(OP_OR)
+
+        DISPATCHER_CASE(OP_ADD)
+        DISPATCHER_CASE(OP_SUB)
+        DISPATCHER_CASE(OP_MUL)
+        DISPATCHER_CASE(OP_DIV)
 
         case OP_IN: // TODO: Implement
             throw PlannerException("Unsupported allocator: IN.");

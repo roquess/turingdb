@@ -1,7 +1,12 @@
 #pragma once
 
+#include <optional>
+#include <stdint.h>
+#include <list>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <variant>
-#include <vector>
 
 namespace db {
 
@@ -9,13 +14,16 @@ class Limit;
 class Skip;
 class OrderBy;
 class Expr;
+class VarDecl;
 class CypherAST;
 
 class Projection {
 public:
     friend CypherAST;
     struct All {};
-    using Items = std::vector<Expr*>;
+
+    using ReturnItem = std::variant<Expr*, VarDecl*>;
+    using Items = std::list<ReturnItem>;
 
     static Projection* create(CypherAST* ast);
 
@@ -43,8 +51,11 @@ public:
 
     void setHasGroupingKeys(bool hasGroupingKeys = true) { _hasGroupingKeys = hasGroupingKeys; }
 
-    bool isAll() const {
-        return std::holds_alternative<All>(_items);
+    void setName(const Expr* item, std::string_view name);
+    void setName(const VarDecl* item, std::string_view name);
+
+    bool isReturningAll() const {
+        return _returningAll;
     }
 
     Limit* getLimit() const { return _limit; }
@@ -52,12 +63,17 @@ public:
     OrderBy* getOrderBy() const { return _orderBy; }
 
     const Items& items() const {
-        return std::get<Items>(_items);
+        return _items;
     }
 
-    void add(Expr* Expr);
+    void addExpr(Expr* expr);
+    void pushFrontDecl(VarDecl* decl);
 
-    void setAll() { _items = All {}; }
+    void setReturnAll() { _returningAll = true; }
+
+    std::optional<std::string_view> getName(const Expr* item) const;
+    std::optional<std::string_view> getName(const VarDecl* item) const;
+    bool hasName(const std::string_view& name) const;
 
 private:
     Limit* _limit {nullptr};
@@ -66,8 +82,13 @@ private:
     bool _distinct {false};
     bool _aggregate {false};
     bool _hasGroupingKeys {false};
+    bool _returningAll {false};
 
-    std::variant<Items, All> _items;
+    Items _items;
+
+    // Maps a VarDecl*/Expr* to its column name
+    std::unordered_map<uintptr_t, std::string_view> _names;
+    std::unordered_set<std::string_view> _namesSet;
 
     Projection();
     ~Projection();

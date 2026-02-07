@@ -14,6 +14,7 @@ class CreateStmt;
 class CallStmt;
 class DeleteStmt;
 class SetStmt;
+class ShortestPathStmt;
 class Limit;
 class Skip;
 class ReturnStmt;
@@ -41,6 +42,7 @@ class ListGraphQuery;
 class CreateGraphQuery;
 class LoadGMLQuery;
 class LoadNeo4jQuery;
+class LoadJsonlQuery;
 class S3ConnectQuery;
 class S3TransferQuery;
 class YieldClause;
@@ -70,6 +72,7 @@ private:
     void dump(std::ostream& out, const SinglePartQuery* query);
     void dump(std::ostream& out, const LoadGraphQuery* query);
     void dump(std::ostream& out, const LoadNeo4jQuery* query);
+    void dump(std::ostream& out, const LoadJsonlQuery* query);
     void dump(std::ostream& out, const ChangeQuery* query);
     void dump(std::ostream& out, const CommitQuery* query);
     void dump(std::ostream& out, const ListGraphQuery* query);
@@ -107,7 +110,7 @@ private:
     void dump(std::ostream& out, const PropertyExpr* expr);
     void dump(std::ostream& out, const VarDecl* decl);
     void dump(std::ostream& out, const FunctionInvocationExpr* expr);
+    void dump(std::ostream& out, const ShortestPathStmt* stmt);
 };
 
 }
-

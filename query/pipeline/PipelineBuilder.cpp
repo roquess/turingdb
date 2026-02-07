@@ -30,11 +30,13 @@
 #include "processors/CreateGraphProcessor.h"
 #include "processors/LoadGMLProcessor.h"
 #include "processors/LoadNeo4jProcessor.h"
+#include "processors/LoadJsonlProcessor.h"
 #include "processors/S3ConnectProcessor.h"
 #include "processors/S3PullProcessor.h"
 #include "processors/S3PushProcessor.h"
 #include "processors/ComputeExprProcessor.h"
 #include "processors/FilterProcessor.h"
+#include "processors/ShortestPathProcessor.h"
 
 #include "interfaces/PipelineBlockOutputInterface.h"
 #include "interfaces/PipelineEdgeInputInterface.h"
@@ -161,6 +163,41 @@ PipelineEdgeOutputInterface& PipelineBuilder::addGetOutEdges() {
     matData.addToStep<ColumnEdgeIDs>(edgeIDs);
     matData.addToStep<ColumnEdgeTypes>(edgeTypes);
     matData.addToStep<ColumnNodeIDs>(targetNodes);
+
+    _pendingOutput.updateInterface(&output);
+
+    return output;
+}
+
+template <SupportedType T>
+PipelineBlockOutputInterface& PipelineBuilder::addShortestPath(PipelineOutputInterface* rhs,
+                                                               ColumnTag sourceKey,
+                                                               ColumnTag targetKey,
+                                                               const PropertyType& edgeType,
+                                                               NamedColumn*& distCol,
+                                                               NamedColumn*& pathCol) {
+
+    ShortestPathProcessor<T>* shortestPath = ShortestPathProcessor<T>::create(_pipeline,
+                                                                              _mem,
+                                                                              sourceKey,
+                                                                              targetKey,
+                                                                              edgeType);
+
+    if (_pendingOutput.getDataframe()->hasColumn(sourceKey)) {
+        _pendingOutput.connectTo(shortestPath->leftHandSide());
+        rhs->connectTo(shortestPath->rightHandSide());
+    } else {
+        _pendingOutput.connectTo(shortestPath->rightHandSide());
+        rhs->connectTo(shortestPath->leftHandSide());
+    }
+
+    PipelineBlockOutputInterface& output = shortestPath->output();
+    Dataframe* outDf = output.getDataframe();
+    distCol = allocColumn<ColumnVector<types::Double::Primitive>>(outDf);
+    pathCol = allocColumn<ColumnVector<Path>>(outDf);
+
+    shortestPath->addDistVarTag(distCol->getTag());
+    shortestPath->addPathVarTag(pathCol->getTag());
 
     _pendingOutput.updateInterface(&output);
 
@@ -348,6 +385,16 @@ PipelineBlockOutputInterface& PipelineBuilder::addProjection(std::span<Projectio
     // Forward only the projected columns to the next processor
     for (const auto& item : items) {
         NamedColumn* col = inDf->getColumn(item._tag);
+
+        if (!col) {
+            throw PipelineException(fmt::format("projection variable {} not found in output column", item._name));
+        }
+
+        if (NamedColumn* existingCol = outDf->getColumn(col->getTag())) {
+            // Column is already present, duplicate it under another name
+            col = NamedColumn::create(_dfMan, existingCol->getColumn(), _dfMan->allocTag());
+        }
+
         outDf->addColumn(col);
 
         if (!item._name.empty()) {
@@ -563,6 +610,21 @@ PipelineValueOutputInterface& PipelineBuilder::addLoadGML(std::string_view graph
 
 PipelineValueOutputInterface& PipelineBuilder::addLoadNeo4j(std::string_view graphName, const fs::Path& path) {
     LoadNeo4jProcessor* proc = LoadNeo4jProcessor::create(_pipeline, path, graphName);
+
+    PipelineValueOutputInterface& output = proc->output();
+
+    Dataframe* df = output.getDataframe();
+    NamedColumn* graphNameValue = allocColumn<ColumnConst<types::String::Primitive>>(df);
+    graphNameValue->rename("graphName");
+    output.setValue(graphNameValue);
+
+    _pendingOutput.setInterface(&output);
+
+    return output;
+}
+
+PipelineValueOutputInterface& PipelineBuilder::addLoadJsonl(std::string_view graphName, const fs::Path& path) {
+    LoadJsonlProcessor* proc = LoadJsonlProcessor::create(_pipeline, path, graphName);
 
     PipelineValueOutputInterface& output = proc->output();
 
@@ -850,3 +912,22 @@ template PipelineValuesOutputInterface& PipelineBuilder::addGetPropertiesWithNul
 template PipelineValuesOutputInterface& PipelineBuilder::addGetPropertiesWithNull<EntityType::Edge, db::types::Double>(ColumnTag, PropertyType);
 template PipelineValuesOutputInterface& PipelineBuilder::addGetPropertiesWithNull<EntityType::Edge, db::types::String>(ColumnTag, PropertyType);
 template PipelineValuesOutputInterface& PipelineBuilder::addGetPropertiesWithNull<EntityType::Edge, db::types::Bool>(ColumnTag, PropertyType);
+
+template PipelineBlockOutputInterface& PipelineBuilder::addShortestPath<db::types::Double>(PipelineOutputInterface*,
+                                                                                           ColumnTag,
+                                                                                           ColumnTag,
+                                                                                           const PropertyType&,
+                                                                                           NamedColumn*&,
+                                                                                           NamedColumn*&);
+template PipelineBlockOutputInterface& PipelineBuilder::addShortestPath<db::types::UInt64>(PipelineOutputInterface*,
+                                                                                           ColumnTag,
+                                                                                           ColumnTag,
+                                                                                           const PropertyType&,
+                                                                                           NamedColumn*&,
+                                                                                           NamedColumn*&);
+template PipelineBlockOutputInterface& PipelineBuilder::addShortestPath<db::types::Int64>(PipelineOutputInterface*,
+                                                                                          ColumnTag,
+                                                                                          ColumnTag,
+                                                                                          const PropertyType&,
+                                                                                          NamedColumn*&,
+                                                                                          NamedColumn*&);
